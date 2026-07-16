@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="theme-color" content="#16181C">
+<title>Trainingsplan</title>
+<style>
+/* ============================================================
+   Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
+   ============================================================ */
+:root{
+  --ground:#16181C; --panel:#1E2126; --panel-2:#252930;
+  --chalk:#EDEAE3; --muted:#8C9199; --line:#2C3037;
+  --signal:#F2C14E; --rest:#3E8FD6; --warn:#C8553D;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--ground);color:var(--chalk);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font-size:16px;-webkit-text-size-adjust:100%;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.view{display:none;padding:20px 16px 32px;max-width:640px;margin:0 auto}
+.view.aktiv{display:block}
+h1{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0}
+h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+.kopf{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+
+button{font-family:inherit;font-size:16px;border:0;border-radius:4px;padding:14px 16px;
+  min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer}
+button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+button.primaer{background:var(--signal);color:#16181C}
+button.gefahr{background:transparent;color:var(--warn);border:1px solid var(--line)}
+button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
+button.breit{width:100%}
+button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
+  background:var(--panel-2);border:1px solid var(--line)}
+button:disabled{opacity:.4}
+.knopfreihe{display:flex;gap:8px;margin-top:12px}
+.knopfreihe>*{flex:1}
+
+input,select{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
+  border:1px solid var(--line);border-radius:4px;padding:11px 12px;width:100%;min-height:44px;appearance:none}
+input:focus,select:focus{outline:none;border-color:var(--signal)}
+label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+
+.karte{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:10px}
+.zeile{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.leer{border:1px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted)}
+.hinweis{background:var(--panel);border-left:3px solid var(--warn);padding:10px 12px;
+  font-size:13px;color:var(--muted);border-radius:0 4px 4px 0;margin-bottom:16px;line-height:1.5}
+.raster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.abstand{margin-top:16px}
+.geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
+  background:var(--panel-2);border:1px dashed var(--signal);border-radius:6px;
+  padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all}
+
+/* Strichliste der Sätze */
+.strichliste{display:flex;gap:5px;margin:18px 0 26px}
+.strich{width:9px;height:32px;border-radius:1px;transform:skewX(-8deg);
+  border:1.5px solid var(--line);background:transparent}
+.strich.erledigt{background:var(--muted);border-color:var(--muted)}
+.strich.jetzt{background:var(--signal);border-color:var(--signal)}
+
+/* Trainingsansicht */
+#view-training.aktiv{display:flex;flex-direction:column;min-height:100dvh;padding:20px 16px 24px}
+.phase{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--signal)}
+.phase.pause{color:var(--rest)}
+.uebungsname{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:6px 0 0}
+.uhr{flex:1;display:flex;align-items:center;justify-content:center}
+.uhr-zahl{font-family:var(--mono);font-weight:700;letter-spacing:-.05em;line-height:.9;
+  font-variant-numeric:tabular-nums;font-size:clamp(72px,26vw,140px);color:var(--signal)}
+.uhr-zahl.pause{color:var(--rest)}
+.uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.balken span{display:block;height:100%;background:var(--signal);width:0%}
+.balken-text{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px}
+@media (prefers-reduced-motion:no-preference){
+  .uhr-zahl.gleich{animation:puls .6s ease-in-out infinite}
+  @keyframes puls{50%{opacity:.45}}
+}
+
+/* Bewertung */
+.note{display:flex;gap:6px;margin-top:10px}
+.note button{flex:1;padding:12px 0;font-family:var(--mono);background:var(--panel-2);color:var(--muted)}
+.note button.gewaehlt{background:var(--signal);color:#16181C}
+.notenhilfe{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+/* Umschalter Wdh/Zeit */
+.umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel)}
+.umschalter button.gewaehlt{background:var(--signal);color:#16181C}
+
+/* Statistik-Diagramm */
+.diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+
+/* Eigener Dialog (ersetzt confirm/alert) */
+#dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+  align-items:center;justify-content:center;padding:24px;z-index:10}
+#dialog-hintergrund.offen{display:flex}
+#dialog{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:20px;max-width:420px;width:100%}
+#dialog p{margin:0 0 16px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Ansicht: Anmeldung
+     ============================================================ -->
+<section id="view-login" class="view aktiv">
+  <div class="kopf"><h1>Anmelden</h1></div>
+  <div id="login-hinweis" class="hinweis" hidden></div>
+
+  <div id="login-konten"></div>
+
+  <div id="login-formular" class="karte" hidden>
+    <h2 id="login-name">–</h2>
+    <label for="login-passwort" class="abstand">Passwort</label>
+    <input id="login-passwort" type="password" autocomplete="current-password">
+    <div class="knopfreihe">
+      <button class="primaer" onclick="anmelden()">Anmelden</button>
+      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+    </div>
+    <div class="knopfreihe">
+      <button class="schmal" onclick="wiederherstellungZeigen()">Passwort vergessen?</button>
+    </div>
+  </div>
+
+  <div id="wiederherstellung-formular" class="karte" hidden>
+    <h2>Passwort zurücksetzen</h2>
+    <div class="hinweis abstand">Gib den Wiederherstellungscode ein, den du beim Anlegen des Kontos notiert hast.</div>
+    <label for="wh-code">Wiederherstellungscode</label>
+    <input id="wh-code" autocapitalize="characters" autocomplete="off" placeholder="XXXXX-XXXXX-XXXXX-XXXXX">
+    <label class="abstand" for="wh-passwort">Neues Passwort</label>
+    <input id="wh-passwort" type="password" autocomplete="new-password">
+    <label class="abstand" for="wh-passwort2">Neues Passwort wiederholen</label>
+    <input id="wh-passwort2" type="password" autocomplete="new-password">
+    <div class="knopfreihe">
+      <button class="primaer" onclick="passwortZuruecksetzen()">Zurücksetzen</button>
+      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+    </div>
+  </div>
+
+  <div id="neu-formular" class="karte" hidden>
+    <h2>Neues Konto</h2>
+    <label class="abstand" for="neu-benutzer">Benutzername</label>
+    <input id="neu-benutzer" autocomplete="username">
+    <label class="abstand" for="neu-passwort">Passwort</label>
+    <input id="neu-passwort" type="password" autocomplete="new-password">
+    <div class="raster abstand">
+      <div><label for="neu-groesse">Größe (cm)</label><input id="neu-groesse" type="number" inputmode="numeric"></div>
+      <div><label for="neu-geburtsjahr">Geburtsjahr</label><input id="neu-geburtsjahr" type="number" inputmode="numeric"></div>
+    </div>
+    <label class="abstand" for="neu-geschlecht">Geschlecht</label>
+    <select id="neu-geschlecht">
+      <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
+    </select>
+    <div class="knopfreihe">
+      <button class="primaer" onclick="kontoAnlegen()">Konto anlegen</button>
+      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+    </div>
+  </div>
+
+  <div class="knopfreihe">
+    <button class="breit" id="neu-knopf" onclick="neuFormularZeigen()">Neues Konto anlegen</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Wiederherstellungscode anzeigen (einmalig!)
+     ============================================================ -->
+<section id="view-code" class="view">
+  <div class="kopf"><h1>Wiederherstellungscode</h1></div>
+  <div class="hinweis">Dieser Code wird nur JETZT angezeigt und nirgendwo im Klartext gespeichert.
+    Schreibe ihn auf Papier oder lege ihn in deinen Passwortmanager.
+    Mit ihm kannst du ein vergessenes Passwort zurücksetzen — ohne ihn und ohne Passwort sind die Daten endgültig unlesbar.</div>
+  <div id="code-anzeige" class="geheim">–</div>
+  <div class="knopfreihe">
+    <button class="primaer" onclick="codeBestaetigen()">Ich habe den Code sicher notiert</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Plan-Übersicht
+     ============================================================ -->
+<section id="view-plaene" class="view">
+  <div class="kopf">
+    <h1>Trainingspläne</h1>
+    <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
+  </div>
+  <div id="plan-liste"></div>
+  <div class="knopfreihe">
+    <button class="primaer" onclick="planAnlegen()">Plan anlegen</button>
+    <button onclick="tonTesten()">Ton testen</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Profil & Statistik
+     ============================================================ -->
+<section id="view-profil" class="view">
+  <div class="kopf">
+    <h1>Profil</h1>
+    <button class="schmal" onclick="planListeZeichnen();zeige('view-plaene')">Zurück</button>
+  </div>
+
+  <div class="karte">
+    <h2 id="profil-benutzer">–</h2>
+    <div class="raster abstand">
+      <div><label for="profil-groesse">Größe (cm)</label><input id="profil-groesse" type="number" inputmode="numeric"></div>
+      <div><label for="profil-geburtsjahr">Geburtsjahr</label><input id="profil-geburtsjahr" type="number" inputmode="numeric"></div>
+    </div>
+    <label class="abstand" for="profil-geschlecht">Geschlecht</label>
+    <select id="profil-geschlecht">
+      <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
+    </select>
+    <div class="knopfreihe"><button class="schmal" onclick="profilSpeichern()">Profil speichern</button></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile">
+      <h2>Körpergewicht</h2>
+      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
+    </div>
+    <div id="gewicht-formular" hidden>
+      <div class="raster abstand">
+        <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
+        <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
+      </div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
+    </div>
+    <div id="gewicht-diagramm" class="abstand"></div>
+    <div id="gewicht-liste" class="abstand"></div>
+  </div>
+
+  <div class="karte">
+    <h2>Trainings</h2>
+    <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
+
+  <div class="karte">
+    <h2>Sicherheit</h2>
+    <div id="pw-formular" class="abstand" hidden>
+      <label for="pw-neu">Neues Passwort</label>
+      <input id="pw-neu" type="password" autocomplete="new-password">
+      <label class="abstand" for="pw-neu2">Neues Passwort wiederholen</label>
+      <input id="pw-neu2" type="password" autocomplete="new-password">
+      <div class="knopfreihe"><button class="primaer schmal" onclick="passwortAendern()">Passwort ändern</button></div>
+    </div>
+    <div class="knopfreihe">
+      <button class="schmal" onclick="pwFormularZeigen()">Passwort ändern</button>
+      <button class="schmal" onclick="codeErneuern()">Neuer Wiederherstellungscode</button>
+    </div>
+  </div>
+
+  <div class="knopfreihe">
+    <button class="schmal" onclick="exportieren()">Daten exportieren</button>
+    <button class="schmal" onclick="abmelden()">Abmelden</button>
+  </div>
+  <div class="knopfreihe">
+    <button class="gefahr" onclick="kontoLoeschen()">Konto löschen</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Plan bearbeiten
+     ============================================================ -->
+<section id="view-editor" class="view">
+  <div class="kopf"><h1>Plan bearbeiten</h1></div>
+  <div class="karte">
+    <label for="plan-name">Name des Plans</label>
+    <input id="plan-name" placeholder="z. B. Montag – Oberkörper">
+  </div>
+  <div id="uebung-liste"></div>
+  <button class="breit" onclick="uebungAnlegen()">Übung hinzufügen</button>
+  <div class="knopfreihe">
+    <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
+    <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
+  </div>
+  <div class="knopfreihe"><button class="gefahr" onclick="planLoeschen()">Plan löschen</button></div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Training läuft
+     ============================================================ -->
+<section id="view-training" class="view">
+  <div class="balken"><span id="balken-fuellung"></span></div>
+  <div id="balken-text" class="balken-text">–</div>
+  <div id="phase" class="phase">Satz</div>
+  <div id="uebungsname" class="uebungsname">–</div>
+  <div id="strichliste" class="strichliste"></div>
+  <div class="uhr">
+    <div>
+      <div id="uhr-zahl" class="uhr-zahl">–</div>
+      <div id="uhr-label" class="uhr-label"></div>
+    </div>
+  </div>
+  <button id="haupt-knopf" class="primaer breit" onclick="hauptKnopf()">Satz fertig</button>
+  <div class="knopfreihe">
+    <button class="schmal" id="plus-knopf" onclick="zeitVerlaengern()">+ 30 s</button>
+    <button class="schmal gefahr" onclick="trainingAbbrechen()">Abbrechen</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Bewertung
+     ============================================================ -->
+<section id="view-bewertung" class="view">
+  <div class="kopf"><h1>Wie war das Training?</h1></div>
+  <div id="bewertung-liste"></div>
+  <div class="notenhilfe">1 = viel zu leicht · 2 = leicht · 3 = passend · 4 = schwer · 5 = nicht geschafft</div>
+  <div class="knopfreihe">
+    <button class="primaer" onclick="bewertungAnwenden()">Auswerten und speichern</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Ergebnis
+     ============================================================ -->
+<section id="view-ergebnis" class="view">
+  <div class="kopf"><h1>Angepasst für nächstes Mal</h1></div>
+  <div id="ergebnis-liste"></div>
+  <div class="knopfreihe">
+    <button class="primaer" onclick="planListeZeichnen();zeige('view-plaene')">Fertig</button>
+  </div>
+</section>
+
+<!-- Eigener Dialog -->
+<div id="dialog-hintergrund">
+  <div id="dialog" role="dialog" aria-modal="true">
+    <p id="dialog-text"></p>
+    <div class="knopfreihe">
+      <button class="primaer" id="dialog-ja">OK</button>
+      <button id="dialog-nein" hidden>Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   SICHERHEITSARCHITEKTUR (bitte lesen, bevor hier etwas geändert wird)
+
+   Pro Konto existiert ein zufälliger 256-Bit-DATENSCHLÜSSEL.
+   Nur er ver- und entschlüsselt die Kontodaten (AES-GCM).
+
+   Der Datenschlüssel selbst liegt ZWEIMAL verpackt auf der Platte:
+     Hülle A: verschlüsselt mit einem Schlüssel aus dem PASSWORT
+     Hülle B: verschlüsselt mit einem Schlüssel aus dem WIEDERHERSTELLUNGSCODE
+   (Passwort/Code -> PBKDF2, 310.000 Runden, eigenes Salz je Hülle.)
+
+   Folgen:
+   - Passwort vergessen: Hülle B mit dem Code öffnen, neues Passwort
+     setzen -> nur Hülle A wird neu geschrieben. Daten unangetastet.
+   - Passwort ändern geht ohne Neuverschlüsselung aller Daten.
+   - Weder Passwort noch Code noch Datenschlüssel stehen je im Klartext
+     auf der Platte. Falscher Schlüssel => AES-GCM-Entschlüsselung
+     schlägt fehl; das ist zugleich die Passwortprüfung.
+   ============================================================ */
+
+/* ============================================================
+   #region Dialoge  (confirm/alert sind in Sandbox/PWA unzuverlässig)
+   ============================================================ */
+function frage(textInhalt, mitAbbrechen, dann){
+  const hintergrund = document.getElementById("dialog-hintergrund");
+  const ja = document.getElementById("dialog-ja");
+  const nein = document.getElementById("dialog-nein");
+  document.getElementById("dialog-text").textContent = textInhalt;
+  nein.hidden = !mitAbbrechen;
+  hintergrund.classList.add("offen");
+  ja.onclick   = () => { hintergrund.classList.remove("offen"); if(dann) dann(true); };
+  nein.onclick = () => { hintergrund.classList.remove("offen"); if(dann) dann(false); };
+}
+function meldung(t){ frage(t, false, null); }
+
+/* ============================================================
+   #region Speicher (localStorage, mit Fallback für Sandboxen)
+   ============================================================ */
+const Speicher = (function(){
+  const SCHLUESSEL = "trainingsapp.v3";
+  let imSpeicher = null;
+  function testen(){
+    try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return true; }
+    catch(e){ return false; }
+  }
+  const persistent = testen();
+  return {
+    persistent,
+    laden(){
+      if(!persistent) return imSpeicher;
+      try {
+        // v3 bevorzugen, sonst v2-Bestand übernehmen (Konten werden beim Login migriert)
+        return JSON.parse(localStorage.getItem(SCHLUESSEL)) ||
+               JSON.parse(localStorage.getItem("trainingsapp.v2"));
+      } catch(e){ return null; }
+    },
+    schreiben(objekt){
+      if(!persistent){ imSpeicher = objekt; return; }
+      try { localStorage.setItem(SCHLUESSEL, JSON.stringify(objekt)); }
+      catch(e){ meldung("Speichern fehlgeschlagen: " + e.message); }
+    }
+  };
+})();
+
+let tresor = Speicher.laden() || { version:3, konten:[] };
+
+/* ============================================================
+   #region Kryptografie-Grundlagen
+   ============================================================ */
+const kryptoVerfuegbar = !!(window.crypto && crypto.subtle);
+const KDF_RUNDEN = 310000;   // OWASP-Empfehlung für PBKDF2-SHA-256
+
+function bytesZuBase64(bytes){ return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
+function base64ZuBytes(s){ return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+
+/** Leitet aus Passwort ODER Wiederherstellungscode einen AES-Schlüssel ab. */
+async function schluesselAbleiten(geheimnis, salzBytes){
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(geheimnis),
+    "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name:"PBKDF2", salt:salzBytes, iterations:KDF_RUNDEN, hash:"SHA-256" },
+    material, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+}
+
+async function gcmVerschluesseln(schluessel, bytes){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const chiffre = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, schluessel, bytes);
+  return { iv: bytesZuBase64(iv), chiffre: bytesZuBase64(chiffre) };
+}
+
+async function gcmEntschluesseln(schluessel, paket){
+  const klartext = await crypto.subtle.decrypt(
+    { name:"AES-GCM", iv: base64ZuBytes(paket.iv) }, schluessel, base64ZuBytes(paket.chiffre));
+  return new Uint8Array(klartext);
+}
+
+/* --- Datenschlüssel (DK) --- */
+function dkErzeugen(){ return crypto.getRandomValues(new Uint8Array(32)); }
+
+async function dkImportieren(dkBytes){
+  // extractable:false — der aktive Schlüssel kann von Skripten nicht wieder ausgelesen werden.
+  return crypto.subtle.importKey("raw", dkBytes, { name:"AES-GCM" }, false, ["encrypt","decrypt"]);
+}
+
+/** Verpackt den DK mit einem Geheimnis (Passwort/Code). Ergebnis: { salz, huelle }. */
+async function huelleErzeugen(geheimnis, dkBytes){
+  const salz = crypto.getRandomValues(new Uint8Array(16));
+  const packSchluessel = await schluesselAbleiten(geheimnis, salz);
+  return { salz: bytesZuBase64(salz), huelle: await gcmVerschluesseln(packSchluessel, dkBytes) };
+}
+
+/** Öffnet eine Hülle. Wirft bei falschem Geheimnis einen Fehler. */
+async function huelleOeffnen(geheimnis, eintrag){
+  const packSchluessel = await schluesselAbleiten(geheimnis, base64ZuBytes(eintrag.salz));
+  return gcmEntschluesseln(packSchluessel, eintrag.huelle);
+}
+
+/* --- Wiederherstellungscode: 20 Zeichen, ~100 Bit Entropie,
+       Zeichensatz ohne verwechselbare Zeichen (kein O/0, I/1/L) --- */
+const CODE_ZEICHEN = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+function codeErzeugen(){
+  const zufall = crypto.getRandomValues(new Uint8Array(20));
+  let code = "";
+  for(let i = 0; i < 20; i++){
+    code += CODE_ZEICHEN[zufall[i] % CODE_ZEICHEN.length];
+    if(i % 5 === 4 && i < 19) code += "-";
+  }
+  return code;   // Form: XXXXX-XXXXX-XXXXX-XXXXX
+}
+
+/** Nutzereingabe tolerant machen: Großschreibung, Bindestriche/Leerzeichen egal. */
+function codeNormalisieren(eingabe){
+  return eingabe.toUpperCase().replace(/[^A-Z2-9]/g, "")
+    .replace(/(.{5})(?=.)/g, "$1-");
+}
+
+/* ============================================================
+   #region Sitzung
+   Nach der Anmeldung liegen entschlüsselte Daten und der aktive
+   Datenschlüssel NUR im Arbeitsspeicher. Abmelden wirft beides weg.
+   Kein automatischer Logout — nur der Knopf im Profil meldet ab.
+   ============================================================ */
+let sitzung = null;   // { kontoId, datenSchluessel(CryptoKey), dkBytes(Uint8Array), daten }
+
+function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function leereKontodaten(profil){ return { profil, gewichte:[], protokoll:[], plaene:[] }; }
+
+async function sitzungSpeichern(){
+  const eintrag = tresor.konten.find(k => k.id === sitzung.kontoId);
+  const bytes = new TextEncoder().encode(JSON.stringify(sitzung.daten));
+  eintrag.paket = await gcmVerschluesseln(sitzung.datenSchluessel, bytes);
+  Speicher.schreiben(tresor);
+}
+function speichern(){ sitzungSpeichern().catch(e => meldung("Speichern fehlgeschlagen: " + e.message)); }
+
+/* ============================================================
+   #region Anmeldung, Kontoanlage, Wiederherstellung
+   ============================================================ */
+let gewaehltesKonto = null;
+let frischerCode = null;       // wird nur für die einmalige Anzeige gehalten
+let nachCodeAnzeige = null;    // wohin nach "Code notiert"
+
+function loginZeichnen(){
+  const hinweis = document.getElementById("login-hinweis");
+  const probleme = [];
+  if(!Speicher.persistent) probleme.push("Diese Umgebung erlaubt keinen dauerhaften Speicher — auf der echten Website (HTTPS) bleibt alles erhalten.");
+  if(!kryptoVerfuegbar) probleme.push("Verschlüsselung ist hier nicht verfügbar (braucht HTTPS). Kontofunktionen gehen erst auf der echten Website.");
+  hinweis.hidden = probleme.length === 0;
+  hinweis.textContent = probleme.join(" ");
+
+  ["login-formular","neu-formular","wiederherstellung-formular"].forEach(id =>
+    document.getElementById(id).hidden = true);
+  document.getElementById("neu-knopf").hidden = false;
+
+  const ziel = document.getElementById("login-konten");
+  ziel.hidden = false;
+  ziel.innerHTML = tresor.konten.length === 0
+    ? '<div class="leer">Noch kein Konto auf diesem Gerät.</div>'
+    : tresor.konten.map(k =>
+        '<div class="karte zeile"><h2>' + text(k.benutzer) + '</h2>' +
+        '<button class="schmal" onclick="kontoWaehlen(\'' + k.id + '\')">Anmelden</button></div>').join("");
+  zeige("view-login");
+}
+
+function kontoWaehlen(id){
+  gewaehltesKonto = tresor.konten.find(k => k.id === id);
+  document.getElementById("login-name").textContent = gewaehltesKonto.benutzer;
+  document.getElementById("login-passwort").value = "";
+  document.getElementById("login-konten").hidden = true;
+  document.getElementById("neu-knopf").hidden = true;
+  document.getElementById("login-formular").hidden = false;
+  document.getElementById("login-passwort").focus();
+}
+
+async function anmelden(){
+  if(!kryptoVerfuegbar){ meldung("Verschlüsselung hier nicht verfügbar — bitte auf der echten Website (HTTPS) anmelden."); return; }
+  const passwort = document.getElementById("login-passwort").value;
+  try {
+    if(gewaehltesKonto.huellePasswort){
+      /* --- Aktuelles Schema (v3): Hülle öffnen, DK laden, Daten entschlüsseln --- */
+      const dkBytes = await huelleOeffnen(passwort, gewaehltesKonto.huellePasswort);
+      const datenSchluessel = await dkImportieren(dkBytes);
+      const klartext = await gcmEntschluesseln(datenSchluessel, gewaehltesKonto.paket);
+      const daten = JSON.parse(new TextDecoder().decode(klartext));
+      sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
+      planListeZeichnen();
+      zeige("view-plaene");
+    } else {
+      /* --- Altes Schema (v2, Daten direkt mit Passwort verschlüsselt):
+             erst normal öffnen, dann auf v3 hochziehen und Code zeigen --- */
+      const altSchluessel = await schluesselAbleiten(passwort, base64ZuBytes(gewaehltesKonto.salz));
+      const klartext = await gcmEntschluesseln(altSchluessel, gewaehltesKonto.paket);
+      const daten = JSON.parse(new TextDecoder().decode(klartext));
+      await kontoAufV3Heben(gewaehltesKonto, passwort, daten);
+      codeAnzeigen(() => { planListeZeichnen(); zeige("view-plaene"); });
+    }
+  } catch(e){
+    meldung("Falsches Passwort.");
+  }
+}
+
+/** Baut ein Konto vom v2- auf das v3-Schema um (Datenschlüssel + zwei Hüllen). */
+async function kontoAufV3Heben(konto, passwort, daten){
+  const dkBytes = dkErzeugen();
+  const datenSchluessel = await dkImportieren(dkBytes);
+  frischerCode = codeErzeugen();
+  konto.huellePasswort = await huelleErzeugen(passwort, dkBytes);
+  konto.huelleCode     = await huelleErzeugen(frischerCode, dkBytes);
+  delete konto.salz;   // gehörte zum alten Schema
+  sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
+  await sitzungSpeichern();
+}
+
+function neuFormularZeigen(){
+  document.getElementById("login-konten").hidden = true;
+  document.getElementById("neu-knopf").hidden = true;
+  document.getElementById("neu-formular").hidden = false;
+}
+
+async function kontoAnlegen(){
+  if(!kryptoVerfuegbar){ meldung("Verschlüsselung hier nicht verfügbar — bitte auf der echten Website (HTTPS) anlegen."); return; }
+  const benutzer = document.getElementById("neu-benutzer").value.trim();
+  const passwort = document.getElementById("neu-passwort").value;
+  if(benutzer === ""){ meldung("Bitte einen Benutzernamen eingeben."); return; }
+  if(passwort.length < 8){ meldung("Das Passwort braucht mindestens 8 Zeichen."); return; }
+  if(tresor.konten.some(k => k.benutzer.toLowerCase() === benutzer.toLowerCase())){
+    meldung("Diesen Benutzernamen gibt es auf diesem Gerät schon."); return;
+  }
+  const profil = {
+    groesse: parseFloat(document.getElementById("neu-groesse").value) || 0,
+    geburtsjahr: parseInt(document.getElementById("neu-geburtsjahr").value) || 0,
+    geschlecht: document.getElementById("neu-geschlecht").value
+  };
+
+  const dkBytes = dkErzeugen();
+  const datenSchluessel = await dkImportieren(dkBytes);
+  frischerCode = codeErzeugen();
+  const daten = leereKontodaten(profil);
+  const konto = {
+    id: neueId(), benutzer,
+    huellePasswort: await huelleErzeugen(passwort, dkBytes),
+    huelleCode:     await huelleErzeugen(frischerCode, dkBytes),
+    paket: await gcmVerschluesseln(datenSchluessel, new TextEncoder().encode(JSON.stringify(daten)))
+  };
+  tresor.konten.push(konto);
+  Speicher.schreiben(tresor);
+  sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
+  codeAnzeigen(() => { planListeZeichnen(); zeige("view-plaene"); });
+}
+
+function codeAnzeigen(danach){
+  document.getElementById("code-anzeige").textContent = frischerCode;
+  nachCodeAnzeige = danach;
+  zeige("view-code");
+}
+function codeBestaetigen(){
+  frischerCode = null;                 // Code aus dem Arbeitsspeicher werfen
+  document.getElementById("code-anzeige").textContent = "–";
+  if(nachCodeAnzeige) nachCodeAnzeige();
+  nachCodeAnzeige = null;
+}
+
+function wiederherstellungZeigen(){
+  document.getElementById("login-formular").hidden = true;
+  document.getElementById("wiederherstellung-formular").hidden = false;
+  document.getElementById("wh-code").value = "";
+  document.getElementById("wh-passwort").value = "";
+  document.getElementById("wh-passwort2").value = "";
+}
+
+async function passwortZuruecksetzen(){
+  const konto = gewaehltesKonto;
+  if(!konto.huelleCode){ meldung("Für dieses Konto existiert noch kein Wiederherstellungscode. Bitte einmal mit Passwort anmelden."); return; }
+  const code = codeNormalisieren(document.getElementById("wh-code").value);
+  const pw1 = document.getElementById("wh-passwort").value;
+  const pw2 = document.getElementById("wh-passwort2").value;
+  if(pw1.length < 8){ meldung("Das neue Passwort braucht mindestens 8 Zeichen."); return; }
+  if(pw1 !== pw2){ meldung("Die Passwörter stimmen nicht überein."); return; }
+  try {
+    const dkBytes = await huelleOeffnen(code, konto.huelleCode);
+    konto.huellePasswort = await huelleErzeugen(pw1, dkBytes);   // NUR die Passwort-Hülle neu — Daten unberührt
+    Speicher.schreiben(tresor);
+    const datenSchluessel = await dkImportieren(dkBytes);
+    const klartext = await gcmEntschluesseln(datenSchluessel, konto.paket);
+    sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten: JSON.parse(new TextDecoder().decode(klartext)) };
+    meldung("Passwort neu gesetzt. Du bist angemeldet.");
+    planListeZeichnen();
+    zeige("view-plaene");
+  } catch(e){
+    meldung("Der Wiederherstellungscode ist nicht korrekt.");
+  }
+}
+
+function abmelden(){
+  sitzung = null;          // entschlüsselte Daten und Schlüssel aus dem Arbeitsspeicher werfen
+  gewaehltesKonto = null;
+  loginZeichnen();
+}
+
+function kontoLoeschen(){
+  frage("Konto und alle Daten unwiderruflich löschen?", true, ja => {
+    if(!ja) return;
+    tresor.konten = tresor.konten.filter(k => k.id !== sitzung.kontoId);
+    Speicher.schreiben(tresor);
+    abmelden();
+  });
+}
+
+/* --- Sicherheitsfunktionen im Profil --- */
+function pwFormularZeigen(){
+  const f = document.getElementById("pw-formular");
+  f.hidden = !f.hidden;
+}
+
+async function passwortAendern(){
+  const pw1 = document.getElementById("pw-neu").value;
+  const pw2 = document.getElementById("pw-neu2").value;
+  if(pw1.length < 8){ meldung("Das neue Passwort braucht mindestens 8 Zeichen."); return; }
+  if(pw1 !== pw2){ meldung("Die Passwörter stimmen nicht überein."); return; }
+  const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
+  konto.huellePasswort = await huelleErzeugen(pw1, sitzung.dkBytes);
+  Speicher.schreiben(tresor);
+  document.getElementById("pw-neu").value = "";
+  document.getElementById("pw-neu2").value = "";
+  document.getElementById("pw-formular").hidden = true;
+  meldung("Passwort geändert.");
+}
+
+function codeErneuern(){
+  frage("Neuen Wiederherstellungscode erzeugen? Der alte Code wird dadurch ungültig.", true, ja => {
+    if(!ja) return;
+    (async () => {
+      const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
+      frischerCode = codeErzeugen();
+      konto.huelleCode = await huelleErzeugen(frischerCode, sitzung.dkBytes);
+      Speicher.schreiben(tresor);
+      codeAnzeigen(() => profilOeffnen());
+    })().catch(e => meldung("Fehlgeschlagen: " + e.message));
+  });
+}
+
+/* ============================================================
+   #region Datenmodell Übungen
+   modus "wdh"  -> Sätze mit Wiederholungen, Nutzer drückt "Satz fertig"
+   modus "zeit" -> Sätze mit Countdown (z. B. Plank), laufen automatisch ab
+   ============================================================ */
+function neueUebung(){
+  return { id:neueId(), name:"", modus:"wdh", saetze:3,
+           wdh:10, wdhMin:8, wdhMax:12, gewicht:0, gewichtSchritt:2.5,
+           dauer:30, pause:90 };
+}
+
+function beispielplan(){
+  return { id:neueId(), name:"Ganzkörper", uebungen:[
+    { id:neueId(), name:"Liegestütze", modus:"wdh",  saetze:3, wdh:10, wdhMin:8,  wdhMax:20, gewicht:0, gewichtSchritt:0, dauer:30, pause:60 },
+    { id:neueId(), name:"Kniebeugen",  modus:"wdh",  saetze:3, wdh:15, wdhMin:10, wdhMax:25, gewicht:0, gewichtSchritt:0, dauer:30, pause:60 },
+    { id:neueId(), name:"Plank",       modus:"zeit", saetze:3, wdh:0,  wdhMin:0,  wdhMax:0,  gewicht:0, gewichtSchritt:0, dauer:45, pause:60 }
+  ]};
+}
+
+/* ============================================================
+   #region Audio
+   ============================================================ */
+let ctx = null;
+let geplanteToene = [];
+
+function audioFreischalten(){
+  if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if(ctx.state === "suspended") ctx.resume();
+  try {
+    const stumm = new SpeechSynthesisUtterance(" ");   // schaltet TTS auf iOS in der Geste frei
+    stumm.volume = 0;
+    speechSynthesis.speak(stumm);
+  } catch(e){}
+}
+
+function tonPlanen(wann, frequenz, dauer, lautstaerke){
+  if(!ctx) return;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = "sine"; osc.frequency.value = frequenz;
+  gain.gain.setValueAtTime(0, wann);
+  gain.gain.linearRampToValueAtTime(lautstaerke, wann + 0.02);
+  gain.gain.linearRampToValueAtTime(0, wann + dauer);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(wann); osc.stop(wann + dauer + 0.05);
+  geplanteToene.push(osc);
+}
+function toeneVerwerfen(){
+  geplanteToene.forEach(o => { try{o.stop();}catch(e){} });
+  geplanteToene = [];
+}
+
+let deutscheStimme = null;
+function stimmeSuchen(){
+  const alle = speechSynthesis.getVoices();
+  deutscheStimme = alle.find(v => v.lang && v.lang.toLowerCase().startsWith("de")) || null;
+}
+if("speechSynthesis" in window){ stimmeSuchen(); speechSynthesis.onvoiceschanged = stimmeSuchen; }
+
+function sprich(t){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = "de-DE"; u.rate = 1.0;
+  if(deutscheStimme) u.voice = deutscheStimme;
+  speechSynthesis.speak(u);
+}
+
+function tonTesten(){
+  audioFreischalten();
+  tonPlanen(ctx.currentTime + 0.1, 880, 0.18, 0.5);
+  setTimeout(() => sprich("Test. Nächste Übung: Plank, fünfundvierzig Sekunden."), 700);
+}
+
+/* ============================================================
+   #region Bildschirm wachhalten
+   ============================================================ */
+let wakeLock = null;
+async function bildschirmWachhalten(){
+  if(!("wakeLock" in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request("screen"); } catch(e){}
+}
+function bildschirmFreigeben(){
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && lauf) bildschirmWachhalten();
+});
+
+/* ============================================================
+   #region Progression — die EINZIGE Stelle mit der Anpassungsregel
+   ============================================================ */
+function begrenzen(w, min, max){ return Math.min(max, Math.max(min, w)); }
+
+function progressionAnwenden(uebung, note){
+  const u = Object.assign({}, uebung);
+
+  if(u.modus === "zeit"){
+    if(note === 1) u.dauer += 15;
+    else if(note === 2) u.dauer += 10;
+    else if(note === 4) u.pause += 15;
+    else if(note === 5){ u.dauer -= 10; u.pause += 15; }
+    u.dauer = begrenzen(Math.round(u.dauer), 10, 600);
+  } else {
+    if(note === 1){ u.wdh += 2; u.pause -= 15; }
+    else if(note === 2) u.wdh += 1;
+    else if(note === 4) u.pause += 15;
+    else if(note === 5){ u.wdh -= 1; u.pause += 15; }
+
+    if(u.wdh > u.wdhMax){
+      if(u.gewichtSchritt > 0){ u.gewicht = Math.round((u.gewicht + u.gewichtSchritt)*4)/4; u.wdh = u.wdhMin; }
+      else u.wdh = u.wdhMax;
+    }
+    if(u.wdh < u.wdhMin){
+      if(u.gewichtSchritt > 0 && u.gewicht - u.gewichtSchritt > 0){
+        u.gewicht = Math.round((u.gewicht - u.gewichtSchritt)*4)/4; u.wdh = u.wdhMax;
+      } else u.wdh = u.wdhMin;
+    }
+  }
+  u.pause = begrenzen(u.pause, 30, 300);
+  return u;
+}
+
+/* ============================================================
+   #region Ansichten
+   ============================================================ */
+function zeige(id){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
+  document.getElementById(id).classList.add("aktiv");
+  window.scrollTo(0,0);
+}
+function text(s){
+  return String(s).replace(/[&<>"']/g, z => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[z]));
+}
+function uebungBeschreiben(u){
+  return u.modus === "zeit" ? (u.dauer + " s") : (u.wdh + " Wdh" + (u.gewicht>0 ? " · " + u.gewicht + " kg" : ""));
+}
+
+function planListeZeichnen(){
+  const ziel = document.getElementById("plan-liste");
+  const plaene = sitzung.daten.plaene;
+  if(plaene.length === 0){
+    ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
+      '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div>';
+    return;
+  }
+  ziel.innerHTML = plaene.map(p => {
+    const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
+    return '<div class="karte">' +
+      '<h2>' + text(p.name) + '</h2>' +
+      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze</div>' +
+      '<div class="knopfreihe">' +
+        '<button class="primaer" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
+        '<button class="schmal" onclick="editorOeffnen(\'' + p.id + '\')">Bearbeiten</button>' +
+      '</div></div>';
+  }).join("");
+}
+
+function beispielLaden(){
+  sitzung.daten.plaene.push(beispielplan());
+  speichern();
+  planListeZeichnen();
+}
+
+/* ============================================================
+   #region Profil & Statistik
+   ============================================================ */
+function profilOeffnen(){
+  const d = sitzung.daten;
+  document.getElementById("profil-benutzer").textContent =
+    tresor.konten.find(k => k.id === sitzung.kontoId).benutzer;
+  document.getElementById("profil-groesse").value = d.profil.groesse || "";
+  document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
+  document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
+  document.getElementById("gewicht-formular").hidden = true;
+  document.getElementById("pw-formular").hidden = true;
+  gewichtStatistikZeichnen();
+  protokollZeichnen();
+  zeige("view-profil");
+}
+
+function profilSpeichern(){
+  const p = sitzung.daten.profil;
+  p.groesse = parseFloat(document.getElementById("profil-groesse").value) || 0;
+  p.geburtsjahr = parseInt(document.getElementById("profil-geburtsjahr").value) || 0;
+  p.geschlecht = document.getElementById("profil-geschlecht").value;
+  speichern();
+  meldung("Profil gespeichert.");
+}
+
+function heuteAlsText(){ return new Date().toISOString().slice(0,10); }
+
+function gewichtFormularZeigen(){
+  const f = document.getElementById("gewicht-formular");
+  f.hidden = !f.hidden;
+  if(!f.hidden){
+    document.getElementById("gewicht-datum").value = heuteAlsText();
+    document.getElementById("gewicht-wert").focus();
+  }
+}
+
+function gewichtEintragen(){
+  const kg = parseFloat(document.getElementById("gewicht-wert").value);
+  const datum = document.getElementById("gewicht-datum").value || heuteAlsText();
+  if(!kg || kg <= 0){ meldung("Bitte ein Gewicht in Kilogramm eingeben."); return; }
+  const liste = sitzung.daten.gewichte;
+  const vorhanden = liste.find(e => e.datum === datum);
+  if(vorhanden) vorhanden.kg = kg;                    // pro Tag ein Wert — der neueste gilt
+  else liste.push({ datum, kg });
+  liste.sort((a,b) => a.datum < b.datum ? -1 : 1);
+  speichern();
+  document.getElementById("gewicht-formular").hidden = true;
+  document.getElementById("gewicht-wert").value = "";
+  gewichtStatistikZeichnen();
+}
+
+function gewichtLoeschen(datum){
+  frage("Eintrag vom " + datum + " löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.gewichte = sitzung.daten.gewichte.filter(e => e.datum !== datum);
+    speichern();
+    gewichtStatistikZeichnen();
+  });
+}
+
+/** Einfaches SVG-Liniendiagramm. Punkte an Trainingstagen sind gelb. */
+function gewichtStatistikZeichnen(){
+  const diagramm = document.getElementById("gewicht-diagramm");
+  const listeZiel = document.getElementById("gewicht-liste");
+  const eintraege = sitzung.daten.gewichte;
+  const trainingstage = new Set(sitzung.daten.protokoll.map(p => p.datum));
+
+  if(eintraege.length === 0){
+    diagramm.innerHTML = '<div class="leer">Noch kein Gewicht eingetragen. Mit + den ersten Wert erfassen.</div>';
+    listeZiel.innerHTML = "";
+    return;
+  }
+
+  if(eintraege.length >= 2){
+    const B = 560, H = 220, rand = 34;
+    const werte = eintraege.map(e => e.kg);
+    const min = Math.min(...werte), max = Math.max(...werte);
+    const spanne = (max - min) || 1;
+    const x = i => rand + i * (B - 2*rand) / (eintraege.length - 1);
+    const y = kg => H - rand - (kg - min) / spanne * (H - 2*rand);
+
+    const linie = eintraege.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.kg).toFixed(1)).join(" ");
+    const punkte = eintraege.map((e,i) =>
+      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.kg).toFixed(1) + '" r="4" fill="' +
+      (trainingstage.has(e.datum) ? "var(--signal)" : "var(--rest)") + '"/>').join("");
+
+    diagramm.innerHTML =
+      '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Gewichtsverlauf">' +
+      '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' kg</text>' +
+      '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + min.toFixed(1) + ' kg</text>' +
+      '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte +
+      '</svg>' +
+      '<div class="meta" style="margin-top:6px">Gelbe Punkte = an dem Tag wurde trainiert.</div>';
+  } else {
+    diagramm.innerHTML = '<div class="meta">Ab zwei Einträgen erscheint hier der Verlauf.</div>';
+  }
+
+  listeZiel.innerHTML = eintraege.slice().reverse().slice(0,10).map(e =>
+    '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+    '<span class="meta">' + e.datum + (trainingstage.has(e.datum) ? " · trainiert" : "") + '</span>' +
+    '<span>' + e.kg.toFixed(1) + ' kg &nbsp;<button class="schmal gefahr" onclick="gewichtLoeschen(\'' + e.datum + '\')">×</button></span>' +
+    '</div>').join("");
+}
+
+function protokollZeichnen(){
+  const p = sitzung.daten.protokoll;
+  document.getElementById("protokoll-liste").innerHTML =
+    p.length === 0 ? "Noch kein Training abgeschlossen." :
+    p.slice().reverse().slice(0,15).map(e => e.datum + " · " + text(e.plan)).join("<br>");
+}
+
+/* ============================================================
+   #region Editor
+   ============================================================ */
+let editorPlan = null;
+
+function planAnlegen(){
+  editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()] };
+  editorZeichnen(); zeige("view-editor");
+}
+
+function editorOeffnen(planId){
+  editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
+  editorZeichnen(); zeige("view-editor");
+}
+
+function editorZeichnen(){
+  document.getElementById("plan-name").value = editorPlan.name;
+  document.getElementById("uebung-liste").innerHTML = editorPlan.uebungen.map((u,i) => {
+    const istZeit = u.modus === "zeit";
+    let felder;
+    if(istZeit){
+      felder = zahlfeld(i,"saetze","Sätze",u.saetze) + zahlfeld(i,"dauer","Dauer (s)",u.dauer) +
+               zahlfeld(i,"pause","Pause (s)",u.pause);
+    } else {
+      felder = zahlfeld(i,"saetze","Sätze",u.saetze) + zahlfeld(i,"pause","Pause (s)",u.pause) +
+               zahlfeld(i,"wdh","Wiederholungen",u.wdh) + zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht) +
+               zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax) +
+               zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt);
+    }
+    return '<div class="karte">' +
+      '<label>Übung ' + (i+1) + '</label>' +
+      '<input value="' + text(u.name) + '" placeholder="Name der Übung" oninput="feld(' + i + ',\'name\',this.value,false)">' +
+      '<div class="umschalter abstand">' +
+        '<button class="' + (istZeit?"":"gewaehlt") + '" onclick="modusSetzen(' + i + ',\'wdh\')">Wiederholungen</button>' +
+        '<button class="' + (istZeit?"gewaehlt":"") + '" onclick="modusSetzen(' + i + ',\'zeit\')">Zeit</button>' +
+      '</div>' +
+      '<div class="raster abstand">' + felder + '</div>' +
+      '<div class="knopfreihe"><button class="schmal gefahr" onclick="uebungLoeschen(' + i + ')">Übung entfernen</button></div>' +
+    '</div>';
+  }).join("");
+}
+
+function zahlfeld(i, schluessel, beschriftung, wert){
+  return '<div><label>' + beschriftung + '</label>' +
+    '<input type="number" inputmode="decimal" step="any" value="' + wert +
+    '" oninput="feld(' + i + ',\'' + schluessel + '\',this.value,true)"></div>';
+}
+function feld(i, schluessel, wert, istZahl){
+  editorPlan.uebungen[i][schluessel] = istZahl ? (parseFloat(wert) || 0) : wert;
+}
+function modusSetzen(i, modus){ editorPlan.uebungen[i].modus = modus; editorZeichnen(); }
+function uebungAnlegen(){ editorPlan.uebungen.push(neueUebung()); editorZeichnen(); }
+function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
+
+function editorSpeichern(){
+  editorPlan.name = document.getElementById("plan-name").value.trim() || "Ohne Namen";
+  editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
+  editorPlan.uebungen.forEach(u => {
+    u.saetze = begrenzen(Math.round(u.saetze), 1, 20);
+    u.pause  = begrenzen(Math.round(u.pause), 10, 600);
+    u.dauer  = begrenzen(Math.round(u.dauer), 5, 600);
+    u.wdhMin = Math.max(1, Math.round(u.wdhMin));
+    u.wdhMax = Math.max(u.wdhMin, Math.round(u.wdhMax));
+    u.wdh    = begrenzen(Math.round(u.wdh), u.wdhMin, u.wdhMax);
+    u.gewicht = Math.max(0, u.gewicht);
+    u.gewichtSchritt = Math.max(0, u.gewichtSchritt);
+  });
+  if(editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
+  const plaene = sitzung.daten.plaene;
+  const index = plaene.findIndex(p => p.id === editorPlan.id);
+  if(index >= 0) plaene[index] = editorPlan; else plaene.push(editorPlan);
+  speichern();
+  planListeZeichnen();
+  zeige("view-plaene");
+}
+
+function planLoeschen(){
+  frage("Plan „" + (editorPlan.name || "Ohne Namen") + "“ wirklich löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== editorPlan.id);
+    speichern();
+    planListeZeichnen();
+    zeige("view-plaene");
+  });
+}
+
+/* ============================================================
+   #region Training
+   Flache Schrittliste: satz-wdh (wartet auf Knopf),
+   satz-zeit (Countdown), pause (Countdown).
+   Balken oben = Fortschritt über ALLE Schritte, fortlaufend.
+   ============================================================ */
+let lauf = null;
+
+function ablaufErzeugen(plan){
+  const schritte = [];
+  plan.uebungen.forEach((u, ui) => {
+    for(let s = 1; s <= u.saetze; s++){
+      if(u.modus === "zeit"){
+        schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
+          ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.dauer + " Sekunden. Los." });
+      } else {
+        schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
+          ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
+                  (u.gewicht > 0 ? " mit " + u.gewicht + " Kilo" : "") });
+      }
+      const ende = (ui === plan.uebungen.length - 1) && (s === u.saetze);
+      if(!ende) schritte.push({ typ:"pause", uebungIndex:ui, sekunden:u.pause });
+    }
+  });
+  return schritte;
+}
+
+function trainingStarten(planId){
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  audioFreischalten();        // muss in der Tippgeste passieren (iOS)
+  bildschirmWachhalten();
+  lauf = { plan, schritte:ablaufErzeugen(plan), index:0, timerId:null, ende:0, dauer:0 };
+  zeige("view-training");
+  schrittBetreten();
+}
+
+function schrittBetreten(){
+  toeneVerwerfen();
+  clearInterval(lauf.timerId);
+  if(lauf.index >= lauf.schritte.length){ trainingBeenden(); return; }
+
+  const s = lauf.schritte[lauf.index];
+  const u = lauf.plan.uebungen[s.uebungIndex];
+  const zahl = document.getElementById("uhr-zahl");
+  const label = document.getElementById("uhr-label");
+  const phase = document.getElementById("phase");
+  const knopf = document.getElementById("haupt-knopf");
+  const plus = document.getElementById("plus-knopf");
+
+  document.getElementById("uebungsname").textContent = u.name;
+  strichlisteZeichnen(u, s);
+  gesamtBalkenZeichnen(0);
+
+  if(s.typ === "satz-wdh"){
+    phase.textContent = "Satz " + s.satz + " von " + u.saetze;
+    phase.classList.remove("pause");
+    zahl.textContent = u.wdh;
+    zahl.className = "uhr-zahl";
+    label.textContent = "WIEDERHOLUNGEN" + (u.gewicht > 0 ? "  ·  " + u.gewicht + " KG" : "");
+    knopf.textContent = "Satz fertig";
+    plus.disabled = true;
+    sprich(s.ansage);
+  } else if(s.typ === "satz-zeit"){
+    phase.textContent = "Satz " + s.satz + " von " + u.saetze;
+    phase.classList.remove("pause");
+    zahl.className = "uhr-zahl";
+    label.textContent = "HALTEN";
+    knopf.textContent = "Satz überspringen";
+    plus.disabled = false;
+    countdownStarten(s.sekunden);
+    sprich(s.ansage);
+  } else {
+    phase.textContent = "Pause";
+    phase.classList.add("pause");
+    zahl.className = "uhr-zahl pause";
+    label.textContent = "BIS ZUM NÄCHSTEN SATZ";
+    knopf.textContent = "Pause überspringen";
+    plus.disabled = false;
+    countdownStarten(s.sekunden);
+    sprich("Pause. " + s.sekunden + " Sekunden.");
+  }
+}
+
+function strichlisteZeichnen(uebung, schritt){
+  let html = "";
+  const erledigt = zaehleErledigteSaetze(schritt.uebungIndex);
+  for(let i = 1; i <= uebung.saetze; i++){
+    let klasse = "strich";
+    if(schritt.typ !== "pause" && i === schritt.satz) klasse += " jetzt";
+    else if(i <= erledigt) klasse += " erledigt";
+    html += '<div class="' + klasse + '"></div>';
+  }
+  document.getElementById("strichliste").innerHTML = html;
+}
+
+function zaehleErledigteSaetze(uebungIndex){
+  let n = 0;
+  for(let i = 0; i < lauf.index; i++){
+    const s = lauf.schritte[i];
+    if(s.typ !== "pause" && s.uebungIndex === uebungIndex) n++;
+  }
+  return n;
+}
+
+/** anteil = wie viel vom AKTUELLEN Schritt schon vorbei ist (0..1). */
+function gesamtBalkenZeichnen(anteil){
+  const gesamt = lauf.schritte.length;
+  const prozent = begrenzen(((lauf.index + anteil) / gesamt) * 100, 0, 100);
+  document.getElementById("balken-fuellung").style.width = prozent + "%";
+  document.getElementById("balken-text").textContent =
+    "Schritt " + Math.min(lauf.index + 1, gesamt) + " von " + gesamt + "  ·  " + Math.round(prozent) + " %";
+}
+
+/* Ein Countdown für Pausen UND Zeit-Sätze. Anzeige rechnet aus der
+   Ziel-Uhrzeit (Date.now), Töne sind vorab auf dem Audio-Thread geplant. */
+function countdownStarten(sekunden){
+  lauf.dauer = sekunden;
+  lauf.ende = Date.now() + sekunden * 1000;
+  if(ctx){
+    if(sekunden > 4) tonPlanen(ctx.currentTime + sekunden - 3, 440, 0.08, 0.25);
+    tonPlanen(ctx.currentTime + sekunden, 880, 0.25, 0.5);
+  }
+  lauf.timerId = setInterval(countdownTicken, 200);
+  countdownTicken();
+}
+
+function countdownTicken(){
+  const restMs = lauf.ende - Date.now();
+  const rest = Math.max(0, Math.ceil(restMs / 1000));
+  const zahl = document.getElementById("uhr-zahl");
+  zahl.textContent = Math.floor(rest/60) + ":" + String(rest % 60).padStart(2,"0");
+  zahl.classList.toggle("gleich", rest <= 3 && rest > 0);
+  gesamtBalkenZeichnen(begrenzen(1 - restMs / (lauf.dauer * 1000), 0, 1));
+  if(restMs <= 0){ clearInterval(lauf.timerId); lauf.index++; schrittBetreten(); }
+}
+
+function hauptKnopf(){ lauf.index++; schrittBetreten(); }
+
+function zeitVerlaengern(){
+  if(!lauf) return;
+  const s = lauf.schritte[lauf.index];
+  if(s.typ === "satz-wdh") return;                 // dort läuft kein Countdown
+  const rest = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000));
+  toeneVerwerfen();
+  clearInterval(lauf.timerId);
+  countdownStarten(rest + 30);
+}
+
+function trainingAbbrechen(){
+  frage("Training abbrechen? Es wird nichts angepasst.", true, ja => {
+    if(!ja) return;
+    aufraeumen();
+    planListeZeichnen();
+    zeige("view-plaene");
+  });
+}
+
+function aufraeumen(){
+  if(lauf) clearInterval(lauf.timerId);
+  toeneVerwerfen();
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  bildschirmFreigeben();
+  lauf = null;
+}
+
+/* ============================================================
+   #region Bewertung & Abschluss
+   ============================================================ */
+let bewertung = {};
+
+function trainingBeenden(){
+  sprich("Training beendet. Gut gemacht.");
+  clearInterval(lauf.timerId);
+  bildschirmFreigeben();
+  const plan = lauf.plan;
+
+  sitzung.daten.protokoll.push({ datum: heuteAlsText(), plan: plan.name });
+  speichern();
+
+  bewertung = {};
+  plan.uebungen.forEach(u => bewertung[u.id] = 3);
+  document.getElementById("bewertung-liste").innerHTML = plan.uebungen.map(u =>
+    '<div class="karte"><h2>' + text(u.name) + '</h2>' +
+    '<div class="meta">' + uebungBeschreiben(u) + ' · Pause ' + u.pause + ' s</div>' +
+    '<div class="note">' + [1,2,3,4,5].map(n =>
+      '<button id="note-' + u.id + '-' + n + '" class="' + (n===3?"gewaehlt":"") +
+      '" onclick="noteSetzen(\'' + u.id + '\',' + n + ')">' + n + '</button>').join("") +
+    '</div></div>').join("");
+
+  lauf = { plan, schritte:[], index:0, timerId:null };
+  zeige("view-bewertung");
+}
+
+function noteSetzen(uebungId, n){
+  bewertung[uebungId] = n;
+  [1,2,3,4,5].forEach(i =>
+    document.getElementById("note-" + uebungId + "-" + i).classList.toggle("gewaehlt", i === n));
+}
+
+function bewertungAnwenden(){
+  const plan = sitzung.daten.plaene.find(p => p.id === lauf.plan.id);
+  const zeilen = [];
+  plan.uebungen = plan.uebungen.map(alt => {
+    const neu = progressionAnwenden(alt, bewertung[alt.id]);
+    zeilen.push({ name:alt.name, alt, neu });
+    return neu;
+  });
+  speichern();
+
+  document.getElementById("ergebnis-liste").innerHTML = zeilen.map(z => {
+    const teile = [];
+    if(z.neu.wdh !== z.alt.wdh)         teile.push(z.alt.wdh + " → " + z.neu.wdh + " Wdh");
+    if(z.neu.dauer !== z.alt.dauer)     teile.push(z.alt.dauer + " → " + z.neu.dauer + " s");
+    if(z.neu.gewicht !== z.alt.gewicht) teile.push(z.alt.gewicht + " → " + z.neu.gewicht + " kg");
+    if(z.neu.pause !== z.alt.pause)     teile.push("Pause " + z.alt.pause + " → " + z.neu.pause + " s");
+    return '<div class="karte"><h2>' + text(z.name) + '</h2>' +
+           '<div class="meta">' + (teile.length ? teile.join("  ·  ") : "unverändert") + '</div></div>';
+  }).join("");
+
+  lauf = null;
+  zeige("view-ergebnis");
+}
+
+/* ============================================================
+   #region Export — Klartext-Sicherung des angemeldeten Kontos
+   ============================================================ */
+function exportieren(){
+  const blob = new Blob([JSON.stringify(sitzung.daten, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "training-sicherung-" + heuteAlsText() + ".json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ============================================================
+   #region Start
+   ============================================================ */
+loginZeichnen();
+</script>
+</body>
+</html>
