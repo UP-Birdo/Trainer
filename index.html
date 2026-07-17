@@ -20,6 +20,10 @@
   --chalk:#EDEAE3; --muted:#8C9199; --line:#2C3037;
   --signal:#F2C14E; --rest:#3E8FD6; --warn:#C8553D;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  /* Höhe der Bottom-Bar — FEST, nicht aus dem Textfluss gewachsen.
+     Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
+     verdeckt (siehe body.nav-an .view.aktiv). */
+  --navhoehe:62px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 html,body{margin:0;height:100%;overscroll-behavior:none}
@@ -137,12 +141,17 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
   background:var(--panel);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
-#nav button{flex:1;background:transparent;border-radius:0;min-height:56px;font-size:10px;
+#nav button{flex:1;background:transparent;border-radius:0;height:var(--navhoehe);min-height:0;
+  padding:6px 4px;font-size:10px;
   font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 #nav button .sym{font-size:18px;line-height:1}
 #nav button.aktiv{color:var(--signal)}
-body.nav-an .view.aktiv{padding-bottom:96px}
+/* Freiraum unter dem letzten Element = Nav-Höhe + Luft.
+   Die Safe-Area taucht hier NICHT auf, weil body sie unten schon als
+   Padding hat und die Bar sie ebenfalls hat — sie kürzt sich raus.
+   Sichtbare Luft zwischen letztem Text und Bar = die 64px. */
+body.nav-an .view.aktiv{padding-bottom:calc(var(--navhoehe) + 64px)}
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
@@ -174,8 +183,21 @@ body:not(.nav-an) #nav{display:none}
 .wz-opt.gewaehlt{border-color:var(--signal);background:var(--panel-2);color:var(--signal)}
 .wz-opt small{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-weight:400}
 .wz-opt.gewaehlt small{color:var(--muted)}
-.wz-raster{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+/* minmax(0,1fr) statt 1fr: lange Optionsnamen dürfen die Spalte nicht sprengen. */
+.wz-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
+
+/* Auswahl-Raster im Profil (Sportarten, Ort, Geräte).
+   Zwei feste Spalten statt umbrechender Flex-Reihe — auf dem Handy
+   ruhiger und ohne ausgefranste letzte Zeile. Ausgewählt = gelb;
+   ein Häkchen braucht es dafür nicht. */
+.wahl-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.wahl-raster button{width:100%;min-height:44px;padding:10px 8px;font-size:14px;
+  background:var(--panel-2);color:var(--muted);white-space:normal;line-height:1.25;
+  border:1px solid var(--line)}
+.wahl-raster button.gewaehlt{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:700}
+.wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
+.wahl-gruppe{margin:14px 0 6px}
 
 /* Aktionsmenü (langes Drücken auf eine Plan-Karte) */
 #menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
@@ -186,6 +208,9 @@ body:not(.nav-an) #nav{display:none}
 #menue h2{margin-bottom:12px}
 #menue button{width:100%;margin-bottom:8px;text-align:left}
 .karte.gedrueckt{border-color:var(--signal)}
+/* Langes Drücken soll das Menü öffnen — NICHT die Überschrift markieren.
+   Gezielt nur auf Plan-Karten, damit .geheim (user-select:all) heil bleibt. */
+.karte[data-plan]{user-select:none;-webkit-user-select:none}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:22px;height:22px;min-height:22px;border-radius:50%;padding:0;font-size:12px;
@@ -321,7 +346,7 @@ body:not(.nav-an) #nav{display:none}
   </div>
   <div id="plan-liste"></div>
   <div class="knopfreihe">
-    <button class="primaer" onclick="einrichtungOeffnen()">🪄 Trainingsplanung</button>
+    <button class="primaer" onclick="einrichtungOeffnen()">Trainingsplanung</button>
   </div>
   <div class="knopfreihe">
     <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
@@ -427,10 +452,17 @@ body:not(.nav-an) #nav{display:none}
   </div>
 
   <div class="karte">
-    <div class="zeile"><h2>Meine Geräte</h2>
+    <div class="zeile"><h2>Sportarten</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
+    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Pläne baut die App bisher nur für <strong style="color:var(--chalk)">Krafttraining</strong> — die übrigen Sportarten merkt sie sich schon, damit die Auswahl später nicht noch einmal nötig ist.</div>
+    <div id="profil-sportarten" class="wahl-raster abstand"></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile"><h2>Ort</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-geraete')" aria-label="Info">i</button></div>
-    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
-    <div id="profil-ort" class="note abstand"></div>
+    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen, und gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
+    <div id="profil-ort" class="wahl-raster abstand"></div>
     <div id="profil-geraete"></div>
     <div id="geraete-neu-knopf"></div>
   </div>
@@ -1013,7 +1045,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1023,11 +1055,18 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
-  if(daten.einrichtung && !daten.einrichtung.geraeteProOrt){
+  // Einrichtung gab es früher erst nach dem Wizard. Sie ist jetzt immer da —
+  // sonst müsste jede Stelle einzeln auf undefined prüfen.
+  if(!daten.einrichtung) daten.einrichtung = {};
+  if(!Array.isArray(daten.einrichtung.geraete)) daten.einrichtung.geraete = [];
+  if(!daten.einrichtung.geraeteProOrt){
     // Geräte werden ab jetzt PRO ORT gemerkt — Bestand auf den aktuellen Ort übernehmen
     daten.einrichtung.geraeteProOrt = {};
-    if(daten.einrichtung.ort) daten.einrichtung.geraeteProOrt[daten.einrichtung.ort] = (daten.einrichtung.geraete || []).slice();
+    if(daten.einrichtung.ort) daten.einrichtung.geraeteProOrt[daten.einrichtung.ort] = daten.einrichtung.geraete.slice();
   }
+  // Sportarten sind neu (v23). Bestandskonten haben Krafttraining gemacht —
+  // alles andere wäre eine Falschaussage über ihre Vergangenheit.
+  if(!Array.isArray(daten.einrichtung.sportarten)) daten.einrichtung.sportarten = ["kraft"];
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
     if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
@@ -1561,13 +1600,15 @@ function planMenue(planId){
   const plaene = sitzung.daten.plaene;
   const index = plaene.findIndex(p => p.id === planId);
   const plan = plaene[index];
+  // Symbole nur bei den Pfeilen: dort IST der Pfeil die Aussage.
+  // Bei Bearbeiten/Duplizieren/Löschen sagt das Wort schon alles.
   const aktionen = [
-    { text:"✏️ Bearbeiten", tun:() => editorOeffnen(planId) },
-    { text:"⧉ Duplizieren", tun:() => planDuplizieren(planId) }
+    { text:"Bearbeiten", tun:() => editorOeffnen(planId) },
+    { text:"Duplizieren", tun:() => planDuplizieren(planId) }
   ];
   if(index > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
   if(index < plaene.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => planSchieben(planId, 1) });
-  aktionen.push({ text:"🗑 Löschen", stil:"gefahr", tun:() => planLoeschenById(planId) });
+  aktionen.push({ text:"Löschen", stil:"gefahr", tun:() => planLoeschenById(planId) });
   aktionsMenue(plan.name, aktionen);
 }
 
@@ -1712,8 +1753,9 @@ function wissenOeffnen(){
       "Plan-Karte <strong style='color:var(--chalk)'>lange gedrückt halten</strong> → Bearbeiten, Duplizieren, Verschieben, Löschen.",
       "Die Trainingsplanung baut Pläne aus deinen Antworten — selbst gebaute Pläne bleiben dabei immer erhalten.",
       "Startgewichte sind bewusst vorsichtig: zu leicht korrigiert die Progression in 2–3 Trainings, zu schwer der Orthopäde.",
-      "Im Profil unter „Meine Geräte“ merkt sich die App die Auswahl <strong style='color:var(--chalk)'>pro Ort</strong> getrennt.",
-      "Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein."
+      "Im Profil unter „Ort“ merkt sich die App die Geräte <strong style='color:var(--chalk)'>pro Ort</strong> getrennt. Gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist.",
+      "Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein.",
+      "<strong style='color:var(--chalk)'>Sportarten:</strong> mehrfach wählbar, Pläne gibt es bisher nur für Krafttraining. Die übrigen sind gemerkt, aber noch ohne Funktion."
     ]);
   zeige("view-wissen");
 }
@@ -2052,7 +2094,7 @@ function protokollZeichnen(){
    Progression zieht die Werte in 2–3 Einheiten hoch — andersherum
    (zu schwer) drohen Frust und Verletzung.
    ============================================================ */
-let einrichtung = { ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
+let einrichtung = { sportarten:["kraft"], ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
 
 const WOCHENTAGE = ["","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
@@ -2095,7 +2137,41 @@ function geraetName(id){
   const g = GERAETE.find(x => x.id === id);
   return g ? g.name : id;
 }
-function geraeteFuerOrt(ort){ return GERAETE.filter(g => g.orte.includes(ort)); }
+/** Geräte, die an diesem Ort zur Wahl stehen.
+    „Eigene Auswahl“ ist kein echter Ort, sondern der Verzicht auf den Filter —
+    dort steht ALLES zur Wahl. (Vorher lieferte "eigene" eine leere Liste:
+    Die Gerätefrage im Wizard blieb dann leer und löschte die Auswahl.) */
+function geraeteFuerOrt(ort){
+  if(ort === "eigene") return GERAETE.slice();
+  return GERAETE.filter(g => g.orte.includes(ort));
+}
+
+/* ------------------------------------------------------------
+   SPORTARTEN
+   ausgebaut:true = die App kann dafür wirklich Pläne bauen.
+   Alle anderen sind bewusst schon wählbar, damit die Auswahl später
+   nicht erneut nötig ist — sie erzeugen aber noch nichts. Ehrlich
+   beschriftet, statt so zu tun, als käme etwas dabei heraus.
+   ------------------------------------------------------------ */
+const SPORTARTEN = [
+  { id:"kraft",       name:"Krafttraining",       ausgebaut:true },
+  { id:"laufen",      name:"Laufen" },
+  { id:"radfahren",   name:"Radfahren" },
+  { id:"schwimmen",   name:"Schwimmen" },
+  { id:"tischtennis", name:"Tischtennis" },
+  { id:"tennis",      name:"Tennis" },
+  { id:"klettern",    name:"Klettern" },
+  { id:"fussball",    name:"Fußball" },
+  { id:"kampfsport",  name:"Kampfsport" },
+  { id:"rudern",      name:"Rudern" },
+  { id:"yoga",        name:"Yoga & Beweglichkeit" },
+  { id:"wandern",     name:"Wandern" }
+];
+
+function sportartName(id){
+  const s = SPORTARTEN.find(x => x.id === id);
+  return s ? s.name : id;
+}
 function gymStandardGeraete(){ return GERAETE.filter(g => g.gymStandard && g.orte.includes("gym")).map(g => g.id); }
 
 /* ------------------------------------------------------------
@@ -2265,10 +2341,21 @@ const DEHNEN = [
   { name:"Katze-Kuh",                  dauer:30 }
 ];
 
-/* Die Fragen des Wizards. typ: "single" | "multi" | "schalter" */
+/** Nur Krafttraining hat einen Plangenerator. Alles, was danach gefragt wird
+    (Ort, Geräte, Startwerte, Split), ergibt ohne Krafttraining keinen Sinn —
+    deshalb hängen alle folgenden Fragen an dieser einen Bedingung. */
+function kraftGewaehlt(e){ return (e.sportarten || []).includes("kraft"); }
+
+/* Die Fragen des Wizards. typ: "single" | "multi" | "schalter"
+   nurWenn: Frage erscheint nur, wenn die Bedingung zutrifft. */
 const WIZARD_FRAGEN = [
+  { id:"sportarten", typ:"multi", frage:"Welche Sportarten machst du?",
+    hilfe:"Mehrfachauswahl. Pläne baut die App bisher nur für Krafttraining — die anderen merkt sie sich schon, damit du sie später nicht erneut angeben musst.",
+    raster:true,
+    optionen: SPORTARTEN.map(s => [s.id, s.name, s.ausgebaut ? "" : "noch ohne Pläne"])},
   { id:"ort", typ:"single", frage:"Wo trainierst du?",
     hilfe:"Danach richtet sich, welche Übungen überhaupt vorkommen.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["zuhause","Zuhause","Körpergewicht und was du dahast"],
       ["gym","Im Gym","Volle Auswahl an Geräten"],
@@ -2278,10 +2365,12 @@ const WIZARD_FRAGEN = [
   { id:"geraete", typ:"multi", frage:"Was hast du zur Verfügung?",
     hilfe:"Mehrfachauswahl — es werden nur Geräte gezeigt, die es an deinem Trainingsort geben kann. Nichts ausgewählt ist völlig in Ordnung: dann gibt es reine Körpergewichtsübungen.",
     raster:true,
+    nurWenn: kraftGewaehlt,
     dynamisch:true,   // Optionen kommen aus GERAETE, gefiltert nach Ort
     optionen:[]},
   { id:"erfahrung", typ:"single", frage:"Wie viel Erfahrung hast du?",
     hilfe:"Bestimmt die Startgewichte. Im Zweifel die niedrigere Stufe — zu leicht korrigiert die App nach 2–3 Trainings selbst.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["anfaenger","Anfänger","Neu oder unter 6 Monate dabei"],
       ["wieder","Wiedereinstieg","War mal fit, längere Pause"],
@@ -2289,6 +2378,7 @@ const WIZARD_FRAGEN = [
     ]},
   { id:"ziel", typ:"single", frage:"Was ist dein Ziel?",
     hilfe:"Legt Wiederholungsbereich und Pausenlänge fest.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["muskel","Muskelaufbau","8–12 Wdh · 90 s Pause"],
       ["abnehmen","Abnehmen & Fitness","12–20 Wdh · 45 s Pause"],
@@ -2298,9 +2388,11 @@ const WIZARD_FRAGEN = [
   { id:"wochentage", typ:"multi", frage:"An welchen Tagen trainierst du?",
     hilfe:"2 bis 6 Tage. Muskeln wachsen an den Ruhetagen — mehr ist nicht besser.",
     raster:true,
+    nurWenn: kraftGewaehlt,
     optionen:[[1,"Montag"],[2,"Dienstag"],[3,"Mittwoch"],[4,"Donnerstag"],[5,"Freitag"],[6,"Samstag"],[7,"Sonntag"]]},
   { id:"dauer", typ:"single", frage:"Wie lange hast du pro Einheit?",
     hilfe:"Bestimmt, wie viele Übungen pro Tag eingeplant werden.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["kurz","20–30 Minuten","3 Übungen"],
       ["mittel","30–45 Minuten","4 Übungen"],
@@ -2309,6 +2401,7 @@ const WIZARD_FRAGEN = [
     ]},
   { id:"fokus", typ:"single", frage:"Gibt es einen Schwerpunkt?",
     hilfe:"Der Schwerpunkt bekommt eine Übung mehr, der Rest bleibt ausgewogen.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["keiner","Ausgewogen","Alles gleichmäßig"],
       ["ober","Oberkörper","Brust, Rücken, Schultern, Arme"],
@@ -2317,6 +2410,7 @@ const WIZARD_FRAGEN = [
     ]},
   { id:"bonus", typ:"schalter", frage:"Aufwärmen und Dehnen?",
     hilfe:"Empfehlung: dynamisch aufwärmen vor dem Training, statisch dehnen danach. Pro Plan später einzeln abschaltbar.",
+    nurWenn: kraftGewaehlt,
     optionen:[
       ["aufwaermen","🔥 Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
       ["dehnen","🧘 Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
@@ -2329,6 +2423,7 @@ let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
 function einrichtungOeffnen(){
   const alt = sitzung.daten.einrichtung || {};
   einrichtung = {
+    sportarten: (alt.sportarten || ["kraft"]).slice(),
     ort: alt.ort || null,
     geraete: (alt.geraete || []).slice(),
     erfahrung: alt.erfahrung || null,
@@ -2359,10 +2454,11 @@ function wzZeichnen(){
     '<div class="wz-punkt' + (wzSchritt >= wzSichtbar.length ? " jetzt" : "") + '"></div>';
 
   let optionenHtml;
+  // Ausgewählt wird allein durch die Umfärbung (.gewaehlt) angezeigt — kein Häkchen.
   if(f.typ === "schalter"){
     optionenHtml = f.optionen.map(([wert, titel, unter]) =>
       '<button class="wz-opt ' + (einrichtung.bonus.includes(wert) ? "gewaehlt" : "") +
-      '" onclick="wzBonus(\'' + wert + '\')">' + (einrichtung.bonus.includes(wert) ? "✓ " : "") + titel +
+      '" onclick="wzBonus(\'' + wert + '\')">' + titel +
       (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
   } else if(f.typ === "multi"){
     const liste = einrichtung[f.id];
@@ -2374,14 +2470,13 @@ function wzZeichnen(){
         '<div style="grid-column:1/-1;margin:6px 0 -2px"><label>' + gr + '</label></div>' +
         passend.filter(g => g.gruppe === gr).map(g =>
           '<button class="wz-opt ' + (liste.includes(g.id) ? "gewaehlt" : "") +
-          '" onclick="wzMulti(\'geraete\',\'' + g.id + '\')">' +
-          (liste.includes(g.id) ? "✓ " : "") + g.name + '</button>').join("")
+          '" onclick="wzMulti(\'geraete\',\'' + g.id + '\')">' + g.name + '</button>').join("")
       ).join("");
     } else {
       optionenHtml = f.optionen.map(([wert, titel, unter]) =>
         '<button class="wz-opt ' + (liste.includes(wert) ? "gewaehlt" : "") +
         '" onclick="wzMulti(\'' + f.id + '\',' + (typeof wert === "number" ? wert : "'" + wert + "'") + ')">' +
-        (liste.includes(wert) ? "✓ " : "") + titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
+        titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
     }
   } else {
     optionenHtml = f.optionen.map(([wert, titel, unter]) =>
@@ -2441,10 +2536,17 @@ function wzZurueck(){
 function wzWeiter(){
   wzAktualisiereSichtbar();
   // Auf dem Zusammenfassungs-Schritt gibt es kein "Weiter" mehr — hier wird gebaut.
-  if(wzSchritt >= wzSichtbar.length){ plaeneErstellen(); return; }
+  // Ohne Krafttraining gibt es nichts zu bauen: dann nur die Auswahl sichern.
+  if(wzSchritt >= wzSichtbar.length){
+    if(kraftGewaehlt(einrichtung)) plaeneErstellen(); else sportartenSichern();
+    return;
+  }
   const f = wzSichtbar[wzSchritt];
   if(f){
     if(f.typ === "single" && !einrichtung[f.id]){ meldung("Bitte eine Antwort wählen."); return; }
+    if(f.id === "sportarten" && einrichtung.sportarten.length === 0){
+      meldung("Bitte mindestens eine Sportart wählen."); return;
+    }
     if(f.id === "wochentage" && (einrichtung.wochentage.length < 2 || einrichtung.wochentage.length > 6)){
       meldung("Bitte 2 bis 6 Trainingstage wählen."); return;
     }
@@ -2464,6 +2566,21 @@ function wzZusammenfassung(){
     const treffer = f && f.optionen.find(o => String(o[0]) === String(wert));
     return treffer ? treffer[1] : wert;
   };
+  const sportarten = einrichtung.sportarten.map(s => sportartName(s)).join(", ");
+
+  // Ohne Krafttraining wurden alle Folgefragen übersprungen — dann darf hier
+  // auch nichts stehen, was gar nicht beantwortet wurde.
+  if(!kraftGewaehlt(einrichtung)){
+    document.getElementById("wz-buehne").innerHTML =
+      '<h2 class="wz-frage">Gespeichert wird nur die Auswahl</h2>' +
+      '<div class="wz-hilfe">Für ' + text(sportarten) + ' kann die App noch keine Pläne bauen — ausgebaut ist bisher nur Krafttraining. ' +
+      'Deine Auswahl bleibt gemerkt. Wähle zusätzlich Krafttraining, wenn du Pläne willst.</div>' +
+      '<div class="karte"><div class="meta" style="line-height:2">Sportarten: ' + text(sportarten) + '</div></div>';
+    document.getElementById("wz-zurueck").textContent = "Zurück";
+    document.getElementById("wz-weiter").textContent = "Auswahl speichern";
+    return;
+  }
+
   const tage = einrichtung.wochentage.map(w => WOCHENTAGE[w].slice(0,2)).join(", ");
   const geraete = einrichtung.geraete.length
     ? einrichtung.geraete.map(g => geraetName(g)).join(", ") : "nur Körpergewicht";
@@ -2473,6 +2590,7 @@ function wzZusammenfassung(){
     '<h2 class="wz-frage">Passt das so?</h2>' +
     '<div class="wz-hilfe">Daraus entstehen ' + einrichtung.wochentage.length + ' Pläne. Alles ist danach frei änderbar.</div>' +
     '<div class="karte"><div class="meta" style="line-height:2">' +
+      "Sportarten: " + text(sportarten) + "<br>" +
       "Ort: " + beschriften("ort", einrichtung.ort) + "<br>" +
       "Ausrüstung: " + geraete + "<br>" +
       "Erfahrung: " + beschriften("erfahrung", einrichtung.erfahrung) + "<br>" +
@@ -2566,6 +2684,17 @@ function uebungBauen(vorlage, werte, koerperKg){
   return u;
 }
 
+/** Abschluss, wenn kein Krafttraining gewählt ist: Es gibt nichts zu bauen.
+    Nur die Sportarten werden übernommen — Ort, Geräte, Ziel usw. wurden gar
+    nicht gefragt und dürfen deshalb auch nicht überschrieben werden. */
+function sportartenSichern(){
+  sitzung.daten.einrichtung.sportarten = einrichtung.sportarten.slice();
+  speichern();
+  planListeZeichnen();
+  zeige("view-plaene");
+  meldung("Sportarten gespeichert.\n\nPläne baut die App bisher nur für Krafttraining. Wähle es in der Trainingsplanung mit aus, wenn du welche möchtest.");
+}
+
 function plaeneErstellen(){
   const geraete = verfuegbareGeraete();
   const werte = startwerteBerechnen();
@@ -2610,6 +2739,7 @@ function plaeneErstellen(){
   const fertigstellen = () => {
     sitzung.daten.plaene = sitzung.daten.plaene.concat(neuePlaene);
     sitzung.daten.einrichtung = {
+      sportarten:einrichtung.sportarten.slice(),
       ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
       ziel:einrichtung.ziel, wochentage:einrichtung.wochentage.slice(),
       dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice(),
@@ -2782,7 +2912,7 @@ function bibZeichnen(){
 
   document.getElementById("bib-filter").innerHTML =
     '<button class="' + (bibNurMeine ? "gewaehlt" : "") + '" onclick="bibMeineUmschalten()">' +
-    (bibNurMeine ? "✓ " : "") + 'Nur mit meinen Geräten</button>';
+    'Nur mit meinen Geräten</button>';
 
   let liste = UEBUNGEN_DB.slice();
   if(bibKategorie !== "alle") liste = liste.filter(u => u.kat === bibKategorie);
@@ -2850,26 +2980,48 @@ let geraeteVorher = [];
 function geraeteKarteZeichnen(){
   const e = sitzung.daten.einrichtung || {};
   if(!e.geraete) e.geraete = [];
+  if(!Array.isArray(e.sportarten)) e.sportarten = ["kraft"];
   const ort = e.ort || "zuhause";
+
+  // Sportarten — Mehrfachauswahl. Was noch keine Pläne kennt, sagt das auch.
+  document.getElementById("profil-sportarten").innerHTML = SPORTARTEN.map(s =>
+    '<button class="' + (e.sportarten.includes(s.id) ? "gewaehlt" : "") +
+    '" onclick="profilSportartUmschalten(\'' + s.id + '\')">' + text(s.name) +
+    (s.ausgebaut ? "" : '<small>noch ohne Pläne</small>') + '</button>').join("");
 
   document.getElementById("profil-ort").innerHTML =
     [["zuhause","Zuhause"],["gym","Gym"],["draussen","Draußen"],["eigene","Eigene Auswahl"]].map(([w,n]) =>
       '<button class="' + (ort === w ? "gewaehlt" : "") + '" onclick="profilOrtSetzen(\'' + w + '\')">' + n + '</button>').join("");
 
-  const passend = geraeteFuerOrt(ort === "eigene" ? "zuhause" : ort);
+  const passend = geraeteFuerOrt(ort);
   const gruppen = [...new Set(passend.map(g => g.gruppe))];
   document.getElementById("profil-geraete").innerHTML = gruppen.map(gr =>
-    '<div style="margin:12px 0 6px"><label>' + gr + '</label></div><div class="note">' +
+    '<div class="wahl-gruppe"><label>' + gr + '</label></div><div class="wahl-raster">' +
     passend.filter(g => g.gruppe === gr).map(g =>
       '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
-      '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' +
-      (e.geraete.includes(g.id) ? "✓ " : "") + g.name + '</button>').join("") + '</div>').join("");
+      '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("");
 
   // Knopf nur, wenn seit dem Öffnen wirklich Geräte DAZUgekommen sind
   const neue = e.geraete.filter(g => !geraeteVorher.includes(g));
   document.getElementById("geraete-neu-knopf").innerHTML = neue.length === 0 ? "" :
     '<div class="knopfreihe"><button class="primaer schmal" onclick="neueUebungenEinbauen()">' +
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
+}
+
+/** Sportart an/aus. Mindestens eine muss bleiben — eine leere Auswahl
+    wäre keine Aussage, sondern nur ein Zustand, den niemand gewollt hat. */
+function profilSportartUmschalten(id){
+  const e = sitzung.daten.einrichtung;
+  const liste = e.sportarten;
+  const pos = liste.indexOf(id);
+  if(pos >= 0){
+    if(liste.length === 1){ meldung("Mindestens eine Sportart muss ausgewählt bleiben."); return; }
+    liste.splice(pos, 1);
+  } else {
+    liste.push(id);
+  }
+  speichern();
+  geraeteKarteZeichnen();
 }
 
 /** Ortswechsel: Die Auswahl wird NICHT übernommen. Jeder Ort hat sein
@@ -2889,7 +3041,7 @@ function profilOrtSetzen(ort){
     e.geraeteProOrt[ort] = e.geraete.slice();
   }
   // Sicherheitsnetz: nichts anzeigen, was es an diesem Ort nicht gibt
-  const moeglich = geraeteFuerOrt(ort === "eigene" ? "zuhause" : ort).map(g => g.id);
+  const moeglich = geraeteFuerOrt(ort).map(g => g.id);
   e.geraete = e.geraete.filter(g => moeglich.includes(g));
   e.geraeteProOrt[ort] = e.geraete.slice();
   speichern();
