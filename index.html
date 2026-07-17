@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Training">
 <meta name="theme-color" content="#16181C">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../icon-180.png">
 <title>Trainingsplan</title>
 <style>
 /* ============================================================
@@ -40,6 +42,7 @@ button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
 button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
   background:var(--panel-2);border:1px solid var(--line)}
+button.mini{min-height:34px;padding:4px 10px;font-size:14px}
 button:disabled{opacity:.4}
 .knopfreihe{display:flex;gap:8px;margin-top:12px}
 .knopfreihe>*{flex:1}
@@ -60,6 +63,8 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
   background:var(--panel-2);border:1px dashed var(--signal);border-radius:6px;
   padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all}
+.kennzahl{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--signal)}
+.kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 /* Strichliste der Sätze */
 .strichliste{display:flex;gap:5px;margin:18px 0 26px}
@@ -97,8 +102,15 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel)}
 .umschalter button.gewaehlt{background:var(--signal);color:#16181C}
 
-/* Statistik-Diagramm */
+/* Statistik */
 .diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.kalender{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0}
+.tag{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;
+  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2)}
+.tag.leer2{background:transparent}
+.tag.trainiert{background:var(--signal);color:#16181C;font-weight:700}
+.tag.heute{outline:1.5px solid var(--chalk)}
 
 /* Eigener Dialog (ersetzt confirm/alert) */
 #dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
@@ -171,6 +183,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   <div class="knopfreihe">
     <button class="breit" id="neu-knopf" onclick="neuFormularZeigen()">Neues Konto anlegen</button>
   </div>
+  <div class="knopfreihe">
+    <button class="schmal" id="import-knopf" onclick="document.getElementById('import-datei').click()">Sicherung importieren</button>
+  </div>
+  <input type="file" id="import-datei" accept="application/json" hidden onchange="sicherungImportieren(this)">
 </section>
 
 <!-- ============================================================
@@ -226,6 +242,21 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
   <div class="karte">
     <div class="zeile">
+      <div><div id="streak-zahl" class="kennzahl">0</div><div class="kennzahl-label">Wochen in Folge</div></div>
+      <div><div id="gesamt-zahl" class="kennzahl">0</div><div class="kennzahl-label">Trainings gesamt</div></div>
+      <div><div id="monat-zahl" class="kennzahl">0</div><div class="kennzahl-label">diesen Monat</div></div>
+    </div>
+    <div id="kalender" class="kalender"></div>
+  </div>
+
+  <div class="karte">
+    <h2>Volumen pro Woche</h2>
+    <div class="meta">Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10)</div>
+    <div id="volumen-diagramm" class="abstand"></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile">
       <h2>Körpergewicht</h2>
       <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
     </div>
@@ -261,7 +292,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   </div>
 
   <div class="knopfreihe">
-    <button class="schmal" onclick="exportieren()">Daten exportieren</button>
+    <button class="schmal" onclick="sicherungExportieren()">Sicherung exportieren</button>
     <button class="schmal" onclick="abmelden()">Abmelden</button>
   </div>
   <div class="knopfreihe">
@@ -361,9 +392,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
    - Passwort vergessen: Hülle B mit dem Code öffnen, neues Passwort
      setzen -> nur Hülle A wird neu geschrieben. Daten unangetastet.
    - Passwort ändern geht ohne Neuverschlüsselung aller Daten.
-   - Weder Passwort noch Code noch Datenschlüssel stehen je im Klartext
-     auf der Platte. Falscher Schlüssel => AES-GCM-Entschlüsselung
-     schlägt fehl; das ist zugleich die Passwortprüfung.
+   - Die SICHERUNGSDATEI (Export) ist einfach der komplette verschlüsselte
+     Kontoeintrag. Sie ist ohne Passwort/Code unlesbar und darf deshalb
+     bedenkenlos in iCloud & Co. liegen. Import stellt das Konto wieder her.
    ============================================================ */
 
 /* ============================================================
@@ -397,7 +428,6 @@ const Speicher = (function(){
     laden(){
       if(!persistent) return imSpeicher;
       try {
-        // v3 bevorzugen, sonst v2-Bestand übernehmen (Konten werden beim Login migriert)
         return JSON.parse(localStorage.getItem(SCHLUESSEL)) ||
                JSON.parse(localStorage.getItem("trainingsapp.v2"));
       } catch(e){ return null; }
@@ -546,20 +576,19 @@ async function anmelden(){
   const passwort = document.getElementById("login-passwort").value;
   try {
     if(gewaehltesKonto.huellePasswort){
-      /* --- Aktuelles Schema (v3): Hülle öffnen, DK laden, Daten entschlüsseln --- */
+      /* --- Aktuelles Schema: Hülle öffnen, DK laden, Daten entschlüsseln --- */
       const dkBytes = await huelleOeffnen(passwort, gewaehltesKonto.huellePasswort);
       const datenSchluessel = await dkImportieren(dkBytes);
       const klartext = await gcmEntschluesseln(datenSchluessel, gewaehltesKonto.paket);
-      const daten = JSON.parse(new TextDecoder().decode(klartext));
+      const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
       planListeZeichnen();
       zeige("view-plaene");
     } else {
-      /* --- Altes Schema (v2, Daten direkt mit Passwort verschlüsselt):
-             erst normal öffnen, dann auf v3 hochziehen und Code zeigen --- */
+      /* --- Altes Schema (v2): öffnen, auf neues Schema heben, Code zeigen --- */
       const altSchluessel = await schluesselAbleiten(passwort, base64ZuBytes(gewaehltesKonto.salz));
       const klartext = await gcmEntschluesseln(altSchluessel, gewaehltesKonto.paket);
-      const daten = JSON.parse(new TextDecoder().decode(klartext));
+      const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       await kontoAufV3Heben(gewaehltesKonto, passwort, daten);
       codeAnzeigen(() => { planListeZeichnen(); zeige("view-plaene"); });
     }
@@ -568,14 +597,25 @@ async function anmelden(){
   }
 }
 
-/** Baut ein Konto vom v2- auf das v3-Schema um (Datenschlüssel + zwei Hüllen). */
+/** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
+function datenNachruesten(daten){
+  if(!Array.isArray(daten.gewichte))  daten.gewichte = [];
+  if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
+  if(!Array.isArray(daten.plaene))    daten.plaene = [];
+  daten.plaene.forEach(p => p.uebungen.forEach(u => {
+    if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
+  }));
+  return daten;
+}
+
+/** Baut ein Konto vom v2- auf das aktuelle Schema um (Datenschlüssel + zwei Hüllen). */
 async function kontoAufV3Heben(konto, passwort, daten){
   const dkBytes = dkErzeugen();
   const datenSchluessel = await dkImportieren(dkBytes);
   frischerCode = codeErzeugen();
   konto.huellePasswort = await huelleErzeugen(passwort, dkBytes);
   konto.huelleCode     = await huelleErzeugen(frischerCode, dkBytes);
-  delete konto.salz;   // gehörte zum alten Schema
+  delete konto.salz;
   sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
   await sitzungSpeichern();
 }
@@ -623,7 +663,7 @@ function codeAnzeigen(danach){
   zeige("view-code");
 }
 function codeBestaetigen(){
-  frischerCode = null;                 // Code aus dem Arbeitsspeicher werfen
+  frischerCode = null;
   document.getElementById("code-anzeige").textContent = "–";
   if(nachCodeAnzeige) nachCodeAnzeige();
   nachCodeAnzeige = null;
@@ -647,11 +687,12 @@ async function passwortZuruecksetzen(){
   if(pw1 !== pw2){ meldung("Die Passwörter stimmen nicht überein."); return; }
   try {
     const dkBytes = await huelleOeffnen(code, konto.huelleCode);
-    konto.huellePasswort = await huelleErzeugen(pw1, dkBytes);   // NUR die Passwort-Hülle neu — Daten unberührt
+    konto.huellePasswort = await huelleErzeugen(pw1, dkBytes);   // NUR Hülle A neu — Daten unberührt
     Speicher.schreiben(tresor);
     const datenSchluessel = await dkImportieren(dkBytes);
     const klartext = await gcmEntschluesseln(datenSchluessel, konto.paket);
-    sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten: JSON.parse(new TextDecoder().decode(klartext)) };
+    sitzung = { kontoId: konto.id, datenSchluessel, dkBytes,
+                daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
     meldung("Passwort neu gesetzt. Du bist angemeldet.");
     planListeZeichnen();
     zeige("view-plaene");
@@ -661,7 +702,7 @@ async function passwortZuruecksetzen(){
 }
 
 function abmelden(){
-  sitzung = null;          // entschlüsselte Daten und Schlüssel aus dem Arbeitsspeicher werfen
+  sitzung = null;
   gewaehltesKonto = null;
   loginZeichnen();
 }
@@ -709,21 +750,77 @@ function codeErneuern(){
 }
 
 /* ============================================================
+   #region Sicherung (verschlüsselter Export / Import)
+   Die Sicherungsdatei ist der komplette Kontoeintrag, so wie er
+   verschlüsselt auf der Platte liegt. Sie braucht keine eigene
+   Kryptografie und ist ohne Passwort/Code wertlos —
+   darf also bedenkenlos in iCloud, Mail oder auf einem Stick liegen.
+   Wiederherstellen: importieren, dann mit Passwort ODER Code anmelden.
+   ============================================================ */
+function sicherungExportieren(){
+  const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
+  const sicherung = { format:"trainingsapp-sicherung", version:1, konto };
+  const blob = new Blob([JSON.stringify(sicherung, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "training-sicherung-" + konto.benutzer + "-" + heuteAlsText() + ".json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  meldung("Sicherung erstellt. Die Datei ist verschlüsselt — zum Wiederherstellen brauchst du dein Passwort oder deinen Wiederherstellungscode.");
+}
+
+function sicherungImportieren(eingabe){
+  const datei = eingabe.files[0];
+  if(!datei) return;
+  const leser = new FileReader();
+  leser.onload = () => {
+    eingabe.value = "";
+    let sicherung;
+    try { sicherung = JSON.parse(leser.result); }
+    catch(e){ meldung("Die Datei ist kein gültiges JSON."); return; }
+    if(!sicherung || sicherung.format !== "trainingsapp-sicherung" || !sicherung.konto ||
+       !sicherung.konto.huellePasswort || !sicherung.konto.paket){
+      meldung("Das ist keine Sicherungsdatei dieser App."); return;
+    }
+    const konto = sicherung.konto;
+    const vorhanden = tresor.konten.find(k => k.id === konto.id ||
+      k.benutzer.toLowerCase() === konto.benutzer.toLowerCase());
+    if(vorhanden){
+      frage("Konto „" + konto.benutzer + "“ existiert bereits auf diesem Gerät. Durch die Sicherung ERSETZEN? (Der aktuelle Stand des Kontos geht verloren.)", true, ja => {
+        if(!ja) return;
+        tresor.konten = tresor.konten.map(k => (k === vorhanden ? konto : k));
+        Speicher.schreiben(tresor);
+        loginZeichnen();
+        meldung("Sicherung eingespielt. Bitte anmelden.");
+      });
+    } else {
+      tresor.konten.push(konto);
+      Speicher.schreiben(tresor);
+      loginZeichnen();
+      meldung("Sicherung eingespielt. Bitte anmelden.");
+    }
+  };
+  leser.readAsText(datei);
+}
+
+/* ============================================================
    #region Datenmodell Übungen
    modus "wdh"  -> Sätze mit Wiederholungen, Nutzer drückt "Satz fertig"
    modus "zeit" -> Sätze mit Countdown (z. B. Plank), laufen automatisch ab
    ============================================================ */
+const VORBEREITUNG_S = 10;   // Countdown vor jedem Zeit-Satz (in Position gehen)
+
 function neueUebung(){
   return { id:neueId(), name:"", modus:"wdh", saetze:3,
            wdh:10, wdhMin:8, wdhMax:12, gewicht:0, gewichtSchritt:2.5,
-           dauer:30, pause:90 };
+           dauer:30, pause:90, notenHistorie:[] };
 }
 
 function beispielplan(){
   return { id:neueId(), name:"Ganzkörper", uebungen:[
-    { id:neueId(), name:"Liegestütze", modus:"wdh",  saetze:3, wdh:10, wdhMin:8,  wdhMax:20, gewicht:0, gewichtSchritt:0, dauer:30, pause:60 },
-    { id:neueId(), name:"Kniebeugen",  modus:"wdh",  saetze:3, wdh:15, wdhMin:10, wdhMax:25, gewicht:0, gewichtSchritt:0, dauer:30, pause:60 },
-    { id:neueId(), name:"Plank",       modus:"zeit", saetze:3, wdh:0,  wdhMin:0,  wdhMax:0,  gewicht:0, gewichtSchritt:0, dauer:45, pause:60 }
+    { id:neueId(), name:"Liegestütze", modus:"wdh",  saetze:3, wdh:10, wdhMin:8,  wdhMax:20, gewicht:0, gewichtSchritt:0, dauer:30, pause:60, notenHistorie:[] },
+    { id:neueId(), name:"Kniebeugen",  modus:"wdh",  saetze:3, wdh:15, wdhMin:10, wdhMax:25, gewicht:0, gewichtSchritt:0, dauer:30, pause:60, notenHistorie:[] },
+    { id:neueId(), name:"Plank",       modus:"zeit", saetze:3, wdh:0,  wdhMin:0,  wdhMax:0,  gewicht:0, gewichtSchritt:0, dauer:45, pause:60, notenHistorie:[] }
   ]};
 }
 
@@ -798,11 +895,29 @@ document.addEventListener("visibilitychange", () => {
 
 /* ============================================================
    #region Progression — die EINZIGE Stelle mit der Anpassungsregel
+   Zusätzlich: Deload. Dreimal in Folge Note 5 bei derselben Übung
+   heißt: Das Niveau ist zu hoch, kleiner werden statt weiter kämpfen.
    ============================================================ */
 function begrenzen(w, min, max){ return Math.min(max, Math.max(min, w)); }
 
 function progressionAnwenden(uebung, note){
   const u = Object.assign({}, uebung);
+  u.notenHistorie = (uebung.notenHistorie || []).concat(note).slice(-3);
+  u.deload = false;
+
+  // Deload: 3x Note 5 hintereinander -> deutlich runter, Historie leeren
+  if(u.notenHistorie.length === 3 && u.notenHistorie.every(n => n === 5)){
+    u.deload = true;
+    u.notenHistorie = [];
+    if(u.modus === "zeit"){
+      u.dauer = begrenzen(Math.round(u.dauer * 0.8), 10, 600);
+    } else {
+      u.wdh = u.wdhMin;
+      if(u.gewichtSchritt > 0) u.gewicht = Math.max(0, Math.round((u.gewicht - u.gewichtSchritt)*4)/4);
+    }
+    u.pause = begrenzen(u.pause + 30, 30, 300);
+    return u;
+  }
 
   if(u.modus === "zeit"){
     if(note === 1) u.dauer += 15;
@@ -861,12 +976,24 @@ function planListeZeichnen(){
       '<div class="knopfreihe">' +
         '<button class="primaer" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
         '<button class="schmal" onclick="editorOeffnen(\'' + p.id + '\')">Bearbeiten</button>' +
+        '<button class="schmal" onclick="planDuplizieren(\'' + p.id + '\')">Duplizieren</button>' +
       '</div></div>';
   }).join("");
 }
 
 function beispielLaden(){
   sitzung.daten.plaene.push(beispielplan());
+  speichern();
+  planListeZeichnen();
+}
+
+function planDuplizieren(planId){
+  const original = sitzung.daten.plaene.find(p => p.id === planId);
+  const kopie = JSON.parse(JSON.stringify(original));
+  kopie.id = neueId();
+  kopie.name = original.name + " (Kopie)";
+  kopie.uebungen.forEach(u => { u.id = neueId(); u.notenHistorie = []; });
+  sitzung.daten.plaene.push(kopie);
   speichern();
   planListeZeichnen();
 }
@@ -883,6 +1010,9 @@ function profilOeffnen(){
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("gewicht-formular").hidden = true;
   document.getElementById("pw-formular").hidden = true;
+  kennzahlenZeichnen();
+  kalenderZeichnen();
+  volumenZeichnen();
   gewichtStatistikZeichnen();
   protokollZeichnen();
   zeige("view-profil");
@@ -899,6 +1029,112 @@ function profilSpeichern(){
 
 function heuteAlsText(){ return new Date().toISOString().slice(0,10); }
 
+/** ISO-Wochenschlüssel "2026-W29" für ein Datum "JJJJ-MM-TT". */
+function isoWoche(datumText){
+  const d = new Date(datumText + "T12:00:00");
+  const donnerstag = new Date(d);
+  donnerstag.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));   // Donnerstag der Woche bestimmt das Jahr
+  const jahresanfang = new Date(donnerstag.getFullYear(), 0, 1);
+  const woche = Math.ceil(((donnerstag - jahresanfang) / 86400000 + 1) / 7);
+  return donnerstag.getFullYear() + "-W" + String(woche).padStart(2, "0");
+}
+
+/** Verschiebt ein Datum um n Tage und liefert "JJJJ-MM-TT". */
+function tageVerschieben(datumText, n){
+  const d = new Date(datumText + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+
+function kennzahlenZeichnen(){
+  const protokoll = sitzung.daten.protokoll;
+  const heute = heuteAlsText();
+  const trainierteWochen = new Set(protokoll.map(e => isoWoche(e.datum)));
+
+  // Streak: ab dieser Woche (oder letzter, falls diese noch leer) rückwärts zählen
+  let streak = 0;
+  let woche = heute;
+  if(!trainierteWochen.has(isoWoche(woche))) woche = tageVerschieben(woche, -7);
+  while(trainierteWochen.has(isoWoche(woche))){
+    streak++;
+    woche = tageVerschieben(woche, -7);
+  }
+
+  const monat = heute.slice(0,7);
+  document.getElementById("streak-zahl").textContent = streak;
+  document.getElementById("gesamt-zahl").textContent = protokoll.length;
+  document.getElementById("monat-zahl").textContent = protokoll.filter(e => e.datum.startsWith(monat)).length;
+}
+
+/** Kalender des aktuellen Monats, Trainingstage gelb. */
+function kalenderZeichnen(){
+  const trainingstage = new Set(sitzung.daten.protokoll.map(e => e.datum));
+  const jetzt = new Date();
+  const jahr = jetzt.getFullYear(), monat = jetzt.getMonth();
+  const heute = heuteAlsText();
+  const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
+  const wochentagErster = (new Date(jahr, monat, 1).getDay() + 6) % 7;   // 0 = Montag
+
+  let html = ["Mo","Di","Mi","Do","Fr","Sa","So"].map(t => '<div class="kopfzelle">' + t + '</div>').join("");
+  for(let i = 0; i < wochentagErster; i++) html += '<div class="tag leer2"></div>';
+  for(let tag = 1; tag <= tageImMonat; tag++){
+    const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
+    let klasse = "tag";
+    if(trainingstage.has(datum)) klasse += " trainiert";
+    if(datum === heute) klasse += " heute";
+    html += '<div class="' + klasse + '">' + tag + '</div>';
+  }
+  document.getElementById("kalender").innerHTML = html;
+}
+
+/** Volumenpunkte eines Satzes. Bewusst grob — es geht um den Trend, nicht um Präzision. */
+function satzVolumen(s){
+  if(s.modus === "zeit") return (s.dauer || 0) / 10;
+  return (s.wdh || 0) * (s.gewicht > 0 ? s.gewicht : 1);
+}
+
+/** Balkendiagramm: Volumen der letzten 12 Wochen. */
+function volumenZeichnen(){
+  const ziel = document.getElementById("volumen-diagramm");
+  const proWoche = {};
+  sitzung.daten.protokoll.forEach(e => {
+    if(!Array.isArray(e.saetze)) return;   // alte Einträge ohne Satzdaten überspringen
+    const w = isoWoche(e.datum);
+    proWoche[w] = (proWoche[w] || 0) + e.saetze.reduce((s, satz) => s + satzVolumen(satz), 0);
+  });
+
+  // Die letzten 12 Wochenschlüssel bauen (auch leere Wochen anzeigen)
+  const wochen = [];
+  let datum = heuteAlsText();
+  for(let i = 0; i < 12; i++){ wochen.unshift(isoWoche(datum)); datum = tageVerschieben(datum, -7); }
+
+  const werte = wochen.map(w => Math.round(proWoche[w] || 0));
+  const max = Math.max(...werte, 1);
+  if(werte.every(v => v === 0)){
+    ziel.innerHTML = '<div class="meta">Noch keine Trainingsdaten. Nach dem ersten abgeschlossenen Training erscheint hier der Verlauf.</div>';
+    return;
+  }
+
+  const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / 12;
+  let balken = "";
+  werte.forEach((v, i) => {
+    const h = (v / max) * (H - 2*rand - 14);
+    const x = rand + i * spalte + spalte * 0.15;
+    const istAktuell = i === 11;
+    balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
+      '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
+      '" rx="2" fill="' + (istAktuell ? "var(--signal)" : "var(--rest)") + '"/>' +
+      (v > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
+      '" fill="var(--muted)" font-size="10" font-family="var(--mono)" text-anchor="middle">' + v + '</text>' : '');
+  });
+  ziel.innerHTML =
+    '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Wochenvolumen">' +
+    balken +
+    '<text x="' + rand + '" y="' + (H-6) + '" fill="var(--muted)" font-size="11" font-family="var(--mono)">vor 12 Wochen</text>' +
+    '<text x="' + (B-rand) + '" y="' + (H-6) + '" fill="var(--muted)" font-size="11" font-family="var(--mono)" text-anchor="end">diese Woche</text>' +
+    '</svg>';
+}
+
 function gewichtFormularZeigen(){
   const f = document.getElementById("gewicht-formular");
   f.hidden = !f.hidden;
@@ -914,7 +1150,7 @@ function gewichtEintragen(){
   if(!kg || kg <= 0){ meldung("Bitte ein Gewicht in Kilogramm eingeben."); return; }
   const liste = sitzung.daten.gewichte;
   const vorhanden = liste.find(e => e.datum === datum);
-  if(vorhanden) vorhanden.kg = kg;                    // pro Tag ein Wert — der neueste gilt
+  if(vorhanden) vorhanden.kg = kg;
   else liste.push({ datum, kg });
   liste.sort((a,b) => a.datum < b.datum ? -1 : 1);
   speichern();
@@ -980,7 +1216,11 @@ function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
   document.getElementById("protokoll-liste").innerHTML =
     p.length === 0 ? "Noch kein Training abgeschlossen." :
-    p.slice().reverse().slice(0,15).map(e => e.datum + " · " + text(e.plan)).join("<br>");
+    p.slice().reverse().slice(0,15).map(e =>
+      e.datum + " · " + text(e.plan) +
+      (e.dauerMin ? " · " + e.dauerMin + " min" : "") +
+      (Array.isArray(e.saetze) ? " · " + e.saetze.length + " Sätze" : "")
+    ).join("<br>");
 }
 
 /* ============================================================
@@ -1013,7 +1253,11 @@ function editorZeichnen(){
                zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt);
     }
     return '<div class="karte">' +
-      '<label>Übung ' + (i+1) + '</label>' +
+      '<div class="zeile"><label style="margin:0">Übung ' + (i+1) + '</label>' +
+        '<span>' +
+          '<button class="mini" ' + (i===0 ? "disabled" : "") + ' onclick="uebungSchieben(' + i + ',-1)" aria-label="nach oben">▲</button> ' +
+          '<button class="mini" ' + (i===editorPlan.uebungen.length-1 ? "disabled" : "") + ' onclick="uebungSchieben(' + i + ',1)" aria-label="nach unten">▼</button>' +
+        '</span></div>' +
       '<input value="' + text(u.name) + '" placeholder="Name der Übung" oninput="feld(' + i + ',\'name\',this.value,false)">' +
       '<div class="umschalter abstand">' +
         '<button class="' + (istZeit?"":"gewaehlt") + '" onclick="modusSetzen(' + i + ',\'wdh\')">Wiederholungen</button>' +
@@ -1037,6 +1281,15 @@ function modusSetzen(i, modus){ editorPlan.uebungen[i].modus = modus; editorZeic
 function uebungAnlegen(){ editorPlan.uebungen.push(neueUebung()); editorZeichnen(); }
 function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
 
+/** Übung eine Position nach oben (-1) oder unten (+1) schieben. */
+function uebungSchieben(i, richtung){
+  const liste = editorPlan.uebungen;
+  const ziel = i + richtung;
+  if(ziel < 0 || ziel >= liste.length) return;
+  [liste[i], liste[ziel]] = [liste[ziel], liste[i]];
+  editorZeichnen();
+}
+
 function editorSpeichern(){
   editorPlan.name = document.getElementById("plan-name").value.trim() || "Ohne Namen";
   editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
@@ -1049,6 +1302,7 @@ function editorSpeichern(){
     u.wdh    = begrenzen(Math.round(u.wdh), u.wdhMin, u.wdhMax);
     u.gewicht = Math.max(0, u.gewicht);
     u.gewichtSchritt = Math.max(0, u.gewichtSchritt);
+    if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
   });
   if(editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
   const plaene = sitzung.daten.plaene;
@@ -1071,9 +1325,10 @@ function planLoeschen(){
 
 /* ============================================================
    #region Training
-   Flache Schrittliste: satz-wdh (wartet auf Knopf),
-   satz-zeit (Countdown), pause (Countdown).
+   Flache Schrittliste: bereit (Countdown vor Zeit-Sätzen),
+   satz-wdh (wartet auf Knopf), satz-zeit (Countdown), pause (Countdown).
    Balken oben = Fortschritt über ALLE Schritte, fortlaufend.
+   Jeder ausgeführte Satz wird mit Ist-Werten protokolliert.
    ============================================================ */
 let lauf = null;
 
@@ -1082,8 +1337,11 @@ function ablaufErzeugen(plan){
   plan.uebungen.forEach((u, ui) => {
     for(let s = 1; s <= u.saetze; s++){
       if(u.modus === "zeit"){
+        // Vorbereitungs-Countdown: Zeit, um in Position zu gehen, bevor die Uhr läuft.
+        schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
+          ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
         schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
-          ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.dauer + " Sekunden. Los." });
+          ansage: u.dauer + " Sekunden. Los." });
       } else {
         schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
           ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
@@ -1100,9 +1358,19 @@ function trainingStarten(planId){
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
   audioFreischalten();        // muss in der Tippgeste passieren (iOS)
   bildschirmWachhalten();
-  lauf = { plan, schritte:ablaufErzeugen(plan), index:0, timerId:null, ende:0, dauer:0 };
+  lauf = { plan, schritte:ablaufErzeugen(plan), index:0, timerId:null, ende:0, dauer:0,
+           startZeit: Date.now(), saetze: [] };
   zeige("view-training");
   schrittBetreten();
+}
+
+/** Trägt den gerade beendeten Satz mit Ist-Werten ins Laufprotokoll ein. */
+function satzProtokollieren(schritt, istSekunden){
+  const u = lauf.plan.uebungen[schritt.uebungIndex];
+  const eintrag = { uebungId: u.id, name: u.name, modus: u.modus, satz: schritt.satz, note: null };
+  if(u.modus === "zeit") eintrag.dauer = istSekunden;
+  else { eintrag.wdh = u.wdh; eintrag.gewicht = u.gewicht; }
+  lauf.saetze.push(eintrag);
 }
 
 function schrittBetreten(){
@@ -1140,6 +1408,15 @@ function schrittBetreten(){
     plus.disabled = false;
     countdownStarten(s.sekunden);
     sprich(s.ansage);
+  } else if(s.typ === "bereit"){
+    phase.textContent = "Bereitmachen · Satz " + s.satz + " von " + u.saetze;
+    phase.classList.add("pause");
+    zahl.className = "uhr-zahl pause";
+    label.textContent = "IN POSITION GEHEN";
+    knopf.textContent = "Sofort starten";
+    plus.disabled = true;
+    countdownStarten(s.sekunden);
+    sprich(s.ansage);
   } else {
     phase.textContent = "Pause";
     phase.classList.add("pause");
@@ -1155,9 +1432,10 @@ function schrittBetreten(){
 function strichlisteZeichnen(uebung, schritt){
   let html = "";
   const erledigt = zaehleErledigteSaetze(schritt.uebungIndex);
+  const istSatz = schritt.typ === "satz-wdh" || schritt.typ === "satz-zeit" || schritt.typ === "bereit";
   for(let i = 1; i <= uebung.saetze; i++){
     let klasse = "strich";
-    if(schritt.typ !== "pause" && i === schritt.satz) klasse += " jetzt";
+    if(istSatz && i === schritt.satz) klasse += " jetzt";
     else if(i <= erledigt) klasse += " erledigt";
     html += '<div class="' + klasse + '"></div>';
   }
@@ -1165,12 +1443,8 @@ function strichlisteZeichnen(uebung, schritt){
 }
 
 function zaehleErledigteSaetze(uebungIndex){
-  let n = 0;
-  for(let i = 0; i < lauf.index; i++){
-    const s = lauf.schritte[i];
-    if(s.typ !== "pause" && s.uebungIndex === uebungIndex) n++;
-  }
-  return n;
+  return lauf.saetze.filter(s => lauf.plan.uebungen[uebungIndex] &&
+    s.uebungId === lauf.plan.uebungen[uebungIndex].id).length;
 }
 
 /** anteil = wie viel vom AKTUELLEN Schritt schon vorbei ist (0..1). */
@@ -1182,8 +1456,8 @@ function gesamtBalkenZeichnen(anteil){
     "Schritt " + Math.min(lauf.index + 1, gesamt) + " von " + gesamt + "  ·  " + Math.round(prozent) + " %";
 }
 
-/* Ein Countdown für Pausen UND Zeit-Sätze. Anzeige rechnet aus der
-   Ziel-Uhrzeit (Date.now), Töne sind vorab auf dem Audio-Thread geplant. */
+/* Ein Countdown für Pausen, Vorbereitung UND Zeit-Sätze. Anzeige rechnet aus
+   der Ziel-Uhrzeit (Date.now), Töne sind vorab auf dem Audio-Thread geplant. */
 function countdownStarten(sekunden){
   lauf.dauer = sekunden;
   lauf.ende = Date.now() + sekunden * 1000;
@@ -1202,15 +1476,32 @@ function countdownTicken(){
   zahl.textContent = Math.floor(rest/60) + ":" + String(rest % 60).padStart(2,"0");
   zahl.classList.toggle("gleich", rest <= 3 && rest > 0);
   gesamtBalkenZeichnen(begrenzen(1 - restMs / (lauf.dauer * 1000), 0, 1));
-  if(restMs <= 0){ clearInterval(lauf.timerId); lauf.index++; schrittBetreten(); }
+  if(restMs <= 0){
+    clearInterval(lauf.timerId);
+    const s = lauf.schritte[lauf.index];
+    if(s.typ === "satz-zeit") satzProtokollieren(s, s.sekunden);   // voll durchgehalten
+    lauf.index++;
+    schrittBetreten();
+  }
 }
 
-function hauptKnopf(){ lauf.index++; schrittBetreten(); }
+function hauptKnopf(){
+  const s = lauf.schritte[lauf.index];
+  if(s.typ === "satz-wdh"){
+    satzProtokollieren(s, 0);                                      // Satz fertig
+  } else if(s.typ === "satz-zeit"){
+    const gehalten = Math.round((Date.now() - (lauf.ende - lauf.dauer * 1000)) / 1000);
+    satzProtokollieren(s, begrenzen(gehalten, 0, s.sekunden));     // übersprungen: Ist-Zeit zählt
+  }
+  // "bereit" und "pause" werden nicht protokolliert — einfach weiter.
+  lauf.index++;
+  schrittBetreten();
+}
 
 function zeitVerlaengern(){
   if(!lauf) return;
   const s = lauf.schritte[lauf.index];
-  if(s.typ === "satz-wdh") return;                 // dort läuft kein Countdown
+  if(s.typ === "satz-wdh" || s.typ === "bereit") return;
   const rest = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000));
   toeneVerwerfen();
   clearInterval(lauf.timerId);
@@ -1218,7 +1509,7 @@ function zeitVerlaengern(){
 }
 
 function trainingAbbrechen(){
-  frage("Training abbrechen? Es wird nichts angepasst.", true, ja => {
+  frage("Training abbrechen? Es wird nichts angepasst und nichts protokolliert.", true, ja => {
     if(!ja) return;
     aufraeumen();
     planListeZeichnen();
@@ -1245,7 +1536,15 @@ function trainingBeenden(){
   bildschirmFreigeben();
   const plan = lauf.plan;
 
-  sitzung.daten.protokoll.push({ datum: heuteAlsText(), plan: plan.name });
+  // Protokolleintrag SOFORT speichern (Noten kommen gleich dazu) —
+  // so geht nichts verloren, falls die Bewertung nie abgeschickt wird.
+  const eintrag = {
+    datum: heuteAlsText(),
+    plan: plan.name,
+    dauerMin: Math.max(1, Math.round((Date.now() - lauf.startZeit) / 60000)),
+    saetze: lauf.saetze
+  };
+  sitzung.daten.protokoll.push(eintrag);
   speichern();
 
   bewertung = {};
@@ -1258,7 +1557,7 @@ function trainingBeenden(){
       '" onclick="noteSetzen(\'' + u.id + '\',' + n + ')">' + n + '</button>').join("") +
     '</div></div>').join("");
 
-  lauf = { plan, schritte:[], index:0, timerId:null };
+  lauf = { plan, schritte:[], index:0, timerId:null, protokollEintrag: eintrag };
   zeige("view-bewertung");
 }
 
@@ -1276,10 +1575,16 @@ function bewertungAnwenden(){
     zeilen.push({ name:alt.name, alt, neu });
     return neu;
   });
+
+  // Noten in die Satzzeilen des Protokolls übernehmen
+  if(lauf.protokollEintrag){
+    lauf.protokollEintrag.saetze.forEach(s => { s.note = bewertung[s.uebungId] ?? null; });
+  }
   speichern();
 
   document.getElementById("ergebnis-liste").innerHTML = zeilen.map(z => {
     const teile = [];
+    if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
     if(z.neu.wdh !== z.alt.wdh)         teile.push(z.alt.wdh + " → " + z.neu.wdh + " Wdh");
     if(z.neu.dauer !== z.alt.dauer)     teile.push(z.alt.dauer + " → " + z.neu.dauer + " s");
     if(z.neu.gewicht !== z.alt.gewicht) teile.push(z.alt.gewicht + " → " + z.neu.gewicht + " kg");
@@ -1293,21 +1598,15 @@ function bewertungAnwenden(){
 }
 
 /* ============================================================
-   #region Export — Klartext-Sicherung des angemeldeten Kontos
-   ============================================================ */
-function exportieren(){
-  const blob = new Blob([JSON.stringify(sitzung.daten, null, 2)], { type:"application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "training-sicherung-" + heuteAlsText() + ".json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-/* ============================================================
    #region Start
    ============================================================ */
 loginZeichnen();
+
+// Service Worker registrieren: macht die App offline-fähig.
+// Relativer Pfad, damit es auch unter /training/ auf GitHub Pages klappt.
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(() => { /* offline-Modus dann eben nicht — App läuft trotzdem */ });
+}
 </script>
 </body>
 </html>
