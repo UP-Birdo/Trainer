@@ -26,7 +26,7 @@ html,body{margin:0;height:100%;overscroll-behavior:none}
 /* Während des Trainings: Seite komplett festnageln — kein Scrollen, kein Wippen.
    Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
 body.training-fest{position:fixed;inset:0;width:100%;overflow:hidden}
-body{background:var(--ground);color:var(--chalk);
+body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   font-size:16px;-webkit-text-size-adjust:100%;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
@@ -55,7 +55,7 @@ input,select{font-family:inherit;font-size:16px;background:var(--panel);color:va
 input:focus,select:focus{outline:none;border-color:var(--signal)}
 label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
 
-.karte{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:10px}
+.karte{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:10px;max-width:100%;overflow:hidden}
 .zeile{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .leer{border:1px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted)}
@@ -113,10 +113,15 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 /* Statistik */
 .diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
 .diagramm text{font-family:var(--mono)}   /* var() in SVG-Attributen ist ungültig — CSS greift stattdessen */
-.kalender{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
-.kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0}
-.tag{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;
-  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer}
+/* minmax(0,1fr) statt 1fr: verhindert, dass Zellinhalte die Spalten
+   breiter machen als den Bildschirm (klassische Grid-Falle). */
+.kalender{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:10px;
+  width:100%;max-width:100%}
+.kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0;
+  min-width:0;overflow:hidden}
+.tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px;
+  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer;
+  min-width:0;overflow:hidden}
 .tag.leer2{background:transparent;cursor:default}
 .tag.trainiert{background:var(--signal);color:#16181C;font-weight:700;cursor:default}
 .tag.ruhe{background:var(--rest);color:#16181C;font-weight:700}
@@ -387,6 +392,15 @@ body:not(.nav-an) #nav{display:none}
   </div>
 
   <div class="karte">
+    <div class="zeile"><h2>Meine Geräte</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-geraete')" aria-label="Info">i</button></div>
+    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
+    <div id="profil-ort" class="note abstand"></div>
+    <div id="profil-geraete"></div>
+    <div id="geraete-neu-knopf"></div>
+  </div>
+
+  <div class="karte">
     <div class="zeile"><h2>Trainingsplanung</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-planung')" aria-label="Info">i</button></div>
     <div id="info-planung" class="meta info-text" hidden>Beantworte die Einschätzungsfragen neu (Ort, Erfahrung, Tage, Ziel) — die App baut dir daraus frische Pläne. Selbst gebaute Pläne bleiben unangetastet.</div>
@@ -484,6 +498,23 @@ body:not(.nav-an) #nav{display:none}
   <div class="knopfreihe" id="plan-extra-reihe">
     <button class="schmal" onclick="planDuplizieren(editorPlan.id)">Duplizieren</button>
     <button class="gefahr" onclick="planLoeschen()">Plan löschen</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Übungs-Bibliothek (Filter + Suche)
+     ============================================================ -->
+<section id="view-bibliothek" class="view">
+  <div class="kopf">
+    <h1>Übung wählen</h1>
+    <button class="schmal" onclick="zeige('view-editor')">Zurück</button>
+  </div>
+  <input id="bib-suche" placeholder="Suchen …" oninput="bibZeichnen()" autocomplete="off">
+  <div class="note abstand" id="bib-kat"></div>
+  <div class="note" id="bib-filter"></div>
+  <div id="bib-liste" class="abstand"></div>
+  <div class="knopfreihe">
+    <button class="schmal" onclick="eigeneUebung()">Eigene Übung eintragen</button>
   </div>
 </section>
 
@@ -943,7 +974,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1481,6 +1512,9 @@ function profilOeffnen(){
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("gewicht-formular").hidden = true;
   document.getElementById("ziel-formular").hidden = true;
+  if(!sitzung.daten.einrichtung) sitzung.daten.einrichtung = { geraete:[] };
+  geraeteVorher = (sitzung.daten.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
+  geraeteKarteZeichnen();
   kennzahlenZeichnen();
   kalenderZeichnen();
   zieleZeichnen();
@@ -1600,9 +1634,10 @@ function kalenderZeichnen(){
   }
   document.getElementById("kalender").innerHTML = html;
   document.getElementById("kalender-legende").innerHTML =
-    '<span style="color:var(--signal)">■</span> trainiert &nbsp; ' +
-    '<span style="color:var(--rest)">■</span> Ruhetag (antippen) &nbsp; ' +
-    '<span style="color:var(--muted)">◫</span> ohne Training';
+    '<div style="display:flex;flex-wrap:wrap;gap:4px 14px">' +
+    '<span><span style="color:var(--signal)">■</span> trainiert</span>' +
+    '<span><span style="color:var(--rest)">■</span> Ruhetag – antippen</span>' +
+    '<span><span style="color:var(--muted)">◫</span> ohne Training</span></div>';
 }
 
 /** Ruhetag von Hand setzen oder entfernen — nur an Tagen ohne Training. */
@@ -1763,58 +1798,160 @@ let einrichtung = { ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:nu
 
 const WOCHENTAGE = ["","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
-const GERAETE_LISTE = [
-  ["kurzhantel","Kurzhanteln"], ["langhantel","Langhantel"],
-  ["stange","Klimmzugstange"], ["band","Fitnessbänder"], ["maschine","Maschinen"],
-  ["moebel","Stabiler Tisch & Stuhl"]
+/* ------------------------------------------------------------
+   GERÄTE
+   orte = wo dieses Gerät zur Auswahl angeboten wird.
+   gymStandard = im Gym ohne Nachfragen vorhanden.
+   ------------------------------------------------------------ */
+const GERAETE = [
+  // Kleingeräte / Zuhause
+  { id:"matte",       name:"Gymnastikmatte",  gruppe:"Klein",     orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"kurzhantel",  name:"Kurzhanteln",     gruppe:"Gewichte",  orte:["zuhause","gym"],            gymStandard:true },
+  { id:"langhantel",  name:"Langhantel",      gruppe:"Gewichte",  orte:["zuhause","gym"],            gymStandard:true },
+  { id:"kettlebell",  name:"Kettlebell",      gruppe:"Gewichte",  orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"medizinball", name:"Medizinball",     gruppe:"Gewichte",  orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"weste",       name:"Gewichtsweste",   gruppe:"Gewichte",  orte:["zuhause","gym","draussen"], gymStandard:false },
+  { id:"bank",        name:"Hantelbank",      gruppe:"Gestelle",  orte:["zuhause","gym"],            gymStandard:true },
+  { id:"stange",      name:"Klimmzugstange",  gruppe:"Gestelle",  orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"dip",         name:"Dip-Barren",      gruppe:"Gestelle",  orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"box",         name:"Stufe / Box",     gruppe:"Gestelle",  orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"moebel",      name:"Tisch & Stuhl",   gruppe:"Gestelle",  orte:["zuhause"],                  gymStandard:false },
+  { id:"band",        name:"Fitnessbänder",   gruppe:"Klein",     orte:["zuhause","gym","draussen"], gymStandard:true },
+  { id:"suspension",  name:"Schlingentrainer",gruppe:"Klein",     orte:["zuhause","gym","draussen"], gymStandard:false },
+  { id:"abwheel",     name:"Bauchroller",     gruppe:"Klein",     orte:["zuhause","gym"],            gymStandard:false },
+  { id:"springseil",  name:"Springseil",      gruppe:"Klein",     orte:["zuhause","gym","draussen"], gymStandard:true },
+  // Maschinen (Gym)
+  { id:"kabel",       name:"Kabelturm / Latzug", gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"beinpresse",  name:"Beinpresse",         gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"beinmaschine",name:"Beinbeuger/-strecker",gruppe:"Maschinen",orte:["gym"], gymStandard:true },
+  { id:"brustpresse", name:"Brustpresse",        gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"butterfly",   name:"Butterfly",          gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"schultermaschine", name:"Schulterpresse",gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"rudermaschine",name:"Rudermaschine",     gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"smith",       name:"Smith-Maschine",     gruppe:"Maschinen", orte:["gym"], gymStandard:true },
+  { id:"cardio",      name:"Laufband / Ergometer",gruppe:"Maschinen",orte:["gym"], gymStandard:true }
 ];
 
-/* Übungspool. anteil = Startgewicht als Anteil des Körpergewichts
-   (bei Kurzhanteln: PRO HAND). geraet "keine" = reine Körpergewichtsübung,
-   "moebel" = braucht stabilen Tisch/Stuhl (im Gym: Bank vorhanden). */
+function geraetName(id){
+  if(id === "keine") return "Körpergewicht";
+  const g = GERAETE.find(x => x.id === id);
+  return g ? g.name : id;
+}
+function geraeteFuerOrt(ort){ return GERAETE.filter(g => g.orte.includes(ort)); }
+function gymStandardGeraete(){ return GERAETE.filter(g => g.gymStandard && g.orte.includes("gym")).map(g => g.id); }
+
+/* ------------------------------------------------------------
+   ÜBUNGS-DATENBANK
+   kat: beine | druck | zug | rumpf | cardio
+   anteil: Startgewicht als Anteil des Körpergewichts
+           (Kurzhantel/Kettlebell: PRO HAND). Ohne anteil = Körpergewicht.
+   modus "zeit" = Haltezeit statt Wiederholungen.
+   ------------------------------------------------------------ */
+const UEBUNGEN_DB = [
+  // ---------- BEINE ----------
+  { name:"Kniebeugen",              kat:"beine", geraet:"keine" },
+  { name:"Ausfallschritte",         kat:"beine", geraet:"keine" },
+  { name:"Glute Bridge",            kat:"beine", geraet:"keine" },
+  { name:"Wadenheben",              kat:"beine", geraet:"keine" },
+  { name:"Wandsitzen",              kat:"beine", geraet:"keine", modus:"zeit" },
+  { name:"Einbeinige Kniebeuge",    kat:"beine", geraet:"keine" },
+  { name:"Step-ups",                kat:"beine", geraet:"box" },
+  { name:"Bulgarische Kniebeuge",   kat:"beine", geraet:"box" },
+  { name:"Box Jumps",               kat:"beine", geraet:"box" },
+  { name:"Goblet Squats",           kat:"beine", geraet:"kurzhantel", anteil:0.18 },
+  { name:"KH-Ausfallschritte",      kat:"beine", geraet:"kurzhantel", anteil:0.08 },
+  { name:"KH-Wadenheben",           kat:"beine", geraet:"kurzhantel", anteil:0.15 },
+  { name:"KH-Kreuzheben",           kat:"beine", geraet:"kurzhantel", anteil:0.15 },
+  { name:"Kettlebell-Swings",       kat:"beine", geraet:"kettlebell", anteil:0.15 },
+  { name:"Kettlebell-Goblet-Squat", kat:"beine", geraet:"kettlebell", anteil:0.20 },
+  { name:"LH-Kniebeugen",           kat:"beine", geraet:"langhantel", anteil:0.40 },
+  { name:"Rumän. Kreuzheben",       kat:"beine", geraet:"langhantel", anteil:0.35 },
+  { name:"LH-Kreuzheben",           kat:"beine", geraet:"langhantel", anteil:0.45 },
+  { name:"LH-Hip-Thrust",           kat:"beine", geraet:"langhantel", anteil:0.40 },
+  { name:"Smith-Kniebeugen",        kat:"beine", geraet:"smith",      anteil:0.35 },
+  { name:"Beinpresse",              kat:"beine", geraet:"beinpresse", anteil:0.90 },
+  { name:"Beinbeuger",              kat:"beine", geraet:"beinmaschine", anteil:0.25 },
+  { name:"Beinstrecker",            kat:"beine", geraet:"beinmaschine", anteil:0.25 },
+  { name:"Band-Kniebeugen",         kat:"beine", geraet:"band" },
+  { name:"Schlingen-Kniebeuge",     kat:"beine", geraet:"suspension" },
+
+  // ---------- DRÜCKEN ----------
+  { name:"Liegestütze",             kat:"druck", geraet:"keine" },
+  { name:"Pike Push-ups",           kat:"druck", geraet:"keine" },
+  { name:"Enge Liegestütze",        kat:"druck", geraet:"keine" },
+  { name:"Stuhl-Dips",              kat:"druck", geraet:"moebel" },
+  { name:"Dips am Barren",          kat:"druck", geraet:"dip" },
+  { name:"Erhöhte Liegestütze",     kat:"druck", geraet:"box" },
+  { name:"KH-Bankdrücken",          kat:"druck", geraet:"kurzhantel", anteil:0.13 },
+  { name:"KH-Schulterdrücken",      kat:"druck", geraet:"kurzhantel", anteil:0.09 },
+  { name:"KH-Seitheben",            kat:"druck", geraet:"kurzhantel", anteil:0.04 },
+  { name:"KH-Trizepsdrücken",       kat:"druck", geraet:"kurzhantel", anteil:0.06 },
+  { name:"Schrägbankdrücken KH",    kat:"druck", geraet:"bank",       anteil:0.11 },
+  { name:"LH-Bankdrücken",          kat:"druck", geraet:"langhantel", anteil:0.35 },
+  { name:"LH-Schulterdrücken",      kat:"druck", geraet:"langhantel", anteil:0.22 },
+  { name:"Kettlebell-Drücken",      kat:"druck", geraet:"kettlebell", anteil:0.10 },
+  { name:"Brustpresse",             kat:"druck", geraet:"brustpresse", anteil:0.35 },
+  { name:"Butterfly",               kat:"druck", geraet:"butterfly",   anteil:0.20 },
+  { name:"Schulterpresse Maschine", kat:"druck", geraet:"schultermaschine", anteil:0.22 },
+  { name:"Trizeps am Kabel",        kat:"druck", geraet:"kabel",      anteil:0.15 },
+  { name:"Smith-Bankdrücken",       kat:"druck", geraet:"smith",      anteil:0.30 },
+  { name:"Band-Schulterdrücken",    kat:"druck", geraet:"band" },
+  { name:"Schlingen-Liegestütze",   kat:"druck", geraet:"suspension" },
+
+  // ---------- ZIEHEN ----------
+  { name:"Superman",                kat:"zug", geraet:"keine" },
+  { name:"Tisch-Rudern",            kat:"zug", geraet:"moebel" },
+  { name:"Klimmzüge",               kat:"zug", geraet:"stange" },
+  { name:"Negativ-Klimmzüge",       kat:"zug", geraet:"stange" },
+  { name:"Hängendes Beinheben",     kat:"zug", geraet:"stange" },
+  { name:"Band-Rudern",             kat:"zug", geraet:"band" },
+  { name:"Band-Bizeps-Curls",       kat:"zug", geraet:"band" },
+  { name:"Band-Face-Pulls",         kat:"zug", geraet:"band" },
+  { name:"KH-Rudern",               kat:"zug", geraet:"kurzhantel", anteil:0.14 },
+  { name:"KH-Bizeps-Curls",         kat:"zug", geraet:"kurzhantel", anteil:0.07 },
+  { name:"KH-Reverse-Flys",         kat:"zug", geraet:"kurzhantel", anteil:0.04 },
+  { name:"KH-Shrugs",               kat:"zug", geraet:"kurzhantel", anteil:0.18 },
+  { name:"LH-Rudern",               kat:"zug", geraet:"langhantel", anteil:0.28 },
+  { name:"LH-Bizeps-Curls",         kat:"zug", geraet:"langhantel", anteil:0.15 },
+  { name:"Latzug",                  kat:"zug", geraet:"kabel",      anteil:0.40 },
+  { name:"Kabel-Rudern",            kat:"zug", geraet:"kabel",      anteil:0.35 },
+  { name:"Face-Pulls am Kabel",     kat:"zug", geraet:"kabel",      anteil:0.12 },
+  { name:"Rudermaschine",           kat:"zug", geraet:"rudermaschine", anteil:0.35 },
+  { name:"Schlingen-Rudern",        kat:"zug", geraet:"suspension" },
+  { name:"Kettlebell-Rudern",       kat:"zug", geraet:"kettlebell", anteil:0.15 },
+
+  // ---------- RUMPF ----------
+  { name:"Plank",                   kat:"rumpf", geraet:"keine", modus:"zeit" },
+  { name:"Seitstütz",               kat:"rumpf", geraet:"keine", modus:"zeit" },
+  { name:"Crunches",                kat:"rumpf", geraet:"keine" },
+  { name:"Beinheben liegend",       kat:"rumpf", geraet:"keine" },
+  { name:"Bergsteiger",             kat:"rumpf", geraet:"keine" },
+  { name:"Russian Twist",           kat:"rumpf", geraet:"keine" },
+  { name:"Hollow Hold",             kat:"rumpf", geraet:"keine", modus:"zeit" },
+  { name:"Käfer (Dead Bug)",        kat:"rumpf", geraet:"keine" },
+  { name:"Bauchroller",             kat:"rumpf", geraet:"abwheel" },
+  { name:"Medizinball-Twist",       kat:"rumpf", geraet:"medizinball", anteil:0.05 },
+  { name:"Kabel-Crunches",          kat:"rumpf", geraet:"kabel",  anteil:0.20 },
+  { name:"Schlingen-Plank",         kat:"rumpf", geraet:"suspension", modus:"zeit" },
+
+  // ---------- CARDIO ----------
+  { name:"Seilspringen",            kat:"cardio", geraet:"springseil", modus:"zeit" },
+  { name:"Burpees",                 kat:"cardio", geraet:"keine" },
+  { name:"Hampelmänner",            kat:"cardio", geraet:"keine", modus:"zeit" },
+  { name:"High Knees",              kat:"cardio", geraet:"keine", modus:"zeit" },
+  { name:"Laufband / Ergometer",    kat:"cardio", geraet:"cardio", modus:"zeit" }
+];
+
+const KATEGORIE_NAMEN = { beine:"Beine & Po", druck:"Drücken", zug:"Ziehen", rumpf:"Rumpf", cardio:"Cardio" };
+
+/* Der Generator arbeitet weiter mit Kategorie-Listen — aus der DB abgeleitet,
+   damit es nur EINE Quelle für Übungen gibt. */
 const UEBUNGSPOOL = {
-  beine: [
-    { name:"Kniebeugen",              geraet:"keine" },
-    { name:"Ausfallschritte",         geraet:"keine" },
-    { name:"Glute Bridge",            geraet:"keine" },
-    { name:"Wadenheben",              geraet:"keine" },
-    { name:"Goblet Squats",           geraet:"kurzhantel", anteil:0.18 },
-    { name:"KH-Ausfallschritte",      geraet:"kurzhantel", anteil:0.08 },
-    { name:"Beinpresse",              geraet:"maschine",   anteil:0.90 },
-    { name:"Beinbeuger Maschine",     geraet:"maschine",   anteil:0.25 },
-    { name:"LH-Kniebeugen",           geraet:"langhantel", anteil:0.40 },
-    { name:"Rumän. Kreuzheben",       geraet:"langhantel", anteil:0.35 }
-  ],
-  druck: [
-    { name:"Liegestütze",             geraet:"keine" },
-    { name:"Pike Push-ups",           geraet:"keine" },
-    { name:"Stuhl-Dips",              geraet:"moebel" },
-    { name:"KH-Bankdrücken",          geraet:"kurzhantel", anteil:0.13 },
-    { name:"KH-Schulterdrücken",      geraet:"kurzhantel", anteil:0.09 },
-    { name:"Brustpresse Maschine",    geraet:"maschine",   anteil:0.35 },
-    { name:"Schulterdrücken Masch.",  geraet:"maschine",   anteil:0.22 },
-    { name:"LH-Bankdrücken",          geraet:"langhantel", anteil:0.35 }
-  ],
-  zug: [
-    { name:"Superman",                geraet:"keine" },
-    { name:"Tisch-Rudern",            geraet:"moebel" },
-    { name:"Band-Rudern",             geraet:"band" },
-    { name:"Band-Bizeps-Curls",       geraet:"band" },
-    { name:"KH-Rudern",               geraet:"kurzhantel", anteil:0.14 },
-    { name:"KH-Bizeps-Curls",         geraet:"kurzhantel", anteil:0.07 },
-    { name:"Latzug",                  geraet:"maschine",   anteil:0.40 },
-    { name:"Kabel-Rudern",            geraet:"maschine",   anteil:0.35 },
-    { name:"Negativ-Klimmzüge",       geraet:"stange" },
-    { name:"LH-Rudern",               geraet:"langhantel", anteil:0.28 }
-  ],
-  rumpf: [
-    { name:"Plank",                   geraet:"keine", modus:"zeit" },
-    { name:"Seitstütz",               geraet:"keine", modus:"zeit" },
-    { name:"Crunches",                geraet:"keine" },
-    { name:"Beinheben liegend",       geraet:"keine" },
-    { name:"Bergsteiger",             geraet:"keine" },
-    { name:"Russian Twist",           geraet:"keine" }
-  ]
+  beine:  UEBUNGEN_DB.filter(u => u.kat === "beine"),
+  druck:  UEBUNGEN_DB.filter(u => u.kat === "druck"),
+  zug:    UEBUNGEN_DB.filter(u => u.kat === "zug"),
+  rumpf:  UEBUNGEN_DB.filter(u => u.kat === "rumpf"),
+  cardio: UEBUNGEN_DB.filter(u => u.kat === "cardio")
 };
 
 /* Aufteilung je Trainingshäufigkeit. Reihenfolge der Kategorien = Priorität;
@@ -1881,14 +2018,10 @@ const WIZARD_FRAGEN = [
       ["eigene","Eigene Auswahl","Ich lege die Geräte selbst fest"]
     ]},
   { id:"geraete", typ:"multi", frage:"Was hast du zur Verfügung?",
-    hilfe:"Mehrfachauswahl. Nichts ausgewählt ist völlig in Ordnung — dann gibt es reine Körpergewichtsübungen.",
+    hilfe:"Mehrfachauswahl — es werden nur Geräte gezeigt, die es an deinem Trainingsort geben kann. Nichts ausgewählt ist völlig in Ordnung: dann gibt es reine Körpergewichtsübungen.",
     raster:true,
-    nurWenn:e => e.ort !== "gym",
-    optionen:[
-      ["kurzhantel","Kurzhanteln"], ["langhantel","Langhantel"],
-      ["stange","Klimmzugstange"],  ["band","Fitnessbänder"],
-      ["maschine","Maschinen"],     ["moebel","Tisch & Stuhl"]
-    ]},
+    dynamisch:true,   // Optionen kommen aus GERAETE, gefiltert nach Ort
+    optionen:[]},
   { id:"erfahrung", typ:"single", frage:"Wie viel Erfahrung hast du?",
     hilfe:"Bestimmt die Startgewichte. Im Zweifel die niedrigere Stufe — zu leicht korrigiert die App nach 2–3 Trainings selbst.",
     optionen:[
@@ -1974,10 +2107,23 @@ function wzZeichnen(){
       (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
   } else if(f.typ === "multi"){
     const liste = einrichtung[f.id];
-    optionenHtml = f.optionen.map(([wert, titel, unter]) =>
-      '<button class="wz-opt ' + (liste.includes(wert) ? "gewaehlt" : "") +
-      '" onclick="wzMulti(\'' + f.id + '\',' + (typeof wert === "number" ? wert : "'" + wert + "'") + ')">' +
-      (liste.includes(wert) ? "✓ " : "") + titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
+    // Gerätefrage: Optionen zur Laufzeit aus GERAETE, nach Trainingsort gefiltert und gruppiert
+    if(f.dynamisch){
+      const passend = geraeteFuerOrt(einrichtung.ort || "zuhause");
+      const gruppen = [...new Set(passend.map(g => g.gruppe))];
+      optionenHtml = gruppen.map(gr =>
+        '<div style="grid-column:1/-1;margin:6px 0 -2px"><label>' + gr + '</label></div>' +
+        passend.filter(g => g.gruppe === gr).map(g =>
+          '<button class="wz-opt ' + (liste.includes(g.id) ? "gewaehlt" : "") +
+          '" onclick="wzMulti(\'geraete\',\'' + g.id + '\')">' +
+          (liste.includes(g.id) ? "✓ " : "") + g.name + '</button>').join("")
+      ).join("");
+    } else {
+      optionenHtml = f.optionen.map(([wert, titel, unter]) =>
+        '<button class="wz-opt ' + (liste.includes(wert) ? "gewaehlt" : "") +
+        '" onclick="wzMulti(\'' + f.id + '\',' + (typeof wert === "number" ? wert : "'" + wert + "'") + ')">' +
+        (liste.includes(wert) ? "✓ " : "") + titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
+    }
   } else {
     optionenHtml = f.optionen.map(([wert, titel, unter]) =>
       '<button class="wz-opt ' + (einrichtung[f.id] === wert ? "gewaehlt" : "") +
@@ -1998,6 +2144,12 @@ function wzZeichnen(){
 /* Einfachauswahl schaltet automatisch weiter — spart einen Tipp pro Frage. */
 function wzSingle(id, wert){
   einrichtung[id] = wert;
+  // Ortswechsel: Geräte auf sinnvolle Vorauswahl setzen und Unpassendes entfernen
+  if(id === "ort"){
+    const moeglich = geraeteFuerOrt(wert).map(g => g.id);
+    if(wert === "gym" && einrichtung.geraete.length === 0) einrichtung.geraete = gymStandardGeraete();
+    else einrichtung.geraete = einrichtung.geraete.filter(g => moeglich.includes(g));
+  }
   wzZeichnen();
   setTimeout(() => { wzSchritt++; wzZeichnen(); }, 180);
 }
@@ -2022,6 +2174,8 @@ function wzZurueck(){
 
 function wzWeiter(){
   wzAktualisiereSichtbar();
+  // Auf dem Zusammenfassungs-Schritt gibt es kein "Weiter" mehr — hier wird gebaut.
+  if(wzSchritt >= wzSichtbar.length){ plaeneErstellen(); return; }
   const f = wzSichtbar[wzSchritt];
   if(f){
     if(f.typ === "single" && !einrichtung[f.id]){ meldung("Bitte eine Antwort wählen."); return; }
@@ -2045,8 +2199,8 @@ function wzZusammenfassung(){
     return treffer ? treffer[1] : wert;
   };
   const tage = einrichtung.wochentage.map(w => WOCHENTAGE[w].slice(0,2)).join(", ");
-  const geraete = einrichtung.ort === "gym" ? "alles im Gym"
-    : (einrichtung.geraete.length ? einrichtung.geraete.map(g => beschriften("geraete", g)).join(", ") : "nur Körpergewicht");
+  const geraete = einrichtung.geraete.length
+    ? einrichtung.geraete.map(g => geraetName(g)).join(", ") : "nur Körpergewicht";
   const bonus = einrichtung.bonus.length ? einrichtung.bonus.map(b => beschriften("bonus", b)).join(" · ") : "keine";
 
   document.getElementById("wz-buehne").innerHTML =
@@ -2085,10 +2239,13 @@ function wzZusammenfassung(){
 })();
 
 /* --- Plangenerator --- *//* --- Plangenerator --- */
-function verfuegbareGeraete(){
-  if(einrichtung.ort === "gym")      return ["keine","kurzhantel","langhantel","stange","band","maschine","moebel"];
-  if(einrichtung.ort === "draussen") return ["keine","stange","band","moebel"].concat(einrichtung.geraete);
-  return ["keine"].concat(einrichtung.geraete);
+/** Körpergewicht geht immer, dazu die ausgewählten Geräte. */
+function verfuegbareGeraete(){ return ["keine"].concat(einrichtung.geraete || []); }
+
+/** Geräte des angemeldeten Kontos (für Bibliothek/Filter außerhalb des Wizards). */
+function meineGeraete(){
+  const e = sitzung.daten.einrichtung || {};
+  return ["keine"].concat(e.geraete || []);
 }
 
 function aktuellesGewichtKg(){
@@ -2329,6 +2486,186 @@ function zielInPlan(zielId, planId){
 }
 
 /* ============================================================
+   #region Übungs-Bibliothek
+   Gefilterte, sortierte Liste aus UEBUNGEN_DB. Standardfilter:
+   nur Übungen, die mit den EIGENEN Geräten machbar sind — abschaltbar,
+   damit man sieht, was mit mehr Ausrüstung ginge.
+   ============================================================ */
+let bibKategorie = "alle";
+let bibNurMeine = true;
+
+function bibliothekOeffnen(){
+  bibKategorie = "alle";
+  bibNurMeine = true;
+  document.getElementById("bib-suche").value = "";
+  bibZeichnen();
+  zeige("view-bibliothek");
+}
+
+function bibKatSetzen(k){ bibKategorie = k; bibZeichnen(); }
+function bibMeineUmschalten(){ bibNurMeine = !bibNurMeine; bibZeichnen(); }
+
+function bibZeichnen(){
+  const suche = document.getElementById("bib-suche").value.trim().toLowerCase();
+  const meine = meineGeraete();
+
+  document.getElementById("bib-kat").innerHTML =
+    [["alle","Alle"]].concat(Object.entries(KATEGORIE_NAMEN)).map(([k, n]) =>
+      '<button class="' + (bibKategorie === k ? "gewaehlt" : "") + '" onclick="bibKatSetzen(\'' + k + '\')">' + n + '</button>').join("");
+
+  document.getElementById("bib-filter").innerHTML =
+    '<button class="' + (bibNurMeine ? "gewaehlt" : "") + '" onclick="bibMeineUmschalten()">' +
+    (bibNurMeine ? "✓ " : "") + 'Nur mit meinen Geräten</button>';
+
+  let liste = UEBUNGEN_DB.slice();
+  if(bibKategorie !== "alle") liste = liste.filter(u => u.kat === bibKategorie);
+  if(bibNurMeine) liste = liste.filter(u => meine.includes(u.geraet));
+  if(suche) liste = liste.filter(u => u.name.toLowerCase().includes(suche) ||
+                                      geraetName(u.geraet).toLowerCase().includes(suche));
+  liste.sort((a,b) => a.kat === b.kat ? a.name.localeCompare(b.name, "de") : a.kat.localeCompare(b.kat));
+
+  const ziel = document.getElementById("bib-liste");
+  if(liste.length === 0){
+    ziel.innerHTML = '<div class="leer">Keine Übung gefunden.' +
+      (bibNurMeine ? '<br><br>Tipp: „Nur mit meinen Geräten“ ausschalten oder im Profil weitere Geräte angeben.' : '') + '</div>';
+    return;
+  }
+  let html = "", letzteKat = null;
+  liste.forEach(u => {
+    if(u.kat !== letzteKat){
+      letzteKat = u.kat;
+      html += '<div style="margin:14px 0 6px"><label>' + KATEGORIE_NAMEN[u.kat] + '</label></div>';
+    }
+    const machbar = meine.includes(u.geraet);
+    html += '<div class="zeile" style="padding:8px 0;border-bottom:1px solid var(--line);opacity:' + (machbar ? 1 : .5) + '">' +
+      '<div><strong>' + text(u.name) + '</strong>' +
+      '<div class="meta">' + geraetName(u.geraet) + (u.modus === "zeit" ? " · Zeit" : "") +
+        (machbar ? "" : " · Gerät fehlt") + '</div></div>' +
+      '<button class="schmal ' + (machbar ? "primaer" : "") + '" onclick="bibWaehlen(\'' + text(u.name).replace(/'/g, "&#39;") + '\')">+</button>' +
+      '</div>';
+  });
+  ziel.innerHTML = html;
+}
+
+/** Übung aus der Bibliothek in den offenen Plan übernehmen —
+    mit Startwerten aus der Einschätzung des Kontos. */
+function bibWaehlen(name){
+  const vorlage = UEBUNGEN_DB.find(u => u.name === name);
+  if(!vorlage) return;
+  if(editorPlan.uebungen.some(u => u.name === vorlage.name)){
+    meldung("„" + vorlage.name + "“ steht schon in diesem Plan."); return;
+  }
+  const e = sitzung.daten.einrichtung || {};
+  const merker = einrichtung;
+  einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger",
+                  ort: e.ort, geraete: e.geraete || [], wochentage: e.wochentage || [],
+                  dauer: e.dauer || "mittel", fokus: e.fokus || "keiner", bonus: e.bonus || [] };
+  const u = uebungBauen(vorlage, startwerteBerechnen(), aktuellesGewichtKg());
+  einrichtung = merker;
+  // Leere Platzhalter-Übung ersetzen statt anhängen
+  const leer = editorPlan.uebungen.findIndex(x => x.name.trim() === "");
+  if(leer >= 0) editorPlan.uebungen[leer] = u; else editorPlan.uebungen.push(u);
+  editorZeichnen();
+  zeige("view-editor");
+}
+
+function eigeneUebung(){
+  editorPlan.uebungen.push(neueUebung());
+  editorZeichnen();
+  zeige("view-editor");
+}
+
+/* ============================================================
+   #region Meine Geräte (Profil)
+   ============================================================ */
+let geraeteVorher = [];
+
+function geraeteKarteZeichnen(){
+  const e = sitzung.daten.einrichtung || {};
+  if(!e.geraete) e.geraete = [];
+  const ort = e.ort || "zuhause";
+
+  document.getElementById("profil-ort").innerHTML =
+    [["zuhause","Zuhause"],["gym","Gym"],["draussen","Draußen"],["eigene","Eigene Auswahl"]].map(([w,n]) =>
+      '<button class="' + (ort === w ? "gewaehlt" : "") + '" onclick="profilOrtSetzen(\'' + w + '\')">' + n + '</button>').join("");
+
+  const passend = geraeteFuerOrt(ort === "eigene" ? "zuhause" : ort);
+  const gruppen = [...new Set(passend.map(g => g.gruppe))];
+  document.getElementById("profil-geraete").innerHTML = gruppen.map(gr =>
+    '<div style="margin:12px 0 6px"><label>' + gr + '</label></div><div class="note">' +
+    passend.filter(g => g.gruppe === gr).map(g =>
+      '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
+      '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' +
+      (e.geraete.includes(g.id) ? "✓ " : "") + g.name + '</button>').join("") + '</div>').join("");
+
+  // Knopf nur, wenn seit dem Öffnen wirklich Geräte DAZUgekommen sind
+  const neue = e.geraete.filter(g => !geraeteVorher.includes(g));
+  document.getElementById("geraete-neu-knopf").innerHTML = neue.length === 0 ? "" :
+    '<div class="knopfreihe"><button class="primaer schmal" onclick="neueUebungenEinbauen()">' +
+    neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
+}
+
+function profilOrtSetzen(ort){
+  const e = sitzung.daten.einrichtung;
+  e.ort = ort;
+  const moeglich = geraeteFuerOrt(ort === "eigene" ? "zuhause" : ort).map(g => g.id);
+  if(ort === "gym" && e.geraete.length === 0) e.geraete = gymStandardGeraete();
+  else e.geraete = e.geraete.filter(g => moeglich.includes(g));
+  speichern();
+  geraeteKarteZeichnen();
+}
+
+function profilGeraetUmschalten(id){
+  const liste = sitzung.daten.einrichtung.geraete;
+  const pos = liste.indexOf(id);
+  if(pos >= 0) liste.splice(pos, 1); else liste.push(id);
+  speichern();
+  geraeteKarteZeichnen();
+}
+
+/** Baut für neu hinzugekommene Geräte passende Übungen in die
+    automatisch erstellten Pläne ein — je Plan höchstens eine pro Kategorie,
+    damit die Einheiten nicht explodieren. */
+function neueUebungenEinbauen(){
+  const e = sitzung.daten.einrichtung;
+  const neueGeraete = e.geraete.filter(g => !geraeteVorher.includes(g));
+  const kandidaten = UEBUNGEN_DB.filter(u => neueGeraete.includes(u.geraet));
+  const plaene = sitzung.daten.plaene.filter(p => p.quelle === "assistent");
+  if(plaene.length === 0){ meldung("Es gibt keine automatisch erstellten Pläne. Über „Bearbeiten“ → „Übung hinzufügen“ kannst du die neuen Geräte jederzeit selbst einbauen."); return; }
+
+  const merker = einrichtung;
+  einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger", ort: e.ort,
+                  geraete: e.geraete, wochentage: e.wochentage || [], dauer: e.dauer || "mittel",
+                  fokus: e.fokus || "keiner", bonus: e.bonus || [] };
+  const werte = startwerteBerechnen();
+  const kg = aktuellesGewichtKg();
+  const bericht = [];
+  let zaehler = 0;
+
+  plaene.forEach(plan => {
+    const katsImPlan = [...new Set(plan.uebungen.map(u => {
+      const db = UEBUNGEN_DB.find(x => x.name === u.name);
+      return db ? db.kat : null;
+    }).filter(Boolean))];
+    katsImPlan.forEach(kat => {
+      const passend = kandidaten.filter(k => k.kat === kat && !plan.uebungen.some(u => u.name === k.name));
+      if(passend.length === 0) return;
+      const vorlage = passend[zaehler % passend.length];
+      zaehler++;
+      plan.uebungen.push(uebungBauen(vorlage, werte, kg));
+      bericht.push(plan.name + ": + " + vorlage.name);
+    });
+  });
+  einrichtung = merker;
+
+  if(bericht.length === 0){ meldung("Für die neuen Geräte gibt es keine passende Ergänzung — die Kategorien sind in deinen Plänen schon abgedeckt. Über die Bibliothek kannst du trotzdem jede Übung von Hand einbauen."); return; }
+  speichern();
+  geraeteVorher = e.geraete.slice();
+  geraeteKarteZeichnen();
+  meldung("Eingebaut:\n\n" + bericht.join("\n") + "\n\nDie Startwerte sind vorsichtig gewählt — die Progression kalibriert sie nach.");
+}
+
+/* ============================================================
    #region Editor
    ============================================================ */
 let editorPlan = null;
@@ -2418,7 +2755,7 @@ function feld(i, schluessel, wert, istZahl){
 }
 function modusSetzen(i, modus){ editorPlan.uebungen[i].modus = modus; editorZeichnen(); }
 function reihenfolgeSetzen(rf){ editorPlan.reihenfolge = rf; editorZeichnen(); }
-function uebungAnlegen(){ editorPlan.uebungen.push(neueUebung()); editorZeichnen(); }
+function uebungAnlegen(){ bibliothekOeffnen(); }   // Bibliothek statt leerem Feld
 function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
 
 /** Übung eine Position nach oben (-1) oder unten (+1) schieben. */
@@ -2838,7 +3175,7 @@ function navGehe(bereich){
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
   const bereiche = { "view-plaene":"nav-plaene", "view-profil":"nav-profil", "view-einstellungen":"nav-einst",
-                     "view-editor":"nav-plaene" };
+                     "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene" };
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
   ["nav-plaene","nav-profil","nav-einst"].forEach(k =>
