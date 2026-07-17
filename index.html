@@ -117,6 +117,13 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .tag.autoruhe{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .tag.heute{outline:1.5px solid var(--chalk)}
 
+/* Wasserzeichen: fast unsichtbar, klickt sich nicht in den Weg,
+   im Training ausgeblendet (dort zählt jede ruhige Fläche). */
+#wasserzeichen{position:fixed;left:0;right:0;bottom:calc(5px + env(safe-area-inset-bottom));
+  text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  color:var(--chalk);opacity:.12;pointer-events:none;user-select:none;-webkit-user-select:none;z-index:5}
+body.training-fest #wasserzeichen{display:none}
+
 /* Eigener Dialog (ersetzt confirm/alert) */
 #dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
   align-items:center;justify-content:center;padding:24px;z-index:10}
@@ -437,6 +444,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <button class="primaer" onclick="planListeZeichnen();zeige('view-plaene')">Fertig</button>
   </div>
 </section>
+
+<!-- Dezentes Wasserzeichen am unteren Rand (Inhalt setzt wasserzeichenZeichnen) -->
+<div id="wasserzeichen" aria-hidden="true"></div>
 
 <!-- Eigener Dialog -->
 <div id="dialog-hintergrund">
@@ -833,7 +843,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 13;
+const APP_VERSION = 15;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1272,7 +1282,16 @@ function zeige(id){
   document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
   document.getElementById(id).classList.add("aktiv");
   document.body.classList.toggle("training-fest", id === "view-training");
+  wasserzeichenZeichnen();
   window.scrollTo(0,0);
+}
+
+/** Dezente Kennzeichnung am unteren Rand: Version, heutiges Datum, Kürzel.
+    Per Funktion statt fest im HTML — so stimmt das Datum auch,
+    wenn die App über Mitternacht offen bleibt. */
+function wasserzeichenZeichnen(){
+  document.getElementById("wasserzeichen").textContent =
+    "TRAINER " + ANZEIGE_VERSION + " · " + heuteAlsText() + " · JKB";
 }
 function text(s){
   return String(s).replace(/[&<>"']/g, z => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[z]));
@@ -2231,6 +2250,7 @@ function bewertungAnwenden(){
 /* ============================================================
    #region Start
    ============================================================ */
+wasserzeichenZeichnen();
 autoAnmelden();   // versucht "Angemeldet bleiben", fällt sonst auf den Anmeldebildschirm zurück
 
 // Service Worker registrieren: macht die App offline-fähig.
