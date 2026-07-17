@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.024 / APP_VERSION 24**.
+> als Paket hochgeladen. Stand: **Version 0.025 / APP_VERSION 25**.
 
 ---
 
@@ -89,10 +89,12 @@ tresor = { version:3, konten:[ { id, benutzer, huellePasswort:{salz,huelle}, hue
 daten = {
   profil:      { groesse, geburtsjahr, geschlecht },
   gewichte:    [ { datum:"JJJJ-MM-TT", kg } ],          // ein Wert pro Tag, neuester gewinnt
-  protokoll:   [ { datum, plan, dauerMin, saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
+  protokoll:   [ { datum, plan, sportart, sonder, dauerMin,   // v25: sportart+sonder für den Kalender
+                   saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, wdh, datum } ],
-  plaene:      [ { id, name, quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
+  plaene:      [ { id, name, sportart:"kraft"|…, tag:1..7|null,   // v25: Tag ist ein FELD, nicht der Name
+                   quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
                    uebungen:[ { id, name, modus:"wdh"|"zeit", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
@@ -114,10 +116,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 24;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.024" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 25;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.025" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v24"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v25"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -192,6 +194,26 @@ Feinheiten hinter Klappe, ▲▼, Entfernen), Übung hinzufügen → **Bibliothe
 **Bibliothek:** 83 Übungen, Suche, Kategorie-Filter, „Nur mit meinen Geräten", Freitext-Option.
 
 ---
+
+## 8a. Sportarten & Kalender (v25)
+
+`SPORTARTEN` trägt je Eintrag `farbe`, `einheiten` (recherchiert) und `modi`. **Nur `kraft` ist
+`ausgebaut:true`** — nur dafür gibt es Generator, Progression und Volumen. Andere Sportarten:
+Plan anlegen, starten, protokollieren, Kalender + Flamme — aber **keine automatische Steigerung**
+(„Note 1 → +2 Wdh" ergibt bei 10 km nichts) und **kein Volumen** (sprengt sonst die Kurve).
+
+Recherchierte Einheiten: Lauf/Rad/Schwimmen/Rudern/Wandern → Distanz + Zeit, Pace wird **gerechnet,
+nie gespeichert** (sonst zwei Wahrheiten). Klettern → Routen + Grad, Skala wählbar (UIAA / französisch /
+Fontainebleau / V), es gibt keine eine Skala. Rückschlag/Kampf → Runden/Sätze + Zeit.
+Für die Umsetzung fehlen die Modi `strecke`, `runden`, `grad` — **noch nicht gebaut.**
+
+**Kalenderregel (eine Regel, zwei Zeitrichtungen):** Vergangenheit + heute zeigen die **Realität**
+(Training gefüllt in der Farbe seiner Sportart, sonst Ruhetag), Zukunft zeigt die **Planung**
+(Wochentag eines Plans, nur umrandet). Ein Training überschreibt die Planung immer. Sondertraining
+(= Plan ohne festen Tag) bekommt zusätzlich einen Punkt.
+
+**Plan-Liste:** zeigt nur Pläne mit `tag === heute` und Pläne ohne Tag. Rest hinter „Alle Pläne zeigen"
+(`alleplaeneZeigen`, bewusst NICHT gespeichert — nach jedem App-Start wieder heute).
 
 ## 9. Fachliche Regeln (belegt recherchiert)
 
@@ -279,6 +301,8 @@ Base64-Grenze oben überhaupt gefährlich war.
 
 ## 12. Offene Ideen (nicht umgesetzt)
 
+* **Modi `strecke` / `runden` / `grad`** — ohne sie sind Nicht-Kraft-Pläne auf `wdh`/`zeit` beschränkt
+* Progression und Volumen für Nicht-Kraft-Sportarten (braucht eigene Recherche)
 * Meilenstein-Flammen (7/30 Tage andere Farbe)
 * Plate Calculator (erst relevant, wenn mit Langhantel trainiert wird)
 * Notizfeld pro Training
