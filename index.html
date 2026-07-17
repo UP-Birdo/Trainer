@@ -45,7 +45,7 @@ button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
 button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
   background:var(--panel-2);border:1px solid var(--line)}
-button.mini{min-height:34px;padding:4px 10px;font-size:14px}
+button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /* 44px = Mindestgröße für Tippziele */
 button:disabled{opacity:.4}
 .knopfreihe{display:flex;gap:8px;margin-top:12px}
 .knopfreihe>*{flex:1}
@@ -70,7 +70,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 /* Strichliste der Sätze */
-.strichliste{display:flex;gap:5px;margin:12px 0 14px}
+.strichliste{display:flex;gap:5px;margin:12px 0 14px;flex-wrap:wrap}
 .strich{width:9px;height:32px;border-radius:1px;transform:skewX(-8deg);
   border:1.5px solid var(--line);background:transparent}
 .strich.erledigt{background:var(--muted);border-color:var(--muted)}
@@ -112,6 +112,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
 /* Statistik */
 .diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.diagramm text{font-family:var(--mono)}   /* var() in SVG-Attributen ist ungültig — CSS greift stattdessen */
 .kalender{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
 .kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0}
 .tag{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;
@@ -126,13 +127,64 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .wasserzeichen{margin-top:32px;text-align:center;font-family:var(--mono);font-size:9px;
   letter-spacing:.1em;color:var(--chalk);opacity:.14;user-select:none;-webkit-user-select:none}
 
+/* Bottom-Navigation: Kernbereiche in der Daumenzone (unteres Drittel).
+   Ausgeblendet in Training/Login/Wizard — dort zählt jede Fläche. */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
+  background:var(--panel);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+#nav button{flex:1;background:transparent;border-radius:0;min-height:56px;font-size:11px;
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#nav button .sym{font-size:18px;line-height:1}
+#nav button.aktiv{color:var(--signal)}
+body.nav-an .view.aktiv{padding-bottom:96px}
+body:not(.nav-an) #nav{display:none}
+
+/* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
+.heute{background:var(--panel);border:1px solid var(--signal);border-radius:6px;padding:16px;margin-bottom:14px}
+.heute-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);font-weight:700}
+.heute h2{font-size:24px;margin:6px 0 4px}
+
+/* Zahlenfeld mit Steppern — im Gym schneller als die Tastatur */
+.stepper{display:flex;gap:6px;align-items:center}
+.stepper input{text-align:center;padding-left:2px;padding-right:2px}
+.stepper button{width:44px;min-height:44px;padding:0;font-size:20px;flex:0 0 auto;
+  background:var(--panel-2);border:1px solid var(--line)}
+
+/* Rekord-Abzeichen */
+.pr{color:var(--signal);font-weight:800;letter-spacing:.05em}
+
+/* Wizard: eine Frage pro Bildschirm, wischbar */
+#view-wizard.aktiv{display:flex;flex-direction:column;height:100%;padding:16px 16px 20px;max-width:640px;margin:0 auto}
+.wz-fortschritt{display:flex;gap:4px;margin-bottom:20px}
+.wz-punkt{flex:1;height:3px;border-radius:2px;background:var(--line)}
+.wz-punkt.erledigt{background:var(--signal)}
+.wz-punkt.jetzt{background:var(--chalk)}
+.wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
+.wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
+.wz-hilfe{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+.wz-optionen{display:flex;flex-direction:column;gap:8px}
+.wz-opt{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
+  padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35}
+.wz-opt.gewaehlt{border-color:var(--signal);background:var(--panel-2);color:var(--signal)}
+.wz-opt small{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-weight:400}
+.wz-opt.gewaehlt small{color:var(--muted)}
+.wz-raster{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
+
+/* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
+.info-knopf{width:22px;height:22px;min-height:22px;border-radius:50%;padding:0;font-size:12px;
+  font-family:var(--mono);background:transparent;border:1px solid var(--muted);color:var(--muted);
+  flex:0 0 auto;line-height:1}
+.info-text{margin-top:8px;line-height:1.55}
+
 /* Eigener Dialog (ersetzt confirm/alert) */
 #dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
   align-items:center;justify-content:center;padding:24px;z-index:10}
 #dialog-hintergrund.offen{display:flex}
 #dialog{background:var(--panel);border:1px solid var(--line);border-radius:8px;
   padding:20px;max-width:420px;width:100%}
-#dialog p{margin:0 0 16px;line-height:1.5}
+#dialog p{margin:0 0 16px;line-height:1.5;white-space:pre-line}
 </style>
 </head>
 <body>
@@ -151,10 +203,13 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <h2 id="login-name">–</h2>
     <label for="login-passwort" class="abstand">Passwort</label>
     <input id="login-passwort" type="password" autocomplete="current-password">
-    <div class="umschalter abstand">
-      <button type="button" id="login-merken-knopf" onclick="merkenUmschalten()">Angemeldet bleiben (7 Tage)</button>
+    <div class="abstand" style="display:flex;gap:8px;align-items:center">
+      <div class="umschalter" style="flex:1">
+        <button type="button" id="login-merken-knopf" onclick="merkenUmschalten()">Angemeldet bleiben (7 Tage)</button>
+      </div>
+      <button class="info-knopf" onclick="infoUmschalten('info-merken')" aria-label="Info">i</button>
     </div>
-    <div class="meta" style="margin-top:6px;line-height:1.5">Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die iPhone-Sperre, nicht mehr das App-Passwort. „Abmelden“ im Profil löscht ihn sofort.</div>
+    <div id="info-merken" class="meta info-text" hidden>Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die iPhone-Sperre, nicht mehr das App-Passwort. „Abmelden“ in den Einstellungen löscht ihn sofort.</div>
     <div class="knopfreihe">
       <button class="primaer" onclick="anmelden()">Anmelden</button>
       <button class="schmal" onclick="loginZeichnen()">Zurück</button>
@@ -225,41 +280,14 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 </section>
 
 <!-- ============================================================
-     Ansicht: Einschätzung (Fragebogen -> automatische Pläne)
+     Ansicht: Trainingsplanung (Wizard — eine Frage pro Bildschirm)
      ============================================================ -->
-<section id="view-einrichtung" class="view">
-  <div class="kopf"><h1>Deine Einschätzung</h1></div>
-  <div class="hinweis">Vier Fragen — daraus baut die App passende Startpläne.
-    Alles ist danach frei änderbar, und die automatische Anpassung nach jedem Training
-    kalibriert die Werte ohnehin auf dich ein. Später änderbar im Profil.</div>
-
-  <div class="karte">
-    <label>Wo trainierst du?</label>
-    <div id="frage-ort" class="note"></div>
-    <div id="geraete-block" class="abstand" hidden>
-      <label>Welche Geräte hast du?</label>
-      <div id="frage-geraete" class="note" style="flex-wrap:wrap"></div>
-    </div>
-  </div>
-
-  <div class="karte">
-    <label>Deine Erfahrung</label>
-    <div id="frage-erfahrung" class="note"></div>
-  </div>
-
-  <div class="karte">
-    <label>An welchen Tagen trainierst du? (2–5 antippen)</label>
-    <div id="frage-wochentage" class="note"></div>
-  </div>
-
-  <div class="karte">
-    <label>Dein Ziel</label>
-    <div id="frage-ziel" class="note"></div>
-  </div>
-
+<section id="view-wizard" class="view">
+  <div class="wz-fortschritt" id="wz-fortschritt"></div>
+  <div class="wz-buehne" id="wz-buehne"></div>
   <div class="knopfreihe">
-    <button class="primaer" onclick="plaeneErstellen()">Pläne erstellen</button>
-    <button class="schmal" onclick="einrichtungUeberspringen()">Überspringen</button>
+    <button class="schmal" id="wz-zurueck" onclick="wzZurueck()">Zurück</button>
+    <button class="primaer" id="wz-weiter" onclick="wzWeiter()" style="flex:2">Weiter</button>
   </div>
 </section>
 
@@ -269,11 +297,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 <section id="view-plaene" class="view">
   <div class="kopf">
     <h1>Trainingspläne</h1>
-    <span style="display:flex;align-items:center;gap:12px">
-      <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Trainings in Serie (bis zu 2 Ruhetage erlaubt)"></span>
-      <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
-    </span>
+    <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Trainings in Serie (bis zu 2 Ruhetage erlaubt)"></span>
   </div>
+  <div id="heute-karte"></div>
   <div id="sicherung-banner" class="hinweis" hidden>
     <span id="sicherung-banner-text"></span>
     <div class="knopfreihe"><button class="primaer schmal" onclick="sicherungTeilen()">Jetzt sichern</button></div>
@@ -281,7 +307,6 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   <div id="plan-liste"></div>
   <div class="knopfreihe">
     <button class="primaer" onclick="planAnlegen()">Plan anlegen</button>
-    <button onclick="tonTesten()">Ton testen</button>
   </div>
 </section>
 
@@ -289,10 +314,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
      Ansicht: Profil & Statistik
      ============================================================ -->
 <section id="view-profil" class="view">
-  <div class="kopf">
-    <h1>Profil</h1>
-    <button class="schmal" onclick="planListeZeichnen();zeige('view-plaene')">Zurück</button>
-  </div>
+  <div class="kopf"><h1>Profil</h1></div>
 
   <div class="karte">
     <h2 id="profil-benutzer">–</h2>
@@ -337,8 +359,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   </div>
 
   <div class="karte">
-    <h2>Volumen pro Woche</h2>
-    <div class="meta">Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10)</div>
+    <div class="zeile"><h2>Volumen pro Woche</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-volumen')" aria-label="Info">i</button></div>
+    <div id="info-volumen" class="meta info-text" hidden>Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10). Es geht um den Trend, nicht um Präzision.</div>
     <div id="volumen-diagramm" class="abstand"></div>
   </div>
 
@@ -364,19 +387,24 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   </div>
 
   <div class="karte">
-    <h2>Trainingsplanung</h2>
-    <div class="meta abstand">Beantworte die Einschätzungsfragen neu (Ort, Erfahrung, Häufigkeit, Ziel) — die App baut dir daraus frische Pläne. Selbst gebaute Pläne bleiben unangetastet.</div>
+    <div class="zeile"><h2>Trainingsplanung</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-planung')" aria-label="Info">i</button></div>
+    <div id="info-planung" class="meta info-text" hidden>Beantworte die Einschätzungsfragen neu (Ort, Erfahrung, Tage, Ziel) — die App baut dir daraus frische Pläne. Selbst gebaute Pläne bleiben unangetastet.</div>
     <div class="knopfreihe"><button class="schmal" onclick="einrichtungOeffnen()">Einschätzung ändern &amp; Pläne neu erstellen</button></div>
   </div>
 
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Einstellungen (Zahnrad) — alles, was man selten braucht
+     ============================================================ -->
+<section id="view-einstellungen" class="view">
+  <div class="kopf"><h1>Einstellungen</h1></div>
+
   <div class="karte">
-    <h2>Gut zu wissen</h2>
-    <div class="meta abstand" style="line-height:1.7">
-      <strong style="color:var(--chalk)">App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen auf diesem Gerät.<br>
-      <strong style="color:var(--chalk)">Neues Handy oder Safari-Daten gelöscht?</strong> Auf dem Anmeldebildschirm „Sicherung wiederherstellen“ und die Datei trainer-sicherung-….json wählen.<br>
-      <strong style="color:var(--chalk)">Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den notierten Wiederherstellungscode eingeben.<br>
-      <strong style="color:var(--chalk)">Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — das ist der Preis der Verschlüsselung.
-    </div>
+    <h2>Audio</h2>
+    <div class="knopfreihe"><button class="schmal" onclick="tonTesten()">Ton &amp; Ansage testen</button></div>
   </div>
 
   <div class="karte">
@@ -394,13 +422,32 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     </div>
   </div>
 
-  <div class="knopfreihe">
-    <button class="schmal" onclick="sicherungTeilen()">Sicherung exportieren</button>
-    <button class="schmal" onclick="abmelden()">Abmelden</button>
+  <div class="karte">
+    <div class="zeile"><h2>Sicherung</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-sicherung')" aria-label="Info">i</button></div>
+    <div id="info-sicherung" class="meta info-text" hidden>Die Sicherungsdatei ist verschlüsselt und darf bedenkenlos in iCloud &amp; Co. liegen. Konstanter Dateiname — beim Speichern in denselben Ordner bietet iOS „Ersetzen“ an. Wiederherstellen: Anmeldebildschirm → „Sicherung importieren“, dann Passwort oder Wiederherstellungscode.</div>
+    <div class="knopfreihe"><button class="schmal" onclick="sicherungTeilen()">Sicherung exportieren</button></div>
   </div>
-  <div class="knopfreihe">
-    <button class="gefahr" onclick="kontoLoeschen()">Konto löschen</button>
+
+  <div class="karte">
+    <h2>Konto</h2>
+    <div class="knopfreihe">
+      <button class="schmal" onclick="abmelden()">Abmelden</button>
+      <button class="gefahr" onclick="kontoLoeschen()">Konto löschen</button>
+    </div>
   </div>
+
+  <div class="karte">
+    <div class="zeile"><h2>Gut zu wissen</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-wissen')" aria-label="Info">i</button></div>
+    <div id="info-wissen" class="meta info-text" hidden>
+      <strong style="color:var(--chalk)">App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen auf diesem Gerät.<br>
+      <strong style="color:var(--chalk)">Neues Handy oder Safari-Daten gelöscht?</strong> Auf dem Anmeldebildschirm „Sicherung wiederherstellen“ und die Datei trainer-sicherung-….json wählen.<br>
+      <strong style="color:var(--chalk)">Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den notierten Wiederherstellungscode eingeben.<br>
+      <strong style="color:var(--chalk)">Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — das ist der Preis der Verschlüsselung.
+    </div>
+  </div>
+
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -417,7 +464,16 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
       <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch (Übung für Übung)</button>
       <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel (gemischt)</button>
     </div>
-    <div class="meta" style="margin-top:6px;line-height:1.5">Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="info-knopf" onclick="infoUmschalten('info-zirkel')" aria-label="Info">i</button></div>
+    <div id="info-zirkel" class="meta info-text" hidden>Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
+
+    <div class="zeile abstand"><label style="margin:0">Bonus-Programme</label>
+      <button class="info-knopf" onclick="infoUmschalten('info-bonus')" aria-label="Info">i</button></div>
+    <div id="info-bonus" class="meta info-text" hidden>Fachlicher Konsens (Cleveland Clinic, Harvard Health): <strong style="color:var(--chalk)">dynamisch aufwärmen vor</strong> dem Training, <strong style="color:var(--chalk)">statisch dehnen danach</strong>. Langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.</div>
+    <div class="raster" style="margin-top:8px">
+      <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">🔥 Aufwärmen</button></div>
+      <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">🧘 Dehnen</button></div>
+    </div>
   </div>
   <div id="uebung-liste"></div>
   <button class="breit" onclick="uebungAnlegen()">Übung hinzufügen</button>
@@ -425,7 +481,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
     <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
   </div>
-  <div class="knopfreihe"><button class="gefahr" onclick="planLoeschen()">Plan löschen</button></div>
+  <div class="knopfreihe" id="plan-extra-reihe">
+    <button class="schmal" onclick="planDuplizieren(editorPlan.id)">Duplizieren</button>
+    <button class="gefahr" onclick="planLoeschen()">Plan löschen</button>
+  </div>
 </section>
 
 <!-- ============================================================
@@ -441,12 +500,18 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <div>
       <div id="uhr-zahl" class="uhr-zahl">–</div>
       <div id="uhr-label" class="uhr-label"></div>
+      <div id="uhr-rekord" class="uhr-label pr" hidden>🏆 REKORD</div>
     </div>
   </div>
+  <div id="danach" class="meta" style="text-align:center;margin-bottom:8px"></div>
   <button id="haupt-knopf" class="primaer breit" onclick="hauptKnopf()">Satz fertig</button>
   <div class="knopfreihe">
-    <button class="schmal" id="plus-knopf" onclick="zeitVerlaengern()">+ 30 s</button>
-    <button class="schmal gefahr" onclick="trainingAbbrechen()">Abbrechen</button>
+    <button class="schmal" id="pause-knopf" onclick="pauseKnopf()">⏸ Pause</button>
+    <button class="schmal" id="plus-knopf" onclick="zeitAendern(30)">+ 30 s</button>
+    <button class="schmal" id="minus-knopf" onclick="zeitAendern(-15)">− 15 s</button>
+  </div>
+  <div class="knopfreihe">
+    <button class="schmal gefahr" onclick="trainingAbbrechen()" style="opacity:.65">Training abbrechen</button>
   </div>
 </section>
 
@@ -475,6 +540,13 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
 
 
+
+<!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
+<nav id="nav">
+  <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym">▤</span>Pläne</button>
+  <button id="nav-profil" onclick="navGehe('profil')"><span class="sym">◉</span>Profil</button>
+  <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym">⚙</span>Mehr</button>
+</nav>
 
 <!-- Eigener Dialog -->
 <div id="dialog-hintergrund">
@@ -871,7 +943,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 17;
+const APP_VERSION = 20;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -881,7 +953,11 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
-  daten.plaene.forEach(p => { if(!p.reihenfolge) p.reihenfolge = "klassisch"; });
+  daten.plaene.forEach(p => {
+    if(!p.reihenfolge) p.reihenfolge = "klassisch";
+    if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
+    if(p.dehnen === undefined) p.dehnen = false;
+  });
   if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
@@ -1312,6 +1388,7 @@ function zeige(id){
   document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
   document.getElementById(id).classList.add("aktiv");
   document.body.classList.toggle("training-fest", id === "view-training");
+  navAktualisieren(id);
   wasserzeichenZeichnen();
   window.scrollTo(0,0);
   if((id === "view-plaene" || id === "view-login") && typeof updateAnwenden === "function")
@@ -1335,6 +1412,7 @@ function uebungBeschreiben(u){
 function planListeZeichnen(){
   sicherungBannerZeichnen();
   flammeZeichnen();
+  heuteKarteZeichnen();
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
@@ -1345,13 +1423,20 @@ function planListeZeichnen(){
   }
   ziel.innerHTML = plaene.map(p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
+    // Letztes Training mit diesem Plan (rückwärts suchen = neuester Eintrag zuerst)
+    let zuletzt = null;
+    for(let i = sitzung.daten.protokoll.length - 1; i >= 0; i--){
+      if(sitzung.daten.protokoll[i].plan === p.name){ zuletzt = sitzung.daten.protokoll[i].datum; break; }
+    }
+    const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
+                   (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
     return '<div class="karte">' +
       '<h2>' + text(p.name) + '</h2>' +
-      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze</div>' +
+      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze' + zusatz +
+      (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
-        '<button class="primaer" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
+        '<button class="primaer" onclick="trainingStarten(\'' + p.id + '\')" style="flex:3">Start</button>' +
         '<button class="schmal" onclick="editorOeffnen(\'' + p.id + '\')">Bearbeiten</button>' +
-        '<button class="schmal" onclick="planDuplizieren(\'' + p.id + '\')">Duplizieren</button>' +
       '</div></div>';
   }).join("");
 }
@@ -1376,6 +1461,17 @@ function planDuplizieren(planId){
 /* ============================================================
    #region Profil & Statistik
    ============================================================ */
+/** Klappt einen Info-Text auf/zu (ⓘ-Knöpfe). */
+function infoUmschalten(id){
+  const e = document.getElementById(id);
+  e.hidden = !e.hidden;
+}
+
+function einstellungenOeffnen(){
+  document.getElementById("pw-formular").hidden = true;
+  zeige("view-einstellungen");
+}
+
 function profilOeffnen(){
   const d = sitzung.daten;
   document.getElementById("profil-benutzer").textContent =
@@ -1384,7 +1480,6 @@ function profilOeffnen(){
   document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("gewicht-formular").hidden = true;
-  document.getElementById("pw-formular").hidden = true;
   document.getElementById("ziel-formular").hidden = true;
   kennzahlenZeichnen();
   kalenderZeichnen();
@@ -1722,93 +1817,277 @@ const UEBUNGSPOOL = {
   ]
 };
 
-/* Aufteilung je Trainingshäufigkeit: welche Kategorien an welchem Tag. */
+/* Aufteilung je Trainingshäufigkeit. Reihenfolge der Kategorien = Priorität;
+   wie viele davon genutzt werden, entscheidet die gewählte Trainingsdauer. */
 const SPLITS = {
-  2: [ ["Ganzkörper A", ["beine","druck","zug","rumpf"]],
-       ["Ganzkörper B", ["druck","beine","zug","rumpf"]] ],
-  3: [ ["Ganzkörper A", ["beine","druck","zug","rumpf"]],
-       ["Ganzkörper B", ["druck","zug","beine","rumpf"]],
-       ["Ganzkörper C", ["zug","beine","druck","rumpf"]] ],
-  4: [ ["Oberkörper A", ["druck","zug","druck","rumpf"]],
-       ["Unterkörper A", ["beine","beine","beine","rumpf"]],
-       ["Oberkörper B", ["zug","druck","zug","rumpf"]],
-       ["Unterkörper B", ["beine","beine","beine","rumpf"]] ],
-  5: [ ["Drücken",      ["druck","druck","druck","rumpf"]],
-       ["Ziehen",       ["zug","zug","zug","rumpf"]],
-       ["Beine",        ["beine","beine","beine","rumpf"]],
-       ["Oberkörper",   ["druck","zug","druck","rumpf"]],
-       ["Ganzkörper",   ["beine","druck","zug","rumpf"]] ]
+  2: [ ["Ganzkörper A", ["beine","druck","zug","rumpf","druck","beine"]],
+       ["Ganzkörper B", ["druck","beine","zug","rumpf","zug","beine"]] ],
+  3: [ ["Ganzkörper A", ["beine","druck","zug","rumpf","druck","zug"]],
+       ["Ganzkörper B", ["druck","zug","beine","rumpf","beine","zug"]],
+       ["Ganzkörper C", ["zug","beine","druck","rumpf","beine","druck"]] ],
+  4: [ ["Oberkörper A", ["druck","zug","druck","zug","rumpf","druck"]],
+       ["Unterkörper A", ["beine","beine","beine","rumpf","beine","rumpf"]],
+       ["Oberkörper B", ["zug","druck","zug","druck","rumpf","zug"]],
+       ["Unterkörper B", ["beine","beine","rumpf","beine","beine","rumpf"]] ],
+  5: [ ["Drücken",    ["druck","druck","druck","rumpf","druck","rumpf"]],
+       ["Ziehen",     ["zug","zug","zug","rumpf","zug","rumpf"]],
+       ["Beine",      ["beine","beine","beine","rumpf","beine","rumpf"]],
+       ["Oberkörper", ["druck","zug","druck","zug","rumpf","druck"]],
+       ["Ganzkörper", ["beine","druck","zug","rumpf","beine","zug"]] ],
+  6: [ ["Drücken A",  ["druck","druck","druck","rumpf","druck","rumpf"]],
+       ["Ziehen A",   ["zug","zug","zug","rumpf","zug","rumpf"]],
+       ["Beine A",    ["beine","beine","beine","rumpf","beine","rumpf"]],
+       ["Drücken B",  ["druck","druck","zug","rumpf","druck","rumpf"]],
+       ["Ziehen B",   ["zug","zug","druck","rumpf","zug","rumpf"]],
+       ["Beine B",    ["beine","beine","rumpf","beine","rumpf","beine"]] ]
 };
 
-/* --- Fragebogen-Oberfläche --- */
+/* Übungen pro Einheit aus der gewählten Trainingsdauer. */
+const UEBUNGEN_JE_DAUER = { kurz:3, mittel:4, lang:5, xl:6 };
+
+/* --- Wizard: eine Frage pro Bildschirm, wischbar --- */
+
+/* Aufwärmen (dynamisch, ~4 Min): erst 1–2 Min leichtes Cardio, dann
+   kontrollierte dynamische Bewegungen. Statisches Dehnen gehört NICHT
+   hierher — auf kalte Muskeln senkt es Kraft und Leistung um 5–10 %. */
+const AUFWAERMEN = [
+  { name:"Auf der Stelle marschieren", dauer:60 },
+  { name:"Armkreisen",                 dauer:30 },
+  { name:"Hüftkreisen",                dauer:30 },
+  { name:"Beinschwingen",              dauer:40 },
+  { name:"Ausfallschritt mit Drehung", dauer:40 },
+  { name:"Kniebeugen ohne Gewicht",    dauer:40 }
+];
+
+/* Dehnen (statisch, nach dem Training, Muskeln sind warm):
+   30 s je Position ist der empfohlene Standardwert. */
+const DEHNEN = [
+  { name:"Brustdehnung an der Wand",   dauer:30 },
+  { name:"Trizeps über Kopf",          dauer:30 },
+  { name:"Oberschenkelrückseite",      dauer:30 },
+  { name:"Quadrizeps im Stehen",       dauer:30 },
+  { name:"Hüftbeuger-Ausfallschritt",  dauer:30 },
+  { name:"Katze-Kuh",                  dauer:30 }
+];
+
+/* Die Fragen des Wizards. typ: "single" | "multi" | "schalter" */
+const WIZARD_FRAGEN = [
+  { id:"ort", typ:"single", frage:"Wo trainierst du?",
+    hilfe:"Danach richtet sich, welche Übungen überhaupt vorkommen.",
+    optionen:[
+      ["zuhause","Zuhause","Körpergewicht und was du dahast"],
+      ["gym","Im Gym","Volle Auswahl an Geräten"],
+      ["draussen","Draußen","Park, Wiese, Klimmzugstange"],
+      ["eigene","Eigene Auswahl","Ich lege die Geräte selbst fest"]
+    ]},
+  { id:"geraete", typ:"multi", frage:"Was hast du zur Verfügung?",
+    hilfe:"Mehrfachauswahl. Nichts ausgewählt ist völlig in Ordnung — dann gibt es reine Körpergewichtsübungen.",
+    raster:true,
+    nurWenn:e => e.ort !== "gym",
+    optionen:[
+      ["kurzhantel","Kurzhanteln"], ["langhantel","Langhantel"],
+      ["stange","Klimmzugstange"],  ["band","Fitnessbänder"],
+      ["maschine","Maschinen"],     ["moebel","Tisch & Stuhl"]
+    ]},
+  { id:"erfahrung", typ:"single", frage:"Wie viel Erfahrung hast du?",
+    hilfe:"Bestimmt die Startgewichte. Im Zweifel die niedrigere Stufe — zu leicht korrigiert die App nach 2–3 Trainings selbst.",
+    optionen:[
+      ["anfaenger","Anfänger","Neu oder unter 6 Monate dabei"],
+      ["wieder","Wiedereinstieg","War mal fit, längere Pause"],
+      ["fortgeschritten","Fortgeschritten","Trainiere seit Jahren regelmäßig"]
+    ]},
+  { id:"ziel", typ:"single", frage:"Was ist dein Ziel?",
+    hilfe:"Legt Wiederholungsbereich und Pausenlänge fest.",
+    optionen:[
+      ["muskel","Muskelaufbau","8–12 Wdh · 90 s Pause"],
+      ["abnehmen","Abnehmen & Fitness","12–20 Wdh · 45 s Pause"],
+      ["kraft","Kraft","6–10 Wdh · 120 s Pause"],
+      ["ausdauer","Kraftausdauer","15–25 Wdh · 30 s Pause"]
+    ]},
+  { id:"wochentage", typ:"multi", frage:"An welchen Tagen trainierst du?",
+    hilfe:"2 bis 6 Tage. Muskeln wachsen an den Ruhetagen — mehr ist nicht besser.",
+    raster:true,
+    optionen:[[1,"Montag"],[2,"Dienstag"],[3,"Mittwoch"],[4,"Donnerstag"],[5,"Freitag"],[6,"Samstag"],[7,"Sonntag"]]},
+  { id:"dauer", typ:"single", frage:"Wie lange hast du pro Einheit?",
+    hilfe:"Bestimmt, wie viele Übungen pro Tag eingeplant werden.",
+    optionen:[
+      ["kurz","20–30 Minuten","3 Übungen"],
+      ["mittel","30–45 Minuten","4 Übungen"],
+      ["lang","45–60 Minuten","5 Übungen"],
+      ["xl","Über 60 Minuten","6 Übungen"]
+    ]},
+  { id:"fokus", typ:"single", frage:"Gibt es einen Schwerpunkt?",
+    hilfe:"Der Schwerpunkt bekommt eine Übung mehr, der Rest bleibt ausgewogen.",
+    optionen:[
+      ["keiner","Ausgewogen","Alles gleichmäßig"],
+      ["ober","Oberkörper","Brust, Rücken, Schultern, Arme"],
+      ["beine","Beine & Po",""],
+      ["rumpf","Rumpf & Core",""]
+    ]},
+  { id:"bonus", typ:"schalter", frage:"Aufwärmen und Dehnen?",
+    hilfe:"Empfehlung: dynamisch aufwärmen vor dem Training, statisch dehnen danach. Pro Plan später einzeln abschaltbar.",
+    optionen:[
+      ["aufwaermen","🔥 Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
+      ["dehnen","🧘 Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
+    ]}
+];
+
+let wzSchritt = 0;
+let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
+
 function einrichtungOeffnen(){
-  const alt = sitzung.daten.einrichtung;
-  einrichtung = alt && alt.ort
-    ? { ort:alt.ort, geraete:(alt.geraete||[]).slice(), erfahrung:alt.erfahrung,
-        wochentage:(alt.wochentage||[]).slice(), ziel:alt.ziel }
-    : { ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
-  einrichtungZeichnen();
-  zeige("view-einrichtung");
+  const alt = sitzung.daten.einrichtung || {};
+  einrichtung = {
+    ort: alt.ort || null,
+    geraete: (alt.geraete || []).slice(),
+    erfahrung: alt.erfahrung || null,
+    ziel: alt.ziel || null,
+    wochentage: (alt.wochentage || []).slice(),
+    dauer: alt.dauer || "mittel",
+    fokus: alt.fokus || "keiner",
+    bonus: (alt.bonus || ["aufwaermen","dehnen"]).slice()
+  };
+  wzSchritt = 0;
+  wzZeichnen();
+  zeige("view-wizard");
 }
 
-function einrichtungZeichnen(){
-  wahlgruppe("frage-ort", [["zuhause","Zuhause"],["gym","Gym"],["eigene","Eigene Auswahl"]],
-    einrichtung.ort, w => { einrichtung.ort = w; einrichtungZeichnen(); });
-  // Geräteauswahl nur, wenn nicht "Gym" (im Gym ist alles da)
-  const geraeteBlock = document.getElementById("geraete-block");
-  geraeteBlock.hidden = !(einrichtung.ort === "zuhause" || einrichtung.ort === "eigene");
-  if(!geraeteBlock.hidden){
-    document.getElementById("frage-geraete").innerHTML = GERAETE_LISTE.map(([wert, textAnzeige]) =>
-      '<button class="' + (einrichtung.geraete.includes(wert) ? "gewaehlt" : "") +
-      '" onclick="geraetUmschalten(\'' + wert + '\')">' + textAnzeige + '</button>').join("");
+function wzAktualisiereSichtbar(){
+  wzSichtbar = WIZARD_FRAGEN.filter(f => !f.nurWenn || f.nurWenn(einrichtung));
+}
+
+function wzZeichnen(){
+  wzAktualisiereSichtbar();
+  if(wzSchritt >= wzSichtbar.length){ wzZusammenfassung(); return; }
+  const f = wzSichtbar[wzSchritt];
+
+  document.getElementById("wz-fortschritt").innerHTML =
+    wzSichtbar.map((_, i) => '<div class="wz-punkt ' +
+      (i < wzSchritt ? "erledigt" : i === wzSchritt ? "jetzt" : "") + '"></div>').join("") +
+    '<div class="wz-punkt' + (wzSchritt >= wzSichtbar.length ? " jetzt" : "") + '"></div>';
+
+  let optionenHtml;
+  if(f.typ === "schalter"){
+    optionenHtml = f.optionen.map(([wert, titel, unter]) =>
+      '<button class="wz-opt ' + (einrichtung.bonus.includes(wert) ? "gewaehlt" : "") +
+      '" onclick="wzBonus(\'' + wert + '\')">' + (einrichtung.bonus.includes(wert) ? "✓ " : "") + titel +
+      (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
+  } else if(f.typ === "multi"){
+    const liste = einrichtung[f.id];
+    optionenHtml = f.optionen.map(([wert, titel, unter]) =>
+      '<button class="wz-opt ' + (liste.includes(wert) ? "gewaehlt" : "") +
+      '" onclick="wzMulti(\'' + f.id + '\',' + (typeof wert === "number" ? wert : "'" + wert + "'") + ')">' +
+      (liste.includes(wert) ? "✓ " : "") + titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
+  } else {
+    optionenHtml = f.optionen.map(([wert, titel, unter]) =>
+      '<button class="wz-opt ' + (einrichtung[f.id] === wert ? "gewaehlt" : "") +
+      '" onclick="wzSingle(\'' + f.id + '\',\'' + wert + '\')">' + titel +
+      (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
   }
-  wahlgruppe("frage-erfahrung", [["anfaenger","Anfänger"],["wieder","Wiedereinstieg"],["fortgeschritten","Fortgeschritten"]],
-    einrichtung.erfahrung, w => { einrichtung.erfahrung = w; einrichtungZeichnen(); });
-  // Wochentage: Mehrfachauswahl
-  document.getElementById("frage-wochentage").innerHTML = [1,2,3,4,5,6,7].map(wt =>
-    '<button class="' + (einrichtung.wochentage.includes(wt) ? "gewaehlt" : "") +
-    '" onclick="wochentagUmschalten(' + wt + ')">' + WOCHENTAGE[wt].slice(0,2) + '</button>').join("");
-  wahlgruppe("frage-ziel", [["muskel","Muskelaufbau"],["abnehmen","Abnehmen & Fitness"],["kraft","Kraft"]],
-    einrichtung.ziel, w => { einrichtung.ziel = w; einrichtungZeichnen(); });
+
+  document.getElementById("wz-buehne").innerHTML =
+    '<h2 class="wz-frage">' + f.frage + '</h2>' +
+    '<div class="wz-hilfe">' + f.hilfe + '</div>' +
+    '<div class="' + (f.raster ? "wz-raster" : "wz-optionen") + '">' + optionenHtml + '</div>';
+
+  document.getElementById("wz-zurueck").textContent = wzSchritt === 0 ? "Abbrechen" : "Zurück";
+  document.getElementById("wz-weiter").textContent = "Weiter";
+  document.getElementById("wz-weiter").disabled = false;
 }
 
-function wochentagUmschalten(wt){
-  const liste = einrichtung.wochentage;
-  const pos = liste.indexOf(wt);
-  if(pos >= 0) liste.splice(pos, 1); else liste.push(wt);
-  liste.sort((a,b) => a - b);
-  einrichtungZeichnen();
+/* Einfachauswahl schaltet automatisch weiter — spart einen Tipp pro Frage. */
+function wzSingle(id, wert){
+  einrichtung[id] = wert;
+  wzZeichnen();
+  setTimeout(() => { wzSchritt++; wzZeichnen(); }, 180);
 }
-
-/** Zeichnet eine Knopfgruppe mit Einfachauswahl. */
-let wahlAktionen = {};
-function wahlgruppe(zielId, paare, gewaehlt, beiWahl){
-  wahlAktionen[zielId] = { paare, beiWahl };
-  document.getElementById(zielId).innerHTML = paare.map(([wert, textAnzeige], i) =>
-    '<button class="' + (String(gewaehlt) === String(wert) ? "gewaehlt" : "") +
-    '" onclick="wahlKlick(\'' + zielId + '\',' + i + ')">' + textAnzeige + '</button>').join("");
-}
-function wahlKlick(zielId, index){
-  const g = wahlAktionen[zielId];
-  g.beiWahl(g.paare[index][0]);
-}
-function geraetUmschalten(wert){
-  const liste = einrichtung.geraete;
+function wzMulti(id, wert){
+  const liste = einrichtung[id];
   const pos = liste.indexOf(wert);
   if(pos >= 0) liste.splice(pos, 1); else liste.push(wert);
-  einrichtungZeichnen();
+  if(id === "wochentage") liste.sort((a,b) => a - b);
+  wzZeichnen();
+}
+function wzBonus(wert){
+  const pos = einrichtung.bonus.indexOf(wert);
+  if(pos >= 0) einrichtung.bonus.splice(pos, 1); else einrichtung.bonus.push(wert);
+  wzZeichnen();
 }
 
-function einrichtungUeberspringen(){
-  sitzung.daten.einrichtung = { uebersprungen:true };   // nicht erneut automatisch fragen
-  speichern();
-  planListeZeichnen();
-  zeige("view-plaene");
+function wzZurueck(){
+  if(wzSchritt === 0){ planListeZeichnen(); zeige("view-plaene"); return; }
+  wzSchritt--;
+  wzZeichnen();
 }
 
-/* --- Plangenerator --- */
+function wzWeiter(){
+  wzAktualisiereSichtbar();
+  const f = wzSichtbar[wzSchritt];
+  if(f){
+    if(f.typ === "single" && !einrichtung[f.id]){ meldung("Bitte eine Antwort wählen."); return; }
+    if(f.id === "wochentage" && (einrichtung.wochentage.length < 2 || einrichtung.wochentage.length > 6)){
+      meldung("Bitte 2 bis 6 Trainingstage wählen."); return;
+    }
+  }
+  wzSchritt++;
+  wzZeichnen();
+}
+
+/* Letzter Schritt: Zusammenfassung mit allen Antworten zum Prüfen. */
+function wzZusammenfassung(){
+  wzAktualisiereSichtbar();
+  document.getElementById("wz-fortschritt").innerHTML =
+    wzSichtbar.map(() => '<div class="wz-punkt erledigt"></div>').join("") + '<div class="wz-punkt jetzt"></div>';
+
+  const beschriften = (id, wert) => {
+    const f = WIZARD_FRAGEN.find(x => x.id === id);
+    const treffer = f && f.optionen.find(o => String(o[0]) === String(wert));
+    return treffer ? treffer[1] : wert;
+  };
+  const tage = einrichtung.wochentage.map(w => WOCHENTAGE[w].slice(0,2)).join(", ");
+  const geraete = einrichtung.ort === "gym" ? "alles im Gym"
+    : (einrichtung.geraete.length ? einrichtung.geraete.map(g => beschriften("geraete", g)).join(", ") : "nur Körpergewicht");
+  const bonus = einrichtung.bonus.length ? einrichtung.bonus.map(b => beschriften("bonus", b)).join(" · ") : "keine";
+
+  document.getElementById("wz-buehne").innerHTML =
+    '<h2 class="wz-frage">Passt das so?</h2>' +
+    '<div class="wz-hilfe">Daraus entstehen ' + einrichtung.wochentage.length + ' Pläne. Alles ist danach frei änderbar.</div>' +
+    '<div class="karte"><div class="meta" style="line-height:2">' +
+      "Ort: " + beschriften("ort", einrichtung.ort) + "<br>" +
+      "Ausrüstung: " + geraete + "<br>" +
+      "Erfahrung: " + beschriften("erfahrung", einrichtung.erfahrung) + "<br>" +
+      "Ziel: " + beschriften("ziel", einrichtung.ziel) + "<br>" +
+      "Tage: " + tage + "<br>" +
+      "Dauer: " + beschriften("dauer", einrichtung.dauer) + "<br>" +
+      "Schwerpunkt: " + beschriften("fokus", einrichtung.fokus) + "<br>" +
+      "Bonus: " + bonus +
+    '</div></div>';
+  document.getElementById("wz-zurueck").textContent = "Zurück";
+  document.getElementById("wz-weiter").textContent = "Pläne erstellen";
+}
+
+/* Wischen zwischen den Fragen (nur horizontal, damit Scrollen nicht stört). */
+(function wischenEinrichten(){
+  let x0 = null, y0 = null;
+  const buehne = () => document.getElementById("view-wizard");
+  document.addEventListener("touchstart", e => {
+    if(!buehne().classList.contains("aktiv")) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive:true });
+  document.addEventListener("touchend", e => {
+    if(x0 === null || !buehne().classList.contains("aktiv")) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if(Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;   // zu kurz oder eher vertikal
+    if(dx < 0) wzWeiter(); else wzZurueck();
+  }, { passive:true });
+})();
+
+/* --- Plangenerator --- *//* --- Plangenerator --- */
 function verfuegbareGeraete(){
-  if(einrichtung.ort === "gym") return ["keine","kurzhantel","langhantel","stange","band","maschine","moebel"];
+  if(einrichtung.ort === "gym")      return ["keine","kurzhantel","langhantel","stange","band","maschine","moebel"];
+  if(einrichtung.ort === "draussen") return ["keine","stange","band","moebel"].concat(einrichtung.geraete);
   return ["keine"].concat(einrichtung.geraete);
 }
 
@@ -1826,6 +2105,7 @@ function startwerteBerechnen(){
   let wdhMin = 8, wdhMax = 12, wdhStart = 8, pause = 90;
   if(einrichtung.ziel === "abnehmen"){ wdhMin = 12; wdhMax = 20; wdhStart = 12; pause = 45; }
   if(einrichtung.ziel === "kraft"){    wdhMin = 6;  wdhMax = 10; wdhStart = 6;  pause = 120; }
+  if(einrichtung.ziel === "ausdauer"){ wdhMin = 15; wdhMax = 25; wdhStart = 15; pause = 30; }
 
   // Gewichtsfaktor: Erfahrung × Geschlecht × Alter — konservativ gerundet
   let faktor = 1.0;
@@ -1864,36 +2144,41 @@ function uebungBauen(vorlage, werte, koerperKg){
 }
 
 function plaeneErstellen(){
-  if(!einrichtung.ort || !einrichtung.erfahrung || !einrichtung.ziel){
-    meldung("Bitte alle Fragen beantworten. (Die Geräteauswahl darf leer bleiben — dann gibt es Körpergewichtsübungen.)");
-    return;
-  }
-  if(einrichtung.wochentage.length < 2 || einrichtung.wochentage.length > 5){
-    meldung("Bitte 2 bis 5 Trainingstage antippen. (Mehr als 5 Tage pro Woche sind für den Anfang nicht sinnvoll — Muskeln wachsen an den Ruhetagen.)");
-    return;
-  }
   const geraete = verfuegbareGeraete();
   const werte = startwerteBerechnen();
   const koerperKg = aktuellesGewichtKg();
   const benutzt = {};   // je Kategorie: wie viele Varianten schon vergeben (für Abwechslung über die Tage)
+  const anzahl = UEBUNGEN_JE_DAUER[einrichtung.dauer] || 4;
+
+  /* Schwerpunkt: die gewählte Kategorie wandert nach vorn, damit sie
+     bei kurzen Einheiten sicher drin ist und eine Übung mehr bekommt. */
+  const fokusKategorie = { ober:"druck", beine:"beine", rumpf:"rumpf" }[einrichtung.fokus];
 
   const neuePlaene = SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
     const wochentag = WOCHENTAGE[einrichtung.wochentage[tagIndex]];
-    const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent", uebungen:[] };
-    kategorien.forEach(kategorie => {
+    let liste = kategorien.slice();
+    if(fokusKategorie){
+      liste.sort((a,b) => (a === fokusKategorie ? -1 : 0) - (b === fokusKategorie ? -1 : 0));
+    }
+    liste = liste.slice(0, anzahl);
+
+    const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent",
+                   reihenfolge:"klassisch",
+                   aufwaermen: einrichtung.bonus.includes("aufwaermen"),
+                   dehnen: einrichtung.bonus.includes("dehnen"),
+                   uebungen:[] };
+
+    liste.forEach(kategorie => {
       const passend = UEBUNGSPOOL[kategorie].filter(v => geraete.includes(v.geraet));
       if(passend.length === 0) return;
-      const zaehler = benutzt[kategorie] || 0;
-      const vorlage = passend[zaehler % passend.length];   // rotiert -> Tage unterscheiden sich
-      benutzt[kategorie] = zaehler + 1;
-      // Doppelte Übung im selben Plan vermeiden (bei 4er/5er-Splits möglich)
-      if(plan.uebungen.some(u => u.name === vorlage.name)){
-        const ersatz = passend[(zaehler + 1) % passend.length];
-        benutzt[kategorie] = zaehler + 2;
-        if(!plan.uebungen.some(u => u.name === ersatz.name))
-          plan.uebungen.push(uebungBauen(ersatz, werte, koerperKg));
-        return;
+      // Variante suchen, die im Plan noch nicht vorkommt (rotiert über die Tage)
+      let vorlage = null;
+      for(let versuch = 0; versuch < passend.length; versuch++){
+        const kandidat = passend[((benutzt[kategorie] || 0) + versuch) % passend.length];
+        if(!plan.uebungen.some(u => u.name === kandidat.name)){ vorlage = kandidat; break; }
       }
+      if(!vorlage) return;
+      benutzt[kategorie] = (benutzt[kategorie] || 0) + 1;
       plan.uebungen.push(uebungBauen(vorlage, werte, koerperKg));
     });
     return plan;
@@ -1901,18 +2186,21 @@ function plaeneErstellen(){
 
   const fertigstellen = () => {
     sitzung.daten.plaene = sitzung.daten.plaene.concat(neuePlaene);
-    sitzung.daten.einrichtung = { ort:einrichtung.ort, geraete:einrichtung.geraete.slice(),
-      erfahrung:einrichtung.erfahrung, wochentage:einrichtung.wochentage.slice(), ziel:einrichtung.ziel };
+    sitzung.daten.einrichtung = {
+      ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
+      ziel:einrichtung.ziel, wochentage:einrichtung.wochentage.slice(),
+      dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice()
+    };
     speichern();
     planListeZeichnen();
     zeige("view-plaene");
-    meldung(neuePlaene.length + " Pläne erstellt. Die Startwerte sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert. Über „Bearbeiten“ kannst du jederzeit Übungen tauschen.");
+    meldung(neuePlaene.length + " Pläne erstellt.\n\nDie Startwerte sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert. Über „Bearbeiten“ kannst du jederzeit Übungen tauschen.");
   };
 
   // Frühere automatisch erstellte Pläne ersetzen? Selbst gebaute bleiben immer.
   const alteAssistentPlaene = sitzung.daten.plaene.filter(p => p.quelle === "assistent");
   if(alteAssistentPlaene.length > 0){
-    frage(alteAssistentPlaene.length + " automatisch erstellte Pläne vorhanden. Durch die neuen ersetzen? (Selbst gebaute Pläne bleiben in jedem Fall erhalten.)", true, ja => {
+    frage(alteAssistentPlaene.length + " automatisch erstellte Pläne sind vorhanden.\n\nDurch die neuen ersetzen? Selbst gebaute Pläne bleiben in jedem Fall erhalten.", true, ja => {
       if(ja) sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.quelle !== "assistent");
       fertigstellen();
     });
@@ -1984,6 +2272,8 @@ function zielEinschaetzen(ziel){
   return { text: basis + "— kaum realistisch: Datum verschieben oder die Übung öfter einplanen.", stufe:"warn" };
 }
 
+let offenerZielPicker = null;   // Ziel-ID, deren Plan-Auswahl gerade aufgeklappt ist
+
 function zieleZeichnen(){
   const ziele = sitzung.daten.ziele;
   document.getElementById("ziel-liste").innerHTML = ziele.length === 0
@@ -1991,12 +2281,51 @@ function zieleZeichnen(){
     : ziele.map(z => {
         const e = zielEinschaetzen(z);
         const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
+        const status = zielStatus(z.uebung);
+        let picker = "";
+        if(offenerZielPicker === z.id){
+          picker = '<div class="abstand"><label>In welche Pläne einbauen?</label><div class="note">' +
+            sitzung.daten.plaene.map(p => {
+              const drin = p.uebungen.some(u => u.name.toLowerCase().includes(z.uebung.toLowerCase()));
+              return drin
+                ? '<button disabled>✓ ' + text(p.name) + '</button>'
+                : '<button onclick="zielInPlan(\'' + z.id + '\',\'' + p.id + '\')">' + text(p.name) + '</button>';
+            }).join("") + '</div></div>';
+        }
         return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">' +
           '<div class="zeile"><strong>' + text(z.uebung) + ': ' + z.wdh + ' Wdh bis ' + z.datum + '</strong>' +
           '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')">×</button></div>' +
           '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
+          '<div class="knopfreihe"><button class="schmal" onclick="zielPickerUmschalten(\'' + z.id + '\')">' +
+            (offenerZielPicker === z.id ? "Auswahl schließen" : "In Pläne einbauen") + '</button></div>' +
+          picker +
           '</div>';
       }).join("");
+}
+
+function zielPickerUmschalten(zielId){
+  offenerZielPicker = (offenerZielPicker === zielId) ? null : zielId;
+  zieleZeichnen();
+}
+
+/** Fügt die Ziel-Übung mit PASSENDEN Startwerten in einen Plan ein:
+    Start = aktueller Stand (oder 50 % des Ziels), Obergrenze = das Ziel selbst —
+    so arbeitet die automatische Progression direkt auf das Ziel zu. */
+function zielInPlan(zielId, planId){
+  const ziel = sitzung.daten.ziele.find(z => z.id === zielId);
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  const status = zielStatus(ziel.uebung);
+  const start = begrenzen(status.aktuell > 0 ? status.aktuell : Math.round(ziel.wdh * 0.5), 3, ziel.wdh);
+  const u = neueUebung();
+  u.name = ziel.uebung;
+  u.wdh = start;
+  u.wdhMin = Math.max(3, Math.round(start * 0.8));
+  u.wdhMax = ziel.wdh;                       // Ziel = Obergrenze der Progression
+  u.gewicht = 0; u.gewichtSchritt = 0;       // Ziel-Übungen sind Wiederholungsziele
+  u.pause = 60;
+  plan.uebungen.push(u);
+  speichern();
+  zieleZeichnen();                           // Einschätzung aktualisiert sich sofort
 }
 
 /* ============================================================
@@ -2005,13 +2334,25 @@ function zieleZeichnen(){
 let editorPlan = null;
 
 function planAnlegen(){
-  editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()] };
+  editorMehr = {};
+  editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()], reihenfolge:"klassisch",
+                 aufwaermen:true, dehnen:true };
+  document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
   editorZeichnen(); zeige("view-editor");
 }
 
 function editorOeffnen(planId){
+  editorMehr = {};
   editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
+  document.getElementById("plan-extra-reihe").hidden = false;
   editorZeichnen(); zeige("view-editor");
+}
+
+let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
+
+function bonusUmschalten(feld){
+  editorPlan[feld] = !editorPlan[feld];
+  editorZeichnen();
 }
 
 function editorZeichnen(){
@@ -2019,18 +2360,24 @@ function editorZeichnen(){
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
   document.getElementById("rf-klassisch").classList.toggle("gewaehlt", editorPlan.reihenfolge === "klassisch");
   document.getElementById("rf-zirkel").classList.toggle("gewaehlt", editorPlan.reihenfolge === "zirkel");
+  document.getElementById("sw-aufwaermen").classList.toggle("gewaehlt", !!editorPlan.aufwaermen);
+  document.getElementById("sw-dehnen").classList.toggle("gewaehlt", !!editorPlan.dehnen);
   document.getElementById("uebung-liste").innerHTML = editorPlan.uebungen.map((u,i) => {
     const istZeit = u.modus === "zeit";
-    let felder;
+    let basis, mehr = "";
     if(istZeit){
-      felder = zahlfeld(i,"saetze","Sätze",u.saetze) + zahlfeld(i,"dauer","Dauer (s)",u.dauer) +
-               zahlfeld(i,"pause","Pause (s)",u.pause);
+      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"dauer","Dauer (s)",u.dauer,5) +
+              zahlfeld(i,"pause","Pause (s)",u.pause,15);
     } else {
-      felder = zahlfeld(i,"saetze","Sätze",u.saetze) + zahlfeld(i,"pause","Pause (s)",u.pause) +
-               zahlfeld(i,"wdh","Wiederholungen",u.wdh) + zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht) +
-               zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax) +
-               zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt);
+      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"wdh","Wiederholungen",u.wdh,1) +
+              zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht,2.5) + zahlfeld(i,"pause","Pause (s)",u.pause,15);
+      mehr = zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin,1) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax,1) +
+             zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt,0.5);
     }
+    const felder = '<div class="raster abstand">' + basis + '</div>' +
+      (mehr ? '<div class="knopfreihe"><button class="schmal" onclick="editorMehrUmschalten(' + i + ')">' +
+              (editorMehr[i] ? "Feinheiten ausblenden" : "Feinheiten (Wdh-Bereich, Schrittweite)") + '</button></div>' +
+              (editorMehr[i] ? '<div class="raster abstand">' + mehr + '</div>' : "") : "");
     return '<div class="karte">' +
       '<div class="zeile"><label style="margin:0">Übung ' + (i+1) + '</label>' +
         '<span>' +
@@ -2042,17 +2389,30 @@ function editorZeichnen(){
         '<button class="' + (istZeit?"":"gewaehlt") + '" onclick="modusSetzen(' + i + ',\'wdh\')">Wiederholungen</button>' +
         '<button class="' + (istZeit?"gewaehlt":"") + '" onclick="modusSetzen(' + i + ',\'zeit\')">Zeit</button>' +
       '</div>' +
-      '<div class="raster abstand">' + felder + '</div>' +
+      felder +
       '<div class="knopfreihe"><button class="schmal gefahr" onclick="uebungLoeschen(' + i + ')">Übung entfernen</button></div>' +
     '</div>';
   }).join("");
 }
 
-function zahlfeld(i, schluessel, beschriftung, wert){
-  return '<div><label>' + beschriftung + '</label>' +
+/** Zahlenfeld mit −/+ Steppern: im Gym schneller und treffsicherer als die Tastatur. */
+function zahlfeld(i, schluessel, beschriftung, wert, schritt){
+  const s = schritt || 1;
+  return '<div><label>' + beschriftung + '</label><div class="stepper">' +
+    '<button onclick="feldStufe(' + i + ',\'' + schluessel + '\',' + (-s) + ')" aria-label="weniger">−</button>' +
     '<input type="number" inputmode="decimal" step="any" value="' + wert +
-    '" oninput="feld(' + i + ',\'' + schluessel + '\',this.value,true)"></div>';
+    '" oninput="feld(' + i + ',\'' + schluessel + '\',this.value,true)">' +
+    '<button onclick="feldStufe(' + i + ',\'' + schluessel + '\',' + s + ')" aria-label="mehr">+</button>' +
+    '</div></div>';
 }
+
+function feldStufe(i, schluessel, delta){
+  const neu = Math.max(0, Math.round((editorPlan.uebungen[i][schluessel] + delta) * 100) / 100);
+  editorPlan.uebungen[i][schluessel] = neu;
+  editorZeichnen();
+}
+
+function editorMehrUmschalten(i){ editorMehr[i] = !editorMehr[i]; editorZeichnen(); }
 function feld(i, schluessel, wert, istZahl){
   editorPlan.uebungen[i][schluessel] = istZahl ? (parseFloat(wert) || 0) : wert;
 }
@@ -2112,8 +2472,24 @@ function planLoeschen(){
    ============================================================ */
 let lauf = null;
 
+/** Baut die Bonus-Schritte (Aufwärmen/Dehnen) als eigene Phasen. */
+function bonusSchritte(liste, typ){
+  return liste.map((b, i) => ({
+    typ: typ, name: b.name, sekunden: b.dauer, nummer: i + 1, gesamt: liste.length,
+    ansage: b.name + ", " + b.dauer + " Sekunden."
+  }));
+}
+
 function ablaufErzeugen(plan){
-  if(plan.reihenfolge === "zirkel") return zirkelAblauf(plan);
+  const kern = plan.reihenfolge === "zirkel" ? zirkelAblauf(plan) : klassischerAblauf(plan);
+  let alle = [];
+  if(plan.aufwaermen) alle = alle.concat(bonusSchritte(AUFWAERMEN, "aufwaermen"));
+  alle = alle.concat(kern);
+  if(plan.dehnen) alle = alle.concat(bonusSchritte(DEHNEN, "dehnen"));
+  return alle;
+}
+
+function klassischerAblauf(plan){
   const schritte = [];
   plan.uebungen.forEach((u, ui) => {
     for(let s = 1; s <= u.saetze; s++){
@@ -2193,9 +2569,36 @@ function satzProtokollieren(schritt, istSekunden){
 function schrittBetreten(){
   toeneVerwerfen();
   clearInterval(lauf.timerId);
+  lauf.pausiert = false;
+  const pauseK = document.getElementById("pause-knopf");
+  pauseK.textContent = "⏸ Pause";
+  pauseK.classList.remove("gewaehlt");
   if(lauf.index >= lauf.schritte.length){ trainingBeenden(); return; }
 
   const s = lauf.schritte[lauf.index];
+  const laeuftUhr = s.typ !== "satz-wdh";
+  pauseK.disabled = !laeuftUhr;
+  document.getElementById("minus-knopf").disabled = !laeuftUhr || s.typ === "bereit";
+  danachZeichnen();
+
+  // Bonus-Phasen (Aufwärmen/Dehnen) haben keine Übung aus dem Plan
+  if(s.typ === "aufwaermen" || s.typ === "dehnen"){
+    const istWarm = s.typ === "aufwaermen";
+    document.getElementById("uebungsname").textContent = s.name;
+    document.getElementById("strichliste").innerHTML = "";
+    document.getElementById("uhr-rekord").hidden = true;
+    gesamtBalkenZeichnen(0);
+    const ph = document.getElementById("phase");
+    ph.textContent = (istWarm ? "🔥 Aufwärmen · " : "🧘 Dehnen · ") + s.nummer + " von " + s.gesamt;
+    ph.classList.toggle("pause", !istWarm);
+    const z = document.getElementById("uhr-zahl");
+    z.className = "uhr-zahl" + (istWarm ? "" : " pause");
+    document.getElementById("uhr-label").textContent = istWarm ? "LOCKER BEWEGEN" : "HALTEN, NICHT WIPPEN";
+    document.getElementById("haupt-knopf").textContent = "Überspringen";
+    countdownStarten(s.sekunden);
+    sprich(s.ansage);
+    return;
+  }
   const u = lauf.plan.uebungen[s.uebungIndex];
   const zahl = document.getElementById("uhr-zahl");
   const label = document.getElementById("uhr-label");
@@ -2206,6 +2609,8 @@ function schrittBetreten(){
   document.getElementById("uebungsname").textContent = u.name;
   strichlisteZeichnen(u, s);
   gesamtBalkenZeichnen(0);
+
+  rekordPruefen(s);
 
   if(s.typ === "satz-wdh"){
     phase.textContent = "Satz " + s.satz + " von " + u.saetze;
@@ -2238,6 +2643,7 @@ function schrittBetreten(){
     phase.textContent = "Pause";
     phase.classList.add("pause");
     zahl.className = "uhr-zahl pause";
+    document.getElementById("uhr-rekord").hidden = true;
     label.textContent = "BIS ZUM NÄCHSTEN SATZ";
     knopf.textContent = "Pause überspringen";
     plus.disabled = false;
@@ -2247,6 +2653,9 @@ function schrittBetreten(){
 }
 
 function strichlisteZeichnen(uebung, schritt){
+  if(schritt.typ === "aufwaermen" || schritt.typ === "dehnen"){
+    document.getElementById("strichliste").innerHTML = ""; return;
+  }
   let html = "";
   const erledigt = zaehleErledigteSaetze(schritt.uebungIndex);
   const istSatz = schritt.typ === "satz-wdh" || schritt.typ === "satz-zeit" || schritt.typ === "bereit";
@@ -2299,11 +2708,26 @@ function countdownTicken(){
     if(s.typ === "satz-zeit") satzProtokollieren(s, s.sekunden);   // voll durchgehalten
     lauf.index++;
     schrittBetreten();
+    return;
   }
 }
 
+/** Doppeltipp-Schutz: schnelle Zweittipps (z. B. beim Doppeltippen gegen
+    den Zoom) dürfen nicht zwei Schritte auf einmal springen. */
+let letzterTipp = 0;
+function tippGesperrt(){
+  const jetzt = Date.now();
+  if(jetzt - letzterTipp < 350) return true;
+  letzterTipp = jetzt;
+  return false;
+}
+
 function hauptKnopf(){
+  if(tippGesperrt()) return;
   const s = lauf.schritte[lauf.index];
+  if(s.typ === "aufwaermen" || s.typ === "dehnen"){                // Bonus: nur weiter, nichts protokollieren
+    lauf.index++; schrittBetreten(); return;
+  }
   if(s.typ === "satz-wdh"){
     satzProtokollieren(s, 0);                                      // Satz fertig
   } else if(s.typ === "satz-zeit"){
@@ -2315,14 +2739,39 @@ function hauptKnopf(){
   schrittBetreten();
 }
 
-function zeitVerlaengern(){
-  if(!lauf) return;
+/** Verlängert (+) oder verkürzt (−) den laufenden Countdown.
+    Fällt der Rest auf 0, geht es sofort weiter. */
+function zeitAendern(delta){
+  if(!lauf || lauf.pausiert) return;
   const s = lauf.schritte[lauf.index];
   if(s.typ === "satz-wdh" || s.typ === "bereit") return;
-  const rest = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000));
+  const rest = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000) + delta);
   toeneVerwerfen();
   clearInterval(lauf.timerId);
-  countdownStarten(rest + 30);
+  if(rest <= 0){ lauf.index++; schrittBetreten(); return; }
+  countdownStarten(rest);
+}
+
+/** Pausiert den Countdown bzw. setzt ihn fort — der Standard-Knopf,
+    den jede Timer-App braucht (Telefonklingeln, Gerät belegt, ...). */
+function pauseKnopf(){
+  if(!lauf || tippGesperrt()) return;
+  const s = lauf.schritte[lauf.index];
+  if(s.typ === "satz-wdh") return;                 // dort läuft keine Uhr
+  const knopf = document.getElementById("pause-knopf");
+  if(!lauf.pausiert){
+    lauf.restBeiPause = Math.max(1, Math.ceil((lauf.ende - Date.now())/1000));
+    lauf.pausiert = true;
+    toeneVerwerfen();
+    clearInterval(lauf.timerId);
+    knopf.textContent = "▶ Weiter";
+    knopf.classList.add("gewaehlt");
+  } else {
+    lauf.pausiert = false;
+    knopf.textContent = "⏸ Pause";
+    knopf.classList.remove("gewaehlt");
+    countdownStarten(lauf.restBeiPause);
+  }
 }
 
 function trainingAbbrechen(){
@@ -2340,6 +2789,87 @@ function aufraeumen(){
   if("speechSynthesis" in window) speechSynthesis.cancel();
   bildschirmFreigeben();
   lauf = null;
+}
+
+/** Bester bisheriger Wert einer Übung aus dem Protokoll (ohne den laufenden Lauf). */
+function bisherigerRekord(uebungId, modus){
+  let best = 0;
+  sitzung.daten.protokoll.forEach(e => {
+    if(!Array.isArray(e.saetze)) return;
+    e.saetze.forEach(sa => {
+      if(sa.uebungId !== uebungId) return;
+      const wert = modus === "zeit" ? (sa.dauer || 0) : (sa.wdh || 0) * ((sa.gewicht || 0) > 0 ? sa.gewicht : 1);
+      if(wert > best) best = wert;
+    });
+  });
+  return best;
+}
+
+/** Zeigt "🏆 REKORD", wenn der anstehende Satz alles bisherige übertrifft. */
+function rekordPruefen(schritt){
+  const anzeige = document.getElementById("uhr-rekord");
+  if(!schritt || (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
+  const u = lauf.plan.uebungen[schritt.uebungIndex];
+  const best = bisherigerRekord(u.id, u.modus);
+  const jetzt = u.modus === "zeit" ? u.dauer : u.wdh * (u.gewicht > 0 ? u.gewicht : 1);
+  anzeige.hidden = !(best > 0 && jetzt > best);
+}
+
+/** Kleine Vorschau: was kommt nach dem aktuellen Schritt? */
+function danachZeichnen(){
+  const ziel = document.getElementById("danach");
+  const naechster = lauf.schritte.slice(lauf.index + 1)
+    .find(x => x.typ !== "pause" && x.typ !== "bereit");
+  if(!naechster){ ziel.textContent = "Danach: fertig 🎉"; return; }
+  if(naechster.typ === "aufwaermen" || naechster.typ === "dehnen"){ ziel.textContent = "Danach: " + naechster.name; return; }
+  const u = lauf.plan.uebungen[naechster.uebungIndex];
+  ziel.textContent = "Danach: " + u.name + " · " + uebungBeschreiben(u);
+}
+
+/* ============================================================
+   #region Navigation (Bottom-Bar)
+   ============================================================ */
+function navGehe(bereich){
+  if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
+  else if(bereich === "profil") profilOeffnen();
+  else einstellungenOeffnen();
+}
+
+/** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
+function navAktualisieren(id){
+  const bereiche = { "view-plaene":"nav-plaene", "view-profil":"nav-profil", "view-einstellungen":"nav-einst",
+                     "view-editor":"nav-plaene" };
+  const an = !!bereiche[id];
+  document.body.classList.toggle("nav-an", an);
+  ["nav-plaene","nav-profil","nav-einst"].forEach(k =>
+    document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
+}
+
+/** Heute-Karte: welcher Plan ist laut Wochentag heute dran? */
+function heuteKarteZeichnen(){
+  const ziel = document.getElementById("heute-karte");
+  const wochentag = (new Date().getDay() + 6) % 7 + 1;             // 1 = Montag
+  const name = WOCHENTAGE[wochentag];
+  const plan = sitzung.daten.plaene.find(p => p.name.startsWith(name + " –"));
+  const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heuteAlsText());
+
+  if(plan){
+    ziel.innerHTML = '<div class="heute">' +
+      '<div class="heute-label">Heute · ' + name + (schonTrainiert ? " · erledigt ✓" : "") + '</div>' +
+      '<h2>' + text(plan.name.replace(name + " – ", "")) + '</h2>' +
+      '<div class="meta">' + plan.uebungen.length + ' Übungen · ' +
+        plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze' +
+        (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · 🧘' : '') + '</div>' +
+      '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
+        (schonTrainiert ? "Nochmal trainieren" : "Training starten") + '</button></div>' +
+      '</div>';
+  } else if(schonTrainiert){
+    ziel.innerHTML = '<div class="heute"><div class="heute-label">Heute · ' + name + '</div>' +
+      '<h2>Erledigt ✓</h2><div class="meta">Gut gemacht — die Serie läuft.</div></div>';
+  } else {
+    ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
+      '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute — Ruhetage kosten die Flamme nicht (bis zu 2 am Stück).</div></div>';
+  }
 }
 
 /* ============================================================
