@@ -70,20 +70,24 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 /* Strichliste der Sätze */
-.strichliste{display:flex;gap:5px;margin:18px 0 26px}
+.strichliste{display:flex;gap:5px;margin:12px 0 14px}
 .strich{width:9px;height:32px;border-radius:1px;transform:skewX(-8deg);
   border:1.5px solid var(--line);background:transparent}
 .strich.erledigt{background:var(--muted);border-color:var(--muted)}
 .strich.jetzt{background:var(--signal);border-color:var(--signal)}
 
 /* Trainingsansicht */
-#view-training.aktiv{display:flex;flex-direction:column;min-height:100dvh;padding:20px 16px 24px}
+/* Trainingsansicht: exakt Bildschirmhöhe (Body ist währenddessen fixiert) —
+   die Uhr schrumpft bei Platzmangel, die Knöpfe unten sind IMMER voll sichtbar. */
+#view-training.aktiv{display:flex;flex-direction:column;height:100%;min-height:0;
+  overflow:hidden;padding:10px 16px 12px;max-width:640px;margin:0 auto}
 .phase{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--signal)}
 .phase.pause{color:var(--rest)}
-.uebungsname{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:6px 0 0}
-.uhr{flex:1;display:flex;align-items:center;justify-content:center}
+.uebungsname{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 0 0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uhr{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .uhr-zahl{font-family:var(--mono);font-weight:700;letter-spacing:-.05em;line-height:.9;
-  font-variant-numeric:tabular-nums;font-size:clamp(72px,26vw,140px);color:var(--signal)}
+  font-variant-numeric:tabular-nums;font-size:clamp(56px,22vw,120px);color:var(--signal)}
 .uhr-zahl.pause{color:var(--rest)}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px}
@@ -95,8 +99,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 }
 
 /* Bewertung */
-.note{display:flex;gap:6px;margin-top:10px}
-.note button{flex:1;padding:12px 0;font-family:var(--mono);background:var(--panel-2);color:var(--muted)}
+.note{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.note button{flex:1 1 auto;min-width:60px;padding:12px 8px;font-family:var(--mono);background:var(--panel-2);
+  color:var(--muted);white-space:normal;line-height:1.25;font-size:14px}
 .note button.gewaehlt{background:var(--signal);color:#16181C}
 .notenhilfe{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
 
@@ -117,12 +122,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .tag.autoruhe{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .tag.heute{outline:1.5px solid var(--chalk)}
 
-/* Wasserzeichen: fast unsichtbar, klickt sich nicht in den Weg,
-   im Training ausgeblendet (dort zählt jede ruhige Fläche). */
-#wasserzeichen{position:fixed;left:0;right:0;bottom:calc(5px + env(safe-area-inset-bottom));
-  text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.1em;
-  color:var(--chalk);opacity:.12;pointer-events:none;user-select:none;-webkit-user-select:none;z-index:5}
-body.training-fest #wasserzeichen{display:none}
+/* Wasserzeichen: statisch GANZ UNTEN am Ende einer Ansicht (kein Overlay). */
+.wasserzeichen{margin-top:32px;text-align:center;font-family:var(--mono);font-size:9px;
+  letter-spacing:.1em;color:var(--chalk);opacity:.14;user-select:none;-webkit-user-select:none}
 
 /* Eigener Dialog (ersetzt confirm/alert) */
 #dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
@@ -205,6 +207,7 @@ body.training-fest #wasserzeichen{display:none}
     <button class="schmal" id="import-knopf" onclick="document.getElementById('import-datei').click()">Sicherung importieren</button>
   </div>
   <input type="file" id="import-datei" accept="application/json" hidden onchange="sicherungImportieren(this)">
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <!-- ============================================================
@@ -245,8 +248,8 @@ body.training-fest #wasserzeichen{display:none}
   </div>
 
   <div class="karte">
-    <label>Wie oft pro Woche?</label>
-    <div id="frage-tage" class="note"></div>
+    <label>An welchen Tagen trainierst du? (2–5 antippen)</label>
+    <div id="frage-wochentage" class="note"></div>
   </div>
 
   <div class="karte">
@@ -306,13 +309,31 @@ body.training-fest #wasserzeichen{display:none}
 
   <div class="karte">
     <div class="zeile">
-      <div><div id="tag-streak-zahl" class="kennzahl">🔥 0</div><div class="kennzahl-label">Trainings-Serie</div></div>
-      <div><div id="streak-zahl" class="kennzahl">0</div><div class="kennzahl-label">Wochen in Folge</div></div>
-      <div><div id="gesamt-zahl" class="kennzahl">0</div><div class="kennzahl-label">Trainings gesamt</div></div>
-      <div><div id="monat-zahl" class="kennzahl">0</div><div class="kennzahl-label">diesen Monat</div></div>
+      <div>
+        <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
+        <div class="kennzahl-label">Trainings-Serie</div>
+      </div>
     </div>
+    <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
     <div id="kalender" class="kalender"></div>
     <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile">
+      <h2>Ziele</h2>
+      <button class="rund" onclick="zielFormularZeigen()" aria-label="Ziel hinzufügen">+</button>
+    </div>
+    <div id="ziel-formular" hidden>
+      <label class="abstand" for="ziel-uebung">Übung</label>
+      <input id="ziel-uebung" placeholder="z. B. Liegestütze">
+      <div class="raster abstand">
+        <div><label for="ziel-wdh">Ziel (Wdh)</label><input id="ziel-wdh" type="number" inputmode="numeric"></div>
+        <div><label for="ziel-datum">Bis wann</label><input id="ziel-datum" type="date"></div>
+      </div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="zielEintragen()">Ziel speichern</button></div>
+    </div>
+    <div id="ziel-liste" class="abstand"></div>
   </div>
 
   <div class="karte">
@@ -380,6 +401,7 @@ body.training-fest #wasserzeichen{display:none}
   <div class="knopfreihe">
     <button class="gefahr" onclick="kontoLoeschen()">Konto löschen</button>
   </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <!-- ============================================================
@@ -390,6 +412,12 @@ body.training-fest #wasserzeichen{display:none}
   <div class="karte">
     <label for="plan-name">Name des Plans</label>
     <input id="plan-name" placeholder="z. B. Montag – Oberkörper">
+    <label class="abstand">Reihenfolge</label>
+    <div class="umschalter">
+      <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch (Übung für Übung)</button>
+      <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel (gemischt)</button>
+    </div>
+    <div class="meta" style="margin-top:6px;line-height:1.5">Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
   </div>
   <div id="uebung-liste"></div>
   <button class="breit" onclick="uebungAnlegen()">Übung hinzufügen</button>
@@ -445,8 +473,8 @@ body.training-fest #wasserzeichen{display:none}
   </div>
 </section>
 
-<!-- Dezentes Wasserzeichen am unteren Rand (Inhalt setzt wasserzeichenZeichnen) -->
-<div id="wasserzeichen" aria-hidden="true"></div>
+
+
 
 <!-- Eigener Dialog -->
 <div id="dialog-hintergrund">
@@ -843,7 +871,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -852,6 +880,8 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
+  if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
+  daten.plaene.forEach(p => { if(!p.reihenfolge) p.reihenfolge = "klassisch"; });
   if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
@@ -1292,8 +1322,8 @@ function zeige(id){
     Per Funktion statt fest im HTML — so stimmt das Datum auch,
     wenn die App über Mitternacht offen bleibt. */
 function wasserzeichenZeichnen(){
-  document.getElementById("wasserzeichen").textContent =
-    "TRAINER " + ANZEIGE_VERSION + " · " + heuteAlsText() + " · JKB";
+  const inhalt = "TRAINER " + ANZEIGE_VERSION + " · " + heuteAlsText() + " · JKB";
+  document.querySelectorAll(".wasserzeichen").forEach(e => e.textContent = inhalt);
 }
 function text(s){
   return String(s).replace(/[&<>"']/g, z => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[z]));
@@ -1355,8 +1385,10 @@ function profilOeffnen(){
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("gewicht-formular").hidden = true;
   document.getElementById("pw-formular").hidden = true;
+  document.getElementById("ziel-formular").hidden = true;
   kennzahlenZeichnen();
   kalenderZeichnen();
+  zieleZeichnen();
   volumenZeichnen();
   gewichtStatistikZeichnen();
   protokollZeichnen();
@@ -1436,9 +1468,10 @@ function kennzahlenZeichnen(){
 
   const monat = heute.slice(0,7);
   document.getElementById("tag-streak-zahl").textContent = "🔥 " + trainingsSerie();
-  document.getElementById("streak-zahl").textContent = streak;
-  document.getElementById("gesamt-zahl").textContent = protokoll.length;
-  document.getElementById("monat-zahl").textContent = protokoll.filter(e => e.datum.startsWith(monat)).length;
+  document.getElementById("statistik-klein").textContent =
+    streak + (streak === 1 ? " Woche" : " Wochen") + " in Folge · " +
+    protokoll.length + " Trainings gesamt · " +
+    protokoll.filter(e => e.datum.startsWith(monat)).length + " diesen Monat";
 }
 
 /** Kalender des aktuellen Monats.
@@ -1631,15 +1664,19 @@ function protokollZeichnen(){
    Progression zieht die Werte in 2–3 Einheiten hoch — andersherum
    (zu schwer) drohen Frust und Verletzung.
    ============================================================ */
-let einrichtung = { ort:null, geraete:[], erfahrung:null, tage:null, ziel:null };
+let einrichtung = { ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
+
+const WOCHENTAGE = ["","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
 const GERAETE_LISTE = [
   ["kurzhantel","Kurzhanteln"], ["langhantel","Langhantel"],
-  ["stange","Klimmzugstange"], ["band","Fitnessbänder"], ["maschine","Maschinen"]
+  ["stange","Klimmzugstange"], ["band","Fitnessbänder"], ["maschine","Maschinen"],
+  ["moebel","Stabiler Tisch & Stuhl"]
 ];
 
 /* Übungspool. anteil = Startgewicht als Anteil des Körpergewichts
-   (bei Kurzhanteln: PRO HAND). geraet "keine" = reine Körpergewichtsübung. */
+   (bei Kurzhanteln: PRO HAND). geraet "keine" = reine Körpergewichtsübung,
+   "moebel" = braucht stabilen Tisch/Stuhl (im Gym: Bank vorhanden). */
 const UEBUNGSPOOL = {
   beine: [
     { name:"Kniebeugen",              geraet:"keine" },
@@ -1647,33 +1684,33 @@ const UEBUNGSPOOL = {
     { name:"Glute Bridge",            geraet:"keine" },
     { name:"Wadenheben",              geraet:"keine" },
     { name:"Goblet Squats",           geraet:"kurzhantel", anteil:0.18 },
-    { name:"Ausfallschritte mit Kurzhanteln", geraet:"kurzhantel", anteil:0.08 },
+    { name:"KH-Ausfallschritte",      geraet:"kurzhantel", anteil:0.08 },
     { name:"Beinpresse",              geraet:"maschine",   anteil:0.90 },
-    { name:"Beinbeuger (Maschine)",   geraet:"maschine",   anteil:0.25 },
-    { name:"Langhantel-Kniebeugen",   geraet:"langhantel", anteil:0.40 },
-    { name:"Rumänisches Kreuzheben",  geraet:"langhantel", anteil:0.35 }
+    { name:"Beinbeuger Maschine",     geraet:"maschine",   anteil:0.25 },
+    { name:"LH-Kniebeugen",           geraet:"langhantel", anteil:0.40 },
+    { name:"Rumän. Kreuzheben",       geraet:"langhantel", anteil:0.35 }
   ],
   druck: [
     { name:"Liegestütze",             geraet:"keine" },
-    { name:"Dips am Stuhl",           geraet:"keine" },
     { name:"Pike Push-ups",           geraet:"keine" },
-    { name:"Kurzhantel-Bankdrücken",  geraet:"kurzhantel", anteil:0.13 },
-    { name:"Schulterdrücken (Kurzhantel)", geraet:"kurzhantel", anteil:0.09 },
-    { name:"Brustpresse (Maschine)",  geraet:"maschine",   anteil:0.35 },
-    { name:"Schulterdrücken (Maschine)", geraet:"maschine", anteil:0.22 },
-    { name:"Bankdrücken (Langhantel)", geraet:"langhantel", anteil:0.35 }
+    { name:"Stuhl-Dips",              geraet:"moebel" },
+    { name:"KH-Bankdrücken",          geraet:"kurzhantel", anteil:0.13 },
+    { name:"KH-Schulterdrücken",      geraet:"kurzhantel", anteil:0.09 },
+    { name:"Brustpresse Maschine",    geraet:"maschine",   anteil:0.35 },
+    { name:"Schulterdrücken Masch.",  geraet:"maschine",   anteil:0.22 },
+    { name:"LH-Bankdrücken",          geraet:"langhantel", anteil:0.35 }
   ],
   zug: [
-    { name:"Rudern am Tisch (invertiert)", geraet:"keine" },
     { name:"Superman",                geraet:"keine" },
-    { name:"Rudern mit Band",         geraet:"band" },
-    { name:"Bizeps-Curls mit Band",   geraet:"band" },
-    { name:"Kurzhantel-Rudern",       geraet:"kurzhantel", anteil:0.14 },
-    { name:"Bizeps-Curls (Kurzhantel)", geraet:"kurzhantel", anteil:0.07 },
+    { name:"Tisch-Rudern",            geraet:"moebel" },
+    { name:"Band-Rudern",             geraet:"band" },
+    { name:"Band-Bizeps-Curls",       geraet:"band" },
+    { name:"KH-Rudern",               geraet:"kurzhantel", anteil:0.14 },
+    { name:"KH-Bizeps-Curls",         geraet:"kurzhantel", anteil:0.07 },
     { name:"Latzug",                  geraet:"maschine",   anteil:0.40 },
-    { name:"Rudern am Kabelzug",      geraet:"maschine",   anteil:0.35 },
+    { name:"Kabel-Rudern",            geraet:"maschine",   anteil:0.35 },
     { name:"Negativ-Klimmzüge",       geraet:"stange" },
-    { name:"Langhantel-Rudern",       geraet:"langhantel", anteil:0.28 }
+    { name:"LH-Rudern",               geraet:"langhantel", anteil:0.28 }
   ],
   rumpf: [
     { name:"Plank",                   geraet:"keine", modus:"zeit" },
@@ -1707,8 +1744,9 @@ const SPLITS = {
 function einrichtungOeffnen(){
   const alt = sitzung.daten.einrichtung;
   einrichtung = alt && alt.ort
-    ? { ort:alt.ort, geraete:(alt.geraete||[]).slice(), erfahrung:alt.erfahrung, tage:alt.tage, ziel:alt.ziel }
-    : { ort:null, geraete:[], erfahrung:null, tage:null, ziel:null };
+    ? { ort:alt.ort, geraete:(alt.geraete||[]).slice(), erfahrung:alt.erfahrung,
+        wochentage:(alt.wochentage||[]).slice(), ziel:alt.ziel }
+    : { ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
   einrichtungZeichnen();
   zeige("view-einrichtung");
 }
@@ -1726,10 +1764,20 @@ function einrichtungZeichnen(){
   }
   wahlgruppe("frage-erfahrung", [["anfaenger","Anfänger"],["wieder","Wiedereinstieg"],["fortgeschritten","Fortgeschritten"]],
     einrichtung.erfahrung, w => { einrichtung.erfahrung = w; einrichtungZeichnen(); });
-  wahlgruppe("frage-tage", [[2,"2×"],[3,"3×"],[4,"4×"],[5,"5×"]],
-    einrichtung.tage, w => { einrichtung.tage = w; einrichtungZeichnen(); });
+  // Wochentage: Mehrfachauswahl
+  document.getElementById("frage-wochentage").innerHTML = [1,2,3,4,5,6,7].map(wt =>
+    '<button class="' + (einrichtung.wochentage.includes(wt) ? "gewaehlt" : "") +
+    '" onclick="wochentagUmschalten(' + wt + ')">' + WOCHENTAGE[wt].slice(0,2) + '</button>').join("");
   wahlgruppe("frage-ziel", [["muskel","Muskelaufbau"],["abnehmen","Abnehmen & Fitness"],["kraft","Kraft"]],
     einrichtung.ziel, w => { einrichtung.ziel = w; einrichtungZeichnen(); });
+}
+
+function wochentagUmschalten(wt){
+  const liste = einrichtung.wochentage;
+  const pos = liste.indexOf(wt);
+  if(pos >= 0) liste.splice(pos, 1); else liste.push(wt);
+  liste.sort((a,b) => a - b);
+  einrichtungZeichnen();
 }
 
 /** Zeichnet eine Knopfgruppe mit Einfachauswahl. */
@@ -1760,7 +1808,7 @@ function einrichtungUeberspringen(){
 
 /* --- Plangenerator --- */
 function verfuegbareGeraete(){
-  if(einrichtung.ort === "gym") return ["keine","kurzhantel","langhantel","stange","band","maschine"];
+  if(einrichtung.ort === "gym") return ["keine","kurzhantel","langhantel","stange","band","maschine","moebel"];
   return ["keine"].concat(einrichtung.geraete);
 }
 
@@ -1816,8 +1864,12 @@ function uebungBauen(vorlage, werte, koerperKg){
 }
 
 function plaeneErstellen(){
-  if(!einrichtung.ort || !einrichtung.erfahrung || !einrichtung.tage || !einrichtung.ziel){
-    meldung("Bitte alle vier Fragen beantworten. (Die Geräteauswahl darf leer bleiben — dann gibt es Körpergewichtsübungen.)");
+  if(!einrichtung.ort || !einrichtung.erfahrung || !einrichtung.ziel){
+    meldung("Bitte alle Fragen beantworten. (Die Geräteauswahl darf leer bleiben — dann gibt es Körpergewichtsübungen.)");
+    return;
+  }
+  if(einrichtung.wochentage.length < 2 || einrichtung.wochentage.length > 5){
+    meldung("Bitte 2 bis 5 Trainingstage antippen. (Mehr als 5 Tage pro Woche sind für den Anfang nicht sinnvoll — Muskeln wachsen an den Ruhetagen.)");
     return;
   }
   const geraete = verfuegbareGeraete();
@@ -1825,8 +1877,9 @@ function plaeneErstellen(){
   const koerperKg = aktuellesGewichtKg();
   const benutzt = {};   // je Kategorie: wie viele Varianten schon vergeben (für Abwechslung über die Tage)
 
-  const neuePlaene = SPLITS[einrichtung.tage].map(([titel, kategorien], tagIndex) => {
-    const plan = { id:neueId(), name:"Tag " + (tagIndex+1) + " – " + titel, quelle:"assistent", uebungen:[] };
+  const neuePlaene = SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
+    const wochentag = WOCHENTAGE[einrichtung.wochentage[tagIndex]];
+    const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent", uebungen:[] };
     kategorien.forEach(kategorie => {
       const passend = UEBUNGSPOOL[kategorie].filter(v => geraete.includes(v.geraet));
       if(passend.length === 0) return;
@@ -1849,7 +1902,7 @@ function plaeneErstellen(){
   const fertigstellen = () => {
     sitzung.daten.plaene = sitzung.daten.plaene.concat(neuePlaene);
     sitzung.daten.einrichtung = { ort:einrichtung.ort, geraete:einrichtung.geraete.slice(),
-      erfahrung:einrichtung.erfahrung, tage:einrichtung.tage, ziel:einrichtung.ziel };
+      erfahrung:einrichtung.erfahrung, wochentage:einrichtung.wochentage.slice(), ziel:einrichtung.ziel };
     speichern();
     planListeZeichnen();
     zeige("view-plaene");
@@ -1869,6 +1922,84 @@ function plaeneErstellen(){
 }
 
 /* ============================================================
+   #region Ziele
+   Ziel = Übung + Ziel-Wiederholungen + Datum. Die Einschätzung
+   rechnet nüchtern: aktueller Stand (aus den Plänen), Fortschritt
+   ~1 Wdh pro Einheit (unsere Progression bei Note 2), Einheiten
+   pro Woche = Anzahl Pläne mit dieser Übung. Kein Orakel — eine
+   Hochrechnung, die mit jedem Training realer wird.
+   ============================================================ */
+function zielFormularZeigen(){
+  const f = document.getElementById("ziel-formular");
+  f.hidden = !f.hidden;
+  if(!f.hidden) document.getElementById("ziel-uebung").focus();
+}
+
+function zielEintragen(){
+  const uebung = document.getElementById("ziel-uebung").value.trim();
+  const wdh = parseInt(document.getElementById("ziel-wdh").value);
+  const datum = document.getElementById("ziel-datum").value;
+  if(!uebung || !wdh || wdh <= 0 || !datum){ meldung("Bitte Übung, Ziel-Wiederholungen und Datum angeben."); return; }
+  sitzung.daten.ziele.push({ id:neueId(), uebung, wdh, datum });
+  speichern();
+  document.getElementById("ziel-formular").hidden = true;
+  document.getElementById("ziel-uebung").value = "";
+  document.getElementById("ziel-wdh").value = "";
+  zieleZeichnen();
+}
+
+function zielLoeschen(id){
+  frage("Dieses Ziel löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.ziele = sitzung.daten.ziele.filter(z => z.id !== id);
+    speichern();
+    zieleZeichnen();
+  });
+}
+
+/** Aktueller Wdh-Stand einer Übung (höchster Wert über alle Pläne) und
+    in wie vielen Plänen sie vorkommt (≈ Einheiten pro Woche). */
+function zielStatus(uebungsname){
+  const name = uebungsname.toLowerCase();
+  let aktuell = 0, proWoche = 0;
+  sitzung.daten.plaene.forEach(p => {
+    const treffer = p.uebungen.find(u => u.modus === "wdh" && u.name.toLowerCase().includes(name));
+    if(treffer){ proWoche++; aktuell = Math.max(aktuell, treffer.wdh); }
+  });
+  return { aktuell, proWoche };
+}
+
+function zielEinschaetzen(ziel){
+  const s = zielStatus(ziel.uebung);
+  if(s.proWoche === 0)
+    return { text:"Die Übung steht in keinem Plan — baue sie ein, sonst trainierst du nicht darauf hin.", stufe:"warn" };
+  const fehlt = ziel.wdh - s.aktuell;
+  if(fehlt <= 0) return { text:"Geschafft — Stand " + s.aktuell + " Wdh. Zeit für ein neues Ziel!", stufe:"gut" };
+  const wochenNoetig = Math.ceil(fehlt / s.proWoche);            // ~1 Wdh je Einheit
+  const wochenVerfuegbar = Math.max(0, Math.floor(tagDifferenz(heuteAlsText(), ziel.datum) / 7));
+  const basis = "Stand " + s.aktuell + " → " + ziel.wdh + " Wdh · " + s.proWoche + "×/Woche im Plan · braucht ~" +
+                wochenNoetig + " Wo., verfügbar " + wochenVerfuegbar + " Wo. ";
+  if(wochenVerfuegbar >= wochenNoetig * 1.3) return { text: basis + "— gut erreichbar.", stufe:"gut" };
+  if(wochenVerfuegbar >= wochenNoetig)       return { text: basis + "— ambitioniert, aber machbar.", stufe:"mittel" };
+  return { text: basis + "— kaum realistisch: Datum verschieben oder die Übung öfter einplanen.", stufe:"warn" };
+}
+
+function zieleZeichnen(){
+  const ziele = sitzung.daten.ziele;
+  document.getElementById("ziel-liste").innerHTML = ziele.length === 0
+    ? '<div class="meta">Noch kein Ziel — mit + eines anlegen, z. B. „20 Liegestütze bis 01.09.“</div>'
+    : ziele.map(z => {
+        const e = zielEinschaetzen(z);
+        const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">' +
+          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + z.wdh + ' Wdh bis ' + z.datum + '</strong>' +
+          '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')">×</button></div>' +
+          '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
+          '</div>';
+      }).join("");
+}
+
+/* ============================================================
    #region Editor
    ============================================================ */
 let editorPlan = null;
@@ -1885,6 +2016,9 @@ function editorOeffnen(planId){
 
 function editorZeichnen(){
   document.getElementById("plan-name").value = editorPlan.name;
+  if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
+  document.getElementById("rf-klassisch").classList.toggle("gewaehlt", editorPlan.reihenfolge === "klassisch");
+  document.getElementById("rf-zirkel").classList.toggle("gewaehlt", editorPlan.reihenfolge === "zirkel");
   document.getElementById("uebung-liste").innerHTML = editorPlan.uebungen.map((u,i) => {
     const istZeit = u.modus === "zeit";
     let felder;
@@ -1923,6 +2057,7 @@ function feld(i, schluessel, wert, istZahl){
   editorPlan.uebungen[i][schluessel] = istZahl ? (parseFloat(wert) || 0) : wert;
 }
 function modusSetzen(i, modus){ editorPlan.uebungen[i].modus = modus; editorZeichnen(); }
+function reihenfolgeSetzen(rf){ editorPlan.reihenfolge = rf; editorZeichnen(); }
 function uebungAnlegen(){ editorPlan.uebungen.push(neueUebung()); editorZeichnen(); }
 function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
 
@@ -1978,6 +2113,7 @@ function planLoeschen(){
 let lauf = null;
 
 function ablaufErzeugen(plan){
+  if(plan.reihenfolge === "zirkel") return zirkelAblauf(plan);
   const schritte = [];
   plan.uebungen.forEach((u, ui) => {
     for(let s = 1; s <= u.saetze; s++){
@@ -1996,6 +2132,42 @@ function ablaufErzeugen(plan){
       if(!ende) schritte.push({ typ:"pause", uebungIndex:ui, sekunden:u.pause });
     }
   });
+  return schritte;
+}
+
+/** Fisher-Yates: mischt ein Array an Ort und Stelle. */
+function mischen(liste){
+  for(let i = liste.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [liste[i], liste[j]] = [liste[j], liste[i]];
+  }
+  return liste;
+}
+
+/** Zirkel-Modus: Runde für Runde je ein Satz jeder Übung,
+    Reihenfolge wird PRO RUNDE neu gemischt. Übungen mit weniger
+    Sätzen steigen aus, wenn ihre Sätze aufgebraucht sind. */
+function zirkelAblauf(plan){
+  const schritte = [];
+  const maxSaetze = Math.max(...plan.uebungen.map(u => u.saetze));
+  for(let s = 1; s <= maxSaetze; s++){
+    const runde = mischen(plan.uebungen.map((u, i) => i).filter(i => plan.uebungen[i].saetze >= s));
+    runde.forEach(ui => {
+      const u = plan.uebungen[ui];
+      if(u.modus === "zeit"){
+        schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
+          ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
+        schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
+          ansage: u.dauer + " Sekunden. Los." });
+      } else {
+        schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
+          ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
+                  (u.gewicht > 0 ? " mit " + u.gewicht + " Kilo" : "") });
+      }
+      schritte.push({ typ:"pause", uebungIndex:ui, sekunden:u.pause });
+    });
+  }
+  if(schritte.length && schritte[schritte.length - 1].typ === "pause") schritte.pop();   // keine Pause nach dem letzten Satz
   return schritte;
 }
 
