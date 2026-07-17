@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,8 +21,11 @@
   --signal:#F2C14E; --rest:#3E8FD6; --warn:#C8553D;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;height:100%;overscroll-behavior:none}
+/* Während des Trainings: Seite komplett festnageln — kein Scrollen, kein Wippen.
+   Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
+body.training-fest{position:fixed;inset:0;width:100%;overflow:hidden}
 body{background:var(--ground);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   font-size:16px;-webkit-text-size-adjust:100%;
@@ -107,9 +110,11 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .kalender{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
 .kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0}
 .tag{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;
-  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2)}
-.tag.leer2{background:transparent}
-.tag.trainiert{background:var(--signal);color:#16181C;font-weight:700}
+  font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer}
+.tag.leer2{background:transparent;cursor:default}
+.tag.trainiert{background:var(--signal);color:#16181C;font-weight:700;cursor:default}
+.tag.ruhe{background:var(--rest);color:#16181C;font-weight:700}
+.tag.autoruhe{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .tag.heute{outline:1.5px solid var(--chalk)}
 
 /* Eigener Dialog (ersetzt confirm/alert) */
@@ -137,10 +142,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <h2 id="login-name">–</h2>
     <label for="login-passwort" class="abstand">Passwort</label>
     <input id="login-passwort" type="password" autocomplete="current-password">
-    <label class="abstand" style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--chalk)">
-      <input type="checkbox" id="login-merken" style="width:20px;height:20px;min-height:0;accent-color:var(--signal)">
-      Angemeldet bleiben (7 Tage)
-    </label>
+    <div class="umschalter abstand">
+      <button type="button" id="login-merken-knopf" onclick="merkenUmschalten()">Angemeldet bleiben (7 Tage)</button>
+    </div>
     <div class="meta" style="margin-top:6px;line-height:1.5">Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die iPhone-Sperre, nicht mehr das App-Passwort. „Abmelden“ im Profil löscht ihn sofort.</div>
     <div class="knopfreihe">
       <button class="primaer" onclick="anmelden()">Anmelden</button>
@@ -175,11 +179,12 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <div class="raster abstand">
       <div><label for="neu-groesse">Größe (cm)</label><input id="neu-groesse" type="number" inputmode="numeric"></div>
       <div><label for="neu-geburtsjahr">Geburtsjahr</label><input id="neu-geburtsjahr" type="number" inputmode="numeric"></div>
+      <div><label for="neu-gewicht">Gewicht (kg)</label><input id="neu-gewicht" type="number" inputmode="decimal" step="0.1"></div>
+      <div><label for="neu-geschlecht">Geschlecht</label>
+        <select id="neu-geschlecht">
+          <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
+        </select></div>
     </div>
-    <label class="abstand" for="neu-geschlecht">Geschlecht</label>
-    <select id="neu-geschlecht">
-      <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
-    </select>
     <div class="knopfreihe">
       <button class="primaer" onclick="kontoAnlegen()">Konto anlegen</button>
       <button class="schmal" onclick="loginZeichnen()">Zurück</button>
@@ -210,13 +215,52 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 </section>
 
 <!-- ============================================================
+     Ansicht: Einschätzung (Fragebogen -> automatische Pläne)
+     ============================================================ -->
+<section id="view-einrichtung" class="view">
+  <div class="kopf"><h1>Deine Einschätzung</h1></div>
+  <div class="hinweis">Vier Fragen — daraus baut die App passende Startpläne.
+    Alles ist danach frei änderbar, und die automatische Anpassung nach jedem Training
+    kalibriert die Werte ohnehin auf dich ein. Später änderbar im Profil.</div>
+
+  <div class="karte">
+    <label>Wo trainierst du?</label>
+    <div id="frage-ort" class="note"></div>
+    <div id="geraete-block" class="abstand" hidden>
+      <label>Welche Geräte hast du?</label>
+      <div id="frage-geraete" class="note" style="flex-wrap:wrap"></div>
+    </div>
+  </div>
+
+  <div class="karte">
+    <label>Deine Erfahrung</label>
+    <div id="frage-erfahrung" class="note"></div>
+  </div>
+
+  <div class="karte">
+    <label>Wie oft pro Woche?</label>
+    <div id="frage-tage" class="note"></div>
+  </div>
+
+  <div class="karte">
+    <label>Dein Ziel</label>
+    <div id="frage-ziel" class="note"></div>
+  </div>
+
+  <div class="knopfreihe">
+    <button class="primaer" onclick="plaeneErstellen()">Pläne erstellen</button>
+    <button class="schmal" onclick="einrichtungUeberspringen()">Überspringen</button>
+  </div>
+</section>
+
+<!-- ============================================================
      Ansicht: Plan-Übersicht
      ============================================================ -->
 <section id="view-plaene" class="view">
   <div class="kopf">
     <h1>Trainingspläne</h1>
     <span style="display:flex;align-items:center;gap:12px">
-      <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Tage in Folge trainiert"></span>
+      <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Trainings in Serie (bis zu 2 Ruhetage erlaubt)"></span>
       <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
     </span>
   </div>
@@ -255,12 +299,13 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
   <div class="karte">
     <div class="zeile">
-      <div><div id="tag-streak-zahl" class="kennzahl">🔥 0</div><div class="kennzahl-label">Tage in Folge</div></div>
+      <div><div id="tag-streak-zahl" class="kennzahl">🔥 0</div><div class="kennzahl-label">Trainings-Serie</div></div>
       <div><div id="streak-zahl" class="kennzahl">0</div><div class="kennzahl-label">Wochen in Folge</div></div>
       <div><div id="gesamt-zahl" class="kennzahl">0</div><div class="kennzahl-label">Trainings gesamt</div></div>
       <div><div id="monat-zahl" class="kennzahl">0</div><div class="kennzahl-label">diesen Monat</div></div>
     </div>
     <div id="kalender" class="kalender"></div>
+    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
   </div>
 
   <div class="karte">
@@ -288,6 +333,12 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   <div class="karte">
     <h2>Trainings</h2>
     <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
+
+  <div class="karte">
+    <h2>Trainingsplanung</h2>
+    <div class="meta abstand">Beantworte die Einschätzungsfragen neu (Ort, Erfahrung, Häufigkeit, Ziel) — die App baut dir daraus frische Pläne. Selbst gebaute Pläne bleiben unangetastet.</div>
+    <div class="knopfreihe"><button class="schmal" onclick="einrichtungOeffnen()">Einschätzung ändern &amp; Pläne neu erstellen</button></div>
   </div>
 
   <div class="karte">
@@ -719,7 +770,16 @@ function versionAnzeigen(){
   try { localStorage.setItem("trainingsapp.gesehen", String(APP_VERSION)); } catch(e){}
 }
 
+let anmeldeMerken = false;   // Zustand des "Angemeldet bleiben"-Knopfs
+
+function merkenUmschalten(){
+  anmeldeMerken = !anmeldeMerken;
+  document.getElementById("login-merken-knopf").classList.toggle("gewaehlt", anmeldeMerken);
+}
+
 function kontoWaehlen(id){
+  anmeldeMerken = false;
+  document.getElementById("login-merken-knopf").classList.remove("gewaehlt");
   gewaehltesKonto = tresor.konten.find(k => k.id === id);
   document.getElementById("login-name").textContent = gewaehltesKonto.benutzer;
   document.getElementById("login-passwort").value = "";
@@ -740,7 +800,7 @@ async function anmelden(){
       const klartext = await gcmEntschluesseln(datenSchluessel, gewaehltesKonto.paket);
       const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
-      if(document.getElementById("login-merken").checked && window.indexedDB){
+      if(anmeldeMerken && window.indexedDB){
         await merkerSchreiben(gewaehltesKonto.id, dkBytes)
           .catch(e => meldung("„Angemeldet bleiben“ konnte nicht gespeichert werden (" + e + "). Die Anmeldung selbst hat geklappt."));
       } else {
@@ -773,7 +833,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 10;
+const APP_VERSION = 13;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -781,6 +841,7 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.gewichte))  daten.gewichte = [];
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
+  if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
@@ -825,6 +886,10 @@ async function kontoAnlegen(){
   const datenSchluessel = await dkImportieren(dkBytes);
   frischerCode = codeErzeugen();
   const daten = leereKontodaten(profil);
+  // Startgewicht direkt als ersten Statistik-Eintrag übernehmen —
+  // der Plangenerator und die Gewichtskurve nutzen es sofort.
+  const startGewicht = parseFloat(document.getElementById("neu-gewicht").value);
+  if(startGewicht > 0) daten.gewichte.push({ datum: heuteAlsText(), kg: startGewicht });
   const konto = {
     id: neueId(), benutzer,
     huellePasswort: await huelleErzeugen(passwort, dkBytes),
@@ -834,7 +899,9 @@ async function kontoAnlegen(){
   tresor.konten.push(konto);
   Speicher.schreiben(tresor);
   sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
-  codeAnzeigen(() => { planListeZeichnen(); zeige("view-plaene"); });
+  // Nach dem Code-Bildschirm direkt in die Einschätzung — beim allerersten
+  // Öffnen soll ein passender Plan entstehen, nicht eine leere Liste.
+  codeAnzeigen(() => einrichtungOeffnen());
 }
 
 function codeAnzeigen(danach){
@@ -1204,6 +1271,7 @@ function progressionAnwenden(uebung, note){
 function zeige(id){
   document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
   document.getElementById(id).classList.add("aktiv");
+  document.body.classList.toggle("training-fest", id === "view-training");
   window.scrollTo(0,0);
 }
 function text(s){
@@ -1220,7 +1288,8 @@ function planListeZeichnen(){
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
     ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
-      '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div>';
+      '<div class="knopfreihe"><button class="primaer schmal" onclick="einrichtungOeffnen()">Einschätzung starten</button>' +
+      '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div></div>';
     return;
   }
   ziel.innerHTML = plaene.map(p => {
@@ -1301,24 +1370,32 @@ function tageVerschieben(datumText, n){
   return d.toISOString().slice(0,10);
 }
 
-/** Tage in Folge mit mindestens einem Training. Kulanzregel:
-    Wurde HEUTE noch nicht trainiert, zählt die Serie bis gestern weiter —
-    sie bricht erst, wenn ein ganzer Tag wirklich leer blieb. */
-function tagesStreak(){
-  const trainierteTage = new Set(sitzung.daten.protokoll.map(e => e.datum));
-  let streak = 0;
-  let tag = heuteAlsText();
-  if(!trainierteTage.has(tag)) tag = tageVerschieben(tag, -1);
-  while(trainierteTage.has(tag)){
-    streak++;
-    tag = tageVerschieben(tag, -1);
+/** Kalendertage zwischen zwei "JJJJ-MM-TT"-Daten (b nach a => positiv). */
+function tagDifferenz(a, b){
+  return Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+}
+
+/** Trainings-Serie mit Ruhetags-Toleranz. Gezählt werden TRAININGS in
+    ununterbrochener Kette; die Kette reißt erst, wenn zwischen zwei
+    Trainings (bzw. seit dem letzten bis heute) mehr als MAX_LUECKE Tage
+    liegen — bis zu 2 Ruhetage am Stück kosten die Flamme also nie. */
+const MAX_LUECKE = 3;
+
+function trainingsSerie(){
+  const tage = [...new Set(sitzung.daten.protokoll.map(e => e.datum))].sort();
+  if(tage.length === 0) return 0;
+  if(tagDifferenz(tage[tage.length - 1], heuteAlsText()) > MAX_LUECKE) return 0;   // Kette bereits gerissen
+  let serie = 1;
+  for(let i = tage.length - 1; i > 0; i--){
+    if(tagDifferenz(tage[i-1], tage[i]) <= MAX_LUECKE) serie++;
+    else break;
   }
-  return streak;
+  return serie;
 }
 
 /** Flamme in der Kopfzeile der Plan-Übersicht (nur sichtbar, wenn Serie läuft). */
 function flammeZeichnen(){
-  const n = tagesStreak();
+  const n = trainingsSerie();
   document.getElementById("streak-flamme").textContent = n > 0 ? "🔥 " + n : "";
 }
 
@@ -1337,15 +1414,20 @@ function kennzahlenZeichnen(){
   }
 
   const monat = heute.slice(0,7);
-  document.getElementById("tag-streak-zahl").textContent = "🔥 " + tagesStreak();
+  document.getElementById("tag-streak-zahl").textContent = "🔥 " + trainingsSerie();
   document.getElementById("streak-zahl").textContent = streak;
   document.getElementById("gesamt-zahl").textContent = protokoll.length;
   document.getElementById("monat-zahl").textContent = protokoll.filter(e => e.datum.startsWith(monat)).length;
 }
 
-/** Kalender des aktuellen Monats, Trainingstage gelb. */
+/** Kalender des aktuellen Monats.
+    Gelb = trainiert. Blau = manuell markierter Ruhetag (antippen zum Setzen/Entfernen).
+    Gestrichelt = automatischer Ruhetag (vergangener Tag ohne Training).
+    Manuelle Ruhetage sind Planung/Übersicht — die Flammen-Toleranz
+    (max. 2 Ruhetage) verlängern sie bewusst NICHT, sonst wäre die Serie wertlos. */
 function kalenderZeichnen(){
   const trainingstage = new Set(sitzung.daten.protokoll.map(e => e.datum));
+  const ruhetage = new Set(sitzung.daten.ruhetage);
   const jetzt = new Date();
   const jahr = jetzt.getFullYear(), monat = jetzt.getMonth();
   const heute = heuteAlsText();
@@ -1356,12 +1438,31 @@ function kalenderZeichnen(){
   for(let i = 0; i < wochentagErster; i++) html += '<div class="tag leer2"></div>';
   for(let tag = 1; tag <= tageImMonat; tag++){
     const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
-    let klasse = "tag";
-    if(trainingstage.has(datum)) klasse += " trainiert";
+    let klasse = "tag", klick = "";
+    if(trainingstage.has(datum)){
+      klasse += " trainiert";                                   // Training schlägt alles, nicht antippbar
+    } else {
+      klick = ' onclick="ruhetagUmschalten(\'' + datum + '\')"';
+      if(ruhetage.has(datum)) klasse += " ruhe";                // manuell markiert
+      else if(datum < heute) klasse += " autoruhe";             // Vergangenheit ohne Training = automatisch Ruhetag
+    }
     if(datum === heute) klasse += " heute";
-    html += '<div class="' + klasse + '">' + tag + '</div>';
+    html += '<div class="' + klasse + '"' + klick + '>' + tag + '</div>';
   }
   document.getElementById("kalender").innerHTML = html;
+  document.getElementById("kalender-legende").innerHTML =
+    '<span style="color:var(--signal)">■</span> trainiert &nbsp; ' +
+    '<span style="color:var(--rest)">■</span> Ruhetag (antippen) &nbsp; ' +
+    '<span style="color:var(--muted)">◫</span> ohne Training';
+}
+
+/** Ruhetag von Hand setzen oder entfernen — nur an Tagen ohne Training. */
+function ruhetagUmschalten(datum){
+  const liste = sitzung.daten.ruhetage;
+  const pos = liste.indexOf(datum);
+  if(pos >= 0) liste.splice(pos, 1); else liste.push(datum);
+  speichern();
+  kalenderZeichnen();
 }
 
 /** Volumenpunkte eines Satzes. Bewusst grob — es geht um den Trend, nicht um Präzision. */
@@ -1498,6 +1599,252 @@ function protokollZeichnen(){
       (e.dauerMin ? " · " + e.dauerMin + " min" : "") +
       (Array.isArray(e.saetze) ? " · " + e.saetze.length + " Sätze" : "")
     ).join("<br>");
+}
+
+/* ============================================================
+   #region Einschätzung & Plangenerator
+   Vier Fragen -> Startpläne. Die Startwerte sind BEWUSST konservativ
+   (Richtwerte: Hypertrophie-Bereich 8–12 Wdh; Kurzhanteln Einstieg
+   Frauen ~2,5–5 kg, Männer ~5–10 kg pro Hand; Pausen 45–120 s je Ziel).
+   Zu leicht ist beim ersten Training kein Fehler: Die automatische
+   Progression zieht die Werte in 2–3 Einheiten hoch — andersherum
+   (zu schwer) drohen Frust und Verletzung.
+   ============================================================ */
+let einrichtung = { ort:null, geraete:[], erfahrung:null, tage:null, ziel:null };
+
+const GERAETE_LISTE = [
+  ["kurzhantel","Kurzhanteln"], ["langhantel","Langhantel"],
+  ["stange","Klimmzugstange"], ["band","Fitnessbänder"], ["maschine","Maschinen"]
+];
+
+/* Übungspool. anteil = Startgewicht als Anteil des Körpergewichts
+   (bei Kurzhanteln: PRO HAND). geraet "keine" = reine Körpergewichtsübung. */
+const UEBUNGSPOOL = {
+  beine: [
+    { name:"Kniebeugen",              geraet:"keine" },
+    { name:"Ausfallschritte",         geraet:"keine" },
+    { name:"Glute Bridge",            geraet:"keine" },
+    { name:"Wadenheben",              geraet:"keine" },
+    { name:"Goblet Squats",           geraet:"kurzhantel", anteil:0.18 },
+    { name:"Ausfallschritte mit Kurzhanteln", geraet:"kurzhantel", anteil:0.08 },
+    { name:"Beinpresse",              geraet:"maschine",   anteil:0.90 },
+    { name:"Beinbeuger (Maschine)",   geraet:"maschine",   anteil:0.25 },
+    { name:"Langhantel-Kniebeugen",   geraet:"langhantel", anteil:0.40 },
+    { name:"Rumänisches Kreuzheben",  geraet:"langhantel", anteil:0.35 }
+  ],
+  druck: [
+    { name:"Liegestütze",             geraet:"keine" },
+    { name:"Dips am Stuhl",           geraet:"keine" },
+    { name:"Pike Push-ups",           geraet:"keine" },
+    { name:"Kurzhantel-Bankdrücken",  geraet:"kurzhantel", anteil:0.13 },
+    { name:"Schulterdrücken (Kurzhantel)", geraet:"kurzhantel", anteil:0.09 },
+    { name:"Brustpresse (Maschine)",  geraet:"maschine",   anteil:0.35 },
+    { name:"Schulterdrücken (Maschine)", geraet:"maschine", anteil:0.22 },
+    { name:"Bankdrücken (Langhantel)", geraet:"langhantel", anteil:0.35 }
+  ],
+  zug: [
+    { name:"Rudern am Tisch (invertiert)", geraet:"keine" },
+    { name:"Superman",                geraet:"keine" },
+    { name:"Rudern mit Band",         geraet:"band" },
+    { name:"Bizeps-Curls mit Band",   geraet:"band" },
+    { name:"Kurzhantel-Rudern",       geraet:"kurzhantel", anteil:0.14 },
+    { name:"Bizeps-Curls (Kurzhantel)", geraet:"kurzhantel", anteil:0.07 },
+    { name:"Latzug",                  geraet:"maschine",   anteil:0.40 },
+    { name:"Rudern am Kabelzug",      geraet:"maschine",   anteil:0.35 },
+    { name:"Negativ-Klimmzüge",       geraet:"stange" },
+    { name:"Langhantel-Rudern",       geraet:"langhantel", anteil:0.28 }
+  ],
+  rumpf: [
+    { name:"Plank",                   geraet:"keine", modus:"zeit" },
+    { name:"Seitstütz",               geraet:"keine", modus:"zeit" },
+    { name:"Crunches",                geraet:"keine" },
+    { name:"Beinheben liegend",       geraet:"keine" },
+    { name:"Bergsteiger",             geraet:"keine" },
+    { name:"Russian Twist",           geraet:"keine" }
+  ]
+};
+
+/* Aufteilung je Trainingshäufigkeit: welche Kategorien an welchem Tag. */
+const SPLITS = {
+  2: [ ["Ganzkörper A", ["beine","druck","zug","rumpf"]],
+       ["Ganzkörper B", ["druck","beine","zug","rumpf"]] ],
+  3: [ ["Ganzkörper A", ["beine","druck","zug","rumpf"]],
+       ["Ganzkörper B", ["druck","zug","beine","rumpf"]],
+       ["Ganzkörper C", ["zug","beine","druck","rumpf"]] ],
+  4: [ ["Oberkörper A", ["druck","zug","druck","rumpf"]],
+       ["Unterkörper A", ["beine","beine","beine","rumpf"]],
+       ["Oberkörper B", ["zug","druck","zug","rumpf"]],
+       ["Unterkörper B", ["beine","beine","beine","rumpf"]] ],
+  5: [ ["Drücken",      ["druck","druck","druck","rumpf"]],
+       ["Ziehen",       ["zug","zug","zug","rumpf"]],
+       ["Beine",        ["beine","beine","beine","rumpf"]],
+       ["Oberkörper",   ["druck","zug","druck","rumpf"]],
+       ["Ganzkörper",   ["beine","druck","zug","rumpf"]] ]
+};
+
+/* --- Fragebogen-Oberfläche --- */
+function einrichtungOeffnen(){
+  const alt = sitzung.daten.einrichtung;
+  einrichtung = alt && alt.ort
+    ? { ort:alt.ort, geraete:(alt.geraete||[]).slice(), erfahrung:alt.erfahrung, tage:alt.tage, ziel:alt.ziel }
+    : { ort:null, geraete:[], erfahrung:null, tage:null, ziel:null };
+  einrichtungZeichnen();
+  zeige("view-einrichtung");
+}
+
+function einrichtungZeichnen(){
+  wahlgruppe("frage-ort", [["zuhause","Zuhause"],["gym","Gym"],["eigene","Eigene Auswahl"]],
+    einrichtung.ort, w => { einrichtung.ort = w; einrichtungZeichnen(); });
+  // Geräteauswahl nur, wenn nicht "Gym" (im Gym ist alles da)
+  const geraeteBlock = document.getElementById("geraete-block");
+  geraeteBlock.hidden = !(einrichtung.ort === "zuhause" || einrichtung.ort === "eigene");
+  if(!geraeteBlock.hidden){
+    document.getElementById("frage-geraete").innerHTML = GERAETE_LISTE.map(([wert, textAnzeige]) =>
+      '<button class="' + (einrichtung.geraete.includes(wert) ? "gewaehlt" : "") +
+      '" onclick="geraetUmschalten(\'' + wert + '\')">' + textAnzeige + '</button>').join("");
+  }
+  wahlgruppe("frage-erfahrung", [["anfaenger","Anfänger"],["wieder","Wiedereinstieg"],["fortgeschritten","Fortgeschritten"]],
+    einrichtung.erfahrung, w => { einrichtung.erfahrung = w; einrichtungZeichnen(); });
+  wahlgruppe("frage-tage", [[2,"2×"],[3,"3×"],[4,"4×"],[5,"5×"]],
+    einrichtung.tage, w => { einrichtung.tage = w; einrichtungZeichnen(); });
+  wahlgruppe("frage-ziel", [["muskel","Muskelaufbau"],["abnehmen","Abnehmen & Fitness"],["kraft","Kraft"]],
+    einrichtung.ziel, w => { einrichtung.ziel = w; einrichtungZeichnen(); });
+}
+
+/** Zeichnet eine Knopfgruppe mit Einfachauswahl. */
+let wahlAktionen = {};
+function wahlgruppe(zielId, paare, gewaehlt, beiWahl){
+  wahlAktionen[zielId] = { paare, beiWahl };
+  document.getElementById(zielId).innerHTML = paare.map(([wert, textAnzeige], i) =>
+    '<button class="' + (String(gewaehlt) === String(wert) ? "gewaehlt" : "") +
+    '" onclick="wahlKlick(\'' + zielId + '\',' + i + ')">' + textAnzeige + '</button>').join("");
+}
+function wahlKlick(zielId, index){
+  const g = wahlAktionen[zielId];
+  g.beiWahl(g.paare[index][0]);
+}
+function geraetUmschalten(wert){
+  const liste = einrichtung.geraete;
+  const pos = liste.indexOf(wert);
+  if(pos >= 0) liste.splice(pos, 1); else liste.push(wert);
+  einrichtungZeichnen();
+}
+
+function einrichtungUeberspringen(){
+  sitzung.daten.einrichtung = { uebersprungen:true };   // nicht erneut automatisch fragen
+  speichern();
+  planListeZeichnen();
+  zeige("view-plaene");
+}
+
+/* --- Plangenerator --- */
+function verfuegbareGeraete(){
+  if(einrichtung.ort === "gym") return ["keine","kurzhantel","langhantel","stange","band","maschine"];
+  return ["keine"].concat(einrichtung.geraete);
+}
+
+function aktuellesGewichtKg(){
+  const g = sitzung.daten.gewichte;
+  if(g.length > 0) return g[g.length - 1].kg;
+  return sitzung.daten.profil.geschlecht === "w" ? 65 : 75;   // Durchschnittsannahme, falls nie gewogen
+}
+
+function startwerteBerechnen(){
+  const profil = sitzung.daten.profil;
+  const alter = profil.geburtsjahr ? (new Date().getFullYear() - profil.geburtsjahr) : 30;
+
+  // Wiederholungsbereich und Pause nach Ziel (Richtwerte aus der Recherche)
+  let wdhMin = 8, wdhMax = 12, wdhStart = 8, pause = 90;
+  if(einrichtung.ziel === "abnehmen"){ wdhMin = 12; wdhMax = 20; wdhStart = 12; pause = 45; }
+  if(einrichtung.ziel === "kraft"){    wdhMin = 6;  wdhMax = 10; wdhStart = 6;  pause = 120; }
+
+  // Gewichtsfaktor: Erfahrung × Geschlecht × Alter — konservativ gerundet
+  let faktor = 1.0;
+  if(einrichtung.erfahrung === "anfaenger") faktor *= 0.8;
+  if(einrichtung.erfahrung === "fortgeschritten") faktor *= 1.25;
+  if(profil.geschlecht === "w") faktor *= 0.7;
+  if(alter >= 65) faktor *= 0.7; else if(alter >= 50) faktor *= 0.85;
+
+  // Plank-Startdauer nach Erfahrung, gedeckelt fürs Alter
+  let plank = einrichtung.erfahrung === "fortgeschritten" ? 45 :
+              einrichtung.erfahrung === "wieder" ? 35 : 25;
+  if(alter >= 60) plank = Math.min(plank, 30);
+
+  return { wdhMin, wdhMax, wdhStart, pause, faktor, plank };
+}
+
+function uebungBauen(vorlage, werte, koerperKg){
+  const u = neueUebung();
+  u.name = vorlage.name;
+  u.pause = werte.pause;
+  if(vorlage.modus === "zeit"){
+    u.modus = "zeit";
+    u.dauer = werte.plank;
+    return u;
+  }
+  u.wdh = werte.wdhStart; u.wdhMin = werte.wdhMin; u.wdhMax = werte.wdhMax;
+  if(vorlage.anteil){
+    const schritt = vorlage.geraet === "kurzhantel" ? 1 : 2.5;
+    const roh = koerperKg * vorlage.anteil * werte.faktor;
+    u.gewicht = Math.max(schritt, Math.round(roh / schritt) * schritt);
+    u.gewichtSchritt = schritt;
+  } else {
+    u.gewicht = 0; u.gewichtSchritt = 0;   // Körpergewicht/Band: Progression über Wiederholungen
+  }
+  return u;
+}
+
+function plaeneErstellen(){
+  if(!einrichtung.ort || !einrichtung.erfahrung || !einrichtung.tage || !einrichtung.ziel){
+    meldung("Bitte alle vier Fragen beantworten. (Die Geräteauswahl darf leer bleiben — dann gibt es Körpergewichtsübungen.)");
+    return;
+  }
+  const geraete = verfuegbareGeraete();
+  const werte = startwerteBerechnen();
+  const koerperKg = aktuellesGewichtKg();
+  const benutzt = {};   // je Kategorie: wie viele Varianten schon vergeben (für Abwechslung über die Tage)
+
+  const neuePlaene = SPLITS[einrichtung.tage].map(([titel, kategorien], tagIndex) => {
+    const plan = { id:neueId(), name:"Tag " + (tagIndex+1) + " – " + titel, quelle:"assistent", uebungen:[] };
+    kategorien.forEach(kategorie => {
+      const passend = UEBUNGSPOOL[kategorie].filter(v => geraete.includes(v.geraet));
+      if(passend.length === 0) return;
+      const zaehler = benutzt[kategorie] || 0;
+      const vorlage = passend[zaehler % passend.length];   // rotiert -> Tage unterscheiden sich
+      benutzt[kategorie] = zaehler + 1;
+      // Doppelte Übung im selben Plan vermeiden (bei 4er/5er-Splits möglich)
+      if(plan.uebungen.some(u => u.name === vorlage.name)){
+        const ersatz = passend[(zaehler + 1) % passend.length];
+        benutzt[kategorie] = zaehler + 2;
+        if(!plan.uebungen.some(u => u.name === ersatz.name))
+          plan.uebungen.push(uebungBauen(ersatz, werte, koerperKg));
+        return;
+      }
+      plan.uebungen.push(uebungBauen(vorlage, werte, koerperKg));
+    });
+    return plan;
+  });
+
+  const fertigstellen = () => {
+    sitzung.daten.plaene = sitzung.daten.plaene.concat(neuePlaene);
+    sitzung.daten.einrichtung = { ort:einrichtung.ort, geraete:einrichtung.geraete.slice(),
+      erfahrung:einrichtung.erfahrung, tage:einrichtung.tage, ziel:einrichtung.ziel };
+    speichern();
+    planListeZeichnen();
+    zeige("view-plaene");
+    meldung(neuePlaene.length + " Pläne erstellt. Die Startwerte sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert. Über „Bearbeiten“ kannst du jederzeit Übungen tauschen.");
+  };
+
+  // Frühere automatisch erstellte Pläne ersetzen? Selbst gebaute bleiben immer.
+  const alteAssistentPlaene = sitzung.daten.plaene.filter(p => p.quelle === "assistent");
+  if(alteAssistentPlaene.length > 0){
+    frage(alteAssistentPlaene.length + " automatisch erstellte Pläne vorhanden. Durch die neuen ersetzen? (Selbst gebaute Pläne bleiben in jedem Fall erhalten.)", true, ja => {
+      if(ja) sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.quelle !== "assistent");
+      fertigstellen();
+    });
+  } else {
+    fertigstellen();
+  }
 }
 
 /* ============================================================
@@ -1824,8 +2171,8 @@ function trainingBeenden(){
   speichern();
 
   // Ansage NACH dem Eintragen, damit die Serie das heutige Training mitzählt.
-  const serie = tagesStreak();
-  sprich("Training beendet. Gut gemacht." + (serie >= 2 ? " " + serie + " Tage in Folge." : ""));
+  const serie = trainingsSerie();
+  sprich("Training beendet. Gut gemacht." + (serie >= 2 ? " Serie: " + serie + "." : ""));
 
   bewertung = {};
   plan.uebungen.forEach(u => bewertung[u.id] = 3);
@@ -1862,10 +2209,10 @@ function bewertungAnwenden(){
   }
   speichern();
 
-  const serie = tagesStreak();
+  const serie = trainingsSerie();
   document.getElementById("ergebnis-liste").innerHTML =
-    '<div class="karte zeile"><h2>🔥 ' + serie + (serie === 1 ? " Tag" : " Tage") + ' in Folge</h2>' +
-    '<span class="meta">' + (serie >= 2 ? "Serie läuft — weiter so!" : "Der Anfang ist gemacht.") + '</span></div>' +
+    '<div class="karte zeile"><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
+    '<span class="meta">' + (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "Der Anfang ist gemacht.") + '</span></div>' +
     zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
