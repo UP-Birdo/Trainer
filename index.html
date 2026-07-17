@@ -6,11 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="apple-mobile-web-app-title" content="Trainer">
 <meta name="theme-color" content="#16181C">
-<link rel="manifest" href="../manifest.json">
-<link rel="apple-touch-icon" href="../icon-180.png">
-<title>Trainingsplan</title>
+<link rel="manifest" href="manifest.json?v=2">
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<title>Trainer</title>
 <style>
 /* ============================================================
    Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
@@ -127,7 +127,8 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
      Ansicht: Anmeldung
      ============================================================ -->
 <section id="view-login" class="view aktiv">
-  <div class="kopf"><h1>Anmelden</h1></div>
+  <div class="kopf"><h1>Anmelden</h1><span id="version-anzeige" class="meta"></span></div>
+  <div id="update-banner" class="hinweis" style="border-left-color:var(--signal)" hidden></div>
   <div id="login-hinweis" class="hinweis" hidden></div>
 
   <div id="login-konten"></div>
@@ -136,6 +137,11 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <h2 id="login-name">–</h2>
     <label for="login-passwort" class="abstand">Passwort</label>
     <input id="login-passwort" type="password" autocomplete="current-password">
+    <label class="abstand" style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--chalk)">
+      <input type="checkbox" id="login-merken" style="width:20px;height:20px;min-height:0;accent-color:var(--signal)">
+      Angemeldet bleiben (7 Tage)
+    </label>
+    <div class="meta" style="margin-top:6px;line-height:1.5">Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die iPhone-Sperre, nicht mehr das App-Passwort. „Abmelden“ im Profil löscht ihn sofort.</div>
     <div class="knopfreihe">
       <button class="primaer" onclick="anmelden()">Anmelden</button>
       <button class="schmal" onclick="loginZeichnen()">Zurück</button>
@@ -211,6 +217,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
     <h1>Trainingspläne</h1>
     <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
   </div>
+  <div id="sicherung-banner" class="hinweis" hidden>
+    <span id="sicherung-banner-text"></span>
+    <div class="knopfreihe"><button class="primaer schmal" onclick="sicherungTeilen()">Jetzt sichern</button></div>
+  </div>
   <div id="plan-liste"></div>
   <div class="knopfreihe">
     <button class="primaer" onclick="planAnlegen()">Plan anlegen</button>
@@ -277,6 +287,16 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   </div>
 
   <div class="karte">
+    <h2>Gut zu wissen</h2>
+    <div class="meta abstand" style="line-height:1.7">
+      <strong style="color:var(--chalk)">App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen auf diesem Gerät.<br>
+      <strong style="color:var(--chalk)">Neues Handy oder Safari-Daten gelöscht?</strong> Auf dem Anmeldebildschirm „Sicherung wiederherstellen“ und die Datei trainer-sicherung-….json wählen.<br>
+      <strong style="color:var(--chalk)">Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den notierten Wiederherstellungscode eingeben.<br>
+      <strong style="color:var(--chalk)">Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — das ist der Preis der Verschlüsselung.
+    </div>
+  </div>
+
+  <div class="karte">
     <h2>Sicherheit</h2>
     <div id="pw-formular" class="abstand" hidden>
       <label for="pw-neu">Neues Passwort</label>
@@ -292,7 +312,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   </div>
 
   <div class="knopfreihe">
-    <button class="schmal" onclick="sicherungExportieren()">Sicherung exportieren</button>
+    <button class="schmal" onclick="sicherungTeilen()">Sicherung exportieren</button>
     <button class="schmal" onclick="abmelden()">Abmelden</button>
   </div>
   <div class="knopfreihe">
@@ -367,6 +387,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 <div id="dialog-hintergrund">
   <div id="dialog" role="dialog" aria-modal="true">
     <p id="dialog-text"></p>
+    <input id="dialog-eingabe" type="password" autocomplete="current-password" hidden style="margin-bottom:16px">
     <div class="knopfreihe">
       <button class="primaer" id="dialog-ja">OK</button>
       <button id="dialog-nein" hidden>Abbrechen</button>
@@ -404,6 +425,7 @@ function frage(textInhalt, mitAbbrechen, dann){
   const hintergrund = document.getElementById("dialog-hintergrund");
   const ja = document.getElementById("dialog-ja");
   const nein = document.getElementById("dialog-nein");
+  document.getElementById("dialog-eingabe").hidden = true;
   document.getElementById("dialog-text").textContent = textInhalt;
   nein.hidden = !mitAbbrechen;
   hintergrund.classList.add("offen");
@@ -411,6 +433,22 @@ function frage(textInhalt, mitAbbrechen, dann){
   nein.onclick = () => { hintergrund.classList.remove("offen"); if(dann) dann(false); };
 }
 function meldung(t){ frage(t, false, null); }
+
+/** Dialog mit Passwortfeld. dann(passwort) nur bei OK, bei Abbrechen passiert nichts. */
+function passwortFrage(textInhalt, dann){
+  const hintergrund = document.getElementById("dialog-hintergrund");
+  const ja = document.getElementById("dialog-ja");
+  const nein = document.getElementById("dialog-nein");
+  const eingabe = document.getElementById("dialog-eingabe");
+  document.getElementById("dialog-text").textContent = textInhalt;
+  eingabe.hidden = false;
+  eingabe.value = "";
+  nein.hidden = false;
+  hintergrund.classList.add("offen");
+  ja.onclick   = () => { hintergrund.classList.remove("offen"); eingabe.hidden = true; dann(eingabe.value); };
+  nein.onclick = () => { hintergrund.classList.remove("offen"); eingabe.hidden = true; };
+  eingabe.focus();
+}
 
 /* ============================================================
    #region Speicher (localStorage, mit Fallback für Sandboxen)
@@ -514,6 +552,87 @@ function codeNormalisieren(eingabe){
 }
 
 /* ============================================================
+   #region Anmelde-Merker ("Angemeldet bleiben")
+   Opt-in: Der DATENSCHLÜSSEL wird als nicht-exportierbarer CryptoKey
+   in IndexedDB abgelegt (Skripte können ihn benutzen, aber nicht
+   auslesen). WICHTIG, ehrlich dokumentiert: Damit liegt der Schlüssel
+   neben den Daten — der Schutz ist dann die iPhone-Gerätesperre,
+   nicht mehr das App-Passwort. Der 7-Tage-Ablauf ist reine Hygiene.
+   "Abmelden" löscht den Merker sofort. Sicherungsdateien bleiben
+   davon unberührt voll verschlüsselt.
+   Hinweis: iOS darf IndexedDB unter Speicherdruck räumen — dann
+   fragt die App einfach wieder nach dem Passwort.
+   ============================================================ */
+const MERKER_GUELTIG_MS = 7 * 24 * 60 * 60 * 1000;   // 7 Tage
+
+function merkerDb(){
+  return new Promise((aufloesen, ablehnen) => {
+    const antrag = indexedDB.open("trainer-anmeldung", 1);
+    antrag.onupgradeneeded = () => antrag.result.createObjectStore("merker");
+    antrag.onsuccess = () => aufloesen(antrag.result);
+    antrag.onerror = () => ablehnen(antrag.error);
+  });
+}
+
+async function merkerSchreiben(kontoId, schluessel){
+  const db = await merkerDb();
+  return new Promise((aufloesen, ablehnen) => {
+    const tx = db.transaction("merker", "readwrite");
+    tx.objectStore("merker").put({ kontoId, schluessel, zeit: Date.now() }, "aktuell");
+    tx.oncomplete = () => aufloesen();
+    tx.onerror = () => ablehnen(tx.error);
+  });
+}
+
+async function merkerLesen(){
+  const db = await merkerDb();
+  return new Promise((aufloesen, ablehnen) => {
+    const antrag = db.transaction("merker").objectStore("merker").get("aktuell");
+    antrag.onsuccess = () => aufloesen(antrag.result || null);
+    antrag.onerror = () => ablehnen(antrag.error);
+  });
+}
+
+async function merkerLoeschen(){
+  const db = await merkerDb();
+  return new Promise((aufloesen) => {
+    const tx = db.transaction("merker", "readwrite");
+    tx.objectStore("merker").delete("aktuell");
+    tx.oncomplete = () => aufloesen();
+    tx.onerror = () => aufloesen();   // Löschen darf nie blockieren
+  });
+}
+
+/** Versucht die automatische Anmeldung über den Merker.
+    Bei jedem Problem: still zum normalen Anmeldebildschirm. */
+async function autoAnmelden(){
+  try {
+    if(!kryptoVerfuegbar || !window.indexedDB){ loginZeichnen(); return; }
+    const merker = await merkerLesen();
+    if(!merker){ loginZeichnen(); return; }
+    if(Date.now() - merker.zeit > MERKER_GUELTIG_MS){ await merkerLoeschen(); loginZeichnen(); return; }
+    const konto = tresor.konten.find(k => k.id === merker.kontoId);
+    if(!konto){ await merkerLoeschen(); loginZeichnen(); return; }
+    const klartext = await gcmEntschluesseln(merker.schluessel, konto.paket);
+    // dkBytes bleibt hier bewusst leer: Passwort ändern / neuer Code
+    // verlangen dann einmal das Passwort (siehe dkNachladen).
+    sitzung = { kontoId: konto.id, datenSchluessel: merker.schluessel, dkBytes: null,
+                daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
+    planListeZeichnen();
+    zeige("view-plaene");
+  } catch(e){
+    loginZeichnen();
+  }
+}
+
+/** Holt die rohen Schlüsselbytes nach (nötig für Passwort ändern / neuen Code),
+    wenn die Sitzung über den Merker gestartet wurde. */
+async function dkNachladen(passwort){
+  const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
+  sitzung.dkBytes = await huelleOeffnen(passwort, konto.huellePasswort);
+}
+
+/* ============================================================
    #region Sitzung
    Nach der Anmeldung liegen entschlüsselte Daten und der aktive
    Datenschlüssel NUR im Arbeitsspeicher. Abmelden wirft beides weg.
@@ -551,14 +670,40 @@ function loginZeichnen(){
     document.getElementById(id).hidden = true);
   document.getElementById("neu-knopf").hidden = false;
 
+  versionAnzeigen();
+
   const ziel = document.getElementById("login-konten");
   ziel.hidden = false;
-  ziel.innerHTML = tresor.konten.length === 0
-    ? '<div class="leer">Noch kein Konto auf diesem Gerät.</div>'
-    : tresor.konten.map(k =>
-        '<div class="karte zeile"><h2>' + text(k.benutzer) + '</h2>' +
-        '<button class="schmal" onclick="kontoWaehlen(\'' + k.id + '\')">Anmelden</button></div>').join("");
+  if(tresor.konten.length === 0){
+    // Leeres Gerät: Die wahrscheinlichste Absicht ist "Ich habe eine Sicherung"
+    // (neues Handy, Safari-Daten gelöscht) — Wiederherstellen gehört nach vorn.
+    ziel.innerHTML = '<div class="leer">Noch kein Konto auf diesem Gerät.<br><br>' +
+      '<div class="knopfreihe">' +
+      '<button class="primaer" onclick="document.getElementById(\'import-datei\').click()">Sicherung wiederherstellen</button>' +
+      '</div></div>';
+  } else {
+    ziel.innerHTML = tresor.konten.map(k =>
+      '<div class="karte zeile"><h2>' + text(k.benutzer) + '</h2>' +
+      '<button class="schmal" onclick="kontoWaehlen(\'' + k.id + '\')">Anmelden</button></div>').join("");
+  }
   zeige("view-login");
+}
+
+/* Versionsanzeige + Update-Hinweis. Die zuletzt gesehene Version steht
+   UNVERSCHLÜSSELT im Gerätespeicher — sie ist kein Geheimnis und muss
+   schon vor jeder Anmeldung lesbar sein. */
+function versionAnzeigen(){
+  document.getElementById("version-anzeige").textContent = "v" + APP_VERSION;
+  const banner = document.getElementById("update-banner");
+  let gesehen = 0;
+  try { gesehen = parseInt(localStorage.getItem("trainingsapp.gesehen")) || 0; } catch(e){}
+  if(gesehen !== 0 && gesehen < APP_VERSION){
+    banner.hidden = false;
+    banner.textContent = "Neue Version installiert (v" + gesehen + " → v" + APP_VERSION + "). Deine Konten und Daten sind davon unberührt.";
+  } else {
+    banner.hidden = true;
+  }
+  try { localStorage.setItem("trainingsapp.gesehen", String(APP_VERSION)); } catch(e){}
 }
 
 function kontoWaehlen(id){
@@ -582,6 +727,11 @@ async function anmelden(){
       const klartext = await gcmEntschluesseln(datenSchluessel, gewaehltesKonto.paket);
       const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
+      if(document.getElementById("login-merken").checked && window.indexedDB){
+        await merkerSchreiben(gewaehltesKonto.id, datenSchluessel).catch(() => {});
+      } else {
+        await merkerLoeschen().catch(() => {});   // Häkchen weg = alter Merker weg
+      }
       planListeZeichnen();
       zeige("view-plaene");
     } else {
@@ -597,11 +747,19 @@ async function anmelden(){
   }
 }
 
+/* Aufwärtskompatibilität — der Vertrag des Datenmodells:
+   Felder werden nur HINZUGEFÜGT, nie umbenannt oder entfernt.
+   datenNachruesten() füllt fehlende neue Felder mit Standardwerten.
+   Dadurch laden alte Datenstände und alte Sicherungen in jeder
+   künftigen Version. APP_VERSION nur erhöhen, wenn neue Felder dazukommen. */
+const APP_VERSION = 7;
+
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
 function datenNachruesten(daten){
   if(!Array.isArray(daten.gewichte))  daten.gewichte = [];
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
+  if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
   }));
@@ -704,6 +862,7 @@ async function passwortZuruecksetzen(){
 function abmelden(){
   sitzung = null;
   gewaehltesKonto = null;
+  if(window.indexedDB) merkerLoeschen();   // der Not-Aus: gespeicherter Schlüssel weg
   loginZeichnen();
 }
 
@@ -712,6 +871,7 @@ function kontoLoeschen(){
     if(!ja) return;
     tresor.konten = tresor.konten.filter(k => k.id !== sitzung.kontoId);
     Speicher.schreiben(tresor);
+    if(window.indexedDB) merkerLoeschen();
     abmelden();
   });
 }
@@ -723,6 +883,14 @@ function pwFormularZeigen(){
 }
 
 async function passwortAendern(){
+  // Merker-Sitzung (ohne Passwort gestartet): sensible Aktionen verlangen es einmal.
+  if(!sitzung.dkBytes){
+    passwortFrage("Aus Sicherheitsgründen: aktuelles Passwort eingeben.", async pw => {
+      try { await dkNachladen(pw); passwortAendern(); }
+      catch(e){ meldung("Falsches Passwort."); }
+    });
+    return;
+  }
   const pw1 = document.getElementById("pw-neu").value;
   const pw2 = document.getElementById("pw-neu2").value;
   if(pw1.length < 8){ meldung("Das neue Passwort braucht mindestens 8 Zeichen."); return; }
@@ -737,6 +905,13 @@ async function passwortAendern(){
 }
 
 function codeErneuern(){
+  if(!sitzung.dkBytes){
+    passwortFrage("Aus Sicherheitsgründen: aktuelles Passwort eingeben.", async pw => {
+      try { await dkNachladen(pw); codeErneuern(); }
+      catch(e){ meldung("Falsches Passwort."); }
+    });
+    return;
+  }
   frage("Neuen Wiederherstellungscode erzeugen? Der alte Code wird dadurch ungültig.", true, ja => {
     if(!ja) return;
     (async () => {
@@ -757,16 +932,59 @@ function codeErneuern(){
    darf also bedenkenlos in iCloud, Mail oder auf einem Stick liegen.
    Wiederherstellen: importieren, dann mit Passwort ODER Code anmelden.
    ============================================================ */
-function sicherungExportieren(){
+const SICHERUNG_INTERVALL_TAGE = 7;
+
+/** Ist eine neue Sicherung fällig? (Nie gesichert, älter als 7 Tage, oder App-Version neuer.) */
+function sicherungFaellig(){
+  const s = sitzung.daten.sicherung;
+  if(s.zeit === 0) return "Noch keine Sicherung vorhanden.";
+  if(s.version < APP_VERSION) return "Die App wurde aktualisiert — Zeit für eine frische Sicherung.";
+  const tage = Math.floor((Date.now() - s.zeit) / 86400000);
+  if(tage >= SICHERUNG_INTERVALL_TAGE) return "Letzte Sicherung vor " + tage + " Tagen.";
+  return null;
+}
+
+function sicherungBannerZeichnen(){
+  const banner = document.getElementById("sicherung-banner");
+  const grund = sicherungFaellig();
+  banner.hidden = !grund;
+  if(grund) document.getElementById("sicherung-banner-text").textContent = grund;
+}
+
+/** Baut die Sicherungsdatei. Der Dateiname ist bewusst OHNE Datum:
+    So bietet iOS beim Speichern in denselben Ordner "Ersetzen" an —
+    die alte Sicherung wird überschrieben statt sich anzusammeln. */
+function sicherungDatei(){
   const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
-  const sicherung = { format:"trainingsapp-sicherung", version:1, konto };
-  const blob = new Blob([JSON.stringify(sicherung, null, 2)], { type:"application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "training-sicherung-" + konto.benutzer + "-" + heuteAlsText() + ".json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  meldung("Sicherung erstellt. Die Datei ist verschlüsselt — zum Wiederherstellen brauchst du dein Passwort oder deinen Wiederherstellungscode.");
+  const sicherung = { format:"trainingsapp-sicherung", version:1, appVersion: APP_VERSION,
+                      zeitpunkt: new Date().toISOString(), konto };
+  const name = "trainer-sicherung-" + konto.benutzer + ".json";
+  return new File([JSON.stringify(sicherung, null, 2)], name, { type:"application/json" });
+}
+
+function sicherungErledigt(){
+  sitzung.daten.sicherung = { zeit: Date.now(), version: APP_VERSION };
+  speichern();
+  sicherungBannerZeichnen();
+}
+
+/** Öffnet auf dem iPhone das Teilen-Menü ("In Dateien sichern" -> Ordner wählen).
+    Wo das Teilen-Menü fehlt (Desktop), fällt es auf einen normalen Download zurück. */
+async function sicherungTeilen(){
+  const datei = sicherungDatei();
+  if(navigator.canShare && navigator.canShare({ files:[datei] })){
+    try {
+      await navigator.share({ files:[datei], title:"Trainer-Sicherung" });
+      sicherungErledigt();
+    } catch(e){ /* Nutzer hat das Teilen-Menü abgebrochen — nichts markieren */ }
+  } else {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(datei);
+    a.download = datei.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    sicherungErledigt();
+  }
 }
 
 function sicherungImportieren(eingabe){
@@ -777,27 +995,37 @@ function sicherungImportieren(eingabe){
     eingabe.value = "";
     let sicherung;
     try { sicherung = JSON.parse(leser.result); }
-    catch(e){ meldung("Die Datei ist kein gültiges JSON."); return; }
+    catch(e){
+      meldung("Diese Datei ist beschädigt oder keine Trainer-Sicherung. Erwartet wird eine Datei wie „trainer-sicherung-NAME.json“, die die App selbst erstellt hat.");
+      return;
+    }
     if(!sicherung || sicherung.format !== "trainingsapp-sicherung" || !sicherung.konto ||
        !sicherung.konto.huellePasswort || !sicherung.konto.paket){
-      meldung("Das ist keine Sicherungsdatei dieser App."); return;
+      meldung("Diese Datei stammt nicht von Trainer. Erwartet wird eine Sicherung, die über „Jetzt sichern“ oder „Sicherung exportieren“ erstellt wurde.");
+      return;
     }
     const konto = sicherung.konto;
+    // Alter der Sicherung menschenlesbar machen — schützt davor, versehentlich
+    // einen alten Stand über einen neueren zu bügeln.
+    const alter = sicherung.zeitpunkt
+      ? "vom " + sicherung.zeitpunkt.slice(0,10)
+      : "aus einer älteren App-Version (Datum unbekannt)";
     const vorhanden = tresor.konten.find(k => k.id === konto.id ||
       k.benutzer.toLowerCase() === konto.benutzer.toLowerCase());
     if(vorhanden){
-      frage("Konto „" + konto.benutzer + "“ existiert bereits auf diesem Gerät. Durch die Sicherung ERSETZEN? (Der aktuelle Stand des Kontos geht verloren.)", true, ja => {
+      frage("Konto „" + konto.benutzer + "“ existiert bereits auf diesem Gerät.\n\n" +
+            "Die Sicherungsdatei ist " + alter + ". Beim Ersetzen geht der AKTUELLE Stand auf diesem Gerät verloren und der Stand aus der Datei gilt.\n\nErsetzen?", true, ja => {
         if(!ja) return;
         tresor.konten = tresor.konten.map(k => (k === vorhanden ? konto : k));
         Speicher.schreiben(tresor);
         loginZeichnen();
-        meldung("Sicherung eingespielt. Bitte anmelden.");
+        meldung("Konto „" + konto.benutzer + "“ wiederhergestellt (Sicherung " + alter + "). Jetzt mit Passwort oder Wiederherstellungscode anmelden.");
       });
     } else {
       tresor.konten.push(konto);
       Speicher.schreiben(tresor);
       loginZeichnen();
-      meldung("Sicherung eingespielt. Bitte anmelden.");
+      meldung("Konto „" + konto.benutzer + "“ wiederhergestellt (Sicherung " + alter + "). Jetzt mit Passwort oder Wiederherstellungscode anmelden.");
     }
   };
   leser.readAsText(datei);
@@ -961,6 +1189,7 @@ function uebungBeschreiben(u){
 }
 
 function planListeZeichnen(){
+  sicherungBannerZeichnen();
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
@@ -1600,7 +1829,7 @@ function bewertungAnwenden(){
 /* ============================================================
    #region Start
    ============================================================ */
-loginZeichnen();
+autoAnmelden();   // versucht "Angemeldet bleiben", fällt sonst auf den Anmeldebildschirm zurück
 
 // Service Worker registrieren: macht die App offline-fähig.
 // Relativer Pfad, damit es auch unter /training/ auf GitHub Pages klappt.

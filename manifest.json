@@ -1,6 +1,6 @@
 {
-  "name": "Trainingsplan",
-  "short_name": "Training",
+  "name": "Trainer",
+  "short_name": "Trainer",
   "description": "Persönlicher Trainingsplan mit Timer, Ansagen und Statistik",
   "start_url": "./",
   "scope": "./",
