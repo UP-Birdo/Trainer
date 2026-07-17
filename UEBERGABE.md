@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.025 / APP_VERSION 25**.
+> als Paket hochgeladen. Stand: **Version 0.028 / APP_VERSION 28**.
 
 ---
 
@@ -46,7 +46,9 @@ beide Dateien liefern, Nutzer committet.
 | `icon-180.png` | iOS `apple-touch-icon` |
 
 Icons zeigen vier schräge Striche (die Satz-Strichliste der App), der letzte gelb.
-Erzeugt mit Python/PIL — Skript ist nicht aufgehoben, Icons bei Bedarf neu bauen.
+Erzeugt mit `icons.py` (Python/PIL, **liegt jetzt bei**). v26: Die alten Icons hatten 0 % Mischpixel,
+also gar kein Antialiasing — bei schrägen Strichen ergibt das Treppenstufen. Neu: 16-faches
+Supersampling + LANCZOS. Maße sind aus dem alten 512er ausgemessen und unverändert.
 
 ---
 
@@ -93,7 +95,7 @@ daten = {
                    saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, wdh, datum } ],
-  plaene:      [ { id, name, sportart:"kraft"|…, tag:1..7|null,   // v25: Tag ist ein FELD, nicht der Name
+  plaene:      [ { id, name, sportart:"kraft"|…, tage:[1..7],     // tage ist DIE Wahrheit; tag (v25) liegt tot daneben
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
                    uebungen:[ { id, name, modus:"wdh"|"zeit", saetze, wdh, wdhMin, wdhMax,
@@ -116,10 +118,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 25;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.025" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 28;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.028" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v25"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v28"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -181,10 +183,12 @@ blau=manueller Ruhetag zum Antippen, gestrichelt=automatisch), Körpergewicht (I
 Veränderung + Kurve), Volumen (wächst ab erstem Training, zoomt ab 12 Wochen auf Monate, Trendzeile),
 Trainings-Protokoll.
 
-**Profil (Tab 3):** Profildaten, **Sportarten** (Mehrfachauswahl, 12 Stück, nur `kraft` ist
-`ausgebaut:true`), **Ort** (4 Orte + 24 Geräte, Auswahl **pro Ort getrennt**,
-„neue Geräte → Übungen einbauen"), Ziele (mit Erreichbarkeits-Einschätzung + „In Pläne einbauen"),
-Trainingsplanung.
+**Profil (Tab 3):** Profildaten inkl. **Gewicht** (schreibt in `daten.gewichte` — dieselbe Liste wie die
+Statistikkurve, bewusst kein zweites Feld), Ziele (mit Erreichbarkeits-Einschätzung + „In Pläne einbauen“),
+**Sportarten als Liste** — tippen öffnet `view-sportart`: Schalter „Diese Sportart nutze ich“, und bei
+Krafttraining dort Ort (Zuhause/Gym/Eigene) + 32 Geräte, Auswahl **pro Ort getrennt**,
+„neue Geräte → Übungen einbauen“. Bei allen anderen Sportarten: ehrlicher Hinweis, dass es noch nichts gibt.
+Dazu Trainingsplanung.
 
 **Mehr (Tab 4):** Ton testen, Passwort/Code, Sicherung, Abmelden/Konto löschen, 📖 Gut zu wissen.
 
@@ -212,8 +216,38 @@ Für die Umsetzung fehlen die Modi `strecke`, `runden`, `grad` — **noch nicht 
 (Wochentag eines Plans, nur umrandet). Ein Training überschreibt die Planung immer. Sondertraining
 (= Plan ohne festen Tag) bekommt zusätzlich einen Punkt.
 
-**Plan-Liste:** zeigt nur Pläne mit `tag === heute` und Pläne ohne Tag. Rest hinter „Alle Pläne zeigen"
+**Plan-Liste:** zeigt nur Pläne mit `tage.includes(heute)` und Pläne ohne Tag. Rest hinter „Alle Pläne zeigen"
 (`alleplaeneZeigen`, bewusst NICHT gespeichert — nach jedem App-Start wieder heute).
+
+## 8b. Vorschau & Dauerschätzung (v26)
+
+**Vorschau (`view-vorschau`)** liegt zwischen „Start" und Training: Inhaltsverzeichnis des ganzen
+Ablaufs, dazu Klassisch/Zirkel (Zirkel erneut tippen = neu mischen), Aufwärmen/Dehnen.
+Arbeitet auf einer **Kopie** (`vorschauPlan`) — der gespeicherte Plan ändert sich nie.
+`audioFreischalten()` sitzt jetzt in „Los geht's": echte Tippgeste, iOS-Pflicht.
+
+**`dauerSchaetzen(plan)`** rechnet über `ablaufErzeugen()` — dieselbe Quelle wie das echte Training,
+damit die Schätzung nicht abdriften kann. `SEK_PRO_WDH = 4` (recherchiert: 2–4 s exzentrisch + 1–2 s
+konzentrisch; Gegenprobe 10 Wdh x 4 s = 40 s Spannungszeit, Fenster 30–70 s).
+
+**Gewicht im Profil** schreibt in `daten.gewichte` (ein Wert pro Tag) — dieselbe Liste wie die
+Statistikkurve. Bewusst KEIN zweites Feld in `profil`: zwei Wahrheiten laufen auseinander.
+
+## 8c. Betriebssystem (v27)
+
+`systemErkannt()` liest den User-Agent; `systemAktiv()` = Umschalter aus `localStorage["trainer.system"]`
+oder Erkennung. **Der Umschalter liegt bewusst NICHT im Konto** — er beschreibt das Gerät und würde
+sonst beim Anmelden auf dem Zweitgerät mitwandern und dort das Falsche behaupten.
+
+> **Er steuert nur TEXTE.** Das Verhalten hängt weiter an Fähigkeiten: `sicherungTeilen()` fragt
+> `navigator.canShare`, nicht „ist das ein iPhone“. Das bleibt richtig, wenn ein Hersteller etwas
+> nachrüstet — eine Systemabfrage nicht. Neue systemabhängige Texte über `systemText(ios, android, sonst)`;
+> stehen sie fest im HTML, gehören sie zusätzlich in `systemTexteAnwenden()`.
+
+iPadOS 13+ meldet sich als Macintosh — nur `maxTouchPoints > 1` unterscheidet es noch vom echten Mac.
+
+**Testfalle:** Node bringt ein eigenes `navigator` mit, als Getter OHNE Setter. `globalThis.navigator = {…}`
+schlägt im Test **still** fehl — alles wird dann „andere“. `Object.defineProperty` nutzen.
 
 ## 9. Fachliche Regeln (belegt recherchiert)
 
@@ -263,6 +297,11 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 * Alle Nutzereingaben durch `text()` escapen (XSS ist die Achillesferse jeder Web-App).
 * Tippziele ≥ 44 px. Navigation gehört in die untere Daumenzone.
 * **Ausgewählt = umgefärbt.** Keine ✓-Präfixe in Knopftexten (v23 entfernt) — die Farbe trägt das allein.
+* `button.gewaehlt` ist die **letzte Regel im Stylesheet** und muss es bleiben. Sie ist (0,1,1) —
+  genauso spezifisch wie `.note button` oder `.umschalter button`; bei Gleichstand gewinnt die spätere
+  Regel. Weiter oben würde jede darunter stehende Behälter-Regel die Umfärbung ausknipsen.
+  `.wz-opt.gewaehlt` (0,2,0) und `.wahl-raster button.gewaehlt` (0,2,1) sind spezifischer und
+  gewinnen unabhängig von der Reihenfolge. `#nav button` (1,0,1) schlägt sie — Nav trägt aber `.aktiv`.
 * Symbole nur dort, wo das Symbol die Aussage IST (▲ ▼). Sonst Klartext.
 * `--navhoehe` ist fest gesetzt; `body.nav-an .view.aktiv` rechnet den Freiraum unten daraus
   (`calc(var(--navhoehe) + 64px)`). Die Safe-Area kürzt sich raus — `body` und `#nav` haben sie beide.
@@ -270,9 +309,22 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 ## 11. Arbeitsweise mit dem Nutzer
 
 * **Zweite und dritte Prüfung** ist Pflicht — Korrektheit hat oberste Priorität.
-* **Vor dem Ausliefern testen:** JS-Syntax (`node --check`), alle `onclick`-Funktionen definiert,
-  alle `getElementById`-IDs vorhanden, dazu Logiktests der geänderten Regeln.
-  Diese Testkette hat bereits mehrere echte Fehler gefunden.
+* **Vor dem Ausliefern testen.** Die Testkette liegt bei (`dom.js` + `flow.js` + `migr.js` + `pruefung.py` + `css.py`):
+  1. `node --check` auf den `<script>`-Block
+  2. `pruefung.py` — onclick-Ziele, IDs, CSS-Klassen ohne Regel, verwaiste Funktionen
+  3. `css.py` — **Kaskade rechnerisch**: schlägt eine spätere Regel die Umfärbung?
+  4. `migr.js` — Altdaten jeder Generation (v22/v25/v26) + Idempotenz
+  5. `flow.js` — kompletter Durchlauf mit DOM-Ersatz: Konto → Wizard → Vorschau → Training →
+     Bewertung → Sicherung raus/rein → Systemtexte → Kalender → Filter (57 Prüfungen)
+  Diese Kette hat mehrfach echte Fehler gefunden — zuletzt einen, den ich selbst gerade eingebaut hatte.
+
+**Test-Fallen, teuer erkauft:**
+* Node hat ein eigenes `navigator` (Getter ohne Setter) → `Object.defineProperty` statt Zuweisung.
+* `frage(text, mitAbbrechen, rueckruf)` nimmt einen **Rückruf**, kein Promise. Falscher Stub =
+  `aufraeumen()` läuft nie = verwaiste Intervalle = Phantomfehler.
+* `hauptKnopf()` beginnt mit `tippGesperrt()` (350 ms). Im Test `tippGesperrt = () => false` setzen.
+* `speichern()` ist fire-and-forget. Vor `sicherungDatei()` einmal `await sitzungSpeichern()`.
+* `connect()` im Audio-Ersatz muss das Ziel **zurückgeben** (Kettenaufruf).
 * Kurze, technische Erklärungen — „der allwissende gute Lehrer". Keine Textwände.
 * Ehrlich sein, wenn etwas nicht geht (iOS-Grenzen) oder wenn ich falsch lag
   (Bottom-Navigation: erst abgelehnt, nach Recherche revidiert).

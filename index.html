@@ -106,13 +106,11 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .note{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .note button{flex:1 1 auto;min-width:60px;padding:12px 8px;font-family:var(--mono);background:var(--panel-2);
   color:var(--muted);white-space:normal;line-height:1.25;font-size:14px}
-.note button.gewaehlt{background:var(--signal);color:#16181C}
 .notenhilfe{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
 
 /* Umschalter Wdh/Zeit */
 .umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel)}
-.umschalter button.gewaehlt{background:var(--signal);color:#16181C}
 
 /* Statistik */
 .diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
@@ -202,6 +200,15 @@ body:not(.nav-an) #nav{display:none}
 .wahl-raster button.gewaehlt{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:700}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 .wahl-gruppe{margin:14px 0 6px}
+/* Sportart-Liste im Profil: eine Zeile pro Sportart, tippen öffnet die Seite */
+.sportzeile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
+  padding:11px 12px;margin-bottom:6px;min-height:52px}
+.sportzeile .punkt{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.sportzeile .text{flex:1;min-width:0;color:var(--chalk);font-size:14px;line-height:1.25}
+.sportzeile .text small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
+.sportzeile.aus .text{color:var(--muted)}
+.sportzeile .pfeil{color:var(--muted);font-size:16px;flex:0 0 auto}
 
 /* Aktionsmenü (langes Drücken auf eine Plan-Karte) */
 #menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
@@ -212,6 +219,13 @@ body:not(.nav-an) #nav{display:none}
 #menue h2{margin-bottom:12px}
 #menue button{width:100%;margin-bottom:8px;text-align:left}
 .karte.gedrueckt{border-color:var(--signal)}
+/* Vorschau — das Inhaltsverzeichnis vor dem Training */
+.vs-zeile{display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;margin-bottom:5px}
+.vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right}
+.vs-titel{font-size:14px;color:var(--chalk);line-height:1.3;min-width:0}
+.vs-titel small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.vs-pause{font-size:11px;color:var(--rest);font-family:var(--mono);margin:0 0 5px 34px}
 /* Langes Drücken soll das Menü öffnen — NICHT die Überschrift markieren.
    Gezielt nur auf Plan-Karten, damit .geheim (user-select:all) heil bleibt. */
 .karte[data-plan]{user-select:none;-webkit-user-select:none}
@@ -229,6 +243,19 @@ body:not(.nav-an) #nav{display:none}
 #dialog{background:var(--panel);border:1px solid var(--line);border-radius:8px;
   padding:20px;max-width:420px;width:100%}
 #dialog p{margin:0 0 16px;line-height:1.5;white-space:pre-line}
+
+/* ============================================================
+   AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
+
+   Spezifität: button.gewaehlt ist (0,1,1) — genau so viel wie
+   .note button oder .umschalter button. Bei Gleichstand gewinnt die
+   SPÄTERE Regel. Stünde das hier weiter oben, würde jede darunter
+   stehende Behälter-Regel die Umfärbung wieder ausknipsen.
+   Die beiden Sonderfälle darüber (.wz-opt.gewaehlt = (0,2,0),
+   .wahl-raster button.gewaehlt = (0,2,1)) sind spezifischer und
+   gewinnen weiterhin — unabhängig von der Reihenfolge.
+   ============================================================ */
+button.gewaehlt{background:var(--signal);color:#16181C}
 </style>
 </head>
 <body>
@@ -253,7 +280,7 @@ body:not(.nav-an) #nav{display:none}
       </div>
       <button class="info-knopf" onclick="infoUmschalten('info-merken')" aria-label="Info">i</button>
     </div>
-    <div id="info-merken" class="meta info-text" hidden>Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die iPhone-Sperre, nicht mehr das App-Passwort. „Abmelden“ in den Einstellungen löscht ihn sofort.</div>
+    <div id="info-merken" class="meta info-text" hidden>Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die <span id="text-sperre">Gerätesperre</span>, nicht mehr das App-Passwort. „Abmelden“ in den Einstellungen löscht ihn sofort.</div>
     <div class="knopfreihe">
       <button class="primaer" onclick="anmelden()">Anmelden</button>
       <button class="schmal" onclick="loginZeichnen()">Zurück</button>
@@ -430,7 +457,11 @@ body:not(.nav-an) #nav{display:none}
     <h2 id="profil-benutzer">–</h2>
     <div class="raster abstand">
       <div><label for="profil-groesse">Größe (cm)</label><input id="profil-groesse" type="number" inputmode="numeric"></div>
+      <div><label for="profil-gewicht">Gewicht (kg)</label><input id="profil-gewicht" type="number" inputmode="decimal" step="0.1"></div>
+    </div>
+    <div class="raster abstand">
       <div><label for="profil-geburtsjahr">Geburtsjahr</label><input id="profil-geburtsjahr" type="number" inputmode="numeric"></div>
+      <div></div>
     </div>
     <label class="abstand" for="profil-geschlecht">Geschlecht</label>
     <select id="profil-geschlecht">
@@ -460,16 +491,7 @@ body:not(.nav-an) #nav{display:none}
     <div class="zeile"><h2>Sportarten</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
     <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
-    <div id="profil-sportarten" class="wahl-raster abstand"></div>
-  </div>
-
-  <div class="karte" id="karte-ort">
-    <div class="zeile"><h2>Ort</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-geraete')" aria-label="Info">i</button></div>
-    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen, und gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
-    <div id="profil-ort" class="wahl-raster abstand"></div>
-    <div id="profil-geraete"></div>
-    <div id="geraete-neu-knopf"></div>
+    <div id="profil-sportarten" class="abstand"></div>
   </div>
 
   <div class="karte">
@@ -494,6 +516,15 @@ body:not(.nav-an) #nav{display:none}
   </div>
 
   <div class="karte">
+    <div class="zeile"><h2>Gerät</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-system')" aria-label="Info">i</button></div>
+    <div id="info-system" class="meta info-text" hidden>Die App erkennt das System selbst und stellt nur die <strong style="color:var(--chalk)">Texte</strong> darauf ein — Installationsweg, Sperre, Sicherung. Am Verhalten ändert sich nichts: Ob das Teilen-Menü genutzt wird, entscheidet die App danach, ob dein Browser es kann, nicht danach, was hier steht. Umstellen nur nötig, wenn die Erkennung danebenliegt. Die Wahl gilt für dieses Gerät und wandert nicht ins Konto.</div>
+    <div id="system-wahl" class="wahl-raster abstand"></div>
+    <div class="meta" id="system-hinweis" style="margin-top:10px"></div>
+    <div id="system-install"></div>
+  </div>
+
+  <div class="karte">
     <h2>Sicherheit</h2>
     <div id="pw-formular" class="abstand" hidden>
       <label for="pw-neu">Neues Passwort</label>
@@ -511,7 +542,7 @@ body:not(.nav-an) #nav{display:none}
   <div class="karte">
     <div class="zeile"><h2>Sicherung</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-sicherung')" aria-label="Info">i</button></div>
-    <div id="info-sicherung" class="meta info-text" hidden>Die Sicherungsdatei ist verschlüsselt und darf bedenkenlos in iCloud &amp; Co. liegen. Konstanter Dateiname — beim Speichern in denselben Ordner bietet iOS „Ersetzen“ an. Wiederherstellen: Anmeldebildschirm → „Sicherung importieren“, dann Passwort oder Wiederherstellungscode.</div>
+    <div id="info-sicherung" class="meta info-text" hidden>Die Sicherungsdatei ist verschlüsselt und darf bedenkenlos in der Cloud liegen. <span id="text-ersetzen"></span> Wiederherstellen: Anmeldebildschirm → „Sicherung importieren“, dann Passwort oder Wiederherstellungscode.</div>
     <div class="knopfreihe"><button class="schmal" onclick="sicherungTeilen()">Sicherung exportieren</button></div>
   </div>
 
@@ -543,7 +574,7 @@ body:not(.nav-an) #nav{display:none}
     <div id="plan-sportart" class="wahl-raster"></div>
     <div class="zeile abstand"><label style="margin:0">Wochentag</label>
       <button class="info-knopf" onclick="infoUmschalten('info-tag')" aria-label="Info">i</button></div>
-    <div id="info-tag" class="meta info-text" hidden>Ein Plan mit Wochentag erscheint in der Liste nur an seinem Tag und färbt diesen Wochentag im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
+    <div id="info-tag" class="meta info-text" hidden>Mehrfachauswahl — derselbe Plan darf z. B. Montag <em>und</em> Donnerstag laufen. Ein Plan mit Wochentagen erscheint in der Liste nur an diesen Tagen und färbt sie im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
     <div id="plan-tag" class="wahl-raster" style="margin-top:8px"></div>
     <label class="abstand">Reihenfolge</label>
     <div class="umschalter">
@@ -593,6 +624,49 @@ body:not(.nav-an) #nav{display:none}
 <!-- ============================================================
      Ansicht: Training läuft
      ============================================================ -->
+<section id="view-sportart" class="view">
+  <div class="kopf"><h1 id="sportart-name">–</h1></div>
+  <div class="meta" id="sportart-einheiten"></div>
+
+  <div class="karte abstand">
+    <div class="zeile"><h2>Diese Sportart nutze ich</h2>
+      <button id="sportart-schalter" class="schmal" onclick="sportartNutzenUmschalten()">–</button></div>
+    <div class="meta" id="sportart-hinweis"></div>
+  </div>
+
+  <div id="sportart-inhalt"></div>
+
+  <div class="knopfreihe"><button class="breit" onclick="profilOeffnen()">Fertig</button></div>
+</section>
+
+<section id="view-vorschau" class="view">
+  <div class="kopf"><h1 id="vorschau-name">–</h1></div>
+  <div class="meta" id="vorschau-meta"></div>
+
+  <div class="karte abstand">
+    <label>Reihenfolge</label>
+    <div class="note">
+      <button id="vs-klassisch" onclick="vorschauKlassisch()">Klassisch</button>
+      <button id="vs-zirkel" onclick="vorschauMischen()">🔀 Zirkel — nochmal tippen mischt neu</button>
+    </div>
+    <label class="abstand">Für diesen Durchgang</label>
+    <div class="note">
+      <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">🔥 Aufwärmen</button>
+      <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">🧘 Dehnen</button>
+    </div>
+    <div class="meta" style="margin-top:10px">Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
+  </div>
+
+  <div id="vorschau-liste"></div>
+
+  <div class="knopfreihe">
+    <button class="primaer breit" onclick="trainingLosgehts()">Los geht's</button>
+  </div>
+  <div class="knopfreihe">
+    <button class="breit" onclick="zeige('view-plaene')">Zurück</button>
+  </div>
+</section>
+
 <section id="view-training" class="view">
   <div class="balken"><span id="balken-fuellung"></span></div>
   <div id="balken-text" class="balken-text">–</div>
@@ -1071,7 +1145,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 25;
+const APP_VERSION = 28;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1104,11 +1178,19 @@ function datenNachruesten(daten){
     if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
     if(p.dehnen === undefined) p.dehnen = false;
     if(!p.sportart) p.sportart = "kraft";                  // v25: alles Bisherige war Kraft
-    // v25: Der Wochentag steckte bis dahin NUR im Namen ("Montag – Ganzkörper A").
-    // Einmalig herauslesen, danach ist tag die einzige Wahrheit — nie wieder Namen parsen.
-    if(p.tag === undefined){
-      const treffer = WOCHENTAGE.findIndex((w,i) => i > 0 && p.name.startsWith(w + " –"));
-      p.tag = treffer > 0 ? treffer : null;
+    /* tage ist DIE Wahrheit über den Wochentag (v26, Mehrfachauswahl).
+       Diese Migration greift nur bei Altbestand, der noch kein tage hat:
+       - v25-Daten haben das Einzelfeld tag -> das gilt.
+       - Noch älter: Der Wochentag steckte NUR im Namen ("Montag – Ganzkörper A").
+       Danach nie wieder Namen parsen. Das alte tag bleibt liegen, wo es liegt
+       (Felder werden nie entfernt), wird aber weder gelesen noch geschrieben. */
+    if(!Array.isArray(p.tage)){
+      if(p.tag !== undefined){
+        p.tage = p.tag ? [p.tag] : [];
+      } else {
+        const treffer = WOCHENTAGE.findIndex((w,i) => i > 0 && p.name.startsWith(w + " –"));
+        p.tage = treffer > 0 ? [treffer] : [];
+      }
     }
   });
   // v25: Die Sportart muss ins Protokoll, sonst kann der Kalender an einem
@@ -1403,7 +1485,83 @@ function sicherungImportieren(eingabe){
    modus "wdh"  -> Sätze mit Wiederholungen, Nutzer drückt "Satz fertig"
    modus "zeit" -> Sätze mit Countdown (z. B. Plank), laufen automatisch ab
    ============================================================ */
+/* ------------------------------------------------------------
+   BETRIEBSSYSTEM
+   Steuert AUSSCHLIESSLICH Texte (Installationsweg, Sperre, Sicherung).
+   Das VERHALTEN richtet sich weiter nach Fähigkeiten, nicht nach dem System:
+   sicherungTeilen() fragt navigator.canShare, nicht "ist das ein iPhone" —
+   das bleibt auch dann richtig, wenn ein Hersteller etwas nachrüstet.
+
+   Der Umschalter liegt in localStorage, NICHT in den Kontodaten: Er beschreibt
+   das Gerät. Läge er im Konto, würde er beim Anmelden auf dem Zweitgerät
+   mitwandern und dort das Falsche behaupten.
+   ------------------------------------------------------------ */
+const SYSTEM_SCHLUESSEL = "trainer.system";
+
+function systemErkannt(){
+  const ua = navigator.userAgent || "";
+  if(/Android/i.test(ua)) return "android";
+  // iPadOS 13+ gibt sich als Mac aus — nur der Touch-Zähler verrät es noch.
+  if(/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  return "andere";
+}
+
+function systemAktiv(){
+  let gewaehlt = null;
+  try { gewaehlt = localStorage.getItem(SYSTEM_SCHLUESSEL); } catch(e){ /* Speicher gesperrt */ }
+  return (gewaehlt === "ios" || gewaehlt === "android") ? gewaehlt : systemErkannt();
+}
+
+function systemSetzen(wert){
+  try {
+    if(wert === "auto") localStorage.removeItem(SYSTEM_SCHLUESSEL);
+    else localStorage.setItem(SYSTEM_SCHLUESSEL, wert);
+  } catch(e){ /* Speicher gesperrt — dann bleibt es bei der Erkennung */ }
+  systemTexteAnwenden();
+  if(document.getElementById("view-einstellungen").classList.contains("aktiv")) systemKarteZeichnen();
+}
+
+/** Kurzwahl für systemabhängige Textbausteine. */
+function systemText(ios, android, sonst){
+  const s = systemAktiv();
+  return s === "ios" ? ios : (s === "android" ? android : (sonst !== undefined ? sonst : android));
+}
+
+function systemName(){ return systemText("iPhone", "Android", "Desktop"); }
+
+/** Füllt die Stellen, an denen der Text vom System abhängt. */
+function systemTexteAnwenden(){
+  const sperre = systemText("iPhone-Sperre", "Android-Displaysperre", "Gerätesperre");
+  document.getElementById("text-sperre").textContent = sperre;
+  document.getElementById("text-ersetzen").textContent = systemText(
+    "Konstanter Dateiname — beim Speichern in denselben Ordner bietet iOS „Ersetzen“ an.",
+    "Konstanter Dateiname — die Datei landet in deinem Download-Ordner und ersetzt die vorige.",
+    "Konstanter Dateiname — die Datei landet in deinem Download-Ordner."
+  );
+}
+
 const VORBEREITUNG_S = 10;   // Countdown vor jedem Zeit-Satz (in Position gehen)
+
+/* Sekunden pro Wiederholung für die Dauerschätzung.
+   Recherche-Konsens fürs Muskelaufbau-Tempo: 2–4 s exzentrisch plus 1–2 s
+   konzentrisch, also rund 4 s. Gegenprobe: 10 Wdh x 4 s = 40 s Spannungszeit
+   pro Satz — genau im empfohlenen Fenster von 30–70 s. */
+const SEK_PRO_WDH = 4;
+
+/** Grobe Trainingsdauer in Minuten.
+    Rechnet über ablaufErzeugen(), damit die Schätzung NIE vom echten Ablauf
+    abweichen kann — Zirkel, Aufwärmen und Dehnen sind so automatisch drin. */
+function dauerSchaetzen(plan){
+  let sekunden = 0;
+  ablaufErzeugen(plan).forEach(schritt => {
+    if(schritt.typ === "satz-wdh"){
+      sekunden += (plan.uebungen[schritt.uebungIndex].wdh || 0) * SEK_PRO_WDH;
+    } else {
+      sekunden += schritt.sekunden || 0;    // bereit, satz-zeit, pause, aufwaermen, dehnen
+    }
+  });
+  return Math.max(1, Math.round(sekunden / 60));
+}
 
 function neueUebung(){
   return { id:neueId(), name:"", modus:"wdh", saetze:3,
@@ -1593,8 +1751,9 @@ function planListeZeichnen(){
      Ein Plan für Freitag hat am Dienstag nichts in der Liste zu suchen —
      erreichbar bleibt er über "Alle Pläne zeigen". */
   const heuteTag = heutigerWochentag();
-  const sichtbar = alleplaeneZeigen ? plaene : plaene.filter(p => !p.tag || p.tag === heuteTag);
-  const versteckt = plaene.length - plaene.filter(p => !p.tag || p.tag === heuteTag).length;
+  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
+  const sichtbar = alleplaeneZeigen ? plaene : plaene.filter(heuteDrin);
+  const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
   ziel.innerHTML = sichtbar.map(p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
@@ -1605,12 +1764,13 @@ function planListeZeichnen(){
     }
     const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
                    (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
+    const tage = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag";
     const marke = '<span style="color:' + sportartFarbe(p.sportart) + '">■</span> ' +
-                  text(sportartName(p.sportart)) + (p.tag ? " · " + WOCHENTAGE[p.tag] : " · ohne festen Tag");
+                  text(sportartName(p.sportart)) + " · " + tage;
     return '<div class="karte" data-plan="' + p.id + '">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
-      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze' + zusatz +
+      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz +
       (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
         '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
@@ -1738,7 +1898,29 @@ function infoUmschalten(id){
 
 function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
+  systemKarteZeichnen();
   zeige("view-einstellungen");
+}
+
+function systemKarteZeichnen(){
+  let gewaehlt = null;
+  try { gewaehlt = localStorage.getItem(SYSTEM_SCHLUESSEL); } catch(e){ /* Speicher gesperrt */ }
+  const erkannt = { ios:"iPhone / iPad", android:"Android", andere:"Desktop" }[systemErkannt()];
+  document.getElementById("system-wahl").innerHTML =
+    [["auto","Automatisch"],["ios","iPhone"],["android","Android"]].map(([w,n]) =>
+      '<button class="' + ((gewaehlt || "auto") === w ? "gewaehlt" : "") +
+      '" onclick="systemSetzen(\'' + w + '\')">' + n + '</button>').join("");
+  document.getElementById("system-hinweis").textContent =
+    "Erkannt: " + erkannt + (gewaehlt ? " — von Hand auf " + systemName() + " gestellt." : ".");
+
+  // Installationsweg — der unterscheidet sich wirklich
+  document.getElementById("system-install").innerHTML =
+    '<div class="wahl-gruppe"><label>Als App installieren</label></div><div class="meta">' +
+    systemText(
+      "Safari öffnen → Teilen-Symbol → „Zum Home-Bildschirm“. Nur so gibt es das eigene Icon, den Vollbildmodus und dauerhaften Speicher.",
+      "Chrome öffnen → Menü (⋮) → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“. Nur so gibt es Vollbild und dauerhaften Speicher.",
+      "Am Rechner läuft die App einfach im Browser-Tab — installieren ist nicht nötig."
+    ) + '</div>';
 }
 
 function profilOeffnen(){
@@ -1746,6 +1928,9 @@ function profilOeffnen(){
   document.getElementById("profil-benutzer").textContent =
     tresor.konten.find(k => k.id === sitzung.kontoId).benutzer;
   document.getElementById("profil-groesse").value = d.profil.groesse || "";
+  // Gewicht kommt aus der Messreihe, nicht aus profil — es gibt nur EINE Wahrheit dafür
+  const letztes = d.gewichte[d.gewichte.length - 1];
+  document.getElementById("profil-gewicht").value = letztes ? letztes.kg : "";
   document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("ziel-formular").hidden = true;
@@ -1779,7 +1964,7 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den Wiederherstellungscode eingeben.",
       "<strong style='color:var(--chalk)'>Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — der Preis echter Verschlüsselung.",
       "<strong style='color:var(--chalk)'>Neues Handy?</strong> Sicherung exportieren, auf dem neuen Gerät „Sicherung wiederherstellen“.",
-      "„Angemeldet bleiben“ legt den Schlüssel aufs Gerät — der Schutz ist dann die iPhone-Sperre. „Abmelden“ löscht ihn sofort."
+      "„Angemeldet bleiben“ legt den Schlüssel aufs Gerät — der Schutz ist dann die " + systemText("iPhone-Sperre", "Android-Displaysperre", "Gerätesperre") + ". „Abmelden“ löscht ihn sofort."
     ]) +
     abschnitt("Bewertung & Progression", [
       "Nach jedem Training bewertest du jede Übung von 1 bis 5.",
@@ -1801,7 +1986,7 @@ function wissenOeffnen(){
       "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos."
     ]) +
     abschnitt("Training", [
-      "<strong style='color:var(--chalk)'>Bildschirm bleibt an</strong> (Wake Lock) — die App muss im Vordergrund bleiben, sonst friert iOS sie ein.",
+      "<strong style='color:var(--chalk)'>Bildschirm bleibt an</strong> (Wake Lock) — die App muss im Vordergrund bleiben, sonst friert " + systemText("iOS", "Android", "das System") + " sie ein.",
       "Spotify zuerst starten, dann die App öffnen. Ansagen kommen über die Musik.",
       "Der Piepton wird vorab auf dem Audio-Thread geplant und kommt auch bei gedrosseltem Browser pünktlich.",
       "<strong style='color:var(--chalk)'>🏆 Rekord</strong> erscheint, wenn ein Satz alles bisherige übertrifft.",
@@ -1836,8 +2021,23 @@ function profilSpeichern(){
   p.groesse = parseFloat(document.getElementById("profil-groesse").value) || 0;
   p.geburtsjahr = parseInt(document.getElementById("profil-geburtsjahr").value) || 0;
   p.geschlecht = document.getElementById("profil-geschlecht").value;
+
+  /* Gewicht wandert in die Messreihe (ein Wert pro Tag, neuester gewinnt) —
+     dieselbe Liste, aus der die Statistik ihre Kurve zeichnet. Ein zweites
+     Feld in profil würde nur auseinanderlaufen. */
+  const kg = parseFloat(document.getElementById("profil-gewicht").value);
+  let hinweis = "";
+  if(kg > 0){
+    const liste = sitzung.daten.gewichte;
+    const heute = heuteAlsText();
+    const vorhanden = liste.find(e => e.datum === heute);
+    const alt = liste.length ? liste[liste.length - 1].kg : null;
+    if(vorhanden) vorhanden.kg = kg; else liste.push({ datum: heute, kg });
+    liste.sort((a,b) => a.datum.localeCompare(b.datum));
+    if(alt !== kg) hinweis = "\n\nGewicht für heute eingetragen — die Statistik ist aktualisiert.";
+  }
   speichern();
-  meldung("Profil gespeichert.");
+  meldung("Profil gespeichert." + hinweis);
 }
 
 function heuteAlsText(){ return new Date().toISOString().slice(0,10); }
@@ -1933,7 +2133,7 @@ function kalenderZeichnen(){
 
   // Geplante Wochentage: Wochentag -> Sportart (erster Plan des Tages gewinnt)
   const planNachTag = {};
-  sitzung.daten.plaene.forEach(p => { if(p.tag && !planNachTag[p.tag]) planNachTag[p.tag] = p.sportart || "kraft"; });
+  sitzung.daten.plaene.forEach(p => p.tage.forEach(t => { if(!planNachTag[t]) planNachTag[t] = p.sportart || "kraft"; }));
   const benutzteSportarten = new Set(Object.values(planNachTag));
 
   let html = ["Mo","Di","Mi","Do","Fr","Sa","So"].map(t => '<div class="kopfzelle">' + t + '</div>').join("");
@@ -2852,7 +3052,7 @@ function plaeneErstellen(){
     liste = liste.slice(0, anzahl);
 
     const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent",
-                   sportart:"kraft", tag: einrichtung.wochentage[tagIndex],   // Tag ist ein FELD, nicht der Name
+                   sportart:"kraft", tage:[ einrichtung.wochentage[tagIndex] ],   // Tage sind ein FELD, nicht der Name
                    reihenfolge:"klassisch",
                    aufwaermen: einrichtung.bonus.includes("aufwaermen"),
                    dehnen: einrichtung.bonus.includes("dehnen"),
@@ -3115,57 +3315,103 @@ function eigeneUebung(){
    ============================================================ */
 let geraeteVorher = [];
 
+/** Profil: eine Zeile je Sportart. Tippen öffnet die Seite dazu —
+    dort wird an-/abgewählt und (bei Kraft) Ort und Geräte eingestellt. */
 function geraeteKarteZeichnen(){
   const e = sitzung.daten.einrichtung || {};
   if(!e.geraete) e.geraete = [];
   if(!Array.isArray(e.sportarten)) e.sportarten = ["kraft"];
+
+  document.getElementById("profil-sportarten").innerHTML = SPORTARTEN.map(s => {
+    const an = e.sportarten.includes(s.id);
+    return '<button class="sportzeile ' + (an ? "" : "aus") + '" onclick="sportartOeffnen(\'' + s.id + '\')">' +
+      '<span class="punkt" style="background:' + (an ? s.farbe : "transparent") +
+        ';box-shadow:inset 0 0 0 1px ' + (an ? s.farbe : "var(--muted)") + '"></span>' +
+      '<span class="text">' + text(s.name) + '<small>' + (an ? text(s.einheiten) : "nicht ausgewählt") + '</small></span>' +
+      '<span class="pfeil">›</span></button>';
+  }).join("");
+}
+
+let offeneSportart = "kraft";
+
+function sportartOeffnen(id){
+  offeneSportart = id;
+  geraeteVorher = (sitzung.daten.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
+  sportartSeiteZeichnen();
+  zeige("view-sportart");
+}
+
+function sportartSeiteZeichnen(){
+  const e = sitzung.daten.einrichtung;
+  const s = sportart(offeneSportart);
+  const an = e.sportarten.includes(s.id);
+
+  document.getElementById("sportart-name").textContent = s.name;
+  document.getElementById("sportart-einheiten").innerHTML =
+    '<span style="color:' + s.farbe + '">■</span> Zählbar: ' + text(s.einheiten);
+
+  const schalter = document.getElementById("sportart-schalter");
+  schalter.textContent = an ? "Ja" : "Nein";
+  schalter.classList.toggle("gewaehlt", an);
+  document.getElementById("sportart-hinweis").textContent = an
+    ? "Pläne dieser Sportart erscheinen in der Liste und färben den Kalender."
+    : "Abgewählt — die Sportart steht im Editor nicht mehr zur Auswahl. Bestehende Pläne behalten sie trotzdem.";
+
+  const inhalt = document.getElementById("sportart-inhalt");
+  if(!an){ inhalt.innerHTML = ""; return; }
+
+  if(s.id !== "kraft"){
+    // Ehrlich: hier gibt es noch nichts einzustellen, und das sagen wir auch.
+    inhalt.innerHTML = '<div class="karte"><div class="meta">Für ' + text(s.name) +
+      ' gibt es noch nichts einzustellen. Pläne kannst du im Editor anlegen, starten und protokollieren — ' +
+      'automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining.</div></div>';
+    return;
+  }
+
+  // Krafttraining: Ort und Geräte
   const ort = e.ort || "zuhause";
-
-  // Sportarten — Mehrfachauswahl. Unter dem Namen steht, was hier zählbar ist.
-  document.getElementById("profil-sportarten").innerHTML = SPORTARTEN.map(s =>
-    '<button class="' + (e.sportarten.includes(s.id) ? "gewaehlt" : "") +
-    '" onclick="profilSportartUmschalten(\'' + s.id + '\')">' + text(s.name) +
-    '<small>' + text(s.einheiten) + '</small></button>').join("");
-
-  // Ort und Geräte steuern ausschließlich das Krafttraining — ohne das
-  // ist die ganze Karte gegenstandslos und verschwindet.
-  const kraft = e.sportarten.includes("kraft");
-  document.getElementById("karte-ort").hidden = !kraft;
-  if(!kraft) return;
-
-  document.getElementById("profil-ort").innerHTML =
-    [["zuhause","Zuhause"],["gym","Gym"],["eigene","Eigene Auswahl"]].map(([w,n]) =>
-      '<button class="' + (ort === w ? "gewaehlt" : "") + '" onclick="profilOrtSetzen(\'' + w + '\')">' + n + '</button>').join("");
-
   const passend = geraeteFuerOrt(ort);
   const gruppen = [...new Set(passend.map(g => g.gruppe))];
-  document.getElementById("profil-geraete").innerHTML = gruppen.map(gr =>
-    '<div class="wahl-gruppe"><label>' + gr + '</label></div><div class="wahl-raster">' +
-    passend.filter(g => g.gruppe === gr).map(g =>
-      '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
-      '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("");
+  inhalt.innerHTML =
+    '<div class="karte">' +
+      '<div class="zeile"><h2>Ort</h2>' +
+        '<button class="info-knopf" onclick="infoUmschalten(\'info-geraete\')" aria-label="Info">i</button></div>' +
+      '<div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen, und gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist.</div>' +
+      '<div class="wahl-raster abstand">' +
+        [["zuhause","Zuhause"],["gym","Gym"],["eigene","Eigene Auswahl"]].map(([w,n]) =>
+          '<button class="' + (ort === w ? "gewaehlt" : "") + '" onclick="profilOrtSetzen(\'' + w + '\')">' + n + '</button>').join("") +
+      '</div>' +
+      gruppen.map(gr =>
+        '<div class="wahl-gruppe"><label>' + gr + '</label></div><div class="wahl-raster">' +
+        passend.filter(g => g.gruppe === gr).map(g =>
+          '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
+          '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("") +
+      '<div id="geraete-neu-knopf"></div>' +
+    '</div>';
+  neueGeraeteKnopfZeichnen();
+}
 
-  // Knopf nur, wenn seit dem Öffnen wirklich Geräte DAZUgekommen sind
+/** Knopf nur, wenn seit dem Öffnen der Seite wirklich Geräte DAZUgekommen sind. */
+function neueGeraeteKnopfZeichnen(){
+  const e = sitzung.daten.einrichtung;
   const neue = e.geraete.filter(g => !geraeteVorher.includes(g));
   document.getElementById("geraete-neu-knopf").innerHTML = neue.length === 0 ? "" :
     '<div class="knopfreihe"><button class="primaer schmal" onclick="neueUebungenEinbauen()">' +
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
 }
 
-/** Sportart an/aus. Mindestens eine muss bleiben — eine leere Auswahl
-    wäre keine Aussage, sondern nur ein Zustand, den niemand gewollt hat. */
-function profilSportartUmschalten(id){
-  const e = sitzung.daten.einrichtung;
-  const liste = e.sportarten;
-  const pos = liste.indexOf(id);
+/** Sportart auf ihrer eigenen Seite an- oder abwählen. */
+function sportartNutzenUmschalten(){
+  const liste = sitzung.daten.einrichtung.sportarten;
+  const pos = liste.indexOf(offeneSportart);
   if(pos >= 0){
     if(liste.length === 1){ meldung("Mindestens eine Sportart muss ausgewählt bleiben."); return; }
     liste.splice(pos, 1);
   } else {
-    liste.push(id);
+    liste.push(offeneSportart);
   }
   speichern();
-  geraeteKarteZeichnen();
+  sportartSeiteZeichnen();
 }
 
 /** Ortswechsel: Die Auswahl wird NICHT übernommen. Jeder Ort hat sein
@@ -3189,7 +3435,7 @@ function profilOrtSetzen(ort){
   e.geraete = e.geraete.filter(g => moeglich.includes(g));
   e.geraeteProOrt[ort] = e.geraete.slice();
   speichern();
-  geraeteKarteZeichnen();
+  sportartSeiteZeichnen();
 }
 
 function profilGeraetUmschalten(id){
@@ -3200,7 +3446,7 @@ function profilGeraetUmschalten(id){
   if(!e.geraeteProOrt) e.geraeteProOrt = {};
   e.geraeteProOrt[e.ort || "zuhause"] = liste.slice();            // Gedächtnis des Orts mitführen
   speichern();
-  geraeteKarteZeichnen();
+  sportartSeiteZeichnen();
 }
 
 /** Baut für neu hinzugekommene Geräte passende Übungen in die
@@ -3241,7 +3487,7 @@ function neueUebungenEinbauen(){
   if(bericht.length === 0){ meldung("Für die neuen Geräte gibt es keine passende Ergänzung — die Kategorien sind in deinen Plänen schon abgedeckt. Über die Bibliothek kannst du trotzdem jede Übung von Hand einbauen."); return; }
   speichern();
   geraeteVorher = e.geraete.slice();
-  geraeteKarteZeichnen();
+  sportartSeiteZeichnen();
   meldung("Eingebaut:\n\n" + bericht.join("\n") + "\n\nDie Startwerte sind vorsichtig gewählt — die Progression kalibriert sie nach.");
 }
 
@@ -3253,7 +3499,7 @@ let editorPlan = null;
 function planAnlegen(){
   editorMehr = {};
   editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()], reihenfolge:"klassisch",
-                 aufwaermen:true, dehnen:true, sportart:"kraft", tag:null };
+                 aufwaermen:true, dehnen:true, sportart:"kraft", tage:[] };
   document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
   editorZeichnen(); zeige("view-editor");
 }
@@ -3274,17 +3520,20 @@ function bonusUmschalten(feld){
 
 function planSportartSetzen(id){ editorPlan.sportart = id; editorZeichnen(); }
 
-/** Wochentag setzen — nochmal antippen hebt ihn wieder auf. */
-function planTagSetzen(tag){
-  editorPlan.tag = (editorPlan.tag === tag) ? null : tag;
+/** Wochentag an/aus — ein Plan darf an mehreren Tagen laufen (Mo+Do gleicher Plan). */
+function planTagUmschalten(tag){
+  const pos = editorPlan.tage.indexOf(tag);
+  if(pos >= 0) editorPlan.tage.splice(pos, 1); else editorPlan.tage.push(tag);
+  editorPlan.tage.sort((a,b) => a - b);
   editorZeichnen();
 }
+function planTageLeeren(){ editorPlan.tage = []; editorZeichnen(); }
 
 function editorZeichnen(){
   document.getElementById("plan-name").value = editorPlan.name;
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
   if(!editorPlan.sportart) editorPlan.sportart = "kraft";
-  if(editorPlan.tag === undefined) editorPlan.tag = null;
+  if(!Array.isArray(editorPlan.tage)) editorPlan.tage = [];
 
   // Angeboten werden nur die Sportarten aus dem Profil — plus die des Plans
   // selbst, damit ein bestehender Plan seine Sportart nie stillschweigend verliert.
@@ -3296,10 +3545,10 @@ function editorZeichnen(){
 
   document.getElementById("plan-tag").innerHTML =
     WOCHENTAGE.slice(1).map((w,i) =>
-      '<button class="' + (editorPlan.tag === i+1 ? "gewaehlt" : "") +
-      '" onclick="planTagSetzen(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("") +
-    '<button class="' + (editorPlan.tag === null ? "gewaehlt" : "") +
-    '" onclick="planTagSetzen(null)" style="grid-column:1/-1">Kein fester Tag</button>';
+      '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
+      '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("") +
+    '<button class="' + (editorPlan.tage.length === 0 ? "gewaehlt" : "") +
+    '" onclick="planTageLeeren()" style="grid-column:1/-1">Kein fester Tag</button>';
 
   document.getElementById("rf-klassisch").classList.toggle("gewaehlt", editorPlan.reihenfolge === "klassisch");
   document.getElementById("rf-zirkel").classList.toggle("gewaehlt", editorPlan.reihenfolge === "zirkel");
@@ -3490,9 +3739,70 @@ function zirkelAblauf(plan){
   return schritte;
 }
 
+/* ------------------------------------------------------------
+   VORSCHAU — das Inhaltsverzeichnis vor dem Training.
+   Gearbeitet wird auf einer KOPIE des Plans: Mischen, Aufwärmen und
+   Dehnen gelten nur für diesen einen Durchgang und ändern den
+   gespeicherten Plan nicht. Wer das dauerhaft will, nimmt den Editor.
+   ------------------------------------------------------------ */
+let vorschauPlan = null;
+
 function trainingStarten(planId){
-  const plan = sitzung.daten.plaene.find(p => p.id === planId);
-  audioFreischalten();        // muss in der Tippgeste passieren (iOS)
+  vorschauPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
+  vorschauZeichnen();
+  zeige("view-vorschau");
+}
+
+/** Zirkel an — erneutes Antippen mischt neu (jeder Aufruf würfelt frisch). */
+function vorschauMischen(){
+  vorschauPlan.reihenfolge = "zirkel";
+  vorschauZeichnen();
+}
+function vorschauKlassisch(){
+  vorschauPlan.reihenfolge = "klassisch";
+  vorschauZeichnen();
+}
+function vorschauBonus(feld){
+  vorschauPlan[feld] = !vorschauPlan[feld];
+  vorschauZeichnen();
+}
+
+function vorschauZeichnen(){
+  const p = vorschauPlan;
+  document.getElementById("vorschau-name").textContent = p.name;
+  document.getElementById("vorschau-meta").innerHTML =
+    '<span style="color:' + sportartFarbe(p.sportart) + '">■</span> ' + text(sportartName(p.sportart)) +
+    ' · ' + p.uebungen.length + ' Übungen · ca. ' + dauerSchaetzen(p) + ' min';
+  document.getElementById("vs-klassisch").classList.toggle("gewaehlt", p.reihenfolge === "klassisch");
+  document.getElementById("vs-zirkel").classList.toggle("gewaehlt", p.reihenfolge === "zirkel");
+  document.getElementById("vs-aufwaermen").classList.toggle("gewaehlt", !!p.aufwaermen);
+  document.getElementById("vs-dehnen").classList.toggle("gewaehlt", !!p.dehnen);
+
+  let nummer = 0;
+  document.getElementById("vorschau-liste").innerHTML = ablaufErzeugen(p).map(schritt => {
+    // Pausen sind keine eigenen Punkte, sondern die Zeile dazwischen
+    if(schritt.typ === "pause") return '<div class="vs-pause">⏸ ' + schritt.sekunden + ' s Pause</div>';
+    if(schritt.typ === "bereit") return "";       // gehört zum Satz, kein eigener Punkt
+    nummer++;
+    let titel, unter;
+    if(schritt.typ === "aufwaermen" || schritt.typ === "dehnen"){
+      titel = schritt.name;
+      unter = (schritt.typ === "aufwaermen" ? "Aufwärmen" : "Dehnen") + " · " + schritt.sekunden + " s";
+    } else {
+      const u = p.uebungen[schritt.uebungIndex];
+      titel = u.name;
+      unter = "Satz " + schritt.satz + "/" + u.saetze + " · " +
+              (u.modus === "zeit" ? u.dauer + " s" : u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : ""));
+    }
+    return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +
+           '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span></div>';
+  }).join("");
+}
+
+/** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */
+function trainingLosgehts(){
+  const plan = vorschauPlan;
+  audioFreischalten();
   bildschirmWachhalten();
   lauf = { plan, schritte:ablaufErzeugen(plan), index:0, timerId:null, ende:0, dauer:0,
            startZeit: Date.now(), saetze: [] };
@@ -3796,7 +4106,7 @@ function heuteKarteZeichnen(){
   const wochentag = heutigerWochentag();
   const name = WOCHENTAGE[wochentag];
   // tag statt Name: Der Plan darf jetzt heißen, wie er will.
-  const plan = sitzung.daten.plaene.find(p => p.tag === wochentag);
+  const plan = sitzung.daten.plaene.find(p => p.tage.includes(wochentag));
   const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heuteAlsText());
 
   if(plan){
@@ -3805,7 +4115,7 @@ function heuteKarteZeichnen(){
         ' · ' + text(sportartName(plan.sportart)) + (schonTrainiert ? " · erledigt ✓" : "") + '</div>' +
       '<h2>' + text(plan.name) + '</h2>' +
       '<div class="meta">' + plan.uebungen.length + ' Übungen · ' +
-        plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze' +
+        plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
         (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · 🧘' : '') + '</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
         (schonTrainiert ? "Nochmal trainieren" : "Training starten") + '</button></div>' +
@@ -3837,7 +4147,7 @@ function trainingBeenden(){
     datum: heuteAlsText(),
     plan: plan.name,
     sportart: plan.sportart || "kraft",
-    sonder: !plan.tag,                  // Plan ohne festen Tag = Sondertraining
+    sonder: plan.tage.length === 0,     // Plan ohne festen Tag = Sondertraining
     dauerMin: Math.max(1, Math.round((Date.now() - lauf.startZeit) / 60000)),
     saetze: lauf.saetze
   };
@@ -3949,6 +4259,7 @@ document.addEventListener("visibilitychange", () => {
    #region Start
    ============================================================ */
 wasserzeichenZeichnen();
+systemTexteAnwenden();   // Texte auf iPhone/Android einstellen, bevor irgendetwas sichtbar wird
 autoAnmelden();   // versucht "Angemeldet bleiben", fällt sonst auf den Anmeldebildschirm zurück
 
 // Service Worker registrieren: macht die App offline-fähig.
