@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.029 / APP_VERSION 29**.
+> als Paket hochgeladen. Stand: **Version 0.031 / APP_VERSION 31**.
 
 ---
 
@@ -91,11 +91,12 @@ tresor = { version:3, konten:[ { id, benutzer, huellePasswort:{salz,huelle}, hue
 daten = {
   profil:      { groesse, geburtsjahr, geschlecht },
   gewichte:    [ { datum:"JJJJ-MM-TT", kg } ],          // ein Wert pro Tag, neuester gewinnt
-  protokoll:   [ { datum, plan, sportart, sonder, dauerMin,   // v25: sportart+sonder für den Kalender
+  protokoll:   [ { datum, plan, sportart, typ, sonder, dauerMin, strecke, zeitEinheit,
                    saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
-  plaene:      [ { id, name, sportart:"kraft"|…, tage:[1..7],     // tage ist DIE Wahrheit; tag (v25) liegt tot daneben
+  plaene:      [ { id, name, sportart, typ:"kraft"|"aktivitaet", tage:[1..7],   // typ FOLGT der Sportart
+                   // typ "aktivitaet": dauer(s), zeitEinheit, strecke, steigerung:{woche,stufen,vorEntlastung}
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
                    uebungen:[ { id, name, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
@@ -118,10 +119,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 29;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.029" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 31;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.031" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v29"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v31"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -154,11 +155,19 @@ const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.029" — abgeleite
 verschlüsselte Sicherung (Export via Teilen-Menü / Import), Sicherungs-Banner (nie / >7 Tage / nach Update).
 
 **Navigation:** Bottom-Bar mit 4 Einträgen — **Pläne · Statistik · Profil · Mehr**. Ausgeblendet im
-Training, Wizard, Login, Code-Bildschirm.
+Training, Vorschau, Wizard, Login, Code-Bildschirm. Unterseiten behalten die Bar und markieren ihren
+Bereich: Editor + Bibliothek → Pläne, **Sportart-Seite → Profil** (v30), Gut zu wissen → Mehr.
+Reiter und Seitentitel heißen gleich (**Mehr**) — vorher landete man über „Mehr“ auf „Einstellungen“.
 
-**Pläne (Tab 1):** Heute-Karte (Plan des Wochentags + großer Start / „Ruhetag 🌙"), Plan-Liste
-(Karte = nur „Start"; **langes Drücken 500 ms** → Bearbeiten/Duplizieren/▲/▼/Löschen),
-🪄 Trainingsplanung, Eigenen Plan anlegen.
+**Pläne (Tab 1):** Heute-Karte (Plan des Wochentags + großer Start / „Ruhetag 🌙“) — **auch sie ist
+langdrückbar** (`data-plan`, v30). Darunter die Liste: tagfreie Pläne und weitere Pläne von heute.
+
+> **Der Plan der Heute-Karte fällt aus der Liste raus.** `heuteKarteZeichnen()` gibt seine ID zurück,
+> `planListeZeichnen()` filtert sie. Seit dem Tagesfilter (v26) stand er sonst zweimal auf demselben
+> Bildschirm. Gilt auch bei „Alle Pläne zeigen“.
+
+Darunter zwei gleichrangige Knöpfe (Trainingsplanung · Eigenen Plan anlegen), **bewusst kein `primaer`**:
+Die eine gelbe Hauptaktion dieses Bildschirms ist „Training starten“.
 
 **Trainingsplanung (Wizard):** Vollbild, eine Frage pro Bildschirm, wischbar, Fortschrittspunkte,
 Zusammenfassung am Ende. Fragen: **Sportarten** → Ort (Zuhause/Gym/Draußen/Eigene) → Geräte (dynamisch
@@ -183,12 +192,12 @@ blau=manueller Ruhetag zum Antippen, gestrichelt=automatisch), Körpergewicht (I
 Veränderung + Kurve), Volumen (wächst ab erstem Training, zoomt ab 12 Wochen auf Monate, Trendzeile),
 Trainings-Protokoll.
 
-**Profil (Tab 3):** Profildaten inkl. **Gewicht** (schreibt in `daten.gewichte` — dieselbe Liste wie die
-Statistikkurve, bewusst kein zweites Feld), Ziele (mit Erreichbarkeits-Einschätzung + „In Pläne einbauen“),
-**Sportarten als Liste** — tippen öffnet `view-sportart`: Schalter „Diese Sportart nutze ich“, und bei
-Krafttraining dort Ort (Zuhause/Gym/Eigene) + 32 Geräte, Auswahl **pro Ort getrennt**,
-„neue Geräte → Übungen einbauen“. Bei allen anderen Sportarten: ehrlicher Hinweis, dass es noch nichts gibt.
-Dazu Trainingsplanung.
+**Profil (Tab 3):** Reihenfolge **Profildaten → Sportarten → Ziele** (v30: Sportarten zuerst, weil sie
+Ort und Geräte überhaupt erst freischalten; Ziele setzen Pläne voraus). Die Trainingsplanung steht nur
+noch im Pläne-Tab — zwei Einstiege in dieselbe seltene Aktion waren einer zu viel.
+Profildaten inkl. **Gewicht** (schreibt in `daten.gewichte`, dieselbe Liste wie die Statistikkurve).
+Sportarten als Liste — tippen öffnet `view-sportart`: Schalter „Diese Sportart nutze ich“, bei
+Krafttraining dort Ort + 32 Geräte, Auswahl **pro Ort getrennt**, „neue Geräte → Übungen einbauen“.
 
 **Mehr (Tab 4):** Ton testen, Passwort/Code, Sicherung, Abmelden/Konto löschen, 📖 Gut zu wissen.
 
@@ -271,6 +280,50 @@ und Gewicht nur, wenn `gewichtSchritt > 0` (Liegestütze haben kein Gewicht). Di
 `zielInPlan()` **kopiert** die vorhandene Übung (eigene ID, leere Notenhistorie), statt eine neue zu bauen —
 nur so stimmen Modus, Zeiteinheit und Gewichte.
 
+## 8e. Das Plansystem (v31 — der große Umbau)
+
+**`plan.typ` folgt IMMER der Sportart** (`planTypFuer()`, Tabelle `SPORTARTEN[].planTyp`).
+Kein Feld, das der Nutzer extra wählt: Krafttraining → Übungen/Sätze/Progression, jede andere
+Sportart → **Aktivität** mit einer Dauer. „Satz 1 von 1" bei Tischtennis wäre gelogen.
+
+| | `typ:"kraft"` | `typ:"aktivitaet"` |
+|---|---|---|
+| Editor | Übungen, Reihenfolge, Bonus | Dauer + Einheit, ggf. Strecke |
+| Start | Vorschau → Timer | **Stoppuhr** (`view-stoppuhr`) |
+| Zusätzlich | — | **Erledigt** (Formular vorbelegt) |
+| Volumen / Progression | ja | nein (siehe unten) |
+
+**Drei Wege, EIN Formular:** Stoppuhr, „Erledigt" und „Aktivität nachtragen" füllen alle
+`eintragenOeffnen()` vor. Der Protokolleintrag entsteht **nur** in `aktivitaetAblegen()` —
+sonst gäbe es drei Stellen, an denen dasselbe schiefgeht.
+
+**Strecke nur, wo es ein Maß gibt** (`hatStrecke()`). Klettern, Tischtennis, Tennis, Fußball,
+Kampfsport, Yoga haben bewusst keins — dort ist die Trainingszeit die ganze Wahrheit.
+**Pace wird gerechnet, nie gespeichert** (`paceText()`, `paceJe`: 1 km Laufen, 100 m Schwimmen,
+500 m Rudern; `paceJe:null` → km/h via `tempoText()`).
+
+### Ausdauer-Steigerung — die Regel und warum
+
+`zieleAnwenden()`, ausgelöst durch einen Eintrag, **höchstens einmal pro Kalenderwoche**
+(`isoWoche()`; bei 3 Einheiten wären 20 % je Einheit +73 % je Woche).
+
+* Die **10-%-Regel ist nicht belegt** — niemand weiß, woher sie stammt, und bei kleinen Umfängen
+  wird sie absurd (10 % von 2 km = 200 m). Eine Studie mit 874 Anfängern fand bis 30 % kein
+  erhöhtes Verletzungsrisiko. Deshalb `STEIGERUNG_MAX = 0.20` + Mindestschritt.
+* Besser belegt ist der Rhythmus: 3 Steigerungswochen → **Entlastung auf 70 %** → **Rückkehrwoche
+  auf den Umfang davor, OHNE Zuwachs** → weiter. Gegenprobe aus der Quelle: 50 km ergeben nach
+  elf Wochen „fast 90" — das geht nur mit sechs Steigerungen auf, nicht mit acht.
+  **Die Rückkehrwoche war mein Fehler, den der Test gefangen hat — nicht wegoptimieren.**
+* Wer unter Plan bleibt (< 90 %), steigert nicht.
+
+**Kraft-Ziele:** `kraftZieleAnwenden()` läuft bei **jeder** Bewertung und setzt `wdhMax` auf den
+Zielwert — damit klettert die Progression wirklich bis 20 Wdh, statt bei 12 in Gewicht zu kippen.
+Sie arbeitet auf dem **echten** Plan, nicht auf `lauf.plan` (das ist seit der Vorschau eine Kopie).
+
+**Häufigkeit steigern** ist bewusst NICHT automatisch: Eine zusätzliche Einheit pro Woche braucht
+drei bis vier Wochen Anpassung, und man steigert nie Umfang und Häufigkeit gleichzeitig.
+`zielInPlan()` verweist bei Aktivitäten auf die Wochentage im Plan.
+
 ## 9. Fachliche Regeln (belegt recherchiert)
 
 **Progression** (die EINZIGE Stelle: `progressionAnwenden()`):
@@ -318,6 +371,11 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 * Keine externen Bibliotheken. Kein `localStorage` für Klartext-Nutzdaten.
 * Alle Nutzereingaben durch `text()` escapen (XSS ist die Achillesferse jeder Web-App).
 * Tippziele ≥ 44 px. Navigation gehört in die untere Daumenzone.
+* **Eine gelbe Hauptaktion je Bildschirm.** Zwei `primaer`-Knöpfe heben sich gegenseitig auf.
+* Wochentage als **eine Zeile mit sieben Spalten** (`.tage-raster`, wie der Kalenderkopf). Als
+  2-Spalten-Raster brauchte das im Editor vier Zeilen plus „Kein fester Tag“ — ~220 px, bevor man
+  die erste Übung sah. **Keine Auswahl IST kein fester Tag**; der Extraknopf war nur eine zweite
+  Art, dasselbe zu sagen.
 * **Ausgewählt = umgefärbt.** Keine ✓-Präfixe in Knopftexten (v23 entfernt) — die Farbe trägt das allein.
 * `button.gewaehlt` ist die **letzte Regel im Stylesheet** und muss es bleiben. Sie ist (0,1,1) —
   genauso spezifisch wie `.note button` oder `.umschalter button`; bei Gleichstand gewinnt die spätere
@@ -339,6 +397,7 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
   5. `flow.js` — kompletter Durchlauf mit DOM-Ersatz: Konto → Wizard → Vorschau → Training →
      Bewertung → Sicherung raus/rein → Systemtexte → Kalender → Filter (57 Prüfungen)
   6. `ziel.js` — Zeiteinheiten, Editor-Zeitfeld, Ziele, Einschätzung, Migration (55 Prüfungen)
+  7. `akt.js` — Plan-Typ, Streckenmaß, Pace, 20-%-Regel mit Entlastung, Aktivität eintragen (48 Prüfungen)
   Diese Kette hat mehrfach echte Fehler gefunden — zuletzt einen, den ich selbst gerade eingebaut hatte.
 
 **Test-Fallen, teuer erkauft:**

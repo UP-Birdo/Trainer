@@ -93,6 +93,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .uhr-zahl{font-family:var(--mono);font-weight:700;letter-spacing:-.05em;line-height:.9;
   font-variant-numeric:tabular-nums;font-size:clamp(56px,22vw,120px);color:var(--signal)}
 .uhr-zahl.pause{color:var(--rest)}
+/* Stoppuhr: eigene Regel, weil .uhr von flex:1 im Trainings-Layout lebt —
+   außerhalb dieses Flex-Containers hätte sie keine Höhe. */
+.stopp-uhr{display:flex;align-items:center;justify-content:center;padding:24px 0}
+.stopp-uhr .uhr-zahl{font-size:clamp(48px,18vw,96px)}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px}
 .balken span{display:block;height:100%;background:var(--signal);width:0%}
@@ -200,6 +204,11 @@ body:not(.nav-an) #nav{display:none}
 .wahl-raster button.gewaehlt{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:700}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 .wahl-gruppe{margin:14px 0 6px}
+/* Wochentage in einer Zeile, wie die Kopfzeile des Kalenders.
+   minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
+.tage-raster{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.tage-raster button{min-height:44px;padding:8px 2px;font-size:12px;font-family:var(--mono);
+  background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
 /* Sportart-Liste im Profil: eine Zeile pro Sportart, tippen öffnet die Seite */
 .sportzeile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
@@ -377,13 +386,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
   <div id="plan-liste"></div>
   <div id="alle-plaene-knopf"></div>
-  <div class="knopfreihe">
-    <button class="primaer" onclick="einrichtungOeffnen()">Trainingsplanung</button>
-  </div>
-  <div class="knopfreihe">
+  <!-- Bewusst KEIN primaer: Die gelbe Hauptaktion dieses Bildschirms ist
+       "Training starten" auf der Heute-Karte. Zwei gelbe Knöpfe nebeneinander
+       heben sich gegenseitig auf. -->
+  <div class="raster abstand">
+    <button class="schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>
     <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
   </div>
-  <div class="meta" style="margin-top:14px;text-align:center">Plan lange gedrückt halten für Bearbeiten, Verschieben und Löschen.</div>
+  <div class="knopfreihe">
+    <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Aktivität nachtragen</button>
+  </div>
 </section>
 
 <!-- ============================================================
@@ -470,6 +482,13 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
 
   <div class="karte">
+    <div class="zeile"><h2>Sportarten</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
+    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
+    <div id="profil-sportarten" class="abstand"></div>
+  </div>
+
+  <div class="karte">
     <div class="zeile">
       <h2>Ziele</h2>
       <button class="rund" id="ziel-plus" onclick="zielFormularZeigen()" aria-label="Ziel hinzufügen">+</button>
@@ -489,20 +508,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="ziel-liste" class="abstand"></div>
   </div>
 
-  <div class="karte">
-    <div class="zeile"><h2>Sportarten</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
-    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
-    <div id="profil-sportarten" class="abstand"></div>
-  </div>
-
-  <div class="karte">
-    <div class="zeile"><h2>Trainingsplanung</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-planung')" aria-label="Info">i</button></div>
-    <div id="info-planung" class="meta info-text" hidden>Beantworte die Einschätzungsfragen neu (Ort, Erfahrung, Tage, Ziel) — die App baut dir daraus frische Pläne. Selbst gebaute Pläne bleiben unangetastet.</div>
-    <div class="knopfreihe"><button class="schmal" onclick="einrichtungOeffnen()">Einschätzung ändern &amp; Pläne neu erstellen</button></div>
-  </div>
-
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -510,7 +515,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Einstellungen (Zahnrad) — alles, was man selten braucht
      ============================================================ -->
 <section id="view-einstellungen" class="view">
-  <div class="kopf"><h1>Einstellungen</h1></div>
+  <div class="kopf"><h1>Mehr</h1></div>
 
   <div class="karte">
     <h2>Audio</h2>
@@ -574,14 +579,38 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <input id="plan-name" placeholder="z. B. Oberkörper">
     <label class="abstand">Sportart</label>
     <div id="plan-sportart" class="wahl-raster"></div>
-    <div class="zeile abstand"><label style="margin:0">Wochentag</label>
+    <div class="zeile abstand"><label style="margin:0">Wochentage — keiner = immer sichtbar</label>
       <button class="info-knopf" onclick="infoUmschalten('info-tag')" aria-label="Info">i</button></div>
     <div id="info-tag" class="meta info-text" hidden>Mehrfachauswahl — derselbe Plan darf z. B. Montag <em>und</em> Donnerstag laufen. Ein Plan mit Wochentagen erscheint in der Liste nur an diesen Tagen und färbt sie im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
-    <div id="plan-tag" class="wahl-raster" style="margin-top:8px"></div>
+    <div id="plan-tag" class="tage-raster" style="margin-top:8px"></div>
+    <!-- Nur bei Aktivitäten: eine Dauer, optional eine Strecke. Keine Übungen, keine Sätze. -->
+    <div id="editor-aktivitaet" hidden>
+      <div class="raster abstand">
+        <div><label>Dauer</label>
+          <div class="stepper">
+            <button onclick="aktDauerStufe(-1)">−</button>
+            <input id="akt-dauer" type="number" inputmode="decimal" onchange="aktDauerSetzen(this.value)">
+            <button onclick="aktDauerStufe(1)">+</button>
+          </div></div>
+        <div><label for="akt-einheit">Einheit</label>
+          <select id="akt-einheit" onchange="aktEinheitSetzen(this.value)"></select></div>
+      </div>
+      <div id="akt-strecke-feld" class="abstand">
+        <label id="akt-strecke-label">Strecke</label>
+        <div class="stepper">
+          <button onclick="aktStreckeStufe(-1)">−</button>
+          <input id="akt-strecke" type="number" inputmode="decimal" onchange="aktStreckeSetzen(this.value)">
+          <button onclick="aktStreckeStufe(1)">+</button>
+        </div>
+      </div>
+      <div class="meta" id="akt-hinweis" style="margin-top:10px"></div>
+    </div>
+
+    <div id="editor-kraft">
     <label class="abstand">Reihenfolge</label>
     <div class="umschalter">
-      <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch (Übung für Übung)</button>
-      <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel (gemischt)</button>
+      <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch</button>
+      <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel</button>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="info-knopf" onclick="infoUmschalten('info-zirkel')" aria-label="Info">i</button></div>
     <div id="info-zirkel" class="meta info-text" hidden>Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
@@ -593,9 +622,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">🔥 Aufwärmen</button></div>
       <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">🧘 Dehnen</button></div>
     </div>
+    </div>
   </div>
   <div id="uebung-liste"></div>
-  <button class="breit" onclick="uebungAnlegen()">Übung hinzufügen</button>
+  <button class="breit" id="uebung-hinzu" onclick="uebungAnlegen()">Übung hinzufügen</button>
   <div class="knopfreihe">
     <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
     <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
@@ -641,6 +671,42 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe"><button class="breit" onclick="profilOeffnen()">Fertig</button></div>
 </section>
 
+<section id="view-stoppuhr" class="view">
+  <div class="kopf"><h1 id="stopp-name">–</h1></div>
+  <div class="meta" id="stopp-sport"></div>
+  <div class="stopp-uhr abstand"><div id="stopp-zahl" class="uhr-zahl">0:00</div></div>
+  <div class="meta" id="stopp-ziel" style="text-align:center"></div>
+  <div class="knopfreihe">
+    <button class="primaer breit" id="stopp-knopf" onclick="stoppuhrKnopf()">Start</button>
+  </div>
+  <div class="knopfreihe">
+    <button class="breit" onclick="stoppuhrFertig()">Fertig — eintragen</button>
+  </div>
+  <div class="knopfreihe">
+    <button class="breit gefahr" onclick="stoppuhrAbbrechen()">Abbrechen</button>
+  </div>
+  <div class="meta" style="margin-top:12px">Die App muss dafür im Vordergrund bleiben — <span id="stopp-warnung"></span> friert sie sonst ein. Für lange Einheiten lieber hinterher eintragen.</div>
+</section>
+
+<section id="view-eintragen" class="view">
+  <div class="kopf"><h1>Aktivität eintragen</h1></div>
+  <div class="karte">
+    <label for="ein-sport">Sportart</label>
+    <select id="ein-sport" onchange="eintragenZeichnen()"></select>
+    <div class="raster abstand">
+      <div><label for="ein-datum">Wann</label><input id="ein-datum" type="date"></div>
+      <div><label for="ein-einheit">Zeiteinheit</label><select id="ein-einheit" onchange="eintragenZeichnen()"></select></div>
+    </div>
+    <div class="raster abstand">
+      <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
+      <div id="ein-strecke-feld"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
+    </div>
+    <div class="meta" id="ein-vorschau" style="margin-top:10px"></div>
+  </div>
+  <div class="knopfreihe"><button class="primaer breit" onclick="aktivitaetSpeichern()">Eintragen</button></div>
+  <div class="knopfreihe"><button class="breit" onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button></div>
+</section>
+
 <section id="view-vorschau" class="view">
   <div class="kopf"><h1 id="vorschau-name">–</h1></div>
   <div class="meta" id="vorschau-meta"></div>
@@ -649,14 +715,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <label>Reihenfolge</label>
     <div class="note">
       <button id="vs-klassisch" onclick="vorschauKlassisch()">Klassisch</button>
-      <button id="vs-zirkel" onclick="vorschauMischen()">🔀 Zirkel — nochmal tippen mischt neu</button>
+      <button id="vs-zirkel" onclick="vorschauMischen()">🔀 Zirkel</button>
     </div>
     <label class="abstand">Für diesen Durchgang</label>
     <div class="note">
       <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">🔥 Aufwärmen</button>
       <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">🧘 Dehnen</button>
     </div>
-    <div class="meta" style="margin-top:10px">Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
+    <div class="meta" style="margin-top:10px">„Zirkel“ nochmal antippen mischt neu. Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
   </div>
 
   <div id="vorschau-liste"></div>
@@ -1147,7 +1213,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 29;
+const APP_VERSION = 31;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1180,6 +1246,17 @@ function datenNachruesten(daten){
     if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
     if(p.dehnen === undefined) p.dehnen = false;
     if(!p.sportart) p.sportart = "kraft";                  // v25: alles Bisherige war Kraft
+    /* v31: Der Plan-Typ folgt der Sportart. Alles bis hierher war Krafttraining,
+       auch wenn ein Plan seit v25 eine andere Sportart tragen konnte — Übungen
+       und Sätze hatte er trotzdem. Deshalb: vorhandene Übungen = Kraft. */
+    if(!p.typ) p.typ = (p.uebungen && p.uebungen.length) ? "kraft" : planTypFuer(p.sportart);
+    if(!Array.isArray(p.uebungen)) p.uebungen = [];
+    if(p.typ === "aktivitaet"){
+      if(typeof p.dauer !== "number") p.dauer = 1800;       // 30 min als ehrlicher Startwert
+      if(!p.zeitEinheit) p.zeitEinheit = "min";
+      if(typeof p.strecke !== "number") p.strecke = hatStrecke(p.sportart) ? sportart(p.sportart).strecke.start : 0;
+      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+    }
     /* tage ist DIE Wahrheit über den Wochentag (v26, Mehrfachauswahl).
        Diese Migration greift nur bei Altbestand, der noch kein tage hat:
        - v25-Daten haben das Einzelfeld tag -> das gilt.
@@ -1208,6 +1285,8 @@ function datenNachruesten(daten){
   daten.protokoll.forEach(e => {
     if(!e.sportart) e.sportart = "kraft";
     if(e.sonder === undefined) e.sonder = false;
+    if(!e.typ) e.typ = "kraft";              // v31: Aktivitäten schreiben typ:"aktivitaet"
+    if(!Array.isArray(e.saetze)) e.saetze = [];
   });
   if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
@@ -1793,7 +1872,7 @@ function alleplaeneUmschalten(){ alleplaeneZeigen = !alleplaeneZeigen; planListe
 function planListeZeichnen(){
   sicherungBannerZeichnen();
   flammeZeichnen();
-  heuteKarteZeichnen();
+  const heutePlanId = heuteKarteZeichnen();   // der steht schon oben — nicht nochmal in die Liste
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
@@ -1808,12 +1887,16 @@ function planListeZeichnen(){
      Ein Plan für Freitag hat am Dienstag nichts in der Liste zu suchen —
      erreichbar bleibt er über "Alle Pläne zeigen". */
   const heuteTag = heutigerWochentag();
-  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
-  const sichtbar = alleplaeneZeigen ? plaene : plaene.filter(heuteDrin);
-  const versteckt = plaene.length - plaene.filter(heuteDrin).length;
+  /* Sichtbar in der LISTE: Pläne ohne festen Tag (immer nutzbar) und weitere
+     Pläne des heutigen Tages. Der Plan, der oben schon als Heute-Karte steht,
+     fällt raus — sonst stünde er zweimal auf demselben Bildschirm. */
+  const heuteDrin = p => p.id !== heutePlanId && (p.tage.length === 0 || p.tage.includes(heuteTag));
+  const sichtbar = alleplaeneZeigen ? plaene.filter(p => p.id !== heutePlanId) : plaene.filter(heuteDrin);
+  const versteckt = plaene.filter(p => p.id !== heutePlanId).length - plaene.filter(heuteDrin).length;
 
   ziel.innerHTML = sichtbar.map(p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
+    const istAkt = p.typ === "aktivitaet";
     // Letztes Training mit diesem Plan (rückwärts suchen = neuester Eintrag zuerst)
     let zuletzt = null;
     for(let i = sitzung.daten.protokoll.length - 1; i >= 0; i--){
@@ -1827,13 +1910,15 @@ function planListeZeichnen(){
     return '<div class="karte" data-plan="' + p.id + '">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
-      '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz +
-      (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
+      '<div class="meta">' +
+        (istAkt ? aktivitaetText(p.sportart, p.strecke, p.dauer, p.zeitEinheit)
+                : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
+        (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
-        '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
+        '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
+        (istAkt ? '<button class="breit" onclick="planErledigt(\'' + p.id + '\')">Erledigt</button>' : "") +
       '</div></div>';
-  }).join("") ||
-    '<div class="leer">Für heute ist kein Plan hinterlegt.</div>';
+  }).join("") || "";
 
   document.getElementById("alle-plaene-knopf").innerHTML =
     (versteckt === 0 && !alleplaeneZeigen) ? "" :
@@ -2436,10 +2521,12 @@ function protokollZeichnen(){
     p.length === 0 ? "Noch kein Training abgeschlossen." :
     p.slice().reverse().slice(0,15).map(e =>
       '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
-      '<div style="color:var(--chalk)">' + text(e.plan) + '</div>' +
-      '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) +
-        (e.dauerMin ? " · " + e.dauerMin + " min" : "") +
-        (Array.isArray(e.saetze) ? " · " + e.saetze.length + " Sätze" : "") + '</div></div>'
+      '<div style="color:var(--chalk)"><span style="color:' + sportartFarbe(e.sportart) + '">■</span> ' +
+        text(e.plan) + (e.sonder ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
+      '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) + " · " +
+        (e.typ === "aktivitaet"
+          ? aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min")
+          : e.dauerMin + " min · " + e.saetze.length + " Sätze") + '</div></div>'
     ).join("");
 }
 
@@ -2514,44 +2601,80 @@ function geraeteFuerOrt(ort){
 
 /* ------------------------------------------------------------
    SPORTARTEN
-   ausgebaut:true = der Plangenerator kann dafür Pläne bauen (nur Kraft).
-   Alle anderen sind wählbar, taggen Pläne und färben den Kalender —
-   sie bekommen aber KEINE automatische Progression und KEIN Volumen
-   (siehe progressionAnwenden / satzVolumen). Ehrlich statt so tun.
-
+   planTyp entscheidet ALLES Weitere: "kraft" = Übungen/Sätze/Progression,
+   "aktivitaet" = eine Dauer, optional eine Strecke.
+   strecke: nur wo es ein sinnvolles Maß gibt. Klettern und Tischtennis
+   bekommen bewusst keins — da ist die Trainingszeit die ganze Wahrheit.
+   paceJe: Bezugsstrecke der Pace (1 km Laufen, 100 m Schwimmen, 500 m Rudern),
+   null = Sportart nutzt km/h statt Pace.
    farbe: eigener Ton je Sportart für den Kalender. Die Hantelscheiben-
    Palette gibt nur fünf her (rot/blau/gelb/grün/weiß), und Blau ist
    schon der Ruhetag — die übrigen sind entsättigte Nachbarn im selben
    Graphit-Ton, damit nichts nach Neon aussieht.
-   einheiten: was man in dieser Sportart üblicherweise zählt (recherchiert).
-   modi: welche Übungsmodi hier Sinn ergeben (erster = Standard).
    ------------------------------------------------------------ */
 const SPORTARTEN = [
-  { id:"kraft",       name:"Krafttraining",       ausgebaut:true, farbe:"#F2C14E",
-    einheiten:"Sätze · Wdh · Gewicht · Haltezeit",   modi:["wdh","zeit"] },
-  { id:"laufen",      name:"Laufen",              farbe:"#6FBF73",
-    einheiten:"km · Zeit · Pace (min/km) · Höhenmeter", modi:["strecke","zeit"] },
-  { id:"radfahren",   name:"Radfahren",           farbe:"#2FA8A0",
-    einheiten:"km · Zeit · km/h · Höhenmeter",       modi:["strecke","zeit"] },
-  { id:"schwimmen",   name:"Schwimmen",           farbe:"#56C7E8",
-    einheiten:"Meter · Zeit · Pace (min/100 m)",     modi:["strecke","zeit"] },
-  { id:"rudern",      name:"Rudern",              farbe:"#7A8CD9",
-    einheiten:"Meter · Zeit · Split (min/500 m)",    modi:["strecke","zeit"] },
-  { id:"wandern",     name:"Wandern",             farbe:"#A98150",
-    einheiten:"km · Höhenmeter · Zeit",              modi:["strecke","zeit"] },
-  { id:"klettern",    name:"Klettern",            farbe:"#C8553D",
-    einheiten:"Routen · Grad (UIAA/Fr./Fb) · Zeit",  modi:["runden","zeit"] },
-  { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6",
-    einheiten:"Sätze · Spiele · Zeit",               modi:["runden","zeit"] },
-  { id:"tennis",      name:"Tennis",              farbe:"#E08A3C",
-    einheiten:"Sätze · Spiele · Zeit",               modi:["runden","zeit"] },
-  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B",
-    einheiten:"Runden · Zeit je Runde",              modi:["runden","zeit"] },
-  { id:"fussball",    name:"Fußball",             farbe:"#B0B84A",
-    einheiten:"Zeit · Einheiten",                    modi:["zeit"] },
-  { id:"yoga",        name:"Yoga & Beweglichkeit", farbe:"#9BB8A6",
-    einheiten:"Zeit · Haltezeit",                    modi:["zeit"] }
+  { id:"kraft",       name:"Krafttraining",       farbe:"#F2C14E", planTyp:"kraft",
+    einheiten:"Sätze · Wdh · Gewicht · Haltezeit" },
+
+  // Ausdauer: Strecke UND Zeit -> daraus rechnet die App die Pace. Nie speichern,
+  // was sich ausrechnen lässt, sonst laufen zwei Wahrheiten auseinander.
+  { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet",
+    strecke:{ einheit:"km", schritt:0.5, start:3 },  paceJe:1,   einheiten:"km · Zeit · Pace (min/km)" },
+  { id:"radfahren", name:"Radfahren", farbe:"#2FA8A0", planTyp:"aktivitaet",
+    strecke:{ einheit:"km", schritt:1, start:10 },   paceJe:null, einheiten:"km · Zeit · km/h" },
+  { id:"wandern",   name:"Wandern",   farbe:"#A98150", planTyp:"aktivitaet",
+    strecke:{ einheit:"km", schritt:1, start:8 },    paceJe:null, einheiten:"km · Zeit" },
+  { id:"schwimmen", name:"Schwimmen", farbe:"#56C7E8", planTyp:"aktivitaet",
+    strecke:{ einheit:"m", schritt:50, start:500 },  paceJe:100, einheiten:"Meter · Zeit · Pace (min/100 m)" },
+  { id:"rudern",    name:"Rudern",    farbe:"#7A8CD9", planTyp:"aktivitaet",
+    strecke:{ einheit:"m", schritt:100, start:1000 },paceJe:500, einheiten:"Meter · Zeit · Split (min/500 m)" },
+
+  // Ohne sinnvolles Mass: Hier gibt es ehrlich nur die Trainingszeit.
+  { id:"klettern",    name:"Klettern",            farbe:"#C8553D", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet", einheiten:"Zeit" }
 ];
+
+/** Plan-Typ folgt IMMER der Sportart — Krafttraining hat Übungen und Sätze,
+    alles andere ist eine Aktivität mit einer Dauer. Bei Tischtennis wäre
+    "Satz 1 von 1" schlicht gelogen. */
+function planTypFuer(sportartId){ return sportart(sportartId).planTyp; }
+
+/** Hat diese Sportart ein sinnvolles Streckenmaß? Klettern hat keins. */
+function hatStrecke(sportartId){ return !!sportart(sportartId).strecke; }
+
+/** Pace als Text, GERECHNET aus Strecke und Zeit — nie gespeichert.
+    paceJe = Bezugsstrecke (1 km beim Laufen, 100 m beim Schwimmen). */
+function paceText(sportartId, strecke, sekunden){
+  const sp = sportart(sportartId);
+  if(!sp.paceJe || !strecke || !sekunden) return "";
+  const sekJeBezug = sekunden / (strecke / sp.paceJe);
+  const m = Math.floor(sekJeBezug / 60), sek = Math.round(sekJeBezug % 60);
+  const bezug = sp.paceJe === 1 ? "km" : sp.paceJe + " " + sp.strecke.einheit;
+  return m + ":" + String(sek).padStart(2,"0") + " min/" + bezug;
+}
+
+/** Geschwindigkeit in km/h — für Sportarten ohne Pace-Konvention (Rad, Wandern). */
+function tempoText(sportartId, strecke, sekunden){
+  const sp = sportart(sportartId);
+  if(!sp.strecke || sp.paceJe || !strecke || !sekunden) return "";
+  const km = sp.strecke.einheit === "m" ? strecke/1000 : strecke;
+  return (Math.round(km / (sekunden/3600) * 10) / 10).toString().replace(".", ",") + " km/h";
+}
+
+/** Fertige Zeile für Protokoll und Karten: "5,2 km · 32 min · 6:09 min/km" */
+function aktivitaetText(sportartId, strecke, sekunden, zeitEinheitId){
+  const sp = sportart(sportartId);
+  const teile = [];
+  if(sp.strecke && strecke > 0) teile.push(zahlKurz(strecke) + " " + sp.strecke.einheit);
+  if(sekunden > 0) teile.push(zeitKurz(sekunden, zeitEinheitId || "min"));
+  const p = paceText(sportartId, strecke, sekunden) || tempoText(sportartId, strecke, sekunden);
+  if(p) teile.push(p);
+  return teile.join(" · ");
+}
 
 function sportart(id){ return SPORTARTEN.find(x => x.id === id) || SPORTARTEN[0]; }
 function sportartName(id){ return sportart(id).name; }
@@ -3109,7 +3232,7 @@ function plaeneErstellen(){
     liste = liste.slice(0, anzahl);
 
     const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent",
-                   sportart:"kraft", tage:[ einrichtung.wochentage[tagIndex] ],   // Tage sind ein FELD, nicht der Name
+                   sportart:"kraft", typ:"kraft", tage:[ einrichtung.wochentage[tagIndex] ],   // Tage sind ein FELD, nicht der Name
                    reihenfolge:"klassisch",
                    aufwaermen: einrichtung.bonus.includes("aufwaermen"),
                    dehnen: einrichtung.bonus.includes("dehnen"),
@@ -3182,7 +3305,17 @@ function plaeneErstellen(){
     Mehrfach eingeplant = mehrfach pro Woche trainiert; der beste Wert zählt. */
 function planUebungen(){
   const nachName = new Map();
-  sitzung.daten.plaene.forEach(p => p.uebungen.forEach(u => {
+  // Aktivitätspläne sind selbst der Ziel-Kandidat — sie haben keine Übungen.
+  sitzung.daten.plaene.forEach(p => {
+    if(p.typ !== "aktivitaet") return;
+    const schluessel = p.name.toLowerCase();
+    const vorhanden = nachName.get(schluessel);
+    if(vorhanden){ vorhanden.proWoche += Math.max(1, p.tage.length); return; }
+    nachName.set(schluessel, { name:p.name, istAktivitaet:true, sportart:p.sportart,
+      modus:"zeit", zeitEinheit:p.zeitEinheit, dauer:p.dauer, strecke:p.strecke,
+      wdh:0, gewicht:0, gewichtSchritt:0, proWoche: Math.max(1, p.tage.length) });
+  });
+  sitzung.daten.plaene.forEach(p => (p.typ === "kraft" ? p.uebungen : []).forEach(u => {
     if(!u.name.trim()) return;
     const schluessel = u.name.toLowerCase();
     const vorhanden = nachName.get(schluessel);
@@ -3205,6 +3338,13 @@ function planUebungen(){
     Liegestütze haben kein Gewicht, ein Plank keine Wiederholungen. */
 function zielArten(u){
   if(!u) return [];
+  if(u.istAktivitaet){
+    const arten = [];
+    // Strecke zuerst: Bei Laufen ist "4 km" das Ziel, nicht "40 Minuten".
+    if(hatStrecke(u.sportart)) arten.push({ art:"strecke", name:"Strecke", einheit: sportart(u.sportart).strecke.einheit });
+    arten.push({ art:"zeit", name:"Dauer", einheit: zeitEinheit(u.zeitEinheit).kurz });
+    return arten;
+  }
   if(u.modus === "zeit") return [{ art:"zeit", name:"Dauer", einheit: zeitEinheit(u.zeitEinheit).kurz }];
   const arten = [{ art:"wdh", name:"Wiederholungen", einheit:"Wdh" }];
   if(u.gewichtSchritt > 0) arten.push({ art:"gewicht", name:"Gewicht", einheit:"kg" });
@@ -3241,11 +3381,13 @@ function zielFormularZeichnen(neuAufbauen){
 
 /** Aktueller Wert einer Übung für eine Ziel-Art, fertig beschriftet. */
 function zielWertText(u, art){
+  if(art === "strecke") return zahlKurz(u.strecke) + " " + sportart(u.sportart).strecke.einheit;
   if(art === "zeit") return zeitKurz(u.dauer, u.zeitEinheit);
   if(art === "gewicht") return u.gewicht + " kg";
   return u.wdh + " Wdh";
 }
 function zielWertZahl(u, art){
+  if(art === "strecke") return u.strecke;
   if(art === "zeit") return inEinheit(u.dauer, u.zeitEinheit);
   if(art === "gewicht") return u.gewicht;
   return u.wdh;
@@ -3303,13 +3445,26 @@ function zielEinschaetzen(ziel){
      Zeit  bei Note 1–2 rund +10 s je Einheit (in der Einheit der Übung gerechnet).
      Gewicht steigt erst, wenn wdhMax überschritten ist — also etwa ein
      Gewichtsschritt je (wdhMax − wdhMin) Einheiten, grob alle 4. */
-  let proEinheit;
-  if(art === "wdh")          proEinheit = 1;
-  else if(art === "zeit")    proEinheit = inEinheit(10, u.zeitEinheit);
-  else                       proEinheit = (u.gewichtSchritt || 2.5) / 4;
-
-  const einheitenNoetig = Math.ceil(fehlt / proEinheit);
-  const wochenNoetig = Math.ceil(einheitenNoetig / u.proWoche);
+  let wochenNoetig;
+  if(art === "strecke"){
+    /* Ausdauer wächst je WOCHE um höchstens STEIGERUNG_MAX, dazu jede vierte
+       Woche eine Entlastung. Also: Wie oft muss ich mit 1,2 multiplizieren? */
+    let stand = ist, wochen = 0, stufen = 0;
+    while(stand < ziel.wert && wochen < 260){
+      wochen++;
+      if(stufen >= ENTLASTUNG_NACH){ stufen = 0; continue; }   // Entlastungswoche bringt keinen Zuwachs
+      const schritt = sportart(u.sportart).strecke.schritt;
+      stand += Math.max(schritt, Math.round(stand * STEIGERUNG_MAX / schritt) * schritt);
+      stufen++;
+    }
+    wochenNoetig = wochen;
+  } else {
+    let proEinheit;
+    if(art === "wdh")       proEinheit = 1;
+    else if(art === "zeit") proEinheit = inEinheit(10, u.zeitEinheit);
+    else                    proEinheit = (u.gewichtSchritt || 2.5) / 4;
+    wochenNoetig = Math.ceil(Math.ceil(fehlt / proEinheit) / u.proWoche);
+  }
   const wochenVerfuegbar = Math.max(0, Math.floor(tagDifferenz(heuteAlsText(), ziel.datum) / 7));
   const basis = "Stand " + zielWertText(u, art) + " → " + zahlKurz(ziel.wert) + " " + einheit + " · " +
                 u.proWoche + "×/Woche im Plan · braucht ~" + wochenNoetig + " Wo., verfügbar " + wochenVerfuegbar + " Wo. ";
@@ -3319,6 +3474,91 @@ function zielEinschaetzen(ziel){
 }
 
 function zahlKurz(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
+
+/* ------------------------------------------------------------
+   ZIELE STEUERN DEN PLAN — vollautomatisch, wie die Progression.
+
+   Ausdauer-Regel (recherchiert): Die berühmte 10-%-Regel ist NICHT belegt —
+   niemand weiß, woher sie stammt, und bei kleinen Umfängen wird sie absurd
+   (10 % von 2 km sind 200 m). Eine Studie mit 874 Laufanfängern fand bis 30 %
+   wöchentlicher Steigerung kein erhöhtes Verletzungsrisiko; darüber stieg es.
+   Deshalb: 20 % Deckel pro WOCHE (nicht pro Einheit — bei 3 Einheiten wären
+   das sonst +73 %), dazu ein Mindestschritt für kleine Umfänge.
+
+   Besser belegt als die Prozentzahl ist der Rhythmus: in 4-Wochen-Blöcken
+   denken, drei Wochen steigern, dann eine Entlastungswoche auf ~70 %, danach
+   mit dem Umfang der Woche davor weitermachen. Genau das macht ENTLASTUNG_NACH.
+   ------------------------------------------------------------ */
+const STEIGERUNG_MAX = 0.20;     // je Woche, nicht je Einheit
+const ENTLASTUNG_NACH = 3;       // nach 3 Steigerungswochen eine Entlastungswoche
+const ENTLASTUNG_ANTEIL = 0.70;
+
+/** Zieht die Ziele nach einer eingetragenen Aktivität nach und meldet,
+    was sich geändert hat. Steigert höchstens EINMAL pro Kalenderwoche. */
+function zieleAnwenden(plan, strecke, dauerS){
+  if(plan.typ !== "aktivitaet") return [];
+  const ziel = sitzung.daten.ziele.find(z => z.uebung.toLowerCase() === plan.name.toLowerCase() && z.art === "strecke");
+  if(!ziel || !hatStrecke(plan.sportart)) return [];
+
+  const woche = isoWoche(heuteAlsText());
+  if(!plan.steigerung) plan.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+  if(plan.steigerung.woche === woche) return [];        // diese Woche schon gesteigert
+  if(plan.strecke >= ziel.wert){
+    return ["Ziel erreicht — " + zahlKurz(plan.strecke) + " " + sportart(plan.sportart).strecke.einheit + " stehen im Plan."];
+  }
+  // Gesteigert wird nur, was auch geschafft wurde
+  if(strecke > 0 && strecke < plan.strecke * 0.9) return ["Diesmal unter Plan — die Vorgabe bleibt, wo sie ist."];
+
+  plan.steigerung.woche = woche;
+  const einheit = sportart(plan.sportart).strecke.einheit;
+
+  if(plan.steigerung.stufen >= ENTLASTUNG_NACH){
+    plan.steigerung.vorEntlastung = plan.strecke;
+    plan.strecke = Math.round(plan.strecke * ENTLASTUNG_ANTEIL * 100) / 100;
+    plan.steigerung.stufen = 0;
+    return ["Entlastungswoche: " + zahlKurz(plan.strecke) + " " + einheit +
+            " (danach geht es bei " + zahlKurz(plan.steigerung.vorEntlastung) + " " + einheit + " weiter)."];
+  }
+  /* Rückkehrwoche: Nach der Entlastung wird erst wieder mit dem Umfang der
+     Woche DAVOR gefahren — nicht mit 20 % obendrauf. Gegenprobe aus der
+     Quelle: 50 km, Steigerung nach jeder 4. Woche unterbrochen -> nach elf
+     Wochen "fast 90 km". Das geht nur auf, wenn die Rückkehrwoche keinen
+     Zuwachs bringt (sechs Steigerungen, nicht acht). */
+  if(plan.steigerung.vorEntlastung > 0){
+    plan.strecke = plan.steigerung.vorEntlastung;
+    plan.steigerung.vorEntlastung = 0;
+    return ["Zurück auf " + zahlKurz(plan.strecke) + " " + einheit + " — nächste Woche geht es weiter hoch."];
+  }
+  const schritt = sportart(plan.sportart).strecke.schritt;
+  const zuwachs = Math.max(schritt, Math.round(plan.strecke * STEIGERUNG_MAX / schritt) * schritt);
+  const alt = plan.strecke;
+  plan.strecke = Math.min(ziel.wert, Math.round((plan.strecke + zuwachs) * 100) / 100);
+  plan.steigerung.stufen++;
+  return ["Nächstes Mal: " + zahlKurz(plan.strecke) + " " + einheit +
+          " (vorher " + zahlKurz(alt) + ") — höchstens 20 % pro Woche."];
+}
+
+/** Zieht ein Kraft-Ziel in die Übung: Das Ziel wird zur Obergrenze der
+    Progression, damit die Wiederholungen wirklich dorthin klettern.
+    Läuft bei JEDER Bewertung — ein neu gesetztes Ziel wirkt sofort. */
+function kraftZieleAnwenden(plan){
+  const bericht = [];
+  sitzung.daten.ziele.forEach(z => {
+    plan.uebungen.forEach(u => {
+      if(u.name.toLowerCase() !== z.uebung.toLowerCase()) return;
+      if(z.art === "wdh" && u.modus === "wdh"){
+        const neu = Math.max(u.wdhMin + 1, Math.round(z.wert));
+        if(u.wdhMax !== neu){ u.wdhMax = neu; bericht.push(u.name + ": Ziel " + zahlKurz(z.wert) + " Wdh ist jetzt die Obergrenze."); }
+      }
+      if(z.art === "zeit" && u.modus === "zeit"){
+        const zielS = inSekunden(z.wert, u.zeitEinheit);
+        if(u.dauer > zielS) return;                       // schon drüber
+        u.zielDauer = zielS;
+      }
+    });
+  });
+  return bericht;
+}
 
 let offenerZielPicker = null;   // Ziel-ID, deren Plan-Auswahl gerade aufgeklappt ist
 
@@ -3340,7 +3580,7 @@ function zieleZeichnen(){
         let picker = "";
         if(offenerZielPicker === z.id){
           picker = '<div class="abstand"><label>In welche Pläne einbauen?</label><div class="note">' +
-            sitzung.daten.plaene.map(p => {
+            sitzung.daten.plaene.filter(p => p.typ === "kraft").map(p => {
               const drin = p.uebungen.some(u => u.name.toLowerCase().includes(z.uebung.toLowerCase()));
               return drin
                 ? '<button disabled>✓ ' + text(p.name) + '</button>'
@@ -3369,6 +3609,10 @@ function zielPickerUmschalten(zielId){
 function zielInPlan(zielId, planId){
   const ziel = sitzung.daten.ziele.find(z => z.id === zielId);
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  if(plan.typ === "aktivitaet"){
+    meldung("Bei einer Aktivität steuerst du die Häufigkeit über die Wochentage im Plan selbst.\n\nDie Studienlage ist da eindeutig: Eine zusätzliche Einheit pro Woche braucht drei bis vier Wochen Anpassung — nicht Umfang und Häufigkeit gleichzeitig steigern.");
+    return;
+  }
   /* Die Übung existiert bereits in einem Plan — sonst gäbe es das Ziel nicht.
      Also KOPIEREN statt neu erfinden: Modus, Zeiteinheit, Gewichte und
      Wiederholungsbereich stimmen damit garantiert überein. Eine frisch
@@ -3671,7 +3915,7 @@ let editorPlan = null;
 function planAnlegen(){
   editorMehr = {};
   editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()], reihenfolge:"klassisch",
-                 aufwaermen:true, dehnen:true, sportart:"kraft", tage:[] };
+                 aufwaermen:true, dehnen:true, sportart:"kraft", typ:"kraft", tage:[] };
   document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
   editorZeichnen(); zeige("view-editor");
 }
@@ -3690,7 +3934,60 @@ function bonusUmschalten(feld){
   editorZeichnen();
 }
 
-function planSportartSetzen(id){ editorPlan.sportart = id; editorZeichnen(); }
+/** Sportart wechseln kippt den Plan-Typ mit — und legt die Felder an,
+    die der neue Typ braucht. Vorhandene Übungen bleiben liegen: Wer
+    zurückwechselt, findet seinen Plan unversehrt vor. */
+function planSportartSetzen(id){
+  editorPlan.sportart = id;
+  editorPlan.typ = planTypFuer(id);
+  if(editorPlan.typ === "aktivitaet"){
+    if(typeof editorPlan.dauer !== "number") editorPlan.dauer = 1800;
+    if(!editorPlan.zeitEinheit) editorPlan.zeitEinheit = "min";
+    if(!editorPlan.steigerung) editorPlan.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+    // Streckenmaß ist je Sportart anders (km vs. m) — beim Wechsel neu ansetzen
+    editorPlan.strecke = hatStrecke(id) ? sportart(id).strecke.start : 0;
+  }
+  editorZeichnen();
+}
+
+function aktivitaetsFelderZeichnen(){
+  const p = editorPlan;
+  const sp = sportart(p.sportart);
+  document.getElementById("akt-dauer").value = inEinheit(p.dauer, p.zeitEinheit);
+  document.getElementById("akt-einheit").innerHTML = ZEITEINHEITEN.map(z =>
+    '<option value="' + z.id + '"' + (z.id === p.zeitEinheit ? " selected" : "") + '>' + z.name + '</option>').join("");
+  const feld = document.getElementById("akt-strecke-feld");
+  feld.hidden = !sp.strecke;
+  if(sp.strecke){
+    document.getElementById("akt-strecke-label").textContent = "Strecke (" + sp.strecke.einheit + ")";
+    document.getElementById("akt-strecke").value = p.strecke;
+  }
+  document.getElementById("akt-hinweis").innerHTML = sp.strecke
+    ? "Richtwerte für die Planung. Beim Eintragen zählt, was du wirklich geschafft hast — daraus rechnet die App die Pace."
+    : "Für " + text(sp.name) + " gibt es kein sinnvolles Streckenmaß — hier zählt die Trainingszeit.";
+}
+
+function aktDauerSetzen(wert){
+  editorPlan.dauer = begrenzen(inSekunden(parseFloat(wert) || 0, editorPlan.zeitEinheit), 60, MAX_DAUER_S);
+  editorZeichnen();
+}
+function aktDauerStufe(richtung){
+  const e = zeitEinheit(editorPlan.zeitEinheit);
+  // in Sekunden rechnen, nicht über den gerundeten Anzeigewert (siehe dauerStufe)
+  editorPlan.dauer = begrenzen(Math.round(editorPlan.dauer + richtung * e.schritt * e.faktor), 60, MAX_DAUER_S);
+  editorZeichnen();
+}
+function aktEinheitSetzen(id){ editorPlan.zeitEinheit = id; editorZeichnen(); }
+function aktStreckeSetzen(wert){
+  editorPlan.strecke = Math.max(0, parseFloat(String(wert).replace(",", ".")) || 0);
+  editorZeichnen();
+}
+function aktStreckeStufe(richtung){
+  const sp = sportart(editorPlan.sportart);
+  const neu = editorPlan.strecke + richtung * sp.strecke.schritt;
+  editorPlan.strecke = Math.max(sp.strecke.schritt, Math.round(neu * 100) / 100);
+  editorZeichnen();
+}
 
 /** Wochentag an/aus — ein Plan darf an mehreren Tagen laufen (Mo+Do gleicher Plan). */
 function planTagUmschalten(tag){
@@ -3699,7 +3996,6 @@ function planTagUmschalten(tag){
   editorPlan.tage.sort((a,b) => a - b);
   editorZeichnen();
 }
-function planTageLeeren(){ editorPlan.tage = []; editorZeichnen(); }
 
 function editorZeichnen(){
   document.getElementById("plan-name").value = editorPlan.name;
@@ -3715,12 +4011,23 @@ function editorZeichnen(){
     '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
     '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join("");
 
+  /* Der Plan-Typ folgt der Sportart — nichts, was der Nutzer extra wählen muss.
+     Krafttraining bekommt Übungen und Sätze, jede andere Sportart eine Dauer. */
+  const istKraft = editorPlan.typ === "kraft";
+  document.getElementById("editor-kraft").hidden = !istKraft;
+  document.getElementById("uebung-liste").hidden = !istKraft;
+  document.getElementById("uebung-hinzu").hidden = !istKraft;
+  document.getElementById("editor-aktivitaet").hidden = istKraft;
+  if(!istKraft){ aktivitaetsFelderZeichnen(); return; }
+
+  /* Sieben Tage in EINER Zeile — wie im Kalender. Als 2-Spalten-Raster
+     brauchte das vier Zeilen plus einen "Kein fester Tag"-Knopf: ~250 px,
+     bevor man die erste Übung sah. Keine Auswahl IST kein fester Tag,
+     der Extraknopf war nur eine zweite Art, dasselbe zu sagen. */
   document.getElementById("plan-tag").innerHTML =
     WOCHENTAGE.slice(1).map((w,i) =>
       '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
-      '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("") +
-    '<button class="' + (editorPlan.tage.length === 0 ? "gewaehlt" : "") +
-    '" onclick="planTageLeeren()" style="grid-column:1/-1">Kein fester Tag</button>';
+      '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("");
 
   document.getElementById("rf-klassisch").classList.toggle("gewaehlt", editorPlan.reihenfolge === "klassisch");
   document.getElementById("rf-zirkel").classList.toggle("gewaehlt", editorPlan.reihenfolge === "zirkel");
@@ -3830,6 +4137,12 @@ function uebungSchieben(i, richtung){
 
 function editorSpeichern(){
   editorPlan.name = document.getElementById("plan-name").value.trim() || "Ohne Namen";
+  if(editorPlan.typ === "aktivitaet"){
+    editorPlan.dauer = begrenzen(Math.round(editorPlan.dauer), 60, MAX_DAUER_S);
+    if(!hatStrecke(editorPlan.sportart)) editorPlan.strecke = 0;
+    planSichern();
+    return;
+  }
   editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
   editorPlan.uebungen.forEach(u => {
     u.saetze = begrenzen(Math.round(u.saetze), 1, 20);
@@ -3844,6 +4157,11 @@ function editorSpeichern(){
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
   });
   if(editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
+  planSichern();
+}
+
+/** Legt den bearbeiteten Plan ab — für beide Typen derselbe Weg. */
+function planSichern(){
   const plaene = sitzung.daten.plaene;
   const index = plaene.findIndex(p => p.id === editorPlan.id);
   if(index >= 0) plaene[index] = editorPlan; else plaene.push(editorPlan);
@@ -3946,6 +4264,162 @@ function zirkelAblauf(plan){
   return schritte;
 }
 
+/* ============================================================
+   #region Aktivitäten — Stoppuhr, Nachtragen, Erledigt
+
+   DREI WEGE, EIN FORMULAR. Stoppuhr und "erledigt" füllen dasselbe
+   Eintragen-Formular nur vor. Nur dort entsteht der Protokolleintrag —
+   sonst gäbe es drei Stellen, an denen dasselbe schiefgehen kann.
+   ============================================================ */
+let stoppuhr = null;   // { plan, start, gelaufen, timerId, laeuft }
+
+function stoppuhrOeffnen(planId){
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  stoppuhr = { plan, start:0, gelaufen:0, timerId:null, laeuft:false };
+  document.getElementById("stopp-name").textContent = plan.name;
+  document.getElementById("stopp-sport").innerHTML =
+    '<span style="color:' + sportartFarbe(plan.sportart) + '">■</span> ' + text(sportartName(plan.sportart));
+  document.getElementById("stopp-ziel").textContent = "Geplant: " + aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit);
+  document.getElementById("stopp-warnung").textContent = systemText("iOS", "Android", "Das System");
+  stoppuhrZeichnen();
+  zeige("view-stoppuhr");
+}
+
+function stoppuhrZeichnen(){
+  document.getElementById("stopp-zahl").textContent = uhrText(Math.floor(stoppuhrSekunden()));
+  document.getElementById("stopp-knopf").textContent = stoppuhr.laeuft ? "Pause" : (stoppuhr.gelaufen ? "Weiter" : "Start");
+}
+
+/** Immer aus Date.now() rechnen, nie Ticks zählen — iOS drosselt Timer im
+    Hintergrund, gezählte Ticks würden nachgehen. */
+function stoppuhrSekunden(){
+  return stoppuhr.gelaufen + (stoppuhr.laeuft ? (Date.now() - stoppuhr.start) / 1000 : 0);
+}
+
+function stoppuhrKnopf(){
+  if(tippGesperrt()) return;
+  if(stoppuhr.laeuft){
+    stoppuhr.gelaufen = stoppuhrSekunden();
+    stoppuhr.laeuft = false;
+    clearInterval(stoppuhr.timerId);
+  } else {
+    audioFreischalten();          // in der Tippgeste (iOS)
+    bildschirmWachhalten();
+    stoppuhr.start = Date.now();
+    stoppuhr.laeuft = true;
+    stoppuhr.timerId = setInterval(stoppuhrZeichnen, 500);
+  }
+  stoppuhrZeichnen();
+}
+
+function stoppuhrFertig(){
+  const sekunden = Math.round(stoppuhrSekunden());
+  const plan = stoppuhr.plan;
+  stoppuhrAufraeumen();
+  if(sekunden < 10){ meldung("Die Uhr lief noch nicht — erst starten oder die Zeit von Hand eintragen."); return; }
+  eintragenOeffnen(plan, sekunden);
+}
+
+function stoppuhrAbbrechen(){
+  frage("Stoppuhr verwerfen? Es wird nichts eingetragen.", true, ja => {
+    if(!ja) return;
+    stoppuhrAufraeumen();
+    planListeZeichnen();
+    zeige("view-plaene");
+  });
+}
+
+function stoppuhrAufraeumen(){
+  if(stoppuhr) clearInterval(stoppuhr.timerId);
+  bildschirmFreigeben();
+  stoppuhr = null;
+}
+
+/* ---------- Das Formular: einziger Ort, an dem eine Aktivität entsteht ---------- */
+let eintragPlan = null;
+
+/** plan = Vorlage (optional), sekunden = gemessene Zeit (optional). */
+function eintragenOeffnen(plan, sekunden){
+  eintragPlan = plan || null;
+  const sport = plan ? plan.sportart : ersteAktivitaetsSportart();
+  const feld = document.getElementById("ein-sport");
+  // Angeboten wird, was im Profil gewählt ist — Krafttraining nicht: das läuft über Pläne.
+  const meine = (sitzung.daten.einrichtung.sportarten || []).filter(id => planTypFuer(id) === "aktivitaet");
+  const liste = meine.length ? meine : SPORTARTEN.filter(x => x.planTyp === "aktivitaet").map(x => x.id);
+  feld.innerHTML = liste.map(id => '<option value="' + id + '">' + text(sportartName(id)) + '</option>').join("");
+  feld.value = liste.includes(sport) ? sport : liste[0];
+
+  document.getElementById("ein-datum").value = heuteAlsText();
+  document.getElementById("ein-einheit").innerHTML = ZEITEINHEITEN.map(z =>
+    '<option value="' + z.id + '">' + z.name + '</option>').join("");
+  const einheit = plan ? plan.zeitEinheit : "min";
+  document.getElementById("ein-einheit").value = einheit;
+  const dauerS = sekunden || (plan ? plan.dauer : 1800);
+  document.getElementById("ein-dauer").value = inEinheit(dauerS, einheit);
+  document.getElementById("ein-strecke").value = plan && plan.strecke ? plan.strecke : "";
+  eintragenZeichnen();
+  zeige("view-eintragen");
+}
+
+function ersteAktivitaetsSportart(){
+  const meine = (sitzung.daten.einrichtung.sportarten || []).filter(id => planTypFuer(id) === "aktivitaet");
+  return meine[0] || "laufen";
+}
+
+function eintragenZeichnen(){
+  const sport = document.getElementById("ein-sport").value;
+  const sp = sportart(sport);
+  const einheit = document.getElementById("ein-einheit").value;
+  document.getElementById("ein-dauer-label").textContent = "Dauer (" + zeitEinheit(einheit).kurz + ")";
+  document.getElementById("ein-strecke-feld").hidden = !sp.strecke;
+  if(sp.strecke) document.getElementById("ein-strecke-label").textContent = "Strecke (" + sp.strecke.einheit + ")";
+
+  const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
+  const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
+  const zeile = aktivitaetText(sport, strecke, dauerS, einheit);
+  document.getElementById("ein-vorschau").textContent = zeile ? "Wird eingetragen: " + zeile : "";
+}
+
+function aktivitaetSpeichern(){
+  const sport = document.getElementById("ein-sport").value;
+  const sp = sportart(sport);
+  const einheit = document.getElementById("ein-einheit").value;
+  const datum = document.getElementById("ein-datum").value;
+  const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
+  const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
+
+  if(!datum){ meldung("Bitte ein Datum angeben."); return; }
+  if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen — geplant wird über den Plan und seine Wochentage."); return; }
+  if(dauerS < 60){ meldung("Bitte eine Dauer von mindestens einer Minute angeben."); return; }
+  if(sp.strecke && strecke <= 0){
+    frage("Ohne Strecke kann die App keine Pace rechnen und ein Streckenziel nicht verfolgen. Trotzdem nur die Zeit eintragen?", true, ja => {
+      if(ja) aktivitaetAblegen(sport, datum, dauerS, 0, einheit);
+    });
+    return;
+  }
+  aktivitaetAblegen(sport, datum, dauerS, strecke, einheit);
+}
+
+function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
+  const wochentag = (new Date(datum + "T12:00:00").getDay() + 6) % 7 + 1;
+  // Sondertraining = nichts stand für diesen Tag im Plan
+  const geplant = eintragPlan ? eintragPlan.tage.includes(wochentag) : false;
+  sitzung.daten.protokoll.push({
+    datum, plan: eintragPlan ? eintragPlan.name : sportartName(sport),
+    sportart: sport, typ:"aktivitaet", sonder: !geplant,
+    dauerMin: Math.max(1, Math.round(dauerS / 60)),
+    strecke, zeitEinheit: einheit, saetze: []
+  });
+  sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];
+  speichern();
+  eintragPlan = null;
+  planListeZeichnen();
+  zeige("view-plaene");
+  meldung("Eingetragen: " + aktivitaetText(sport, strecke, dauerS, einheit) +
+          (bericht.length ? "\n\n" + bericht.join("\n") : ""));
+}
+
 /* ------------------------------------------------------------
    VORSCHAU — das Inhaltsverzeichnis vor dem Training.
    Gearbeitet wird auf einer KOPIE des Plans: Mischen, Aufwärmen und
@@ -3954,10 +4428,19 @@ function zirkelAblauf(plan){
    ------------------------------------------------------------ */
 let vorschauPlan = null;
 
+/** Eine Weiche: Krafttraining führt der Timer Satz für Satz, eine Aktivität
+    läuft auf der Stoppuhr. Beide Wege enden im selben Protokoll. */
 function trainingStarten(planId){
-  vorschauPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  if(plan.typ === "aktivitaet"){ stoppuhrOeffnen(planId); return; }
+  vorschauPlan = JSON.parse(JSON.stringify(plan));
   vorschauZeichnen();
   zeige("view-vorschau");
+}
+
+/** "Hab ich schon gemacht" — Formular mit den Planwerten vorbelegt. */
+function planErledigt(planId){
+  eintragenOeffnen(sitzung.daten.plaene.find(p => p.id === planId), 0);
 }
 
 /** Zirkel an — erneutes Antippen mischt neu (jeder Aufruf würfelt frisch). */
@@ -4300,7 +4783,8 @@ function navGehe(bereich){
 function navAktualisieren(id){
   const bereiche = { "view-plaene":"nav-plaene", "view-statistik":"nav-statistik", "view-profil":"nav-profil",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst",
-                     "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene" };
+                     "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene",
+                     "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
   ["nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
@@ -4308,6 +4792,8 @@ function navAktualisieren(id){
 }
 
 /** Heute-Karte: welcher Plan ist laut Wochentag heute dran? */
+/** Zeichnet die Heute-Karte und meldet zurück, WELCHEN Plan sie zeigt —
+    die Liste darunter lässt genau den weg, sonst stünde er doppelt da. */
 function heuteKarteZeichnen(){
   const ziel = document.getElementById("heute-karte");
   const wochentag = heutigerWochentag();
@@ -4317,16 +4803,23 @@ function heuteKarteZeichnen(){
   const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heuteAlsText());
 
   if(plan){
-    ziel.innerHTML = '<div class="heute" style="border-color:' + sportartFarbe(plan.sportart) + '">' +
+    ziel.innerHTML = '<div class="heute" data-plan="' + plan.id + '" style="border-color:' + sportartFarbe(plan.sportart) + '">' +
       '<div class="heute-label" style="color:' + sportartFarbe(plan.sportart) + '">Heute · ' + name +
         ' · ' + text(sportartName(plan.sportart)) + (schonTrainiert ? " · erledigt ✓" : "") + '</div>' +
       '<h2>' + text(plan.name) + '</h2>' +
-      '<div class="meta">' + plan.uebungen.length + ' Übungen · ' +
-        plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
-        (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · 🧘' : '') + '</div>' +
+      '<div class="meta">' +
+        (plan.typ === "aktivitaet"
+          ? aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit)
+          : plan.uebungen.length + ' Übungen · ' +
+            plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
+            (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · 🧘' : '')) + '</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
-        (schonTrainiert ? "Nochmal trainieren" : "Training starten") + '</button></div>' +
+        (plan.typ === "aktivitaet" ? (schonTrainiert ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
+                                   : (schonTrainiert ? "Nochmal trainieren" : "Training starten")) + '</button>' +
+        (plan.typ === "aktivitaet" ? '<button class="breit" onclick="planErledigt(\'' + plan.id + '\')">Erledigt</button>' : "") + '</div>' +
+      '<div class="meta" style="margin-top:8px">Lange drücken für Bearbeiten, Verschieben, Löschen.</div>' +
       '</div>';
+    return plan.id;
   } else if(schonTrainiert){
     ziel.innerHTML = '<div class="heute"><div class="heute-label">Heute · ' + name + '</div>' +
       '<h2>Erledigt ✓</h2><div class="meta">Gut gemacht — die Serie läuft.</div></div>';
@@ -4334,6 +4827,7 @@ function heuteKarteZeichnen(){
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
       '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute — Ruhetage kosten die Flamme nicht (bis zu 2 am Stück).</div></div>';
   }
+  return null;
 }
 
 /* ============================================================
@@ -4354,6 +4848,7 @@ function trainingBeenden(){
     datum: heuteAlsText(),
     plan: plan.name,
     sportart: plan.sportart || "kraft",
+    typ: "kraft",                       // hier entstehen nur Kraft-Einträge; Aktivitäten laufen über aktivitaetAblegen()
     sonder: plan.tage.length === 0,     // Plan ohne festen Tag = Sondertraining
     dauerMin: Math.max(1, Math.round((Date.now() - lauf.startZeit) / 60000)),
     saetze: lauf.saetze
@@ -4387,6 +4882,11 @@ function noteSetzen(uebungId, n){
 
 function bewertungAnwenden(){
   const plan = sitzung.daten.plaene.find(p => p.id === lauf.plan.id);
+  /* Auf dem ECHTEN Plan arbeiten, nicht auf lauf.plan — das ist seit der
+     Vorschau nur eine Kopie, an der Mischen und Bonus hängen. Änderungen
+     daran würden nie im Konto landen.
+     Ziele zuerst: Sie setzen die Obergrenze, gegen die die Progression rechnet. */
+  const zielBericht = plan ? kraftZieleAnwenden(plan) : [];
   const zeilen = [];
   plan.uebungen = plan.uebungen.map(alt => {
     const neu = progressionAnwenden(alt, bewertung[alt.id]);
@@ -4401,7 +4901,11 @@ function bewertungAnwenden(){
   speichern();
 
   const serie = trainingsSerie();
-  document.getElementById("ergebnis-liste").innerHTML =
+  const zielKarte = zielBericht.length
+    ? '<div class="karte"><div class="meta" style="border-left:3px solid var(--signal);padding-left:8px;line-height:1.5">' +
+      zielBericht.map(z => text(z)).join("<br>") + '</div></div>'
+    : "";
+  document.getElementById("ergebnis-liste").innerHTML = zielKarte +
     '<div class="karte zeile"><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
     '<span class="meta">' + (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "Der Anfang ist gemacht.") + '</span></div>' +
     zeilen.map(z => {
