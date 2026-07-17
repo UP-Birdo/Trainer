@@ -753,7 +753,22 @@ let tresor = Speicher.laden() || { version:3, konten:[] };
 const kryptoVerfuegbar = !!(window.crypto && crypto.subtle);
 const KDF_RUNDEN = 310000;   // OWASP-Empfehlung für PBKDF2-SHA-256
 
-function bytesZuBase64(bytes){ return btoa(String.fromCharCode(...new Uint8Array(bytes))); }
+/* WICHTIG: nicht auf String.fromCharCode(...bytes) zurückbauen!
+   Der Spread legt JEDES Byte als eigenes Argument auf den Aufrufstapel.
+   Ab ca. 125.000 Bytes wirft das in V8 "Maximum call stack size exceeded",
+   in JavaScriptCore (Safari) schon deutlich früher. Da hier die KOMPLETTEN
+   Kontodaten durchlaufen, wäre das nach wenigen Monaten Protokoll ein
+   fehlgeschlagenes Speichern gewesen. Häppchenweise hat der Stapel nie mehr
+   als BLOCK Argumente zu tragen — unabhängig davon, wie groß die Daten werden. */
+const B64_BLOCK = 8192;
+function bytesZuBase64(bytes){
+  const arr = new Uint8Array(bytes);
+  let roh = "";
+  for(let i = 0; i < arr.length; i += B64_BLOCK){
+    roh += String.fromCharCode.apply(null, arr.subarray(i, i + B64_BLOCK));
+  }
+  return btoa(roh);
+}
 function base64ZuBytes(s){ return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
 
 /** Leitet aus Passwort ODER Wiederherstellungscode einen AES-Schlüssel ab. */
@@ -1045,7 +1060,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */

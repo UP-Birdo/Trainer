@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.023 / APP_VERSION 23**.
+> als Paket hochgeladen. Stand: **Version 0.024 / APP_VERSION 24**.
 
 ---
 
@@ -73,6 +73,11 @@ Wiederherstellungscode ──PBKDF2──► Hülle B ─┘
 
 **Fallstrick:** `CryptoKey`-Objekte in IndexedDB scheitern auf iOS/WebKit still. Deshalb Roh-Bytes.
 
+**Fallstrick 2 (v24 behoben, nicht zurückbauen):** `bytesZuBase64()` arbeitet in 8-kB-Häppchen.
+`String.fromCharCode(...bytes)` legt jedes Byte als eigenes Argument auf den Aufrufstapel und wirft
+ab ~125.000 Bytes (V8; JSC früher) `RangeError`. Da dort die KOMPLETTEN Kontodaten durchlaufen,
+wäre Speichern und Export nach wenigen Monaten Protokoll hart gescheitert.
+
 ---
 
 ## 5. Datenmodell
@@ -109,10 +114,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 23;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.023" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 24;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.024" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v23"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v24"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -253,6 +258,24 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 * Iterativ: bauen → testen → Rückmeldung → nachschärfen. Die erste Version ist nie die letzte.
 
 ---
+
+## 11a. Größen & Grenzen (gemessen, Stand v24)
+
+| | |
+|---|---|
+| Ein Training (4 Übungen × 3 Sätze) | ~1,4 kB JSON |
+| Ein Jahr (3×/Woche) | ~219 kB Klartext → ~292 kB verschlüsselt+Base64 |
+| `index.html` | 183 kB roh, **49 kB gzip** über die Leitung |
+| GitHub Pages | Seite ≤ 1 GB · Repo empfohlen ≤ 1 GB · 100 GB/Monat (soft) · 10 Builds/h |
+| Bindende Grenze | **localStorage ~5 MB pro Origin** (WebKit) → ~9–17 Jahre Protokoll |
+
+Reihenfolge der Grenzen, wenn es eng wird: **1.** localStorage-Quote (→ auf IndexedDB umziehen,
+`Speicher`-Modul kapselt das schon), **2.** Lesbarkeit der einen Datei, **3.** GitHub (praktisch nie:
+49 kB × 100 GB = ~2 Mio Aufrufe/Monat, und der Service Worker liefert Wiederbesuche aus dem Cache).
+
+`speichern()` verschlüsselt **immer den kompletten Datenstand** neu (22 Aufrufstellen). Das ist O(n)
+pro Schreibvorgang — bei 3 MB einige Millisekunden, also unkritisch, aber der Grund, warum die
+Base64-Grenze oben überhaupt gefährlich war.
 
 ## 12. Offene Ideen (nicht umgesetzt)
 
