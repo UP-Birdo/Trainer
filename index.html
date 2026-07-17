@@ -843,7 +843,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1284,6 +1284,8 @@ function zeige(id){
   document.body.classList.toggle("training-fest", id === "view-training");
   wasserzeichenZeichnen();
   window.scrollTo(0,0);
+  if((id === "view-plaene" || id === "view-login") && typeof updateAnwenden === "function")
+    updateAnwenden();   // aufgeschobenes Update nachholen, sobald es gefahrlos ist
 }
 
 /** Dezente Kennzeichnung am unteren Rand: Version, heutiges Datum, Kürzel.
@@ -2246,6 +2248,49 @@ function bewertungAnwenden(){
   lauf = null;
   zeige("view-ergebnis");
 }
+
+/* ============================================================
+   #region Auto-Update
+   iOS lädt eine Home-Bildschirm-App beim Antippen NICHT neu, sondern
+   weckt die eingefrorene Seite auf — "Netz zuerst" greift dann nie.
+   Deshalb: Beim Sichtbarwerden die aktuelle index.html vom Server holen
+   (cache:no-store), die APP_VERSION darin auslesen und vergleichen.
+   Ist sie neuer, lädt die App sich selbst neu — aber NUR in sicheren
+   Ansichten (Anmeldung/Planliste), nie mitten im Training oder in der
+   Bewertung. Sonst wird der Reload aufgeschoben, bis man dort ankommt.
+   ============================================================ */
+let updateWartet = false;
+
+async function updatePruefen(){
+  try {
+    const antwort = await fetch("index.html", { cache: "no-store" });
+    if(!antwort.ok) return;
+    const quelltext = await antwort.text();
+    const treffer = quelltext.match(/const APP_VERSION = (\d+);/);
+    if(treffer && parseInt(treffer[1]) > APP_VERSION){
+      updateWartet = true;
+      updateAnwenden();
+    }
+  } catch(e){ /* offline — dann eben beim nächsten Mal */ }
+}
+
+/** Lädt neu, wenn es gerade gefahrlos ist. */
+function updateAnwenden(){
+  if(!updateWartet) return;
+  const sicher = document.getElementById("view-plaene").classList.contains("aktiv") ||
+                 document.getElementById("view-login").classList.contains("aktiv");
+  if(!sicher || lauf) return;          // Training/Bewertung nie unterbrechen
+  updateWartet = false;
+  location.reload();                    // holt per "Netz zuerst" die neue Version
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState !== "visible") return;
+  updatePruefen();
+  // Auch den Service Worker zur Update-Suche anstoßen
+  if("serviceWorker" in navigator)
+    navigator.serviceWorker.ready.then(r => r.update()).catch(() => {});
+});
 
 /* ============================================================
    #region Start
