@@ -215,7 +215,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 <section id="view-plaene" class="view">
   <div class="kopf">
     <h1>Trainingspläne</h1>
-    <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
+    <span style="display:flex;align-items:center;gap:12px">
+      <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Tage in Folge trainiert"></span>
+      <button class="rund" onclick="profilOeffnen()" aria-label="Profil öffnen" title="Profil">&#9679;</button>
+    </span>
   </div>
   <div id="sicherung-banner" class="hinweis" hidden>
     <span id="sicherung-banner-text"></span>
@@ -252,6 +255,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
   <div class="karte">
     <div class="zeile">
+      <div><div id="tag-streak-zahl" class="kennzahl">🔥 0</div><div class="kennzahl-label">Tage in Folge</div></div>
       <div><div id="streak-zahl" class="kennzahl">0</div><div class="kennzahl-label">Wochen in Folge</div></div>
       <div><div id="gesamt-zahl" class="kennzahl">0</div><div class="kennzahl-label">Trainings gesamt</div></div>
       <div><div id="monat-zahl" class="kennzahl">0</div><div class="kennzahl-label">diesen Monat</div></div>
@@ -574,11 +578,14 @@ function merkerDb(){
   });
 }
 
-async function merkerSchreiben(kontoId, schluessel){
+async function merkerSchreiben(kontoId, dkBytes){
+  // Bewusst ROHE Bytes statt eines CryptoKey-Objekts: iOS/WebKit speichert
+  // CryptoKeys in IndexedDB unzuverlässig — genau daran scheiterte v7.
+  // Am Bedrohungsmodell ändert das nichts (Schlüssel liegt so oder so auf dem Gerät).
   const db = await merkerDb();
   return new Promise((aufloesen, ablehnen) => {
     const tx = db.transaction("merker", "readwrite");
-    tx.objectStore("merker").put({ kontoId, schluessel, zeit: Date.now() }, "aktuell");
+    tx.objectStore("merker").put({ kontoId, dkBytes, zeit: Date.now() }, "aktuell");
     tx.oncomplete = () => aufloesen();
     tx.onerror = () => ablehnen(tx.error);
   });
@@ -612,11 +619,13 @@ async function autoAnmelden(){
     if(!merker){ loginZeichnen(); return; }
     if(Date.now() - merker.zeit > MERKER_GUELTIG_MS){ await merkerLoeschen(); loginZeichnen(); return; }
     const konto = tresor.konten.find(k => k.id === merker.kontoId);
-    if(!konto){ await merkerLoeschen(); loginZeichnen(); return; }
-    const klartext = await gcmEntschluesseln(merker.schluessel, konto.paket);
-    // dkBytes bleibt hier bewusst leer: Passwort ändern / neuer Code
-    // verlangen dann einmal das Passwort (siehe dkNachladen).
-    sitzung = { kontoId: konto.id, datenSchluessel: merker.schluessel, dkBytes: null,
+    if(!konto || !merker.dkBytes){ await merkerLoeschen(); loginZeichnen(); return; }
+    const schluessel = await dkImportieren(merker.dkBytes);
+    const klartext = await gcmEntschluesseln(schluessel, konto.paket);
+    // dkBytes bleibt in der Sitzung bewusst leer: Passwort ändern / neuer Code
+    // verlangen dann einmal das Passwort (siehe dkNachladen) — sonst könnte
+    // jeder mit dem entsperrten Handy das Konto übernehmen.
+    sitzung = { kontoId: konto.id, datenSchluessel: schluessel, dkBytes: null,
                 daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
     planListeZeichnen();
     zeige("view-plaene");
@@ -641,7 +650,11 @@ async function dkNachladen(passwort){
 let sitzung = null;   // { kontoId, datenSchluessel(CryptoKey), dkBytes(Uint8Array), daten }
 
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function leereKontodaten(profil){ return { profil, gewichte:[], protokoll:[], plaene:[] }; }
+function leereKontodaten(profil){
+  // WICHTIG: durch datenNachruesten schicken, damit neue Konten IMMER alle
+  // Felder haben, die spätere Versionen erwarten (Ursache eines v7-Absturzes).
+  return datenNachruesten({ profil, gewichte:[], protokoll:[], plaene:[] });
+}
 
 async function sitzungSpeichern(){
   const eintrag = tresor.konten.find(k => k.id === sitzung.kontoId);
@@ -693,13 +706,13 @@ function loginZeichnen(){
    UNVERSCHLÜSSELT im Gerätespeicher — sie ist kein Geheimnis und muss
    schon vor jeder Anmeldung lesbar sein. */
 function versionAnzeigen(){
-  document.getElementById("version-anzeige").textContent = "v" + APP_VERSION;
+  document.getElementById("version-anzeige").textContent = "Version " + ANZEIGE_VERSION;
   const banner = document.getElementById("update-banner");
   let gesehen = 0;
   try { gesehen = parseInt(localStorage.getItem("trainingsapp.gesehen")) || 0; } catch(e){}
   if(gesehen !== 0 && gesehen < APP_VERSION){
     banner.hidden = false;
-    banner.textContent = "Neue Version installiert (v" + gesehen + " → v" + APP_VERSION + "). Deine Konten und Daten sind davon unberührt.";
+    banner.textContent = "Neue Version installiert — jetzt " + ANZEIGE_VERSION + ". Deine Konten und Daten sind davon unberührt.";
   } else {
     banner.hidden = true;
   }
@@ -728,7 +741,8 @@ async function anmelden(){
       const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
       if(document.getElementById("login-merken").checked && window.indexedDB){
-        await merkerSchreiben(gewaehltesKonto.id, datenSchluessel).catch(() => {});
+        await merkerSchreiben(gewaehltesKonto.id, dkBytes)
+          .catch(e => meldung("„Angemeldet bleiben“ konnte nicht gespeichert werden (" + e + "). Die Anmeldung selbst hat geklappt."));
       } else {
         await merkerLoeschen().catch(() => {});   // Häkchen weg = alter Merker weg
       }
@@ -752,7 +766,15 @@ async function anmelden(){
    datenNachruesten() füllt fehlende neue Felder mit Standardwerten.
    Dadurch laden alte Datenstände und alte Sicherungen in jeder
    künftigen Version. APP_VERSION nur erhöhen, wenn neue Felder dazukommen. */
-const APP_VERSION = 7;
+/* Zwei Versionsbegriffe:
+   APP_VERSION     = interne Ganzzahl, zählt bei JEDEM Update stur hoch.
+                     Wird für Vergleiche gebraucht (Update-Banner,
+                     Sicherungs-Fälligkeit, Datei-Metadaten).
+   ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
+                     So können die beiden nie auseinanderlaufen.
+                     Zur 1.0 wird die Formel durch "1.0" ersetzt. */
+const APP_VERSION = 10;
+const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
 function datenNachruesten(daten){
@@ -821,10 +843,13 @@ function codeAnzeigen(danach){
   zeige("view-code");
 }
 function codeBestaetigen(){
+  // Erst weiterschalten, dann aufräumen: Wirft der Wechsel einen Fehler,
+  // bleibt der Code sichtbar statt einen leeren, festgefahrenen Bildschirm zu zeigen.
+  const weiter = nachCodeAnzeige;
+  nachCodeAnzeige = null;
+  if(weiter) weiter();
   frischerCode = null;
   document.getElementById("code-anzeige").textContent = "–";
-  if(nachCodeAnzeige) nachCodeAnzeige();
-  nachCodeAnzeige = null;
 }
 
 function wiederherstellungZeigen(){
@@ -936,7 +961,7 @@ const SICHERUNG_INTERVALL_TAGE = 7;
 
 /** Ist eine neue Sicherung fällig? (Nie gesichert, älter als 7 Tage, oder App-Version neuer.) */
 function sicherungFaellig(){
-  const s = sitzung.daten.sicherung;
+  const s = sitzung.daten.sicherung || { zeit:0, version:0 };   // defensiv: Feld kann in Altbeständen fehlen
   if(s.zeit === 0) return "Noch keine Sicherung vorhanden.";
   if(s.version < APP_VERSION) return "Die App wurde aktualisiert — Zeit für eine frische Sicherung.";
   const tage = Math.floor((Date.now() - s.zeit) / 86400000);
@@ -1190,6 +1215,7 @@ function uebungBeschreiben(u){
 
 function planListeZeichnen(){
   sicherungBannerZeichnen();
+  flammeZeichnen();
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
@@ -1275,6 +1301,27 @@ function tageVerschieben(datumText, n){
   return d.toISOString().slice(0,10);
 }
 
+/** Tage in Folge mit mindestens einem Training. Kulanzregel:
+    Wurde HEUTE noch nicht trainiert, zählt die Serie bis gestern weiter —
+    sie bricht erst, wenn ein ganzer Tag wirklich leer blieb. */
+function tagesStreak(){
+  const trainierteTage = new Set(sitzung.daten.protokoll.map(e => e.datum));
+  let streak = 0;
+  let tag = heuteAlsText();
+  if(!trainierteTage.has(tag)) tag = tageVerschieben(tag, -1);
+  while(trainierteTage.has(tag)){
+    streak++;
+    tag = tageVerschieben(tag, -1);
+  }
+  return streak;
+}
+
+/** Flamme in der Kopfzeile der Plan-Übersicht (nur sichtbar, wenn Serie läuft). */
+function flammeZeichnen(){
+  const n = tagesStreak();
+  document.getElementById("streak-flamme").textContent = n > 0 ? "🔥 " + n : "";
+}
+
 function kennzahlenZeichnen(){
   const protokoll = sitzung.daten.protokoll;
   const heute = heuteAlsText();
@@ -1290,6 +1337,7 @@ function kennzahlenZeichnen(){
   }
 
   const monat = heute.slice(0,7);
+  document.getElementById("tag-streak-zahl").textContent = "🔥 " + tagesStreak();
   document.getElementById("streak-zahl").textContent = streak;
   document.getElementById("gesamt-zahl").textContent = protokoll.length;
   document.getElementById("monat-zahl").textContent = protokoll.filter(e => e.datum.startsWith(monat)).length;
@@ -1760,7 +1808,6 @@ function aufraeumen(){
 let bewertung = {};
 
 function trainingBeenden(){
-  sprich("Training beendet. Gut gemacht.");
   clearInterval(lauf.timerId);
   bildschirmFreigeben();
   const plan = lauf.plan;
@@ -1775,6 +1822,10 @@ function trainingBeenden(){
   };
   sitzung.daten.protokoll.push(eintrag);
   speichern();
+
+  // Ansage NACH dem Eintragen, damit die Serie das heutige Training mitzählt.
+  const serie = tagesStreak();
+  sprich("Training beendet. Gut gemacht." + (serie >= 2 ? " " + serie + " Tage in Folge." : ""));
 
   bewertung = {};
   plan.uebungen.forEach(u => bewertung[u.id] = 3);
@@ -1811,7 +1862,11 @@ function bewertungAnwenden(){
   }
   speichern();
 
-  document.getElementById("ergebnis-liste").innerHTML = zeilen.map(z => {
+  const serie = tagesStreak();
+  document.getElementById("ergebnis-liste").innerHTML =
+    '<div class="karte zeile"><h2>🔥 ' + serie + (serie === 1 ? " Tag" : " Tage") + ' in Folge</h2>' +
+    '<span class="meta">' + (serie >= 2 ? "Serie läuft — weiter so!" : "Der Anfang ist gemacht.") + '</span></div>' +
+    zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
     if(z.neu.wdh !== z.alt.wdh)         teile.push(z.alt.wdh + " → " + z.neu.wdh + " Wdh");
