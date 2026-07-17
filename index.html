@@ -461,27 +461,29 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     </div>
     <div class="raster abstand">
       <div><label for="profil-geburtsjahr">Geburtsjahr</label><input id="profil-geburtsjahr" type="number" inputmode="numeric"></div>
-      <div></div>
+      <div><label for="profil-geschlecht">Geschlecht</label>
+        <select id="profil-geschlecht">
+          <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
+        </select></div>
     </div>
-    <label class="abstand" for="profil-geschlecht">Geschlecht</label>
-    <select id="profil-geschlecht">
-      <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
-    </select>
     <div class="knopfreihe"><button class="schmal" onclick="profilSpeichern()">Profil speichern</button></div>
   </div>
 
   <div class="karte">
     <div class="zeile">
       <h2>Ziele</h2>
-      <button class="rund" onclick="zielFormularZeigen()" aria-label="Ziel hinzufügen">+</button>
+      <button class="rund" id="ziel-plus" onclick="zielFormularZeigen()" aria-label="Ziel hinzufügen">+</button>
     </div>
     <div id="ziel-formular" hidden>
       <label class="abstand" for="ziel-uebung">Übung</label>
-      <input id="ziel-uebung" placeholder="z. B. Liegestütze">
+      <select id="ziel-uebung" onchange="zielFormularZeichnen()"></select>
+      <label class="abstand" for="ziel-art">Worauf</label>
+      <select id="ziel-art" onchange="zielFormularZeichnen()"></select>
       <div class="raster abstand">
-        <div><label for="ziel-wdh">Ziel (Wdh)</label><input id="ziel-wdh" type="number" inputmode="numeric"></div>
+        <div><label for="ziel-wert" id="ziel-wert-label">Ziel</label><input id="ziel-wert" type="number" inputmode="decimal" step="0.5"></div>
         <div><label for="ziel-datum">Bis wann</label><input id="ziel-datum" type="date"></div>
       </div>
+      <div class="meta" id="ziel-ist"></div>
       <div class="knopfreihe"><button class="primaer schmal" onclick="zielEintragen()">Ziel speichern</button></div>
     </div>
     <div id="ziel-liste" class="abstand"></div>
@@ -1145,7 +1147,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 28;
+const APP_VERSION = 29;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1184,6 +1186,8 @@ function datenNachruesten(daten){
        - Noch älter: Der Wochentag steckte NUR im Namen ("Montag – Ganzkörper A").
        Danach nie wieder Namen parsen. Das alte tag bleibt liegen, wo es liegt
        (Felder werden nie entfernt), wird aber weder gelesen noch geschrieben. */
+    // v29: Zeiteinheit je Übung. Bestand lief in Sekunden — das bleibt richtig.
+    p.uebungen.forEach(u => { if(!u.zeitEinheit) u.zeitEinheit = "s"; });
     if(!Array.isArray(p.tage)){
       if(p.tag !== undefined){
         p.tage = p.tag ? [p.tag] : [];
@@ -1192,6 +1196,12 @@ function datenNachruesten(daten){
         p.tage = treffer > 0 ? [treffer] : [];
       }
     }
+  });
+  /* v29: Ziele hatten nur Wiederholungen ({uebung, wdh}). Jetzt tragen sie
+     art/wert/einheit, damit auch Zeit- und Gewichtsziele möglich sind.
+     Das Altfeld wdh bleibt liegen — Felder werden nie entfernt. */
+  daten.ziele.forEach(z => {
+    if(!z.art){ z.art = "wdh"; z.wert = z.wdh; z.einheit = "Wdh"; }
   });
   // v25: Die Sportart muss ins Protokoll, sonst kann der Kalender an einem
   // vergangenen Tag nicht sagen, was TATSÄCHLICH trainiert wurde.
@@ -1548,6 +1558,53 @@ const VORBEREITUNG_S = 10;   // Countdown vor jedem Zeit-Satz (in Position gehen
    pro Satz — genau im empfohlenen Fenster von 30–70 s. */
 const SEK_PRO_WDH = 4;
 
+/* ------------------------------------------------------------
+   ZEITEINHEITEN
+   Gespeichert wird IMMER in Sekunden (u.dauer). zeitEinheit sagt nur,
+   in welcher Einheit der Wert angezeigt und eingegeben wird — sonst
+   müsste jede Rechnung im Code die Einheit mitschleppen.
+   Nötig, weil eine Tischtennis-Einheit 30 min und ein Lauf mehrere
+   Stunden dauern kann; vorher war bei 600 s (10 min) Schluss.
+   ------------------------------------------------------------ */
+const ZEITEINHEITEN = [
+  { id:"s",   name:"Sekunden", kurz:"s",   faktor:1,    schritt:5,   ansage:"Sekunden" },
+  { id:"min", name:"Minuten",  kurz:"min", faktor:60,   schritt:1,   ansage:"Minuten" },
+  { id:"h",   name:"Stunden",  kurz:"h",   faktor:3600, schritt:0.25, ansage:"Stunden" }
+];
+const MAX_DAUER_S = 6 * 3600;   // 6 Stunden — deckt auch einen langen Wandertag ab
+
+function zeitEinheit(id){ return ZEITEINHEITEN.find(e => e.id === id) || ZEITEINHEITEN[0]; }
+
+/** Sekunden -> Anzeigewert in der gewählten Einheit (gerundet auf 2 Stellen). */
+function inEinheit(sekunden, einheitId){
+  return Math.round((sekunden / zeitEinheit(einheitId).faktor) * 100) / 100;
+}
+function inSekunden(wert, einheitId){ return Math.round(wert * zeitEinheit(einheitId).faktor); }
+
+/** Kurze Anzeige: "45 s" · "30 min" · "1,5 h" */
+function zeitKurz(sekunden, einheitId){
+  const e = zeitEinheit(einheitId);
+  return String(inEinheit(sekunden, e.id)).replace(".", ",") + " " + e.kurz;
+}
+
+/** Uhrenanzeige. Ab einer Stunde mit Stunden-Feld, sonst m:ss —
+    "125:30" wäre zwar richtig, aber niemand liest das als zwei Stunden. */
+function uhrText(restSekunden){
+  const h = Math.floor(restSekunden / 3600);
+  const m = Math.floor((restSekunden % 3600) / 60);
+  const s = restSekunden % 60;
+  if(h > 0) return h + ":" + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  return m + ":" + String(s).padStart(2,"0");
+}
+
+/** Ansage: "30 Minuten" statt "1800 Sekunden". */
+function zeitAnsage(sekunden, einheitId){
+  const e = zeitEinheit(einheitId);
+  const wert = inEinheit(sekunden, e.id);
+  if(e.id === "s") return wert + " Sekunden";
+  return String(wert).replace(".", ",") + " " + (wert === 1 ? e.ansage.slice(0,-1) : e.ansage);
+}
+
 /** Grobe Trainingsdauer in Minuten.
     Rechnet über ablaufErzeugen(), damit die Schätzung NIE vom echten Ablauf
     abweichen kann — Zirkel, Aufwärmen und Dehnen sind so automatisch drin. */
@@ -1566,7 +1623,7 @@ function dauerSchaetzen(plan){
 function neueUebung(){
   return { id:neueId(), name:"", modus:"wdh", saetze:3,
            wdh:10, wdhMin:8, wdhMax:12, gewicht:0, gewichtSchritt:2.5,
-           dauer:30, pause:90, notenHistorie:[] };
+           dauer:30, zeitEinheit:"s", pause:90, notenHistorie:[] };
 }
 
 function beispielplan(){
@@ -3109,22 +3166,107 @@ function plaeneErstellen(){
    pro Woche = Anzahl Pläne mit dieser Übung. Kein Orakel — eine
    Hochrechnung, die mit jedem Training realer wird.
    ============================================================ */
+/* ------------------------------------------------------------
+   ZIELE
+   Ein Ziel hängt immer an einer Übung, die WIRKLICH in einem Plan steht —
+   sonst trainierst du nicht darauf hin, und die App könnte weder den
+   Ist-Stand noch eine Einschätzung liefern. Deshalb ein Auswahlfeld
+   statt eines Freitextes.
+
+   Die Einheit ist NICHT frei wählbar, sondern kommt aus der Übung:
+   Eine Wdh-Übung kann Wiederholungen (und Gewicht, falls sie überhaupt
+   welches nutzt), eine Zeit-Übung ihre Dauer in IHRER Zeiteinheit.
+   ------------------------------------------------------------ */
+
+/** Alle Übungen aus allen Plänen, nach Namen zusammengefasst.
+    Mehrfach eingeplant = mehrfach pro Woche trainiert; der beste Wert zählt. */
+function planUebungen(){
+  const nachName = new Map();
+  sitzung.daten.plaene.forEach(p => p.uebungen.forEach(u => {
+    if(!u.name.trim()) return;
+    const schluessel = u.name.toLowerCase();
+    const vorhanden = nachName.get(schluessel);
+    if(!vorhanden){
+      nachName.set(schluessel, { name:u.name, modus:u.modus, zeitEinheit:u.zeitEinheit || "s",
+                                 wdh:u.wdh, gewicht:u.gewicht, gewichtSchritt:u.gewichtSchritt,
+                                 dauer:u.dauer, proWoche:1 });
+    } else {
+      vorhanden.proWoche++;
+      vorhanden.wdh = Math.max(vorhanden.wdh, u.wdh);
+      vorhanden.gewicht = Math.max(vorhanden.gewicht, u.gewicht);
+      vorhanden.dauer = Math.max(vorhanden.dauer, u.dauer);
+      vorhanden.gewichtSchritt = Math.max(vorhanden.gewichtSchritt, u.gewichtSchritt);
+    }
+  }));
+  return [...nachName.values()].sort((a,b) => a.name.localeCompare(b.name));
+}
+
+/** Welche Ziel-Arten gibt diese Übung her? Fixe Einheiten, keine Fantasie:
+    Liegestütze haben kein Gewicht, ein Plank keine Wiederholungen. */
+function zielArten(u){
+  if(!u) return [];
+  if(u.modus === "zeit") return [{ art:"zeit", name:"Dauer", einheit: zeitEinheit(u.zeitEinheit).kurz }];
+  const arten = [{ art:"wdh", name:"Wiederholungen", einheit:"Wdh" }];
+  if(u.gewichtSchritt > 0) arten.push({ art:"gewicht", name:"Gewicht", einheit:"kg" });
+  return arten;
+}
+
 function zielFormularZeigen(){
   const f = document.getElementById("ziel-formular");
   f.hidden = !f.hidden;
-  if(!f.hidden) document.getElementById("ziel-uebung").focus();
+  if(!f.hidden) zielFormularZeichnen(true);
+}
+
+function zielFormularZeichnen(neuAufbauen){
+  const uebungen = planUebungen();
+  const feldUebung = document.getElementById("ziel-uebung");
+  const feldArt = document.getElementById("ziel-art");
+
+  if(neuAufbauen){
+    feldUebung.innerHTML = uebungen.map(u =>
+      '<option value="' + text(u.name) + '">' + text(u.name) + '</option>').join("");
+  }
+  const gewaehlt = uebungen.find(u => u.name === feldUebung.value) || uebungen[0];
+  const arten = zielArten(gewaehlt);
+  const vorherigeArt = feldArt.value;
+  feldArt.innerHTML = arten.map(a => '<option value="' + a.art + '">' + a.name + ' (' + a.einheit + ')</option>').join("");
+  if(arten.some(a => a.art === vorherigeArt)) feldArt.value = vorherigeArt;
+  const art = arten.find(a => a.art === feldArt.value) || arten[0];
+  if(!gewaehlt || !art) return;
+
+  document.getElementById("ziel-wert-label").textContent = "Ziel (" + art.einheit + ")";
+  document.getElementById("ziel-ist").textContent =
+    "Ist-Stand: " + zielWertText(gewaehlt, art.art) + " · " + gewaehlt.proWoche + "×/Woche im Plan";
+}
+
+/** Aktueller Wert einer Übung für eine Ziel-Art, fertig beschriftet. */
+function zielWertText(u, art){
+  if(art === "zeit") return zeitKurz(u.dauer, u.zeitEinheit);
+  if(art === "gewicht") return u.gewicht + " kg";
+  return u.wdh + " Wdh";
+}
+function zielWertZahl(u, art){
+  if(art === "zeit") return inEinheit(u.dauer, u.zeitEinheit);
+  if(art === "gewicht") return u.gewicht;
+  return u.wdh;
 }
 
 function zielEintragen(){
-  const uebung = document.getElementById("ziel-uebung").value.trim();
-  const wdh = parseInt(document.getElementById("ziel-wdh").value);
+  const uebungen = planUebungen();
+  const name = document.getElementById("ziel-uebung").value;
+  const u = uebungen.find(x => x.name === name);
+  const art = document.getElementById("ziel-art").value;
+  const wert = parseFloat(document.getElementById("ziel-wert").value);
   const datum = document.getElementById("ziel-datum").value;
-  if(!uebung || !wdh || wdh <= 0 || !datum){ meldung("Bitte Übung, Ziel-Wiederholungen und Datum angeben."); return; }
-  sitzung.daten.ziele.push({ id:neueId(), uebung, wdh, datum });
+  if(!u){ meldung("Bitte eine Übung aus deinen Plänen wählen."); return; }
+  if(!(wert > 0) || !datum){ meldung("Bitte einen Zielwert und ein Datum angeben."); return; }
+  if(datum <= heuteAlsText()){ meldung("Das Datum muss in der Zukunft liegen."); return; }
+  const a = zielArten(u).find(x => x.art === art);
+  sitzung.daten.ziele.push({ id:neueId(), uebung:u.name, art, wert, einheit:a.einheit, datum,
+                             wdh: art === "wdh" ? wert : undefined });   // wdh: Altfeld, für ältere Versionen lesbar
   speichern();
   document.getElementById("ziel-formular").hidden = true;
-  document.getElementById("ziel-uebung").value = "";
-  document.getElementById("ziel-wdh").value = "";
+  document.getElementById("ziel-wert").value = "";
   zieleZeichnen();
 }
 
@@ -3137,43 +3279,64 @@ function zielLoeschen(id){
   });
 }
 
-/** Aktueller Wdh-Stand einer Übung (höchster Wert über alle Pläne) und
-    in wie vielen Plänen sie vorkommt (≈ Einheiten pro Woche). */
-function zielStatus(uebungsname){
-  const name = uebungsname.toLowerCase();
-  let aktuell = 0, proWoche = 0;
-  sitzung.daten.plaene.forEach(p => {
-    const treffer = p.uebungen.find(u => u.modus === "wdh" && u.name.toLowerCase().includes(name));
-    if(treffer){ proWoche++; aktuell = Math.max(aktuell, treffer.wdh); }
-  });
-  return { aktuell, proWoche };
-}
-
+/** Einschätzung: Reicht die Zeit bis zum Datum?
+    Die Steigerungsraten kommen aus progressionAnwenden() — dieselbe Regel,
+    die die App wirklich anwendet. Bewusst grob: Es geht um „realistisch
+    oder nicht", nicht um eine Prognose auf die Wiederholung genau. */
 function zielEinschaetzen(ziel){
-  const s = zielStatus(ziel.uebung);
-  if(s.proWoche === 0)
+  const u = planUebungen().find(x => x.name.toLowerCase() === ziel.uebung.toLowerCase());
+  if(!u)
     return { text:"Die Übung steht in keinem Plan — baue sie ein, sonst trainierst du nicht darauf hin.", stufe:"warn" };
-  const fehlt = ziel.wdh - s.aktuell;
-  if(fehlt <= 0) return { text:"Geschafft — Stand " + s.aktuell + " Wdh. Zeit für ein neues Ziel!", stufe:"gut" };
-  const wochenNoetig = Math.ceil(fehlt / s.proWoche);            // ~1 Wdh je Einheit
+
+  const art = ziel.art || "wdh";
+  const arten = zielArten(u);
+  if(!arten.some(a => a.art === art))
+    return { text:"Die Übung kennt diesen Wert nicht mehr — der Modus wurde geändert. Ziel neu anlegen.", stufe:"warn" };
+
+  const ist = zielWertZahl(u, art);
+  const fehlt = ziel.wert - ist;
+  const einheit = ziel.einheit || "Wdh";
+  if(fehlt <= 0) return { text:"Geschafft — Stand " + zielWertText(u, art) + ". Zeit für ein neues Ziel!", stufe:"gut" };
+
+  /* Zuwachs je Trainingseinheit, hergeleitet aus der Progressionstabelle:
+     Wdh   bei Note 1–2 rund +1 Wdh je Einheit.
+     Zeit  bei Note 1–2 rund +10 s je Einheit (in der Einheit der Übung gerechnet).
+     Gewicht steigt erst, wenn wdhMax überschritten ist — also etwa ein
+     Gewichtsschritt je (wdhMax − wdhMin) Einheiten, grob alle 4. */
+  let proEinheit;
+  if(art === "wdh")          proEinheit = 1;
+  else if(art === "zeit")    proEinheit = inEinheit(10, u.zeitEinheit);
+  else                       proEinheit = (u.gewichtSchritt || 2.5) / 4;
+
+  const einheitenNoetig = Math.ceil(fehlt / proEinheit);
+  const wochenNoetig = Math.ceil(einheitenNoetig / u.proWoche);
   const wochenVerfuegbar = Math.max(0, Math.floor(tagDifferenz(heuteAlsText(), ziel.datum) / 7));
-  const basis = "Stand " + s.aktuell + " → " + ziel.wdh + " Wdh · " + s.proWoche + "×/Woche im Plan · braucht ~" +
-                wochenNoetig + " Wo., verfügbar " + wochenVerfuegbar + " Wo. ";
+  const basis = "Stand " + zielWertText(u, art) + " → " + zahlKurz(ziel.wert) + " " + einheit + " · " +
+                u.proWoche + "×/Woche im Plan · braucht ~" + wochenNoetig + " Wo., verfügbar " + wochenVerfuegbar + " Wo. ";
   if(wochenVerfuegbar >= wochenNoetig * 1.3) return { text: basis + "— gut erreichbar.", stufe:"gut" };
   if(wochenVerfuegbar >= wochenNoetig)       return { text: basis + "— ambitioniert, aber machbar.", stufe:"mittel" };
   return { text: basis + "— kaum realistisch: Datum verschieben oder die Übung öfter einplanen.", stufe:"warn" };
 }
 
+function zahlKurz(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
+
 let offenerZielPicker = null;   // Ziel-ID, deren Plan-Auswahl gerade aufgeklappt ist
 
 function zieleZeichnen(){
   const ziele = sitzung.daten.ziele;
+  const auswahl = planUebungen();
+  // Ohne Übung in einem Plan gibt es nichts, worauf man hintrainieren könnte —
+  // dann bleibt der +-Knopf aus, statt ein Ziel ins Leere zu erlauben.
+  const plus = document.getElementById("ziel-plus");
+  plus.disabled = auswahl.length === 0;
+  plus.title = auswahl.length === 0 ? "Erst eine Übung in einen Plan aufnehmen" : "";
   document.getElementById("ziel-liste").innerHTML = ziele.length === 0
-    ? '<div class="meta">Noch kein Ziel — mit + eines anlegen, z. B. „20 Liegestütze bis 01.09.“</div>'
+    ? '<div class="meta">' + (auswahl.length === 0
+        ? "Noch keine Übung in einem Plan — lege erst einen Plan an, dann kannst du ein Ziel darauf setzen."
+        : "Noch kein Ziel — mit + eines anlegen, z. B. „20 Liegestütze bis 01.09.“") + '</div>'
     : ziele.map(z => {
         const e = zielEinschaetzen(z);
         const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
-        const status = zielStatus(z.uebung);
         let picker = "";
         if(offenerZielPicker === z.id){
           picker = '<div class="abstand"><label>In welche Pläne einbauen?</label><div class="note">' +
@@ -3185,7 +3348,7 @@ function zieleZeichnen(){
             }).join("") + '</div></div>';
         }
         return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">' +
-          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + z.wdh + ' Wdh bis ' + z.datum + '</strong>' +
+          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
           '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')">×</button></div>' +
           '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
           '<div class="knopfreihe"><button class="schmal" onclick="zielPickerUmschalten(\'' + z.id + '\')">' +
@@ -3206,18 +3369,27 @@ function zielPickerUmschalten(zielId){
 function zielInPlan(zielId, planId){
   const ziel = sitzung.daten.ziele.find(z => z.id === zielId);
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
-  const status = zielStatus(ziel.uebung);
-  const start = begrenzen(status.aktuell > 0 ? status.aktuell : Math.round(ziel.wdh * 0.5), 3, ziel.wdh);
-  const u = neueUebung();
-  u.name = ziel.uebung;
-  u.wdh = start;
-  u.wdhMin = Math.max(3, Math.round(start * 0.8));
-  u.wdhMax = ziel.wdh;                       // Ziel = Obergrenze der Progression
-  u.gewicht = 0; u.gewichtSchritt = 0;       // Ziel-Übungen sind Wiederholungsziele
-  u.pause = 60;
+  /* Die Übung existiert bereits in einem Plan — sonst gäbe es das Ziel nicht.
+     Also KOPIEREN statt neu erfinden: Modus, Zeiteinheit, Gewichte und
+     Wiederholungsbereich stimmen damit garantiert überein. Eine frisch
+     gebaute Übung würde bei einer Zeit- oder Gewichtsübung Unsinn ergeben. */
+  let vorlage = null;
+  sitzung.daten.plaene.forEach(p => p.uebungen.forEach(u => {
+    if(!vorlage && u.name.toLowerCase() === ziel.uebung.toLowerCase()) vorlage = u;
+  }));
+  if(!vorlage){ meldung("Die Übung steht in keinem Plan mehr — Ziel neu anlegen."); return; }
+
+  const u = JSON.parse(JSON.stringify(vorlage));
+  u.id = neueId();                 // eigene Identität: Progression und Noten laufen je Plan getrennt
+  u.notenHistorie = [];
+  // Ziel als Obergrenze der Progression eintragen — so arbeitet die
+  // automatische Steigerung direkt darauf zu.
+  if(ziel.art === "wdh") u.wdhMax = Math.max(u.wdhMin + 1, Math.round(ziel.wert));
   plan.uebungen.push(u);
   speichern();
-  zieleZeichnen();                           // Einschätzung aktualisiert sich sofort
+  offenerZielPicker = null;
+  zieleZeichnen();
+  meldung(text(u.name) + " ist jetzt auch in „" + plan.name + "“.\n\nDamit trainierst du sie öfter pro Woche — die Einschätzung oben rechnet das sofort mit.");
 }
 
 /* ============================================================
@@ -3558,7 +3730,17 @@ function editorZeichnen(){
     const istZeit = u.modus === "zeit";
     let basis, mehr = "";
     if(istZeit){
-      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"dauer","Dauer (s)",u.dauer,5) +
+      const e = zeitEinheit(u.zeitEinheit);
+      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) +
+              '<div><label>Dauer (' + e.kurz + ')</label>' +
+                '<div class="stepper">' +
+                  '<button onclick="dauerStufe(' + i + ',-1)">−</button>' +
+                  '<input type="number" inputmode="decimal" value="' + inEinheit(u.dauer, e.id) + '" onchange="dauerSetzen(' + i + ',this.value)">' +
+                  '<button onclick="dauerStufe(' + i + ',1)">+</button>' +
+                '</div></div>' +
+              '<div><label>Einheit</label><select onchange="zeitEinheitSetzen(' + i + ',this.value)">' +
+                ZEITEINHEITEN.map(z => '<option value="' + z.id + '"' + (z.id === e.id ? " selected" : "") + '>' + z.name + '</option>').join("") +
+              '</select></div>' +
               zahlfeld(i,"pause","Pause (s)",u.pause,15);
     } else {
       basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"wdh","Wiederholungen",u.wdh,1) +
@@ -3604,6 +3786,30 @@ function feldStufe(i, schluessel, delta){
   editorZeichnen();
 }
 
+/* Dauer wird in der gewählten Einheit bedient, aber in SEKUNDEN abgelegt.
+   Die Umrechnung passiert nur hier — sonst wandert sie in jede Rechnung. */
+function dauerSetzen(i, wert){
+  const u = editorPlan.uebungen[i];
+  u.dauer = begrenzen(inSekunden(parseFloat(wert) || 0, u.zeitEinheit), 5, MAX_DAUER_S);
+  editorZeichnen();
+}
+function dauerStufe(i, richtung){
+  const u = editorPlan.uebungen[i];
+  const e = zeitEinheit(u.zeitEinheit);
+  /* In SEKUNDEN rechnen, nicht über den Anzeigewert:
+     inEinheit() rundet auf zwei Stellen (1860 s -> 0,52 h). Ginge die
+     Rechnung über diesen Wert, würde jeder Tastendruck die Dauer um den
+     Rundungsfehler verschieben — aus +0,25 h würden 912 s statt 900. */
+  u.dauer = begrenzen(Math.round(u.dauer + richtung * e.schritt * e.faktor), 5, MAX_DAUER_S);
+  editorZeichnen();
+}
+/** Einheit wechseln ändert die DAUER nicht — 90 s bleiben 90 s, sie heißen
+    danach nur 1,5 min. Alles andere wäre eine stille Datenänderung. */
+function zeitEinheitSetzen(i, einheitId){
+  editorPlan.uebungen[i].zeitEinheit = einheitId;
+  editorZeichnen();
+}
+
 function editorMehrUmschalten(i){ editorMehr[i] = !editorMehr[i]; editorZeichnen(); }
 function feld(i, schluessel, wert, istZahl){
   editorPlan.uebungen[i][schluessel] = istZahl ? (parseFloat(wert) || 0) : wert;
@@ -3628,7 +3834,8 @@ function editorSpeichern(){
   editorPlan.uebungen.forEach(u => {
     u.saetze = begrenzen(Math.round(u.saetze), 1, 20);
     u.pause  = begrenzen(Math.round(u.pause), 10, 600);
-    u.dauer  = begrenzen(Math.round(u.dauer), 5, 600);
+    u.dauer  = begrenzen(Math.round(u.dauer), 5, MAX_DAUER_S);   // bis 6 h — Lauf, Wanderung, Turnier
+    if(!u.zeitEinheit) u.zeitEinheit = "s";
     u.wdhMin = Math.max(1, Math.round(u.wdhMin));
     u.wdhMax = Math.max(u.wdhMin, Math.round(u.wdhMax));
     u.wdh    = begrenzen(Math.round(u.wdh), u.wdhMin, u.wdhMax);
@@ -3690,7 +3897,7 @@ function klassischerAblauf(plan){
         schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
           ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
         schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
-          ansage: u.dauer + " Sekunden. Los." });
+          ansage: zeitAnsage(u.dauer, u.zeitEinheit) + ". Los." });
       } else {
         schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
           ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
@@ -3726,7 +3933,7 @@ function zirkelAblauf(plan){
         schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
           ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
         schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
-          ansage: u.dauer + " Sekunden. Los." });
+          ansage: zeitAnsage(u.dauer, u.zeitEinheit) + ". Los." });
       } else {
         schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
           ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
@@ -3792,7 +3999,7 @@ function vorschauZeichnen(){
       const u = p.uebungen[schritt.uebungIndex];
       titel = u.name;
       unter = "Satz " + schritt.satz + "/" + u.saetze + " · " +
-              (u.modus === "zeit" ? u.dauer + " s" : u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : ""));
+              (u.modus === "zeit" ? zeitKurz(u.dauer, u.zeitEinheit) : u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : ""));
     }
     return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +
            '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span></div>';
@@ -3952,7 +4159,7 @@ function countdownTicken(){
   const restMs = lauf.ende - Date.now();
   const rest = Math.max(0, Math.ceil(restMs / 1000));
   const zahl = document.getElementById("uhr-zahl");
-  zahl.textContent = Math.floor(rest/60) + ":" + String(rest % 60).padStart(2,"0");
+  zahl.textContent = uhrText(rest);   // ab 1 h mit Stundenfeld — "125:30" liest niemand als zwei Stunden
   zahl.classList.toggle("gleich", rest <= 3 && rest > 0);
   gesamtBalkenZeichnen(begrenzen(1 - restMs / (lauf.dauer * 1000), 0, 1));
   if(restMs <= 0){

@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.028 / APP_VERSION 28**.
+> als Paket hochgeladen. Stand: **Version 0.029 / APP_VERSION 29**.
 
 ---
 
@@ -94,11 +94,11 @@ daten = {
   protokoll:   [ { datum, plan, sportart, sonder, dauerMin,   // v25: sportart+sonder für den Kalender
                    saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
-  ziele:       [ { id, uebung, wdh, datum } ],
+  ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
   plaene:      [ { id, name, sportart:"kraft"|…, tage:[1..7],     // tage ist DIE Wahrheit; tag (v25) liegt tot daneben
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
-                   uebungen:[ { id, name, modus:"wdh"|"zeit", saetze, wdh, wdhMin, wdhMax,
+                   uebungen:[ { id, name, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
   einrichtung: { sportarten:["kraft"], ort, geraete:[], geraeteProOrt:{}, erfahrung, ziel,
                  wochentage:[], dauer, fokus, bonus:[] },   // ab v23 IMMER da (datenNachruesten legt sie an)
@@ -118,10 +118,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 28;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.028" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 29;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.029" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v28"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v29"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -249,6 +249,28 @@ iPadOS 13+ meldet sich als Macintosh — nur `maxTouchPoints > 1` unterscheidet 
 **Testfalle:** Node bringt ein eigenes `navigator` mit, als Getter OHNE Setter. `globalThis.navigator = {…}`
 schlägt im Test **still** fehl — alles wird dann „andere“. `Object.defineProperty` nutzen.
 
+## 8d. Zeiteinheiten & Ziele (v29)
+
+**Zeit wird IMMER in Sekunden gespeichert** (`u.dauer`). `u.zeitEinheit` (`s`/`min`/`h`) sagt nur, wie
+angezeigt und eingegeben wird — sonst müsste jede Rechnung die Einheit mitschleppen. Obergrenze
+`MAX_DAUER_S = 6 h` (vorher hart 600 s = 10 min; ein 30-min-Tischtennistraining war schlicht nicht
+eintragbar). Einheit wechseln ändert die Dauer **nicht** — 90 s heißen danach 1,5 min.
+
+> **Falle, teuer bezahlt:** `inEinheit()` rundet auf zwei Stellen (1860 s → 0,52 h). Nie damit rechnen!
+> `dauerStufe()` addiert deshalb in **Sekunden** (`schritt * faktor`). Über den Anzeigewert gerechnet
+> hätte jeder Tastendruck die Dauer um den Rundungsfehler verschoben — der Test hat es gefangen.
+
+Uhr: `uhrText()` zeigt ab 1 h `h:mm:ss` („125:30“ liest niemand als zwei Stunden).
+Ansage: `zeitAnsage()` sagt „30 Minuten“, nicht „1800 Sekunden“.
+
+**Ziele** hängen an einer Übung, die **wirklich in einem Plan steht** (`planUebungen()`), sonst gäbe es
+weder Ist-Stand noch Einschätzung — ohne Plan ist der +-Knopf aus. `zielArten(u)` leitet die möglichen
+Ziel-Arten aus der Übung ab: Zeit-Übung → nur Dauer in **ihrer** Einheit; Wdh-Übung → Wiederholungen,
+und Gewicht nur, wenn `gewichtSchritt > 0` (Liegestütze haben kein Gewicht). Die Steigerungsraten in
+`zielEinschaetzen()` stammen aus `progressionAnwenden()` — dieselbe Regel, die die App wirklich anwendet.
+`zielInPlan()` **kopiert** die vorhandene Übung (eigene ID, leere Notenhistorie), statt eine neue zu bauen —
+nur so stimmen Modus, Zeiteinheit und Gewichte.
+
 ## 9. Fachliche Regeln (belegt recherchiert)
 
 **Progression** (die EINZIGE Stelle: `progressionAnwenden()`):
@@ -316,6 +338,7 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
   4. `migr.js` — Altdaten jeder Generation (v22/v25/v26) + Idempotenz
   5. `flow.js` — kompletter Durchlauf mit DOM-Ersatz: Konto → Wizard → Vorschau → Training →
      Bewertung → Sicherung raus/rein → Systemtexte → Kalender → Filter (57 Prüfungen)
+  6. `ziel.js` — Zeiteinheiten, Editor-Zeitfeld, Ziele, Einschätzung, Migration (55 Prüfungen)
   Diese Kette hat mehrfach echte Fehler gefunden — zuletzt einen, den ich selbst gerade eingebaut hatte.
 
 **Test-Fallen, teuer erkauft:**
@@ -325,6 +348,8 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 * `hauptKnopf()` beginnt mit `tippGesperrt()` (350 ms). Im Test `tippGesperrt = () => false` setzen.
 * `speichern()` ist fire-and-forget. Vor `sicherungDatei()` einmal `await sitzungSpeichern()`.
 * `connect()` im Audio-Ersatz muss das Ziel **zurückgeben** (Kettenaufruf).
+* **Keine kurzen Marker gegen Chiffrate testen.** „182“ trifft im Base64 rein zufällig (~1 % pro Lauf) —
+  der Test flackerte. Marker mit Umlaut nehmen: die kann Base64 gar nicht enthalten.
 * Kurze, technische Erklärungen — „der allwissende gute Lehrer". Keine Textwände.
 * Ehrlich sein, wenn etwas nicht geht (iOS-Grenzen) oder wenn ich falsch lag
   (Bottom-Navigation: erst abgelehnt, nach Recherche revidiert).
