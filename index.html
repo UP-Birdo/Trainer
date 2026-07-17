@@ -21,7 +21,7 @@
   --signal:#F2C14E; --rest:#3E8FD6; --warn:#C8553D;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 html,body{margin:0;height:100%;overscroll-behavior:none}
 /* Während des Trainings: Seite komplett festnageln — kein Scrollen, kein Wippen.
    Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
@@ -137,7 +137,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
   background:var(--panel);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
-#nav button{flex:1;background:transparent;border-radius:0;min-height:56px;font-size:11px;
+#nav button{flex:1;background:transparent;border-radius:0;min-height:56px;font-size:10px;
   font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 #nav button .sym{font-size:18px;line-height:1}
@@ -176,6 +176,16 @@ body:not(.nav-an) #nav{display:none}
 .wz-opt.gewaehlt small{color:var(--muted)}
 .wz-raster{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
+
+/* Aktionsmenü (langes Drücken auf eine Plan-Karte) */
+#menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+  align-items:flex-end;justify-content:center;padding:16px;z-index:11}
+#menue-hintergrund.offen{display:flex}
+#menue{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px;max-width:420px;width:100%}
+#menue h2{margin-bottom:12px}
+#menue button{width:100%;margin-bottom:8px;text-align:left}
+.karte.gedrueckt{border-color:var(--signal)}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:22px;height:22px;min-height:22px;border-radius:50%;padding:0;font-size:12px;
@@ -311,12 +321,77 @@ body:not(.nav-an) #nav{display:none}
   </div>
   <div id="plan-liste"></div>
   <div class="knopfreihe">
-    <button class="primaer" onclick="planAnlegen()">Plan anlegen</button>
+    <button class="primaer" onclick="einrichtungOeffnen()">🪄 Trainingsplanung</button>
   </div>
+  <div class="knopfreihe">
+    <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
+  </div>
+  <div class="meta" style="margin-top:14px;text-align:center">Plan lange gedrückt halten für Bearbeiten, Verschieben und Löschen.</div>
 </section>
 
 <!-- ============================================================
-     Ansicht: Profil & Statistik
+     Ansicht: Statistik (Serie, Kalender, Volumen, Körpergewicht)
+     ============================================================ -->
+<section id="view-statistik" class="view">
+  <div class="kopf"><h1>Statistik</h1></div>
+  <div class="karte">
+    <div class="zeile">
+      <div>
+        <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
+        <div class="kennzahl-label">Trainings-Serie</div>
+      </div>
+    </div>
+    <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
+    <div id="kalender" class="kalender"></div>
+    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile">
+      <h2>Körpergewicht</h2>
+      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
+    </div>
+    <div id="gewicht-formular" hidden>
+      <div class="raster abstand">
+        <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
+        <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
+      </div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
+    </div>
+    <div id="gewicht-info" class="meta abstand"></div>
+    <div id="gewicht-diagramm" class="abstand"></div>
+    <div id="gewicht-liste" class="abstand"></div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile"><h2 id="volumen-titel">Volumen</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-volumen')" aria-label="Info">i</button></div>
+    <div id="info-volumen" class="meta info-text" hidden>Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10). Es geht um den Trend, nicht um Präzision.</div>
+    <div id="volumen-diagramm" class="abstand"></div>
+  </div>
+
+  <div class="karte">
+    <h2>Trainings</h2>
+    <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
+
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Gut zu wissen (Regelwerk der App)
+     ============================================================ -->
+<section id="view-wissen" class="view">
+  <div class="kopf">
+    <h1>Gut zu wissen</h1>
+    <button class="schmal" onclick="zeige('view-einstellungen')">Zurück</button>
+  </div>
+  <div id="wissen-inhalt"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Profil
      ============================================================ -->
 <section id="view-profil" class="view">
   <div class="kopf"><h1>Profil</h1></div>
@@ -332,18 +407,6 @@ body:not(.nav-an) #nav{display:none}
       <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
     </select>
     <div class="knopfreihe"><button class="schmal" onclick="profilSpeichern()">Profil speichern</button></div>
-  </div>
-
-  <div class="karte">
-    <div class="zeile">
-      <div>
-        <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
-        <div class="kennzahl-label">Trainings-Serie</div>
-      </div>
-    </div>
-    <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
-    <div id="kalender" class="kalender"></div>
-    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
   </div>
 
   <div class="karte">
@@ -364,37 +427,9 @@ body:not(.nav-an) #nav{display:none}
   </div>
 
   <div class="karte">
-    <div class="zeile"><h2>Volumen pro Woche</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-volumen')" aria-label="Info">i</button></div>
-    <div id="info-volumen" class="meta info-text" hidden>Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10). Es geht um den Trend, nicht um Präzision.</div>
-    <div id="volumen-diagramm" class="abstand"></div>
-  </div>
-
-  <div class="karte">
-    <div class="zeile">
-      <h2>Körpergewicht</h2>
-      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
-    </div>
-    <div id="gewicht-formular" hidden>
-      <div class="raster abstand">
-        <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
-        <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
-      </div>
-      <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
-    </div>
-    <div id="gewicht-diagramm" class="abstand"></div>
-    <div id="gewicht-liste" class="abstand"></div>
-  </div>
-
-  <div class="karte">
-    <h2>Trainings</h2>
-    <div id="protokoll-liste" class="meta abstand">–</div>
-  </div>
-
-  <div class="karte">
     <div class="zeile"><h2>Meine Geräte</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-geraete')" aria-label="Info">i</button></div>
-    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
+    <div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen. Neue Geräte angetippt? Dann erscheint ein Knopf, der passende Übungen in deine automatischen Pläne einbaut.</div>
     <div id="profil-ort" class="note abstand"></div>
     <div id="profil-geraete"></div>
     <div id="geraete-neu-knopf"></div>
@@ -452,14 +487,8 @@ body:not(.nav-an) #nav{display:none}
   </div>
 
   <div class="karte">
-    <div class="zeile"><h2>Gut zu wissen</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-wissen')" aria-label="Info">i</button></div>
-    <div id="info-wissen" class="meta info-text" hidden>
-      <strong style="color:var(--chalk)">App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen auf diesem Gerät.<br>
-      <strong style="color:var(--chalk)">Neues Handy oder Safari-Daten gelöscht?</strong> Auf dem Anmeldebildschirm „Sicherung wiederherstellen“ und die Datei trainer-sicherung-….json wählen.<br>
-      <strong style="color:var(--chalk)">Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den notierten Wiederherstellungscode eingeben.<br>
-      <strong style="color:var(--chalk)">Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — das ist der Preis der Verschlüsselung.
-    </div>
+    <h2>Hilfe</h2>
+    <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">📖 Gut zu wissen &amp; Regelwerk</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -575,9 +604,19 @@ body:not(.nav-an) #nav{display:none}
 <!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
 <nav id="nav">
   <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym">▤</span>Pläne</button>
+  <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym">▦</span>Statistik</button>
   <button id="nav-profil" onclick="navGehe('profil')"><span class="sym">◉</span>Profil</button>
   <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym">⚙</span>Mehr</button>
 </nav>
+
+<!-- Aktionsmenü für langes Drücken -->
+<div id="menue-hintergrund" onclick="menueSchliessen(event)">
+  <div id="menue" role="dialog" aria-modal="true">
+    <h2 id="menue-titel">–</h2>
+    <div id="menue-knoepfe"></div>
+    <button class="schmal" onclick="menueSchliessen()">Abbrechen</button>
+  </div>
+</div>
 
 <!-- Eigener Dialog -->
 <div id="dialog-hintergrund">
@@ -974,7 +1013,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -984,6 +1023,11 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
+  if(daten.einrichtung && !daten.einrichtung.geraeteProOrt){
+    // Geräte werden ab jetzt PRO ORT gemerkt — Bestand auf den aktuellen Ort übernehmen
+    daten.einrichtung.geraeteProOrt = {};
+    if(daten.einrichtung.ort) daten.einrichtung.geraeteProOrt[daten.einrichtung.ort] = (daten.einrichtung.geraete || []).slice();
+  }
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
     if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
@@ -1461,15 +1505,15 @@ function planListeZeichnen(){
     }
     const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
                    (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
-    return '<div class="karte">' +
+    return '<div class="karte" data-plan="' + p.id + '">' +
       '<h2>' + text(p.name) + '</h2>' +
       '<div class="meta">' + p.uebungen.length + ' Übungen · ' + saetze + ' Sätze' + zusatz +
       (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
-        '<button class="primaer" onclick="trainingStarten(\'' + p.id + '\')" style="flex:3">Start</button>' +
-        '<button class="schmal" onclick="editorOeffnen(\'' + p.id + '\')">Bearbeiten</button>' +
+        '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">Start</button>' +
       '</div></div>';
   }).join("");
+  langdruckEinrichten();
 }
 
 function beispielLaden(){
@@ -1487,6 +1531,88 @@ function planDuplizieren(planId){
   sitzung.daten.plaene.push(kopie);
   speichern();
   planListeZeichnen();
+}
+
+/* ============================================================
+   #region Aktionsmenü & langes Drücken
+   Langes Drücken (500 ms) auf eine Plan-Karte öffnet das Menü.
+   Ein normaler Tipp auf "Start" wird davon nicht gestört, weil der
+   Knopf sein eigenes onclick behält und wir bei Bewegung abbrechen.
+   ============================================================ */
+let menueAktionen = [];
+
+function aktionsMenue(titel, aktionen){
+  menueAktionen = aktionen;
+  document.getElementById("menue-titel").textContent = titel;
+  document.getElementById("menue-knoepfe").innerHTML = aktionen.map((a, i) =>
+    '<button class="' + (a.stil || "") + '" onclick="menueKlick(' + i + ')">' + a.text + '</button>').join("");
+  document.getElementById("menue-hintergrund").classList.add("offen");
+}
+function menueKlick(i){
+  document.getElementById("menue-hintergrund").classList.remove("offen");
+  menueAktionen[i].tun();
+}
+function menueSchliessen(e){
+  if(e && e.target.id !== "menue-hintergrund") return;   // Klick INS Menü schließt nicht
+  document.getElementById("menue-hintergrund").classList.remove("offen");
+}
+
+function planMenue(planId){
+  const plaene = sitzung.daten.plaene;
+  const index = plaene.findIndex(p => p.id === planId);
+  const plan = plaene[index];
+  const aktionen = [
+    { text:"✏️ Bearbeiten", tun:() => editorOeffnen(planId) },
+    { text:"⧉ Duplizieren", tun:() => planDuplizieren(planId) }
+  ];
+  if(index > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
+  if(index < plaene.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => planSchieben(planId, 1) });
+  aktionen.push({ text:"🗑 Löschen", stil:"gefahr", tun:() => planLoeschenById(planId) });
+  aktionsMenue(plan.name, aktionen);
+}
+
+function planSchieben(planId, richtung){
+  const liste = sitzung.daten.plaene;
+  const i = liste.findIndex(p => p.id === planId);
+  const ziel = i + richtung;
+  if(ziel < 0 || ziel >= liste.length) return;
+  [liste[i], liste[ziel]] = [liste[ziel], liste[i]];
+  speichern();
+  planListeZeichnen();
+}
+
+function planLoeschenById(planId){
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  frage("Plan „" + plan.name + "“ wirklich löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== planId);
+    speichern();
+    planListeZeichnen();
+  });
+}
+
+/** Hängt an jede Plan-Karte die Langdruck-Erkennung. */
+function langdruckEinrichten(){
+  document.querySelectorAll("[data-plan]").forEach(karte => {
+    let timer = null, startY = 0;
+    const abbrechen = () => { clearTimeout(timer); karte.classList.remove("gedrueckt"); };
+    karte.addEventListener("touchstart", e => {
+      startY = e.touches[0].clientY;
+      karte.classList.add("gedrueckt");
+      timer = setTimeout(() => {
+        karte.classList.remove("gedrueckt");
+        if(navigator.vibrate) navigator.vibrate(15);          // kurzes Feedback, wo unterstützt
+        planMenue(karte.dataset.plan);
+      }, 500);
+    }, { passive:true });
+    karte.addEventListener("touchmove", e => {
+      if(Math.abs(e.touches[0].clientY - startY) > 8) abbrechen();   // Scrollen ist kein Langdruck
+    }, { passive:true });
+    karte.addEventListener("touchend", abbrechen, { passive:true });
+    karte.addEventListener("touchcancel", abbrechen, { passive:true });
+    // Maus/Desktop: Rechtsklick öffnet dasselbe Menü
+    karte.addEventListener("contextmenu", e => { e.preventDefault(); planMenue(karte.dataset.plan); });
+  });
 }
 
 /* ============================================================
@@ -1510,18 +1636,86 @@ function profilOeffnen(){
   document.getElementById("profil-groesse").value = d.profil.groesse || "";
   document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
-  document.getElementById("gewicht-formular").hidden = true;
   document.getElementById("ziel-formular").hidden = true;
-  if(!sitzung.daten.einrichtung) sitzung.daten.einrichtung = { geraete:[] };
-  geraeteVorher = (sitzung.daten.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
+  if(!d.einrichtung) d.einrichtung = { geraete:[] };
+  geraeteVorher = (d.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
   geraeteKarteZeichnen();
+  zieleZeichnen();
+  zeige("view-profil");
+}
+
+function statistikOeffnen(){
+  document.getElementById("gewicht-formular").hidden = true;
   kennzahlenZeichnen();
   kalenderZeichnen();
-  zieleZeichnen();
   volumenZeichnen();
   gewichtStatistikZeichnen();
   protokollZeichnen();
-  zeige("view-profil");
+  zeige("view-statistik");
+}
+
+/* Gut zu wissen: das Regelwerk der App an einem Ort — Doku, die beim
+   Nutzer wohnt statt in einem Chatverlauf. */
+function wissenOeffnen(){
+  const abschnitt = (titel, zeilen) =>
+    '<div class="karte"><h2>' + titel + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
+    zeilen.map(z => '• ' + z).join("<br>") + '</div></div>';
+  document.getElementById("wissen-inhalt").innerHTML =
+    abschnitt("Daten & Sicherheit", [
+      "<strong style='color:var(--chalk)'>App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen verschlüsselt auf diesem Gerät.",
+      "Deine Daten verlassen das Handy nie — es gibt keinen Server.",
+      "<strong style='color:var(--chalk)'>Passwort vergessen?</strong> Beim Anmelden „Passwort vergessen?“ und den Wiederherstellungscode eingeben.",
+      "<strong style='color:var(--chalk)'>Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — der Preis echter Verschlüsselung.",
+      "<strong style='color:var(--chalk)'>Neues Handy?</strong> Sicherung exportieren, auf dem neuen Gerät „Sicherung wiederherstellen“.",
+      "„Angemeldet bleiben“ legt den Schlüssel aufs Gerät — der Schutz ist dann die iPhone-Sperre. „Abmelden“ löscht ihn sofort."
+    ]) +
+    abschnitt("Bewertung & Progression", [
+      "Nach jedem Training bewertest du jede Übung von 1 bis 5.",
+      "<strong style='color:var(--chalk)'>1 = viel zu leicht</strong> → +2 Wdh, Pause −15 s",
+      "<strong style='color:var(--chalk)'>2 = leicht</strong> → +1 Wdh",
+      "<strong style='color:var(--chalk)'>3 = passend</strong> → nichts ändert sich",
+      "<strong style='color:var(--chalk)'>4 = schwer</strong> → Pause +15 s",
+      "<strong style='color:var(--chalk)'>5 = nicht geschafft</strong> → −1 Wdh, Pause +15 s",
+      "<strong style='color:var(--chalk)'>Double Progression:</strong> Wiederholungen steigen bis zur Obergrenze, dann geht das Gewicht hoch und die Wdh fallen auf die Untergrenze zurück.",
+      "<strong style='color:var(--chalk)'>Deload:</strong> Dreimal Note 5 in Folge → eine Stufe zurück und neuer Anlauf.",
+      "Zeit-Übungen (Plank): Note 1 → +15 s, Note 2 → +10 s, Note 5 → −10 s.",
+      "Pausen bleiben immer zwischen 30 und 300 Sekunden."
+    ]) +
+    abschnitt("Flamme & Serie", [
+      "Die Flamme zählt <strong style='color:var(--chalk)'>Trainings</strong> in ununterbrochener Serie — nicht Kalendertage.",
+      "<strong style='color:var(--chalk)'>Bis zu 2 Ruhetage am Stück</strong> kosten die Flamme nie. Erst mehr als 3 Tage Abstand reißen die Kette.",
+      "Ein Mo/Mi/Fr-Rhythmus läuft also dauerhaft durch.",
+      "Mehrere Trainings am selben Tag zählen als eines.",
+      "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos."
+    ]) +
+    abschnitt("Training", [
+      "<strong style='color:var(--chalk)'>Bildschirm bleibt an</strong> (Wake Lock) — die App muss im Vordergrund bleiben, sonst friert iOS sie ein.",
+      "Spotify zuerst starten, dann die App öffnen. Ansagen kommen über die Musik.",
+      "Der Piepton wird vorab auf dem Audio-Thread geplant und kommt auch bei gedrosseltem Browser pünktlich.",
+      "<strong style='color:var(--chalk)'>🏆 Rekord</strong> erscheint, wenn ein Satz alles bisherige übertrifft.",
+      "<strong style='color:var(--chalk)'>Zirkel:</strong> Runde für Runde je ein Satz pro Übung, Reihenfolge pro Runde neu gemischt.",
+      "Abbrechen verwirft das Training komplett — nichts wird protokolliert oder angepasst."
+    ]) +
+    abschnitt("Aufwärmen & Dehnen", [
+      "<strong style='color:var(--chalk)'>Vorher dynamisch</strong> (Marschieren, Kreisen, Schwingen) — bringt Muskeln auf Temperatur.",
+      "<strong style='color:var(--chalk)'>Nachher statisch</strong>, je 30 s halten, wenn die Muskeln warm sind.",
+      "Fachlicher Konsens: langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.",
+      "Pro Plan einzeln an- und abschaltbar (Plan bearbeiten → Bonus-Programme)."
+    ]) +
+    abschnitt("Statistik", [
+      "<strong style='color:var(--chalk)'>Volumen</strong> = Wdh × Gewicht. Körpergewichtsübungen zählen Wdh × 1, Zeit-Übungen Sekunden ÷ 10.",
+      "Die Kurve zoomt automatisch heraus: bis 12 Wochen Wochenbalken, danach Monatsbalken.",
+      "Gelbe Punkte in der Gewichtskurve = an dem Tag wurde trainiert.",
+      "Ziele rechnen mit ~1 Wdh Fortschritt pro Einheit und den Plänen, in denen die Übung vorkommt."
+    ]) +
+    abschnitt("Pläne & Geräte", [
+      "Plan-Karte <strong style='color:var(--chalk)'>lange gedrückt halten</strong> → Bearbeiten, Duplizieren, Verschieben, Löschen.",
+      "Die Trainingsplanung baut Pläne aus deinen Antworten — selbst gebaute Pläne bleiben dabei immer erhalten.",
+      "Startgewichte sind bewusst vorsichtig: zu leicht korrigiert die Progression in 2–3 Trainings, zu schwer der Orthopäde.",
+      "Im Profil unter „Meine Geräte“ merkt sich die App die Auswahl <strong style='color:var(--chalk)'>pro Ort</strong> getrennt.",
+      "Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein."
+    ]);
+  zeige("view-wissen");
 }
 
 function profilSpeichern(){
@@ -1655,46 +1849,86 @@ function satzVolumen(s){
   return (s.wdh || 0) * (s.gewicht > 0 ? s.gewicht : 1);
 }
 
-/** Balkendiagramm: Volumen der letzten 12 Wochen. */
+/** Balkendiagramm Volumen — wächst mit den Daten:
+    Es beginnt beim ERSTEN Training (keine leeren Vorlaufwochen) und
+    zoomt automatisch heraus: bis 12 Wochen Wochenbalken, danach Monate. */
 function volumenZeichnen(){
   const ziel = document.getElementById("volumen-diagramm");
-  const proWoche = {};
-  sitzung.daten.protokoll.forEach(e => {
-    if(!Array.isArray(e.saetze)) return;   // alte Einträge ohne Satzdaten überspringen
-    const w = isoWoche(e.datum);
-    proWoche[w] = (proWoche[w] || 0) + e.saetze.reduce((s, satz) => s + satzVolumen(satz), 0);
-  });
-
-  // Die letzten 12 Wochenschlüssel bauen (auch leere Wochen anzeigen)
-  const wochen = [];
-  let datum = heuteAlsText();
-  for(let i = 0; i < 12; i++){ wochen.unshift(isoWoche(datum)); datum = tageVerschieben(datum, -7); }
-
-  const werte = wochen.map(w => Math.round(proWoche[w] || 0));
-  const max = Math.max(...werte, 1);
-  if(werte.every(v => v === 0)){
+  const titel = document.getElementById("volumen-titel");
+  const mitDaten = sitzung.daten.protokoll.filter(e => Array.isArray(e.saetze) && e.saetze.length);
+  if(mitDaten.length === 0){
+    titel.textContent = "Volumen";
     ziel.innerHTML = '<div class="meta">Noch keine Trainingsdaten. Nach dem ersten abgeschlossenen Training erscheint hier der Verlauf.</div>';
     return;
   }
 
-  const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / 12;
+  const erstes = mitDaten.map(e => e.datum).sort()[0];
+  const heute = heuteAlsText();
+  const wochen = Math.floor(tagDifferenz(erstes, heute) / 7) + 1;
+  const proMonat = wochen > 12;   // ab ~3 Monaten herauszoomen
+
+  // Werte je Zeitraum summieren
+  const summe = {};
+  mitDaten.forEach(e => {
+    const k = proMonat ? e.datum.slice(0,7) : isoWoche(e.datum);
+    summe[k] = (summe[k] || 0) + e.saetze.reduce((a, s) => a + satzVolumen(s), 0);
+  });
+
+  // Zeitachse vom ersten Training bis heute aufbauen (lückenlos, aber ohne Vorlauf)
+  const achse = [];
+  if(proMonat){
+    let d = new Date(erstes + "-01T12:00:00");
+    const ende = new Date(heute.slice(0,7) + "-01T12:00:00");
+    while(d <= ende){
+      const k = d.toISOString().slice(0,7);
+      achse.push([k, k.slice(5,7) + "/" + k.slice(2,4)]);
+      d.setMonth(d.getMonth() + 1);
+    }
+  } else {
+    let d = erstes;
+    while(tagDifferenz(d, heute) >= 0){
+      const k = isoWoche(d);
+      if(!achse.some(x => x[0] === k)) achse.push([k, "KW" + k.slice(-2)]);
+      d = tageVerschieben(d, 7);
+    }
+    const kJetzt = isoWoche(heute);
+    if(!achse.some(x => x[0] === kJetzt)) achse.push([kJetzt, "KW" + kJetzt.slice(-2)]);
+  }
+  const gezeigt = achse.slice(-12);   // nie mehr als 12 Balken — bleibt lesbar
+  titel.textContent = proMonat ? "Volumen pro Monat" : "Volumen pro Woche";
+
+  const werte = gezeigt.map(([k]) => Math.round(summe[k] || 0));
+  const max = Math.max(...werte, 1);
+  const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / gezeigt.length;
   let balken = "";
   werte.forEach((v, i) => {
-    const h = (v / max) * (H - 2*rand - 14);
+    const h = (v / max) * (H - 2*rand - 16);
     const x = rand + i * spalte + spalte * 0.15;
-    const istAktuell = i === 11;
+    const istAktuell = i === werte.length - 1;
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
       '" rx="2" fill="' + (istAktuell ? "var(--signal)" : "var(--rest)") + '"/>' +
       (v > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
-      '" fill="var(--muted)" font-size="10" font-family="var(--mono)" text-anchor="middle">' + v + '</text>' : '');
+      '" fill="var(--muted)" font-size="10" text-anchor="middle">' + v + '</text>' : '') +
+      '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
+      '" fill="var(--muted)" font-size="9" text-anchor="middle">' + gezeigt[i][1] + '</text>';
   });
-  ziel.innerHTML =
-    '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Wochenvolumen">' +
-    balken +
-    '<text x="' + rand + '" y="' + (H-6) + '" fill="var(--muted)" font-size="11" font-family="var(--mono)">vor 12 Wochen</text>' +
-    '<text x="' + (B-rand) + '" y="' + (H-6) + '" fill="var(--muted)" font-size="11" font-family="var(--mono)" text-anchor="end">diese Woche</text>' +
-    '</svg>';
+
+  // Trend: Durchschnitt der zweiten Hälfte gegen die erste
+  let trend = "";
+  if(werte.length >= 4){
+    const h = Math.floor(werte.length/2);
+    const alt = werte.slice(0,h).reduce((a,b)=>a+b,0) / h;
+    const neu = werte.slice(h).reduce((a,b)=>a+b,0) / (werte.length-h);
+    if(alt > 0){
+      const proz = Math.round((neu/alt - 1) * 100);
+      trend = '<div class="meta" style="margin-top:6px">Trend: ' + (proz >= 0 ? "+" : "") + proz +
+              ' % gegenüber dem Zeitraum davor</div>';
+    }
+  }
+
+  ziel.innerHTML = '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Volumenverlauf">' +
+    balken + '</svg>' + trend;
 }
 
 function gewichtFormularZeigen(){
@@ -1732,6 +1966,7 @@ function gewichtLoeschen(datum){
 
 /** Einfaches SVG-Liniendiagramm. Punkte an Trainingstagen sind gelb. */
 function gewichtStatistikZeichnen(){
+  gewichtInfoZeichnen();
   const diagramm = document.getElementById("gewicht-diagramm");
   const listeZiel = document.getElementById("gewicht-liste");
   const eintraege = sitzung.daten.gewichte;
@@ -1774,15 +2009,38 @@ function gewichtStatistikZeichnen(){
     '</div>').join("");
 }
 
+/** Kurze Info über der Kurve: aktuelles Gewicht, Größe, BMI, Veränderung. */
+function gewichtInfoZeichnen(){
+  const ziel = document.getElementById("gewicht-info");
+  const liste = sitzung.daten.gewichte;
+  const groesse = sitzung.daten.profil.groesse || 0;
+  if(liste.length === 0){ ziel.textContent = groesse ? "Größe " + groesse + " cm" : ""; return; }
+  const jetzt = liste[liste.length - 1];
+  const teile = [jetzt.kg.toFixed(1) + " kg (" + jetzt.datum.slice(8,10) + "." + jetzt.datum.slice(5,7) + ".)"];
+  if(groesse > 0){
+    const bmi = jetzt.kg / Math.pow(groesse/100, 2);
+    teile.push(groesse + " cm");
+    teile.push("BMI " + bmi.toFixed(1));
+  }
+  if(liste.length >= 2){
+    const diff = jetzt.kg - liste[0].kg;
+    teile.push((diff >= 0 ? "+" : "") + diff.toFixed(1) + " kg seit " + liste[0].datum.slice(0,7));
+  }
+  ziel.textContent = teile.join("  ·  ");
+}
+
 function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
+  // Zwei Zeilen je Eintrag: auf dem Handy passt "Datum · Plan · Dauer · Sätze" nicht nebeneinander
   document.getElementById("protokoll-liste").innerHTML =
     p.length === 0 ? "Noch kein Training abgeschlossen." :
     p.slice().reverse().slice(0,15).map(e =>
-      e.datum + " · " + text(e.plan) +
-      (e.dauerMin ? " · " + e.dauerMin + " min" : "") +
-      (Array.isArray(e.saetze) ? " · " + e.saetze.length + " Sätze" : "")
-    ).join("<br>");
+      '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+      '<div style="color:var(--chalk)">' + text(e.plan) + '</div>' +
+      '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) +
+        (e.dauerMin ? " · " + e.dauerMin + " min" : "") +
+        (Array.isArray(e.saetze) ? " · " + e.saetze.length + " Sätze" : "") + '</div></div>'
+    ).join("");
 }
 
 /* ============================================================
@@ -2078,7 +2336,8 @@ function einrichtungOeffnen(){
     wochentage: (alt.wochentage || []).slice(),
     dauer: alt.dauer || "mittel",
     fokus: alt.fokus || "keiner",
-    bonus: (alt.bonus || ["aufwaermen","dehnen"]).slice()
+    bonus: (alt.bonus || ["aufwaermen","dehnen"]).slice(),
+    geraeteProOrt: JSON.parse(JSON.stringify(alt.geraeteProOrt || {}))
   };
   wzSchritt = 0;
   wzZeichnen();
@@ -2146,9 +2405,12 @@ function wzSingle(id, wert){
   einrichtung[id] = wert;
   // Ortswechsel: Geräte auf sinnvolle Vorauswahl setzen und Unpassendes entfernen
   if(id === "ort"){
+    if(!einrichtung.geraeteProOrt) einrichtung.geraeteProOrt = {};
+    einrichtung.geraete = einrichtung.geraeteProOrt[wert]
+      ? einrichtung.geraeteProOrt[wert].slice()
+      : (wert === "gym" ? gymStandardGeraete() : []);
     const moeglich = geraeteFuerOrt(wert).map(g => g.id);
-    if(wert === "gym" && einrichtung.geraete.length === 0) einrichtung.geraete = gymStandardGeraete();
-    else einrichtung.geraete = einrichtung.geraete.filter(g => moeglich.includes(g));
+    einrichtung.geraete = einrichtung.geraete.filter(g => moeglich.includes(g));
   }
   wzZeichnen();
   setTimeout(() => { wzSchritt++; wzZeichnen(); }, 180);
@@ -2158,6 +2420,10 @@ function wzMulti(id, wert){
   const pos = liste.indexOf(wert);
   if(pos >= 0) liste.splice(pos, 1); else liste.push(wert);
   if(id === "wochentage") liste.sort((a,b) => a - b);
+  if(id === "geraete"){
+    if(!einrichtung.geraeteProOrt) einrichtung.geraeteProOrt = {};
+    einrichtung.geraeteProOrt[einrichtung.ort || "zuhause"] = liste.slice();
+  }
   wzZeichnen();
 }
 function wzBonus(wert){
@@ -2346,7 +2612,8 @@ function plaeneErstellen(){
     sitzung.daten.einrichtung = {
       ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
       ziel:einrichtung.ziel, wochentage:einrichtung.wochentage.slice(),
-      dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice()
+      dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice(),
+      geraeteProOrt: JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}))
     };
     speichern();
     planListeZeichnen();
@@ -2605,20 +2872,37 @@ function geraeteKarteZeichnen(){
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
 }
 
+/** Ortswechsel: Die Auswahl wird NICHT übernommen. Jeder Ort hat sein
+    eigenes Gedächtnis (geraeteProOrt) — zuhause ausgewählte Kurzhanteln
+    machen im Gym-Profil nichts gelb und umgekehrt. Nur beim allerersten
+    Besuch eines Orts gibt es eine Vorauswahl (Gym: Standardausstattung). */
 function profilOrtSetzen(ort){
   const e = sitzung.daten.einrichtung;
+  if(!e.geraeteProOrt) e.geraeteProOrt = {};
+  if(e.ort) e.geraeteProOrt[e.ort] = (e.geraete || []).slice();   // aktuellen Ort sichern
+
   e.ort = ort;
+  if(e.geraeteProOrt[ort]){
+    e.geraete = e.geraeteProOrt[ort].slice();                     // bekannter Ort -> genau seine Auswahl
+  } else {
+    e.geraete = (ort === "gym") ? gymStandardGeraete() : [];      // neuer Ort -> sinnvolle Vorauswahl
+    e.geraeteProOrt[ort] = e.geraete.slice();
+  }
+  // Sicherheitsnetz: nichts anzeigen, was es an diesem Ort nicht gibt
   const moeglich = geraeteFuerOrt(ort === "eigene" ? "zuhause" : ort).map(g => g.id);
-  if(ort === "gym" && e.geraete.length === 0) e.geraete = gymStandardGeraete();
-  else e.geraete = e.geraete.filter(g => moeglich.includes(g));
+  e.geraete = e.geraete.filter(g => moeglich.includes(g));
+  e.geraeteProOrt[ort] = e.geraete.slice();
   speichern();
   geraeteKarteZeichnen();
 }
 
 function profilGeraetUmschalten(id){
-  const liste = sitzung.daten.einrichtung.geraete;
+  const e = sitzung.daten.einrichtung;
+  const liste = e.geraete;
   const pos = liste.indexOf(id);
   if(pos >= 0) liste.splice(pos, 1); else liste.push(id);
+  if(!e.geraeteProOrt) e.geraeteProOrt = {};
+  e.geraeteProOrt[e.ort || "zuhause"] = liste.slice();            // Gedächtnis des Orts mitführen
   speichern();
   geraeteKarteZeichnen();
 }
@@ -3168,17 +3452,19 @@ function danachZeichnen(){
    ============================================================ */
 function navGehe(bereich){
   if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
+  else if(bereich === "statistik") statistikOeffnen();
   else if(bereich === "profil") profilOeffnen();
   else einstellungenOeffnen();
 }
 
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
-  const bereiche = { "view-plaene":"nav-plaene", "view-profil":"nav-profil", "view-einstellungen":"nav-einst",
+  const bereiche = { "view-plaene":"nav-plaene", "view-statistik":"nav-statistik", "view-profil":"nav-profil",
+                     "view-einstellungen":"nav-einst", "view-wissen":"nav-einst",
                      "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene" };
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
-  ["nav-plaene","nav-profil","nav-einst"].forEach(k =>
+  ["nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
     document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
 }
 
