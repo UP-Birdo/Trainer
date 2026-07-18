@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.047 / APP_VERSION 47**.
+> als Paket hochgeladen. Stand: **Version 0.048 / APP_VERSION 48**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 47;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.047" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 48;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.048" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v47"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v48"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,30 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v48 — Nav-Leiste als Flex-Layout (echter Fix) + Versions-Knopf statt Wasserzeichen
+
+**Wurzel des Nav-Problems gefunden:** `#nav{position:fixed;bottom:0}` sitzt auf iOS auf **nicht-scrollenden**
+Seiten (Heute/Pläne/Profil — passen ohne Scroll) über der System-/Safari-Leiste; auf scrollenden (Statistik/
+Mehr) stimmt es. `min-height` half nie, weil es am Fixed-Positioning lag. **Umbau:**
+* Alle Views stecken jetzt in einem Wrapper **`<div id="inhalt">`** (direkt nach `<body>`, schließt vor `<nav>`;
+  die Overlays `#menue-hintergrund`/`#dialog-hintergrund` sind `position:fixed` und bleiben außerhalb).
+* `body{display:flex;flex-direction:column;height:100dvh}`, untere Safe-Area vom body genommen (die Bar hat sie).
+* `#inhalt{flex:1;min-height:0;overflow-y:auto}` — scrollt intern.
+* `#nav` ist **nicht mehr `fixed`**, sondern `flex-shrink:0` als Flex-Geschwister UNTER `#inhalt` → immer unten,
+  egal ob die Seite scrollt. `body:not(.nav-an) #nav{display:none}` bleibt (Training/Login/Wizard).
+* Die alten `min-height`/`padding-bottom`-Regeln sind entfernt.
+
+**Wasserzeichen raus (Nutzerwunsch „vergiss das Wasserzeichen"):** `.wasserzeichen{display:none}` global. Dafür
+ein **Versions-Knopf** unter Mehr → Hilfe: Label „Version 0.0NN · JKB" (in `einstellungenOeffnen` gefüllt),
+Tippen zeigt `versionInfo()` (Version · Datum · JKB).
+
+> **Wichtig — auf dem Gerät prüfen:** grundlegender Layout-Umbau. Bitte testen: Leiste unten auf Heute/Pläne/
+> Profil (kurze Seiten) UND Statistik/Mehr (lange); internes Scrollen; Training/Login/Wizard (Vollbild ohne
+> Leiste); Sportart-Seite. `node --check` + Struktur (19 Views im Wrapper) + alle Regressionen grün, aber
+> Layout kann jsdom nicht rendern.
+
+---
 
 ### v47 — Nav-Leiste richtig fixiert + Mehrfachauswahl von Plänen
 

@@ -38,7 +38,10 @@ body.training-fest{position:fixed;inset:0;width:100%;overflow:hidden}
 body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   font-size:16px;-webkit-text-size-adjust:100%;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  display:flex;flex-direction:column;height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+/* Scrollender Inhaltsbereich; die Nav-Leiste liegt als Flex-Geschwister darunter. */
+#inhalt{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
 .view{display:none;padding:20px 16px 32px;max-width:640px;margin:0 auto}
 .view.aktiv{display:block}
 h1{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0}
@@ -153,7 +156,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 
 /* Bottom-Navigation: Kernbereiche in der Daumenzone (unteres Drittel).
    Ausgeblendet in Training/Login/Wizard — dort zählt jede Fläche. */
-#nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
+#nav{flex-shrink:0;z-index:6;display:flex;
   background:var(--panel);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
 #nav button{flex:1;background:transparent;border-radius:0;height:var(--navhoehe);min-height:0;
@@ -163,24 +166,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 #nav button .sym{font-size:18px;line-height:1}
 #nav button .sym svg{width:23px;height:23px;display:block}
 #nav button.aktiv{color:var(--signal)}
-/* Freiraum unter dem letzten Element = Nav-Höhe + Luft, damit Inhalt nicht
-   hinter der fixen Leiste verschwindet. Die Leiste selbst ist immer `fixed`
-   unten — sie braucht KEIN Flex/min-height auf den Views (das drückte v41/v42
-   Unterseiten zusammen und verschluckte das Wasserzeichen). v45: rückgängig. */
-body.nav-an .view.aktiv{padding-bottom:calc(var(--navhoehe) + 24px)}
-/* NUR die 5 Haupt-Tabs füllen den Schirm (min-height), damit die fixe Leiste
-   sicher ganz unten sitzt — ohne das kroch sie auf kurzen Seiten (Heute/Profil)
-   hoch. Unterseiten (Sportart, Editor, Verlauf …) bleiben AUSSEN VOR, sonst
-   werden sie gestreckt/gequetscht (der v45-Fehler). */
-body.nav-an #view-start.aktiv,
-body.nav-an #view-plaene.aktiv,
-body.nav-an #view-statistik.aktiv,
-body.nav-an #view-profil.aktiv,
-body.nav-an #view-einstellungen.aktiv{min-height:calc(100dvh - var(--navhoehe))}
-/* Wasserzeichen (Version/Datum): nur unter "Mehr"/Einstellungen sichtbar,
-   dort im normalen Fluss ganz unten. Sonst überall aus. */
-.view .wasserzeichen{display:none}
-#view-einstellungen .wasserzeichen{display:block}
+/* Das Wasserzeichen ist raus (v48) — die Version steht jetzt als Knopf unter
+   Mehr → Hilfe. Alle .wasserzeichen-Elemente bleiben im DOM, aber ausgeblendet. */
+.wasserzeichen{display:none}
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
@@ -291,6 +279,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </style>
 </head>
 <body>
+<div id="inhalt"><!-- v48: scrollender Inhaltsbereich; die Nav-Leiste liegt als
+     Flex-Geschwister DARUNTER (nicht mehr position:fixed) — behebt, dass die
+     Leiste auf nicht-scrollenden Seiten (Heute/Pläne/Profil) hochkroch. -->
 
 <!-- ============================================================
      Ansicht: Anmeldung
@@ -620,6 +611,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <h2>Hilfe</h2>
     <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">📖 Gut zu wissen &amp; Regelwerk</button></div>
     <div class="knopfreihe abstand"><button class="schmal" onclick="neuigkeitenOeffnen()">✨ Neuigkeiten (Was ist neu?)</button></div>
+    <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="versionInfo()">Version</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -834,6 +826,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 
+
+</div><!-- /#inhalt -->
 
 <!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
 <nav id="nav">
@@ -1261,7 +1255,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2308,8 +2302,12 @@ function infoUmschalten(id){
 function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
   systemKarteZeichnen();
+  const vk = document.getElementById("version-knopf");
+  if(vk) vk.textContent = "Version " + ANZEIGE_VERSION + " · JKB";
   zeige("view-einstellungen");
 }
+/** Kleine Info zur Version (Kürzel JKB + Datum). Ersetzt das alte Wasserzeichen. */
+function versionInfo(){ meldung("Trainer " + ANZEIGE_VERSION + " · Stand " + heuteAlsText() + " · JKB"); }
 
 function systemKarteZeichnen(){
   let gewaehlt = null;
