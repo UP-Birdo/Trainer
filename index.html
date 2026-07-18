@@ -483,6 +483,18 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <!-- ============================================================
+     Ansicht: Neuigkeiten (Versions-Verlauf, nutzerfreundlich gruppiert)
+     ============================================================ -->
+<section id="view-neuigkeiten" class="view">
+  <div class="kopf">
+    <h1>Neuigkeiten</h1>
+    <button class="schmal" onclick="zeige('view-einstellungen')">Zurück</button>
+  </div>
+  <div id="neuigkeiten-inhalt"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
      Ansicht: Profil
      ============================================================ -->
 <section id="view-profil" class="view">
@@ -587,6 +599,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Hilfe</h2>
     <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">📖 Gut zu wissen &amp; Regelwerk</button></div>
+    <div class="knopfreihe abstand"><button class="schmal" onclick="neuigkeitenOeffnen()">✨ Neuigkeiten (Was ist neu?)</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1235,7 +1248,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 34;
+const APP_VERSION = 36;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1319,6 +1332,15 @@ function datenNachruesten(daten){
     if(e.sonder === undefined) e.sonder = false;
     if(!e.typ) e.typ = "kraft";              // v31: Aktivitäten schreiben typ:"aktivitaet"
     if(!Array.isArray(e.saetze)) e.saetze = [];
+    // v35: Zuordnung Protokoll->Plan über die stabile plan.id statt über den Namen.
+    // Einmalige Rück-Verknüpfung: der zum gespeicherten Namen passende Plan gibt
+    // seine id her. Historische Namen waren eindeutig (Wochentag-Präfix bzw. A/B/C),
+    // die Zuordnung ist damit sicher. Fehlt der Plan (gelöscht), bleibt planId null
+    // und der Name dient weiter als Anzeige/Rückfall (siehe planListeZeichnen).
+    if(e.planId === undefined){
+      const treffer = daten.plaene.find(p => p.name === e.plan);
+      e.planId = treffer ? treffer.id : null;
+    }
   });
   if(!daten.sicherung) daten.sicherung = { zeit:0, version:0 };   // wann/mit welcher Version zuletzt gesichert
   daten.plaene.forEach(p => p.uebungen.forEach(u => {
@@ -1970,7 +1992,10 @@ function planListeZeichnen(){
     // Letztes Training mit diesem Plan (rückwärts suchen = neuester Eintrag zuerst)
     let zuletzt = null;
     for(let i = sitzung.daten.protokoll.length - 1; i >= 0; i--){
-      if(sitzung.daten.protokoll[i].plan === p.name){ zuletzt = sitzung.daten.protokoll[i].datum; break; }
+      const e = sitzung.daten.protokoll[i];
+      // Zuordnung über die stabile plan.id. Nur wo die (noch) fehlt — alte,
+      // nie verknüpfte Einträge, planId null/undefined — dient der Name als Rückfall.
+      if(e.planId ? e.planId === p.id : e.plan === p.name){ zuletzt = e.datum; break; }
     }
     const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
                    (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
@@ -2226,6 +2251,48 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Sportarten:</strong> mehrfach wählbar, Pläne gibt es bisher nur für Krafttraining. Die übrigen sind gemerkt, aber noch ohne Funktion."
     ]);
   zeige("view-wissen");
+}
+
+/* Versions-Verlauf für die NUTZER-Sicht: bewusst gruppiert (nicht jede Version)
+   und nur sichtbare Neuerungen — interne Umbauten (z. B. Datenzuordnung) stehen
+   hier nicht, die interessieren beim Trainieren niemanden. Neueste zuerst.
+   Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
+   jüngste Gruppe einreihen; rein interne Versionen weglassen. */
+const NEUIGKEITEN = [
+  { stand:"0.034 – 0.035", punkte:[
+    "Neuer Start-Bildschirm „Heute“: zeigt nur dein heutiges Training und wichtige Hinweise.",
+    "Deine Ziele stehen jetzt direkt auf dem Start — der Fortschritt bleibt im Blick.",
+    "Pläne haben einen eigenen Tab; die Plannamen sind kürzer (ohne Wochentag)."
+  ]},
+  { stand:"0.031 – 0.033", punkte:[
+    "Der Plan-Generator wählt Übungen passend zu deinen Geräten — Maschinen im Gym werden wirklich genutzt.",
+    "Ziele steuern den Plan automatisch mit: die App trainiert gezielt darauf hin.",
+    "Ein Gerät oder eine Sportart abzuwählen räumt sauber auf (mit Rückfrage)."
+  ]},
+  { stand:"0.029 – 0.030", punkte:[
+    "Ziele auch für Zeit und Gewicht, nicht nur für Wiederholungen.",
+    "Zeiteinheiten (Sekunden/Minuten) für Halte- und Ausdauerübungen."
+  ]},
+  { stand:"0.025 – 0.028", punkte:[
+    "Mehr Sportarten neben Krafttraining (Laufen, Radfahren, Schwimmen u. a.).",
+    "Kalender und Trainings-Serie („Flamme“) zeigen deine Regelmäßigkeit.",
+    "Vorschau vor dem Training mit geschätzter Dauer."
+  ]},
+  { stand:"Grundlagen (bis 0.024)", punkte:[
+    "Eigene Konten, Ende-zu-Ende verschlüsselt, mit Wiederherstellungscode.",
+    "Trainingspläne anlegen, sprachgeführtes Training, automatische Steigerung.",
+    "Statistik und Sicherung zum Export/Import — alles offline, ohne Server."
+  ]}
+];
+
+/** Zeichnet den Versions-Verlauf im selben Stil wie „Gut zu wissen". */
+function neuigkeitenOeffnen(){
+  const abschnitt = (stand, punkte) =>
+    '<div class="karte"><h2>' + text(stand) + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
+    punkte.map(p => '• ' + text(p)).join("<br>") + '</div></div>';
+  document.getElementById("neuigkeiten-inhalt").innerHTML =
+    NEUIGKEITEN.map(n => abschnitt(n.stand, n.punkte)).join("");
+  zeige("view-neuigkeiten");
 }
 
 function profilSpeichern(){
@@ -3280,7 +3347,7 @@ function wzZusammenfassung(){
   }, { passive:true });
 })();
 
-/* --- Plangenerator --- *//* --- Plangenerator --- */
+/* --- Plangenerator --- */
 /** Körpergewicht geht immer, dazu die ausgewählten Geräte. */
 function verfuegbareGeraete(){ return ["keine"].concat(einrichtung.geraete || []); }
 
@@ -4666,6 +4733,7 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
   const geplant = eintragPlan ? eintragPlan.tage.includes(wochentag) : false;
   sitzung.daten.protokoll.push({
     datum, plan: eintragPlan ? eintragPlan.name : sportartName(sport),
+    planId: eintragPlan ? eintragPlan.id : null,   // v35: stabile Zuordnung; null = freie Aktivität ohne Plan
     sportart: sport, typ:"aktivitaet", sonder: !geplant,
     dauerMin: Math.max(1, Math.round(dauerS / 60)),
     strecke, zeitEinheit: einheit, saetze: []
@@ -5052,7 +5120,7 @@ function navGehe(bereich){
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
                      "view-statistik":"nav-statistik", "view-profil":"nav-profil",
-                     "view-einstellungen":"nav-einst", "view-wissen":"nav-einst",
+                     "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
                      "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene",
                      "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
   const an = !!bereiche[id];
@@ -5061,9 +5129,10 @@ function navAktualisieren(id){
     document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
 }
 
-/** Heute-Karte: welcher Plan ist laut Wochentag heute dran? */
-/** Zeichnet die Heute-Karte und meldet zurück, WELCHEN Plan sie zeigt —
-    die Liste darunter lässt genau den weg, sonst stünde er doppelt da. */
+/** Heute-Karte auf dem Start: zeigt den Plan, der laut Wochentag heute dran ist —
+    sonst Willkommen (bei null Plänen), Erledigt (schon trainiert) oder Ruhetag.
+    Gibt plan.id zurück; seit v34 wird der Wert nicht mehr ausgewertet (die Liste
+    im Pläne-Tab doppelt die Karte nicht mehr), bleibt aber als klare Signatur. */
 function heuteKarteZeichnen(){
   const ziel = document.getElementById("heute-karte");
   const wochentag = heutigerWochentag();
@@ -5125,6 +5194,7 @@ function trainingBeenden(){
   const eintrag = {
     datum: heuteAlsText(),
     plan: plan.name,
+    planId: plan.id,                    // v35: stabile Zuordnung; der Name bleibt nur für Anzeige/Altdaten
     sportart: plan.sportart || "kraft",
     typ: "kraft",                       // hier entstehen nur Kraft-Einträge; Aktivitäten laufen über aktivitaetAblegen()
     sonder: plan.tage.length === 0,     // Plan ohne festen Tag = Sondertraining

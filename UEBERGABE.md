@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.033 / APP_VERSION 33**.
+> als Paket hochgeladen. Stand: **Version 0.036 / APP_VERSION 36**.
 
 ---
 
@@ -15,6 +15,11 @@ Kein Server, keine Frameworks, keine Build-Kette, keine Abhängigkeiten.
 **Warum so:** Alle fertigen Apps hatten Werbung, Abos oder keine eigenen Pläne. Ein Raspberry Pi wurde
 bewusst verworfen (Single Point of Failure, DynDNS/Zertifikat-Aufwand, kein Nutzen — die App braucht
 keinen Server).
+
+**Ziel/Ambition (v34):** Ein **allgemeines** Trainings-Tool, nicht primär Krafttraining. Andere
+Sportarten sollen mit der Zeit **genauso tief** ausgebaut werden wie Kraft (eigenes Übungs-/Fortschritts-
+Modell je Sportart), nicht als leichte Nebenschiene. Heute ist Kraft die einzige voll gebaute Sportart —
+der Rest ist Gerüst. Details und der Weg dahin: Abschnitt 13.
 
 **Nutzer:** IT-Administrator, PowerShell-Umfeld, kein Web-Entwickler. Deployment läuft über die
 GitHub-Weboberfläche (Upload → Commit).
@@ -91,7 +96,7 @@ tresor = { version:3, konten:[ { id, benutzer, huellePasswort:{salz,huelle}, hue
 daten = {
   profil:      { groesse, geburtsjahr, geschlecht },
   gewichte:    [ { datum:"JJJJ-MM-TT", kg } ],          // ein Wert pro Tag, neuester gewinnt
-  protokoll:   [ { datum, plan, sportart, typ, sonder, dauerMin, strecke, zeitEinheit,
+  protokoll:   [ { datum, plan, planId, sportart, typ, sonder, dauerMin, strecke, zeitEinheit,   // planId (v35) = stabile Zuordnung; plan(Name) nur Anzeige/Altdaten-Rückfall
                    saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
@@ -120,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 33;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.033" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 36;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.036" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v33"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v36"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -383,6 +388,85 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
 
+### v36 — Code-Durchsicht + Neuigkeiten-Seite
+
+**Vollständige Tote-Code-/Fehler-Durchsicht.** Ergebnis: der Code ist sauber — keine ungenutzten
+Funktionen, keine ungenutzten Top-Level-Variablen, keine `console.log`/`debugger`-Reste, kein loses `==`,
+keine kaputten `onclick`-Handler, keine fehlenden `getElementById`-Ziele. Behoben wurden nur zwei
+Kommentar-Altlasten aus dem v34-Umbau (ein verdoppeltes `/* --- Plangenerator --- */`, ein veralteter
+Doppel-Kommentar an `heuteKarteZeichnen`, dessen Rückgabewert seit v34 ungenutzt ist).
+
+> **Falle für die nächste Durchsicht:** `wischenEinrichten` sieht wie tote Funktion aus (Name kommt nur
+> einmal vor), ist aber ein **benannter IIFE** `(function wischenEinrichten(){…})()` — er läuft sofort und
+> richtet die Wisch-Geste im Wizard ein. **Nicht entfernen.** Immer prüfen, bevor „unreferenziert" gelöscht
+> wird: IIFEs und über `onclick`-Strings gerufene Funktionen tauchen bei naiver Suche als „tot" auf.
+
+**Neue Seite „Neuigkeiten" (Einstellungen → Hilfe → „✨ Neuigkeiten").** `view-neuigkeiten` +
+`neuigkeitenOeffnen()`, gebaut nach demselben Muster wie „Gut zu wissen" (Karte + `meta`-Bullets),
+`navAktualisieren` hält den Mehr-Tab aktiv.
+* Inhalt in `const NEUIGKEITEN` (Array `{ stand, punkte:[] }`), **nutzer-sichtbare** Neuerungen,
+  **gruppiert** (nicht jede Version), neueste zuerst. **Pflege:** bei einem Update mit sichtbarer Neuerung
+  oben ergänzen oder in die jüngste Gruppe einreihen; rein interne Versionen (z. B. v35 Datenzuordnung)
+  weglassen — die interessieren beim Trainieren niemanden.
+* **Achtung Anführungszeichen:** In den Strings **typografische** Quotes „ … " verwenden (U+201E/U+201C),
+  nie ein gerades `"` — das beendet die JS-Zeichenkette. (Genau dieser Fehler trat beim Bau auf und wurde
+  vom `node --check` gefangen.)
+
+---
+
+### v35 — Protokoll↔Plan über die stabile ID (Fundament für alles Weitere)
+
+**Das Protokoll ordnet Trainings jetzt über `planId` statt über den Namen zu.** Neue Einträge tragen
+`planId` mit (`plan`-Name bleibt für Anzeige/Altdaten). Migration in `datenNachruesten` verknüpft alte
+Einträge einmalig: der zum gespeicherten Namen passende Plan gibt seine id her; kein Treffer → `planId:null`,
+der Name dient weiter als Rückfall. Historische Namen waren eindeutig (Wochentag-Präfix bzw. A/B/C), die
+Rück-Verknüpfung ist damit sicher. Idempotent (Guard `if(e.planId === undefined)`).
+
+Betroffene Stellen: `trainingBeenden` und `aktivitaetAblegen` (WRITE, jetzt mit `planId`), die „zuletzt
+trainiert"-Suche in `planListeZeichnen` (READ: `e.planId ? e.planId === p.id : e.plan === p.name`).
+
+> **Damit ist die Altlast „Namensraterei" weg** — dasselbe Prinzip wie beim Wochentag (v31) und beim
+> Gerät (v33): **Feld statt Name.** Freigeschaltet ist dadurch: die A/B/C-Buchstaben in generierten
+> Plannamen dürfen nun fallen (Vollkörper-Tage dürfen gleich heißen), und Sportart-Pläne können sauber
+> auf ihre Historie zugreifen. Getestet (jsdom): Namens-Treffer→id, Waise→null, bereits migriert bleibt,
+> idempotent, neuester Treffer gewinnt.
+
+---
+
+### v34 — Start-Bildschirm getrennt, Namen entrümpelt
+
+**Der bisherige Pläne-Tab war zwei Dinge in einem** (Heute-Karte + Plan-Verwaltung). Aufgeteilt in:
+* **`view-start` ("Heute")** — neuer erster Tab, neuer Nav-Eintrag `⌂ Heute` (Bottom-Bar jetzt **5** statt 4).
+  Zeigt nur: Heute-Karte, Sicherungs-Banner (die „wichtige Meldung"), und **Ziele** als Lese-Block
+  (`zieleStartZeichnen`, nutzt bewusst dasselbe `zielEinschaetzen` wie das Profil — eine Quelle).
+  Gezeichnet von `startOeffnen()`.
+* **`view-plaene` ("Pläne")** — nur noch die Plan-Liste + Anlege-Knöpfe. `planListeZeichnen()` zeichnet
+  **keine** Heute-Karte/Banner/Flamme mehr und **schließt den heutigen Plan nicht mehr aus** (auf diesem
+  Bildschirm gibt es kein Doppel mehr, weil die Heute-Karte woanders liegt).
+
+**Landung nach Aktion:** Login/Passwort-Reset/Training-fertig → `startOeffnen()`. Editor/Wizard/Plan-Flows
+bleiben bewusst auf `view-plaene`. `zeige()` holt das aufgeschobene Update jetzt auch bei `view-start` nach.
+
+**Onboarding-Zweig** in `heuteKarteZeichnen()`: Bei **null Plänen** zeigt der Start eine Willkommens-Karte
+mit „Trainingsplanung starten" — sonst sähe ein neuer Nutzer durch die Trennung nur „Ruhetag" und fände
+die (nun im Nachbar-Tab liegenden) Anlege-Knöpfe nicht.
+
+**Namen ohne Wochentag:** Generierte Pläne heißen `titel` statt `wochentag + " – " + titel`
+(„Ganzkörper A" statt „Montag – Ganzkörper A"). Der Tag steht im Feld `tage` — im Namen war er Dopplung.
+Die **A/B/C-Buchstaben bleiben vorerst**, weil das Protokoll Pläne noch über den **Namen** zuordnet
+(`protokoll[i].plan === p.name`, zwei Stellen). Erst nach Umstellung auf `plan.id` (siehe Baustellen)
+dürfen sie fallen.
+
+> **Architektur-Urteil (v34, damit es nicht erneut aufgeworfen wird):** Nach ausdrücklicher Prüfung —
+> **kein Rewrite, keine Modul-Aufteilung, kein Build-Schritt, kein Framework.** Ein einzelnes File ohne
+> Toolchain, per Copy-Paste deploybar und offline lauffähig, ist die *Stärke* des Projekts, nicht die
+> Altlast. Es gibt aktuell **kein** Performance-Problem (ein Nutzer, winzige Datenmengen, `innerHTML`-
+> Neuaufbau < 1 ms). Optimierungsziel ist der **menschliche Nachfolger mit weniger Wissen**, nicht die
+> Lesbarkeit für die KI — und was für ihn gut ist (eine Datei, `#region`-Karte, WARUM-Kommentare), ist
+> für die KI ohnehin gut.
+
+---
+
 ## 9. Fachliche Regeln (belegt recherchiert)
 
 **Progression** (die EINZIGE Stelle: `progressionAnwenden()`):
@@ -512,9 +596,83 @@ Angriffsfläche), Social/Community-Feed, Abzeichen-Sammlung, Übungsdatenbank mi
 
 ## 13. Bekannte Baustellen
 
-* **Sportarten außer Krafttraining sind Attrappen** — gemerkt, aber ohne Wirkung. Am Knopf steht
-  „noch ohne Pläne", der Nutzer weiß es. Ausbau braucht je Sportart ein eigenes Datenmodell
-  (Strecke/Zeit statt Sätze/Wdh), einen eigenen Generator und einen eigenen Trainingsbildschirm.
+* **RICHTUNG (v34, Nutzer-Ansage): Die App ist kein Kraft-Tool, sondern ein *allgemeines* Trainings-Tool.**
+  Andere Sportarten sollen **genauso tief** ausgebaut werden wie Krafttraining — nicht als leichte
+  „Aktivität"-Nebenschiene. Heute sind sie noch Attrappen (Knopf „noch ohne Pläne"). Der Ausbau ist
+  **überwiegend Domänen-Modellierung, nicht Datei-Layout**:
+  * **Datenmodell verallgemeinern:** Heute gibt es zwei Typen — `typ:"kraft"` (Übung + Sätze/Wdh/Gewicht +
+    Noten-Progression + Deload) und `typ:"aktivitaet"` (Strecke/Zeit, leichter). „So groß wie Kraft"
+    heißt: pro Sportart definieren, was **eine Übung** und was **Fortschritt** bedeutet. Dafür fehlen die
+    Modi `strecke`/`runden`/`grad` (siehe Offene Ideen) und je Sportart eine eigene Progressionsregel
+    (Kraft = Doppelprogression; Ausdauer = 30-%-Regel; Technik-Sport = ? → **braucht Recherche je Sportart**).
+  * **Generator + Trainingsbildschirm:** je Sportart-Klasse ein eigener Plangenerator (analog `plaeneErstellen`
+    für Kraft) und ggf. ein eigener Ablauf im Training. Das ist die eigentliche Arbeit.
+  * **Übungsinhalte:** Der Nutzer weiß die konkreten Übungen je Sportart noch nicht — das ist ein
+    **Inhalts-/Recherche-Schritt** pro Sportart, kein Code-Schritt.
+
+  **Separate Datenbank-Datei je Sportart, „erst beim Auswählen laden"? → NEIN als Netz-Lazy-Load, JA als
+  reine Datei-Trennung.** Netz-Nachladen beim Auswählen bricht die Offline-Garantie (im Keller-Gym ohne
+  Signal ist die Sportart-Datei dann nicht da). Und es macht das Training **nicht besser** — Text-/Übungsdaten
+  sind wenige kB je Sportart; Ladezeit/Speicher sind kein Engpass. Was Training „besser" macht, ist die
+  **Inhaltsqualität** (gute Übungen, gute Progressionsregel), nicht der Lade-Mechanismus. *Falls* die
+  Datei durch viele Sportarten unhandlich wird, ist der zulässige Schritt: statische Tabellen je Sportart
+  in `daten.js` / `daten_<sportart>.js` per normalem `<script src>` auslegen — **alle im Service-Worker-
+  Cache**, also weiterhin offline, kein Build. Nutzen = Wartbarkeit (jede Sportart ein editierbarer Block),
+  **nicht** Ladeperformance. Preis: SW-Cache-Liste pflegen, mehr Dateien beim Deploy. Personenbezogene
+  Pläne/Daten landen **nie** in diesen Dateien — die bleiben im verschlüsselten Blob.
+  * Medien (Bilder/Videos je Übung) bleiben abgelehnt (Urheberrecht + Pflege). *Nur falls je Medien dazukämen*,
+    wäre **das** der einzig sinnvolle Lazy-Load-Fall (online-einmal, dann SW-gecacht) — Text niemals.
+
+### Optimierungs-Rückstand (v34, priorisiert — je ein eigener Bau-+Test-Durchgang)
+
+1. ~~Zuordnung Plan↔Protokoll auf `plan.id`~~ — **ERLEDIGT in v35** (siehe Changelog). Nächster
+   Folgeschritt, der jetzt freigeschaltet ist: A/B/C aus generierten Plannamen entfernen (in `SPLITS`
+   bzw. `plaeneErstellen`), Vollkörper-Tage dürfen dann gleich heißen.
+2. **`zieleZeichnen` (Profil) und `zieleStartZeichnen` (Start) zusammenführen** — in v34 bewusst leicht
+   dupliziert. Zwei Stellen, die synchron bleiben müssen. Nur diese vereinen, nicht „DRY um jeden Preis".
+3. **Ziel-Statistik** (jeder geloggte Wert als Punkt + Ziel-Linie) — aus vorhandenen `saetze` baubar,
+   vorhandene SVG-Helfer (`gewicht-diagramm`/`volumen-diagramm`) nutzen.
+4. **Ist-Wdh im Training → Progression** (Nutzer-Wunsch): Eingabefeld im `satz-wdh`-Schritt (Default =
+   Ziel-Wdh), `satzProtokollieren` loggt den **echten** Wert, `progressionAnwenden` leitet daraus ab statt
+   aus der manuellen Note 1–5. Achtung: schreibt die **einzige** Progressionsquelle um und behebt zugleich,
+   dass heute die **geplanten** statt der echten Wdh geloggt werden (`eintrag.wdh = u.wdh`).
+5. **Skalierbarkeit (nur beobachten):** `protokoll` wächst unbegrenzt; `speichern()` verschlüsselt +
+   serialisiert **jedes Mal den ganzen Datensatz** in localStorage (~5 MB Deckel). Über Jahre relevant →
+   dann alte Einheiten archivieren/ausdünnen, Statistik auf rollendes Fenster + Aggregate. Nicht dringend.
+
+### Übungs-Erweiterung & geführte Auswahl (nächster großer Schritt — Nutzer-Wunsch)
+
+Ziel: (a) mehr Übungen je **Gym-Maschine**, (b) **Sportarten mit eigenen Übungen**, (c) im Editor beim
+Plan-Erstellen **Sportart → Gerät → passende Übungen als Dropdown** vorschlagen — **freie Eingabe bleibt**.
+
+**Ist-Stand (v35, vermessen):**
+* `UEBUNGEN_DB` = **99 Übungen**, Schema `{ name, kat:"beine"|"druck"|"zug"|"rumpf"|"cardio", geraet:<GERAETE-id>, modus?:"zeit", anteil?:<0..1> }`.
+* `UEBUNGSPOOL` ist **aus `UEBUNGEN_DB` abgeleitet** (`filter(kat)`). Die Bibliothek (`bibliothekOeffnen`)
+  liest `UEBUNGEN_DB` direkt. **Folge:** Ein neuer DB-Eintrag mit gültigem `kat`+`geraet` erscheint
+  **automatisch** in Generator *und* Bibliothek — Erweitern = anhängen, keine Logikänderung.
+* **Maschinen sind dünn** (meist 1 Übung: `brustpresse`/`butterfly`/`schultermaschine`/`rudermaschine`/
+  `bauchmaschine`/`rueckenbank`/`wadenmaschine`/`beinpresse` je 1). Das ist der einfachste Gewinn.
+* **`anteil` steuert die Startgewicht-Schätzung** (`startwerteBerechnen`/`uebungBauen`). Neue Geräteübungen
+  brauchen ein **plausibles `anteil`**, sonst schlägt der Generator Unsinns-Gewichte vor. **Vor dem
+  Anhängen prüfen, wie `anteil` genau rechnet.**
+
+**Knackpunkt Sportarten:** Übungen haben **keine Sportart-Achse** — nur `kat` (Muskelgruppe, kraft-spezifisch).
+Tischtennis/Klettern/… passen nicht in beine/druck/zug/rumpf. „Sportarten mit Übungen" braucht daher eine
+**neue Datenstruktur**, z. B. `SPORT_UEBUNGEN = { tischtennis:[…], klettern:[…] }` oder ein Feld `sportart`
+auf der Übung. Der Plan-Typ `aktivitaet` erlaubt `uebungen[]` bereits (Topspins-Beispiel) — die *Anzeige/das
+Training* dafür ist der eigentliche Bau. Je Sportart eine eigene, **recherchierte** Übungs-/Drill-Liste
+(Inhalts-Schritt) und je Sportart-Klasse eine eigene Fortschrittsregel (Kraft-Progression passt nicht auf
+ein Technik-Drill).
+
+**Editor-Dropdown (UX):** Im Editor beim Hinzufügen: 1) Sportart (aus `SPORTARTEN`), 2) Gerät (aus `GERAETE`,
+gefiltert nach Ort/Sportart), 3) Dropdown der dazu passenden Übungen (`UEBUNGEN_DB`/`SPORT_UEBUNGEN` nach
+`geraet`/`sportart` gefiltert) **plus** „Eigene Übung…" als Freitext (heutiges Verhalten, **muss bleiben**).
+Betrifft `view-editor`/`editorZeichnen`/`bibliothekOeffnen`.
+
+**Reihenfolge-Empfehlung:** (1) Maschinen-Übungen in `UEBUNGEN_DB` erweitern (klein, sichtbar, testbar:
+Generator läuft, Bibliothek zeigt mehr, `pruefung` „jedes Gerät ≥1 Übung" hält). (2) `SPORT_UEBUNGEN`-
+Struktur + Editor-Dropdown. (3) Sport-Inhalte je Sportart recherchieren + Fortschrittsregeln.
+
 * Der Nutzer hatte zuletzt einen **überzoomten Screenshot** — Ursache vermutlich Pinch-Zoom
   (Safari ignoriert `user-scalable=no` teilweise). Kalender-Layout wurde robust gemacht; falls es
   wieder auftritt: kein Layout-Bug, sondern Zoom.
