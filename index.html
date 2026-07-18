@@ -134,6 +134,10 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .tag.ruhe{background:var(--rest);color:#16181C;font-weight:700}
 .tag.autoruhe{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .tag.heute{outline:1.5px solid var(--chalk)}
+/* Kern für Tage mit drei und mehr Sportarten: Die Zahl braucht einen ruhigen
+   Untergrund, sonst verschwindet sie auf einem der Tortenstücke. */
+.tag.mehrfach .kern{position:absolute;inset:5px;border-radius:3px;background:var(--ground);
+  color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:700}
 /* Sondertraining = Training aus einem Plan ohne festen Tag */
 .sonderpunkt{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
   width:4px;height:4px;border-radius:50%;background:#16181C;opacity:.55}
@@ -1213,7 +1217,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 31;
+const APP_VERSION = 33;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1264,7 +1268,17 @@ function datenNachruesten(daten){
        Danach nie wieder Namen parsen. Das alte tag bleibt liegen, wo es liegt
        (Felder werden nie entfernt), wird aber weder gelesen noch geschrieben. */
     // v29: Zeiteinheit je Übung. Bestand lief in Sekunden — das bleibt richtig.
-    p.uebungen.forEach(u => { if(!u.zeitEinheit) u.zeitEinheit = "s"; });
+    p.uebungen.forEach(u => {
+      if(!u.zeitEinheit) u.zeitEinheit = "s";
+      /* v33: Die Übung merkt sich ihr Gerät selbst. Vorher musste man es über
+         den Namen in UEBUNGEN_DB suchen — nach einer Umbenennung wäre die
+         Verbindung stillschweigend weg gewesen. Einmalig nachschlagen,
+         Freitext-Übungen bekommen "keine". */
+      if(!u.geraet){
+        const db = UEBUNGEN_DB.find(x => x.name === u.name);
+        u.geraet = db ? db.geraet : "keine";
+      }
+    });
     if(!Array.isArray(p.tage)){
       if(p.tag !== undefined){
         p.tage = p.tag ? [p.tag] : [];
@@ -1700,7 +1714,7 @@ function dauerSchaetzen(plan){
 }
 
 function neueUebung(){
-  return { id:neueId(), name:"", modus:"wdh", saetze:3,
+  return { id:neueId(), name:"", modus:"wdh", saetze:3, geraet:"keine",
            wdh:10, wdhMin:8, wdhMax:12, gewicht:0, gewichtSchritt:2.5,
            dauer:30, zeitEinheit:"s", pause:90, notenHistorie:[] };
 }
@@ -2258,14 +2272,41 @@ function kennzahlenZeichnen(){
     Manuelle Ruhetage sind Planung/Übersicht — die Flammen-Toleranz
     (max. 2 Ruhetage) verlängern sie bewusst NICHT, sonst wäre die Serie wertlos. */
 /* Kalender — zwei Zeitrichtungen, eine Regel:
-   VERGANGENHEIT und HEUTE zeigen, was WIRKLICH war (Training in der Farbe
-   seiner Sportart; sonst Ruhetag). ZUKUNFT zeigt, was GEPLANT ist (Wochentag
-   eines Plans, in dessen Sportfarbe, nur umrandet statt gefüllt).
-   Ein Training überschreibt also immer die Planung — genau wie im Leben.
-   Sondertraining (Plan ohne festen Tag) bekommt zusätzlich einen Punkt. */
+   VERGANGENHEIT und HEUTE zeigen, was WIRKLICH war (in der Farbe der Sportart;
+   sonst Ruhetag). ZUKUNFT zeigt, was GEPLANT ist (Wochentag eines Plans, nur
+   umrandet statt gefüllt). Ein Training überschreibt also immer die Planung.
+   Sondertraining (Plan ohne festen Tag) bekommt zusätzlich einen Punkt.
+
+   MEHRERE SPORTARTEN AN EINEM TAG:
+     1 Sportart  -> Fläche in ihrer Farbe
+     2           -> Fläche in Farbe A, Rahmen in Farbe B
+     3 und mehr  -> Ring aus Tortenstücken (conic-gradient), Zahl im dunklen Kern
+   Der Kern ist nicht Deko: Auf einem dreifarbigen Verlauf wäre die Zahl je nach
+   Segment mal lesbar, mal nicht. */
+function tagFarben(farben, klasse, gefuellt){
+  if(farben.length === 0) return { stil:"", klasse, kern:false };
+  if(farben.length === 1){
+    return gefuellt
+      ? { stil:'background:' + farben[0] + ';border-color:' + farben[0], klasse, kern:false }
+      : { stil:'border-color:' + farben[0] + ';color:' + farben[0], klasse, kern:false };
+  }
+  if(farben.length === 2){
+    return gefuellt
+      ? { stil:'background:' + farben[0] + ';border:3px solid ' + farben[1], klasse, kern:false }
+      : { stil:'border:3px solid ' + farben[1] + ';box-shadow:inset 0 0 0 3px ' + farben[0] + ';color:var(--chalk)', klasse, kern:false }; 
+  }
+  const anteil = 100 / farben.length;
+  const stuecke = farben.map((f,i) => f + " " + (i*anteil).toFixed(2) + "% " + ((i+1)*anteil).toFixed(2) + "%").join(",");
+  return { stil:'background:conic-gradient(' + stuecke + ')' + (gefuellt ? "" : ";opacity:.75"),
+           klasse: klasse + " mehrfach", kern:true };
+}
+
 function kalenderZeichnen(){
+  // ALLE Einträge je Tag — an einem Tag können mehrere Sportarten stehen
   const protoNachDatum = {};
-  sitzung.daten.protokoll.forEach(e => { protoNachDatum[e.datum] = e; });   // letzter des Tages gewinnt
+  sitzung.daten.protokoll.forEach(e => {
+    (protoNachDatum[e.datum] = protoNachDatum[e.datum] || []).push(e);
+  });
   const ruhetage = new Set(sitzung.daten.ruhetage);
   const jetzt = new Date();
   const jahr = jetzt.getFullYear(), monat = jetzt.getMonth();
@@ -2273,38 +2314,41 @@ function kalenderZeichnen(){
   const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
   const wochentagErster = (new Date(jahr, monat, 1).getDay() + 6) % 7;   // 0 = Montag
 
-  // Geplante Wochentage: Wochentag -> Sportart (erster Plan des Tages gewinnt)
+  // Geplante Wochentage: Wochentag -> Liste der Sportarten (jede nur einmal)
   const planNachTag = {};
-  sitzung.daten.plaene.forEach(p => p.tage.forEach(t => { if(!planNachTag[t]) planNachTag[t] = p.sportart || "kraft"; }));
-  const benutzteSportarten = new Set(Object.values(planNachTag));
+  sitzung.daten.plaene.forEach(p => p.tage.forEach(t => {
+    const liste = planNachTag[t] = planNachTag[t] || [];
+    if(!liste.includes(p.sportart)) liste.push(p.sportart);
+  }));
+  const benutzteSportarten = new Set(Object.values(planNachTag).flat());
 
   let html = ["Mo","Di","Mi","Do","Fr","Sa","So"].map(t => '<div class="kopfzelle">' + t + '</div>').join("");
   for(let i = 0; i < wochentagErster; i++) html += '<div class="tag leer2"></div>';
   for(let tag = 1; tag <= tageImMonat; tag++){
     const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
     const wochentag = (new Date(jahr, monat, tag).getDay() + 6) % 7 + 1;
-    const training = protoNachDatum[datum];
-    let klasse = "tag", klick = "", stil = "", punkt = "";
+    const trainings = protoNachDatum[datum] || [];
+    let klasse = "tag", klick = "", stil = "", punkt = "", kern = false;
 
-    if(training){
+    if(trainings.length > 0){
       // Realität schlägt Planung — nicht antippbar
-      const farbe = sportartFarbe(training.sportart);
-      klasse += " trainiert";
-      stil = ' style="background:' + farbe + ';border-color:' + farbe + '"';
-      benutzteSportarten.add(training.sportart);
-      if(training.sonder) punkt = '<span class="sonderpunkt"></span>';
+      const farben = [...new Set(trainings.map(e => e.sportart))];
+      farben.forEach(f => benutzteSportarten.add(f));
+      const f = tagFarben(farben.map(sportartFarbe), "tag trainiert", true);
+      klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
+      if(trainings.some(e => e.sonder)) punkt = '<span class="sonderpunkt"></span>';
     } else {
       klick = ' onclick="ruhetagUmschalten(\'' + datum + '\')"';
       if(ruhetage.has(datum)) klasse += " ruhe";                // manuell markiert
-      else if(datum < heute) klasse += " autoruhe";             // Vergangenheit ohne Training = automatisch Ruhetag
-      else if(planNachTag[wochentag]){                          // Zukunft/heute mit Plan = geplant
-        const farbe = sportartFarbe(planNachTag[wochentag]);
-        klasse += " geplant";
-        stil = ' style="border-color:' + farbe + ';color:' + farbe + '"';
+      else if(datum < heute) klasse += " autoruhe";             // Vergangenheit ohne Training
+      else if(planNachTag[wochentag]){                          // Zukunft/heute mit Plan
+        const f = tagFarben(planNachTag[wochentag].map(sportartFarbe), "tag geplant", false);
+        klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
       }
     }
     if(datum === heute) klasse += " heute";
-    html += '<div class="' + klasse + '"' + stil + klick + '>' + tag + punkt + '</div>';
+    const inhalt = kern ? '<span class="kern">' + tag + '</span>' : tag;
+    html += '<div class="' + klasse + '"' + stil + klick + '>' + inhalt + punkt + '</div>';
   }
   document.getElementById("kalender").innerHTML = html;
 
@@ -2314,12 +2358,12 @@ function kalenderZeichnen(){
   document.getElementById("kalender-legende").innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + teile.join("") +
     (teile.length ? '<span>▢ geplant</span>' : "") +
+    (teile.length > 1 ? '<span>◲ mehrere an einem Tag</span>' : "") +
     '<span><span style="color:var(--rest)">■</span> Ruhetag – antippen</span>' +
     '<span><span style="color:var(--muted)">◫</span> ohne Training</span>' +
     '<span>• Sondertraining</span></div>';
 }
 
-/** Ruhetag von Hand setzen oder entfernen — nur an Tagen ohne Training. */
 function ruhetagUmschalten(datum){
   const liste = sitzung.daten.ruhetage;
   const pos = liste.indexOf(datum);
@@ -2541,6 +2585,17 @@ function protokollZeichnen(){
    ============================================================ */
 let einrichtung = { sportarten:["kraft"], ort:null, geraete:[], erfahrung:null, wochentage:[], ziel:null };
 
+/** Legt die dynamischen Wizard-Felder an (tage_laufen, dauer_tischtennis, …).
+    Die Fragen werden aus SPORTARTEN erzeugt, also müssen es die Felder auch —
+    sonst schreibt wzMulti in ein undefined. */
+function aktivitaetsFelderVorbereiten(e){
+  SPORTARTEN.filter(s => s.planTyp === "aktivitaet").forEach(s => {
+    if(!Array.isArray(e["tage_" + s.id])) e["tage_" + s.id] = [];
+    if(!e["dauer_" + s.id]) e["dauer_" + s.id] = 3600;
+  });
+  return e;
+}
+
 const WOCHENTAGE = ["","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
 /* ------------------------------------------------------------
@@ -2740,6 +2795,7 @@ const UEBUNGEN_DB = [
   { name:"Schulterpresse Maschine", kat:"druck", geraet:"schultermaschine", anteil:0.22 },
   { name:"Trizeps am Kabel",        kat:"druck", geraet:"kabel",      anteil:0.15 },
   { name:"Smith-Bankdrücken",       kat:"druck", geraet:"smith",      anteil:0.30 },
+  { name:"Liegestütze mit Weste",   kat:"druck", geraet:"weste",  anteil:0.10 },
   { name:"Parallettes-Liegestütze", kat:"druck", geraet:"parallettes" },
   { name:"Parallettes-Dips",        kat:"druck", geraet:"parallettes" },
   { name:"Band-Schulterdrücken",    kat:"druck", geraet:"band" },
@@ -2767,12 +2823,16 @@ const UEBUNGEN_DB = [
   { name:"Schlingen-Rudern",        kat:"zug", geraet:"suspension" },
   { name:"Kettlebell-Rudern",       kat:"zug", geraet:"kettlebell", anteil:0.15 },
   { name:"Scott-Curls",             kat:"zug", geraet:"bizepsbank", anteil:0.12 },
+  { name:"Klimmzüge mit Weste",     kat:"zug", geraet:"weste",  anteil:0.10 },
   { name:"Crosstrainer",            kat:"zug", geraet:"crosstrainer", modus:"zeit" },
 
   // ---------- RUMPF ----------
   { name:"Plank",                   kat:"rumpf", geraet:"keine", modus:"zeit" },
   { name:"Seitstütz",               kat:"rumpf", geraet:"keine", modus:"zeit" },
   { name:"Crunches",                kat:"rumpf", geraet:"keine" },
+  { name:"Beinheben an der Matte",  kat:"rumpf", geraet:"matte" },
+  { name:"Hüftheben",               kat:"rumpf", geraet:"matte" },
+  { name:"Vierfüßler-Diagonale",    kat:"rumpf", geraet:"matte" },
   { name:"Bauchmaschine",           kat:"rumpf", geraet:"bauchmaschine", anteil:0.20 },
   { name:"Rückenstrecker",          kat:"rumpf", geraet:"rueckenbank" },
   { name:"L-Sit an Parallettes",    kat:"rumpf", geraet:"parallettes", modus:"zeit" },
@@ -2932,7 +2992,22 @@ const WIZARD_FRAGEN = [
       ["aufwaermen","🔥 Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
       ["dehnen","🧘 Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
     ]}
-];
+]
+/* Für JEDE gewählte Sportart außer Krafttraining zwei Fragen: wann und wie lange.
+   Erzeugt statt getippt — sonst müsste jede neue Sportart an drei Stellen
+   nachgetragen werden. nurWenn blendet aus, was nicht gewählt ist. */
+.concat(...SPORTARTEN.filter(s => s.planTyp === "aktivitaet").map(s => [
+  { id:"tage_" + s.id, typ:"multi", raster:true, sportBezug:s.id,
+    frage:"Wann trainierst du " + s.name + "?",
+    hilfe:"Diese Tage färbt der Kalender in der Farbe der Sportart. Keinen ausgewählt = der Plan bleibt ohne festen Tag, und du trägst ihn ein, wenn er passiert ist.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: WOCHENTAGE.slice(1).map((w,i) => [i+1, w.slice(0,2), w]) },
+  { id:"dauer_" + s.id, typ:"single", raster:true, sportBezug:s.id,
+    frage:"Wie lange dauert eine Einheit " + s.name + "?",
+    hilfe:"Ein Richtwert für die Planung — beim Eintragen zählt, wie lange es wirklich war.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: [[1800,"30 min"],[3600,"1 Std"],[5400,"1,5 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
+]));
 
 let wzSchritt = 0;
 let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
@@ -2951,6 +3026,13 @@ function einrichtungOeffnen(){
     bonus: (alt.bonus || ["aufwaermen","dehnen"]).slice(),
     geraeteProOrt: JSON.parse(JSON.stringify(alt.geraeteProOrt || {}))
   };
+  // Vorbelegen aus vorhandenen Aktivitätsplänen: Wer schon Dienstag Tischtennis
+  // spielt, soll das im Wizard vorgefunden — nicht neu eintippen.
+  aktivitaetsFelderVorbereiten(einrichtung);
+  sitzung.daten.plaene.filter(p => p.typ === "aktivitaet").forEach(p => {
+    einrichtung["tage_" + p.sportart] = p.tage.slice();
+    einrichtung["dauer_" + p.sportart] = p.dauer;
+  });
   wzSchritt = 0;
   wzZeichnen();
   zeige("view-wizard");
@@ -3054,10 +3136,7 @@ function wzWeiter(){
   wzAktualisiereSichtbar();
   // Auf dem Zusammenfassungs-Schritt gibt es kein "Weiter" mehr — hier wird gebaut.
   // Ohne Krafttraining gibt es nichts zu bauen: dann nur die Auswahl sichern.
-  if(wzSchritt >= wzSichtbar.length){
-    if(kraftGewaehlt(einrichtung)) plaeneErstellen(); else sportartenSichern();
-    return;
-  }
+  if(wzSchritt >= wzSichtbar.length){ plaeneErstellen(); return; }
   const f = wzSichtbar[wzSchritt];
   if(f){
     if(f.typ === "single" && !einrichtung[f.id]){ meldung("Bitte eine Antwort wählen."); return; }
@@ -3085,16 +3164,21 @@ function wzZusammenfassung(){
   };
   const sportarten = einrichtung.sportarten.map(s => sportartName(s)).join(", ");
 
-  // Ohne Krafttraining wurden alle Folgefragen übersprungen — dann darf hier
-  // auch nichts stehen, was gar nicht beantwortet wurde.
+  // Zeile je Aktivität: "Tischtennis: Di, Do · 1,5 Std"
+  const aktZeilen = einrichtung.sportarten.filter(id => planTypFuer(id) === "aktivitaet").map(id => {
+    const tage = einrichtung["tage_" + id] || [];
+    return sportartName(id) + ": " + (tage.length ? tage.slice().sort().map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag") +
+           " · " + zeitKurz(einrichtung["dauer_" + id] || 3600, "h");
+  });
+
   if(!kraftGewaehlt(einrichtung)){
+    const anzahl = aktZeilen.length;
     document.getElementById("wz-buehne").innerHTML =
-      '<h2 class="wz-frage">Gespeichert wird nur die Auswahl</h2>' +
-      '<div class="wz-hilfe">Für ' + text(sportarten) + ' kann die App noch keine Pläne bauen — ausgebaut ist bisher nur Krafttraining. ' +
-      'Deine Auswahl bleibt gemerkt. Wähle zusätzlich Krafttraining, wenn du Pläne willst.</div>' +
-      '<div class="karte"><div class="meta" style="line-height:2">Sportarten: ' + text(sportarten) + '</div></div>';
+      '<h2 class="wz-frage">Passt das so?</h2>' +
+      '<div class="wz-hilfe">Daraus ' + (anzahl === 1 ? "entsteht ein Plan" : "entstehen " + anzahl + " Pläne") + '. Alles ist danach frei änderbar.</div>' +
+      '<div class="karte"><div class="meta" style="line-height:2">' + aktZeilen.map(z => text(z)).join("<br>") + '</div></div>';
     document.getElementById("wz-zurueck").textContent = "Zurück";
-    document.getElementById("wz-weiter").textContent = "Auswahl speichern";
+    document.getElementById("wz-weiter").textContent = "Pläne erstellen";
     return;
   }
 
@@ -3105,9 +3189,10 @@ function wzZusammenfassung(){
 
   document.getElementById("wz-buehne").innerHTML =
     '<h2 class="wz-frage">Passt das so?</h2>' +
-    '<div class="wz-hilfe">Daraus entstehen ' + einrichtung.wochentage.length + ' Pläne. Alles ist danach frei änderbar.</div>' +
+    '<div class="wz-hilfe">Daraus entstehen ' + (einrichtung.wochentage.length + aktZeilen.length) + ' Pläne. Alles ist danach frei änderbar.</div>' +
     '<div class="karte"><div class="meta" style="line-height:2">' +
-      "Sportarten: " + text(sportarten) + "<br>" +
+      (aktZeilen.length ? aktZeilen.map(z => text(z)).join("<br>") + "<br><br>" : "") +
+      "Krafttraining<br>" +
       "Ort: " + beschriften("ort", einrichtung.ort) + "<br>" +
       "Ausrüstung: " + geraete + "<br>" +
       "Erfahrung: " + beschriften("erfahrung", einrichtung.erfahrung) + "<br>" +
@@ -3183,6 +3268,7 @@ function startwerteBerechnen(){
 function uebungBauen(vorlage, werte, koerperKg){
   const u = neueUebung();
   u.name = vorlage.name;
+  u.geraet = vorlage.geraet || "keine";   // FELD, nicht über den Namen suchen
   u.pause = werte.pause;
   if(vorlage.modus === "zeit"){
     u.modus = "zeit";
@@ -3201,15 +3287,19 @@ function uebungBauen(vorlage, werte, koerperKg){
   return u;
 }
 
-/** Abschluss, wenn kein Krafttraining gewählt ist: Es gibt nichts zu bauen.
-    Nur die Sportarten werden übernommen — Ort, Geräte, Ziel usw. wurden gar
-    nicht gefragt und dürfen deshalb auch nicht überschrieben werden. */
-function sportartenSichern(){
-  sitzung.daten.einrichtung.sportarten = einrichtung.sportarten.slice();
-  speichern();
-  planListeZeichnen();
-  zeige("view-plaene");
-  meldung("Sportarten gespeichert.\n\nPläne baut die App bisher nur für Krafttraining. Wähle es in der Trainingsplanung mit aus, wenn du welche möchtest.");
+/** Baut je Aktivitäts-Sportart genau EINEN Plan: die Tage und die Dauer aus
+    dem Wizard. Übungen kann man danach im Editor hinzufügen (Topspins & Co.). */
+function aktivitaetsPlaeneBauen(){
+  return einrichtung.sportarten.filter(id => planTypFuer(id) === "aktivitaet").map(id => {
+    const sp = sportart(id);
+    return { id:neueId(), name: sp.name, quelle:"assistent", sportart:id, typ:"aktivitaet",
+             tage: (einrichtung["tage_" + id] || []).slice().sort((a,b) => a-b),
+             dauer: einrichtung["dauer_" + id] || 3600,
+             zeitEinheit: (einrichtung["dauer_" + id] || 3600) >= 3600 ? "h" : "min",
+             strecke: sp.strecke ? sp.strecke.start : 0,
+             steigerung: { woche:null, stufen:0, vorEntlastung:0 },
+             reihenfolge:"klassisch", aufwaermen:false, dehnen:false, uebungen:[] };
+  });
 }
 
 function plaeneErstellen(){
@@ -3223,7 +3313,11 @@ function plaeneErstellen(){
      bei kurzen Einheiten sicher drin ist und eine Übung mehr bekommt. */
   const fokusKategorie = { ober:"druck", beine:"beine", rumpf:"rumpf" }[einrichtung.fokus];
 
-  const neuePlaene = SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
+  /* Ohne Krafttraining gibt es keine Wochentage und damit kein SPLITS[0] —
+     der Aufruf würde hier abstürzen. Die Wache MUSS vor der Berechnung
+     stehen, nicht erst vor ihrer Verwendung. */
+  const neuePlaene = !kraftGewaehlt(einrichtung) ? [] :
+    SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
     const wochentag = WOCHENTAGE[einrichtung.wochentage[tagIndex]];
     let liste = kategorien.slice();
     if(fokusKategorie){
@@ -3240,6 +3334,15 @@ function plaeneErstellen(){
 
     liste.forEach(kategorie => {
       const passend = UEBUNGSPOOL[kategorie].filter(v => geraete.includes(v.geraet));
+      /* Geräteübungen ZUERST. Der Pool steht in Datenbank-Reihenfolge, und die
+         ist körpergewichts-zuerst — mit dem Rundlauf ab Index 0 kamen deshalb
+         selbst im voll ausgestatteten Gym fast nur Liegestütze und Kniebeugen
+         heraus, die Maschinen wurden nie erreicht. Wer angibt, was er hat,
+         will es auch benutzen. Körpergewicht bleibt der Rückfall — für alle
+         ohne Ausstattung ändert sich dadurch nichts.
+         Stabile Sortierung: innerhalb beider Gruppen bleibt die Pool-Reihenfolge,
+         auf der die Rotation über die Tage beruht. */
+      passend.sort((a,b) => (a.geraet === "keine" ? 1 : 0) - (b.geraet === "keine" ? 1 : 0));
       if(passend.length === 0) return;
       // Variante suchen, die im Plan noch nicht vorkommt (rotiert über die Tage)
       let vorlage = null;
@@ -3254,8 +3357,10 @@ function plaeneErstellen(){
     return plan;
   });
 
+  const alle = (kraftGewaehlt(einrichtung) ? neuePlaene : []).concat(aktivitaetsPlaeneBauen());
+
   const fertigstellen = () => {
-    sitzung.daten.plaene = sitzung.daten.plaene.concat(neuePlaene);
+    sitzung.daten.plaene = sitzung.daten.plaene.concat(alle);
     sitzung.daten.einrichtung = {
       sportarten:einrichtung.sportarten.slice(),
       ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
@@ -3263,10 +3368,19 @@ function plaeneErstellen(){
       dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice(),
       geraeteProOrt: JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}))
     };
+    // Tage und Dauer je Sportart mitsichern — der Wizard soll sie wiederfinden
+    SPORTARTEN.filter(x => x.planTyp === "aktivitaet").forEach(x => {
+      sitzung.daten.einrichtung["tage_" + x.id] = (einrichtung["tage_" + x.id] || []).slice();
+      sitzung.daten.einrichtung["dauer_" + x.id] = einrichtung["dauer_" + x.id] || 3600;
+    });
     speichern();
     planListeZeichnen();
     zeige("view-plaene");
-    meldung(neuePlaene.length + " Pläne erstellt.\n\nDie Startwerte sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert. Über „Bearbeiten“ kannst du jederzeit Übungen tauschen.");
+    meldung(alle.length + (alle.length === 1 ? " Plan erstellt." : " Pläne erstellt.") +
+      (kraftGewaehlt(einrichtung)
+        ? "\n\nDie Startwerte fürs Krafttraining sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert."
+        : "") +
+      "\n\nÜber „Bearbeiten“ kannst du jederzeit Übungen ergänzen — auch bei einer Sportart wie Tischtennis.");
   };
 
   // Frühere automatisch erstellte Pläne ersetzen? Selbst gebaute bleiben immer.
@@ -3315,7 +3429,9 @@ function planUebungen(){
       modus:"zeit", zeitEinheit:p.zeitEinheit, dauer:p.dauer, strecke:p.strecke,
       wdh:0, gewicht:0, gewichtSchritt:0, proWoche: Math.max(1, p.tage.length) });
   });
-  sitzung.daten.plaene.forEach(p => (p.typ === "kraft" ? p.uebungen : []).forEach(u => {
+  /* Übungen JEDES Plans — auch die einer Aktivität. "Topspins, 10 Wdh" im
+     Tischtennis-Plan gehört genauso ins Ziel-Dropdown wie Liegestütze. */
+  sitzung.daten.plaene.forEach(p => p.uebungen.forEach(u => {
     if(!u.name.trim()) return;
     const schluessel = u.name.toLowerCase();
     const vorhanden = nachName.get(schluessel);
@@ -3538,9 +3654,10 @@ function zieleAnwenden(plan, strecke, dauerS){
           " (vorher " + zahlKurz(alt) + ") — höchstens 20 % pro Woche."];
 }
 
-/** Zieht ein Kraft-Ziel in die Übung: Das Ziel wird zur Obergrenze der
+/** Zieht ein Übungs-Ziel in die Übung: Das Ziel wird zur Obergrenze der
     Progression, damit die Wiederholungen wirklich dorthin klettern.
-    Läuft bei JEDER Bewertung — ein neu gesetztes Ziel wirkt sofort. */
+    Gilt für jeden Plan mit Übungen — auch für Topspins im Tischtennis-Plan.
+    Läuft bei JEDER Bewertung, ein neu gesetztes Ziel wirkt also sofort. */
 function kraftZieleAnwenden(plan){
   const bericht = [];
   sitzung.daten.ziele.forEach(z => {
@@ -3580,7 +3697,7 @@ function zieleZeichnen(){
         let picker = "";
         if(offenerZielPicker === z.id){
           picker = '<div class="abstand"><label>In welche Pläne einbauen?</label><div class="note">' +
-            sitzung.daten.plaene.filter(p => p.typ === "kraft").map(p => {
+            sitzung.daten.plaene.map(p => {
               const drin = p.uebungen.some(u => u.name.toLowerCase().includes(z.uebung.toLowerCase()));
               return drin
                 ? '<button disabled>✓ ' + text(p.name) + '</button>'
@@ -3609,10 +3726,7 @@ function zielPickerUmschalten(zielId){
 function zielInPlan(zielId, planId){
   const ziel = sitzung.daten.ziele.find(z => z.id === zielId);
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
-  if(plan.typ === "aktivitaet"){
-    meldung("Bei einer Aktivität steuerst du die Häufigkeit über die Wochentage im Plan selbst.\n\nDie Studienlage ist da eindeutig: Eine zusätzliche Einheit pro Woche braucht drei bis vier Wochen Anpassung — nicht Umfang und Häufigkeit gleichzeitig steigern.");
-    return;
-  }
+
   /* Die Übung existiert bereits in einem Plan — sonst gäbe es das Ziel nicht.
      Also KOPIEREN statt neu erfinden: Modus, Zeiteinheit, Gewichte und
      Wiederholungsbereich stimmen damit garantiert überein. Eine frisch
@@ -3816,18 +3930,61 @@ function neueGeraeteKnopfZeichnen(){
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
 }
 
+/* ------------------------------------------------------------
+   AUFRÄUMEN
+   Etwas abzuwählen muss mitnehmen, was daran hing — sonst bleiben Pläne
+   mit Übungen für Geräte zurück, die man nicht mehr hat, oder Ziele auf
+   Sportarten, die man nicht mehr macht. IMMER mit Rückfrage, denn es ist
+   nicht rückholbar. Das PROTOKOLL wird nie angefasst: Was trainiert wurde,
+   wurde trainiert — das darf keine Einstellung umschreiben.
+   ------------------------------------------------------------ */
+
+/** Was hängt an dieser Sportart? */
+function haengtAnSportart(id){
+  const plaene = sitzung.daten.plaene.filter(p => p.sportart === id);
+  const namen = new Set(plaene.map(p => p.name.toLowerCase()));
+  plaene.forEach(p => p.uebungen.forEach(u => namen.add(u.name.toLowerCase())));
+  const ziele = sitzung.daten.ziele.filter(z => namen.has(z.uebung.toLowerCase()));
+  const uebungen = plaene.reduce((n,p) => n + p.uebungen.length, 0);
+  return { plaene, ziele, uebungen };
+}
+
 /** Sportart auf ihrer eigenen Seite an- oder abwählen. */
 function sportartNutzenUmschalten(){
   const liste = sitzung.daten.einrichtung.sportarten;
   const pos = liste.indexOf(offeneSportart);
-  if(pos >= 0){
-    if(liste.length === 1){ meldung("Mindestens eine Sportart muss ausgewählt bleiben."); return; }
-    liste.splice(pos, 1);
-  } else {
+  if(pos < 0){                       // dazuwählen ist harmlos
     liste.push(offeneSportart);
+    speichern();
+    sportartSeiteZeichnen();
+    return;
   }
-  speichern();
-  sportartSeiteZeichnen();
+  if(liste.length === 1){ meldung("Mindestens eine Sportart muss ausgewählt bleiben."); return; }
+
+  const h = haengtAnSportart(offeneSportart);
+  const name = sportartName(offeneSportart);
+  if(h.plaene.length === 0 && h.ziele.length === 0){
+    liste.splice(pos, 1);
+    speichern();
+    sportartSeiteZeichnen();
+    return;
+  }
+  const teile = [];
+  if(h.plaene.length) teile.push(h.plaene.length + (h.plaene.length === 1 ? " Plan" : " Pläne") +
+                                 (h.uebungen ? " mit " + h.uebungen + (h.uebungen === 1 ? " Übung" : " Übungen") : ""));
+  if(h.ziele.length) teile.push(h.ziele.length + (h.ziele.length === 1 ? " Ziel" : " Ziele"));
+  frage(name + " abwählen?\n\nDamit " + (teile.length > 1 ? "werden" : "wird") + " auch " + teile.join(" und ") +
+        " gelöscht — das lässt sich nicht rückgängig machen.\n\nDein Protokoll bleibt unangetastet: Was du trainiert hast, hast du trainiert.", true, ja => {
+    if(!ja) return;
+    const planIds = new Set(h.plaene.map(p => p.id));
+    const zielIds = new Set(h.ziele.map(z => z.id));
+    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => !planIds.has(p.id));
+    sitzung.daten.ziele  = sitzung.daten.ziele.filter(z => !zielIds.has(z.id));
+    liste.splice(pos, 1);
+    speichern();
+    sportartSeiteZeichnen();
+    meldung(name + " abgewählt — " + teile.join(" und ") + " gelöscht.");
+  });
 }
 
 /** Ortswechsel: Die Auswahl wird NICHT übernommen. Jeder Ort hat sein
@@ -3854,11 +4011,51 @@ function profilOrtSetzen(ort){
   sportartSeiteZeichnen();
 }
 
+/** Welche Übungen in welchen Plänen brauchen dieses Gerät?
+    Fragt u.geraet — nicht den Namen. Deshalb überlebt die Verbindung
+    auch, wenn die Übung umbenannt wird. */
+function haengtAnGeraet(id){
+  const treffer = [];
+  sitzung.daten.plaene.forEach(p => p.uebungen.forEach(u => {
+    if(u.geraet === id) treffer.push({ plan:p, uebung:u });
+  }));
+  return treffer;
+}
+
 function profilGeraetUmschalten(id){
   const e = sitzung.daten.einrichtung;
   const liste = e.geraete;
   const pos = liste.indexOf(id);
-  if(pos >= 0) liste.splice(pos, 1); else liste.push(id);
+  if(pos < 0){                                    // dazuwählen ist harmlos
+    liste.push(id);
+    geraetSichern(liste);
+    return;
+  }
+  const treffer = haengtAnGeraet(id);
+  if(treffer.length === 0){ liste.splice(pos, 1); geraetSichern(liste); return; }
+
+  const plaene = [...new Set(treffer.map(t => t.plan.name))];
+  frage(geraetName(id) + " entfernen?\n\n" + treffer.length + (treffer.length === 1 ? " Übung" : " Übungen") +
+        " in " + plaene.length + (plaene.length === 1 ? " Plan" : " Plänen") + " braucht das Gerät:\n" +
+        treffer.map(t => "· " + t.uebung.name).join("\n") +
+        "\n\nMit entfernen? Sonst bleibt alles, wie es ist.", true, ja => {
+    if(!ja) return;
+    const ids = new Set(treffer.map(t => t.uebung.id));
+    sitzung.daten.plaene.forEach(p => { p.uebungen = p.uebungen.filter(u => !ids.has(u.id)); });
+    liste.splice(pos, 1);
+    geraetSichern(liste);
+    const leere = sitzung.daten.plaene.filter(p => p.typ === "kraft" && p.uebungen.length === 0);
+    meldung(treffer.length + (treffer.length === 1 ? " Übung entfernt." : " Übungen entfernt.") +
+      (leere.length
+        ? "\n\nAchtung: " + leere.map(p => "„" + p.name + "“").join(", ") +
+          (leere.length === 1 ? " ist jetzt leer" : " sind jetzt leer") +
+          " — über „Trainingsplanung“ neu bauen oder von Hand füllen."
+        : ""));
+  });
+}
+
+function geraetSichern(liste){
+  const e = sitzung.daten.einrichtung;
   if(!e.geraeteProOrt) e.geraeteProOrt = {};
   e.geraeteProOrt[e.ort || "zuhause"] = liste.slice();            // Gedächtnis des Orts mitführen
   speichern();
@@ -4014,11 +4211,14 @@ function editorZeichnen(){
   /* Der Plan-Typ folgt der Sportart — nichts, was der Nutzer extra wählen muss.
      Krafttraining bekommt Übungen und Sätze, jede andere Sportart eine Dauer. */
   const istKraft = editorPlan.typ === "kraft";
+  // Reihenfolge, Zirkel, Aufwärmen und Dehnen ergeben nur beim Krafttraining Sinn.
   document.getElementById("editor-kraft").hidden = !istKraft;
-  document.getElementById("uebung-liste").hidden = !istKraft;
-  document.getElementById("uebung-hinzu").hidden = !istKraft;
   document.getElementById("editor-aktivitaet").hidden = istKraft;
-  if(!istKraft){ aktivitaetsFelderZeichnen(); return; }
+  // Übungen darf JEDE Sportart haben: Tischtennis mit "Topspins, 10 Wdh" ist
+  // ein echter Fall — und nur so kommt die Übung ins Ziel-Dropdown.
+  document.getElementById("uebung-liste").hidden = false;
+  document.getElementById("uebung-hinzu").hidden = false;
+  if(!istKraft) aktivitaetsFelderZeichnen();
 
   /* Sieben Tage in EINER Zeile — wie im Kalender. Als 2-Spalten-Raster
      brauchte das vier Zeilen plus einen "Kein fester Tag"-Knopf: ~250 px,
@@ -4137,11 +4337,10 @@ function uebungSchieben(i, richtung){
 
 function editorSpeichern(){
   editorPlan.name = document.getElementById("plan-name").value.trim() || "Ohne Namen";
-  if(editorPlan.typ === "aktivitaet"){
+  const istAktivitaet = editorPlan.typ === "aktivitaet";
+  if(istAktivitaet){
     editorPlan.dauer = begrenzen(Math.round(editorPlan.dauer), 60, MAX_DAUER_S);
     if(!hatStrecke(editorPlan.sportart)) editorPlan.strecke = 0;
-    planSichern();
-    return;
   }
   editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
   editorPlan.uebungen.forEach(u => {
@@ -4156,7 +4355,8 @@ function editorSpeichern(){
     u.gewichtSchritt = Math.max(0, u.gewichtSchritt);
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
   });
-  if(editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
+  // Eine Aktivität DARF ohne Übungen auskommen — die Dauer ist der Inhalt.
+  if(!istAktivitaet && editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
   planSichern();
 }
 
@@ -4411,9 +4611,19 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
     strecke, zeitEinheit: einheit, saetze: []
   });
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  const eintrag = sitzung.daten.protokoll[sitzung.daten.protokoll.length - 1];
   const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];
   speichern();
+  const plan = eintragPlan;
   eintragPlan = null;
+
+  /* Hat die Aktivität Übungen (Topspins, 10 Wdh), geht es in dieselbe
+     Bewertung wie beim Krafttraining — nur so greift die Progression. */
+  if(plan && plan.uebungen.length > 0){
+    if(bericht.length) meldung(bericht.join("\n"));
+    bewertungOeffnen(sitzung.daten.plaene.find(p => p.id === plan.id) || plan, eintrag);
+    return;
+  }
   planListeZeichnen();
   zeige("view-plaene");
   meldung("Eingetragen: " + aktivitaetText(sport, strecke, dauerS, einheit) +
@@ -4860,6 +5070,13 @@ function trainingBeenden(){
   const serie = trainingsSerie();
   sprich("Training beendet. Gut gemacht." + (serie >= 2 ? " Serie: " + serie + "." : ""));
 
+  bewertungOeffnen(plan, eintrag);
+}
+
+/** Bewertungsbildschirm — für Krafttraining UND für Aktivitäten mit Übungen.
+    Beide Wege landen in derselben Progression; ein zweiter Bewertungspfad
+    wäre eine zweite Stelle, an der dieselbe Regel abdriften kann. */
+function bewertungOeffnen(plan, eintrag){
   bewertung = {};
   plan.uebungen.forEach(u => bewertung[u.id] = 3);
   document.getElementById("bewertung-liste").innerHTML = plan.uebungen.map(u =>

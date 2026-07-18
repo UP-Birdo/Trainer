@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.031 / APP_VERSION 31**.
+> als Paket hochgeladen. Stand: **Version 0.033 / APP_VERSION 33**.
 
 ---
 
@@ -97,9 +97,10 @@ daten = {
   ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
   plaene:      [ { id, name, sportart, typ:"kraft"|"aktivitaet", tage:[1..7],   // typ FOLGT der Sportart
                    // typ "aktivitaet": dauer(s), zeitEinheit, strecke, steigerung:{woche,stufen,vorEntlastung}
+                   // uebungen[] gibt es bei BEIDEN Typen (Topspins im Tischtennis-Plan)
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
-                   uebungen:[ { id, name, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
+                   uebungen:[ { id, name, geraet, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
   einrichtung: { sportarten:["kraft"], ort, geraete:[], geraeteProOrt:{}, erfahrung, ziel,
                  wochentage:[], dauer, fokus, bonus:[] },   // ab v23 IMMER da (datenNachruesten legt sie an)
@@ -119,10 +120,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 31;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.031" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 33;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.033" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v31"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v33"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -324,6 +325,64 @@ Sie arbeitet auf dem **echten** Plan, nicht auf `lauf.plan` (das ist seit der Vo
 drei bis vier Wochen Anpassung, und man steigert nie Umfang und Häufigkeit gleichzeitig.
 `zielInPlan()` verweist bei Aktivitäten auf die Wochentage im Plan.
 
+### v32 — was der Umbau von v31 noch nicht konnte
+
+**Der Wizard fragt jede Sportart einzeln.** Die Fragen `tage_<sportart>` und `dauer_<sportart>` werden
+aus `SPORTARTEN` **erzeugt**, nicht getippt (`WIZARD_FRAGEN.concat(...)`), und über `nurWenn` ein- und
+ausgeblendet. Eine neue Sportart braucht deshalb genau einen Eintrag in `SPORTARTEN` — sonst müsste
+man sie an drei Stellen nachtragen. `aktivitaetsFelderVorbereiten()` legt die Felder an, in die
+`wzMulti`/`wzSingle` schreiben.
+
+> **Absturzfalle:** `plaeneErstellen()` rechnet `SPLITS[einrichtung.wochentage.length]`. Ohne
+> Krafttraining ist `wochentage` leer → `SPLITS[0]` ist `undefined` → Absturz. Die Wache
+> `!kraftGewaehlt(einrichtung) ? [] : …` MUSS vor der **Berechnung** stehen, nicht erst vor der
+> Verwendung. Das ist v32 schon einmal passiert, als `sportartenSichern()` entfiel.
+
+**Übungen gibt es bei BEIDEN Plan-Typen.** „Topspins, 10 Wdh" im Tischtennis-Plan ist ein echter Fall:
+Die Übung landet über `planUebungen()` im Ziel-Dropdown, `kraftZieleAnwenden()` setzt `wdhMax` auf den
+Zielwert, und nach dem Eintragen der Aktivität öffnet `bewertungOeffnen()` **dieselbe** Bewertung wie
+beim Krafttraining. Nur so greift die Progression. Ohne Übungen geht es direkt zurück zur Liste.
+Nur Reihenfolge/Zirkel/Aufwärmen/Dehnen bleiben Kraft-eigen.
+
+**Kalender, mehrere Sportarten an einem Tag** (`tagFarben()`):
+
+| Anzahl | Darstellung |
+|---|---|
+| 1 | Fläche in der Sportfarbe |
+| 2 | Fläche in Farbe A, **Rahmen** in Farbe B |
+| 3+ | Ring aus Tortenstücken (`conic-gradient`), Zahl im dunklen **Kern** |
+
+Der Kern ist keine Deko: Auf einem dreifarbigen Verlauf wäre die Zahl je nach Segment mal lesbar,
+mal nicht.
+
+### v33 — Aufräumen und die Gerätefrage ernst nehmen
+
+**Die Übung merkt sich ihr Gerät** (`u.geraet`). Vorher musste man es über den Namen in `UEBUNGEN_DB`
+suchen — nach einer Umbenennung wäre die Verbindung stillschweigend weg gewesen. Migration schlägt es
+einmalig nach, Freitext-Übungen bekommen `"keine"`. Gleiche Lehre wie beim Wochentag: **Feld statt
+Namensraterei.**
+
+**Abwählen räumt auf** — immer mit Rückfrage, denn es ist nicht rückholbar:
+
+| Aktion | Folge |
+|---|---|
+| Gerät abwählen (`haengtAnGeraet`) | Übungen mit diesem `geraet` fliegen aus allen Plänen; leere Pläne werden gemeldet |
+| Sportart abwählen (`haengtAnSportart`) | Pläne dieser Sportart **und** ihre Ziele weg |
+| Dazuwählen | immer harmlos, nie eine Rückfrage |
+
+> **Das Protokoll wird NIE angefasst.** Was trainiert wurde, wurde trainiert — das darf keine
+> Einstellung umschreiben. Der Kalender bleibt dadurch ehrlich, auch wenn der Plan längst weg ist.
+
+**Der Generator bevorzugt Geräteübungen** (stabile Sortierung, `geraet !== "keine"` zuerst).
+Vorher stand `UEBUNGSPOOL` in Datenbank-Reihenfolge, und die ist körpergewichts-zuerst: Der Rundlauf
+ab Index 0 lieferte selbst im voll ausgestatteten Gym „Liegestütze, Pike Push-ups, enge Liegestütze"
+als ganzen Drück-Tag — die Maschinen wurden nie erreicht. **Die Gerätefrage war damit praktisch
+wirkungslos.** Jetzt: 25 von 25 Übungen mit Gerät im vollen Gym, ohne Ausstattung unverändert reines
+Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine Übung zweimal pro Woche.
+
+**Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
+Übung = Karteileiche im Profil.
+
 ## 9. Fachliche Regeln (belegt recherchiert)
 
 **Progression** (die EINZIGE Stelle: `progressionAnwenden()`):
@@ -397,7 +456,9 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
   5. `flow.js` — kompletter Durchlauf mit DOM-Ersatz: Konto → Wizard → Vorschau → Training →
      Bewertung → Sicherung raus/rein → Systemtexte → Kalender → Filter (57 Prüfungen)
   6. `ziel.js` — Zeiteinheiten, Editor-Zeitfeld, Ziele, Einschätzung, Migration (55 Prüfungen)
-  7. `akt.js` — Plan-Typ, Streckenmaß, Pace, 20-%-Regel mit Entlastung, Aktivität eintragen (48 Prüfungen)
+  7. `akt.js` — Plan-Typ, Streckenmaß, Pace, 20-%-Regel mit Entlastung, Aktivität eintragen (49 Prüfungen)
+  8. `neu.js` — Wizard je Sportart, Übungen in Aktivitäten, Kalenderfarben (41 Prüfungen)
+  9. `raum.js` — Gerätefeld, Aufräumen beim Abwählen, Generator-Geräteauswahl (40 Prüfungen)
   Diese Kette hat mehrfach echte Fehler gefunden — zuletzt einen, den ich selbst gerade eingebaut hatte.
 
 **Test-Fallen, teuer erkauft:**
