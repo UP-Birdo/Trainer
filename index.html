@@ -631,6 +631,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button class="info-knopf" onclick="infoUmschalten('info-tag')" aria-label="Info">i</button></div>
     <div id="info-tag" class="meta info-text" hidden>Mehrfachauswahl — derselbe Plan darf z. B. Montag <em>und</em> Donnerstag laufen. Ein Plan mit Wochentagen erscheint in der Liste nur an diesen Tagen und färbt sie im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
     <div id="plan-tag" class="tage-raster" style="margin-top:8px"></div>
+    <!-- D2: Wiederholung — nur sinnvoll, wenn feste Wochentage gewählt sind. -->
+    <div id="plan-takt-block" style="margin-top:10px" hidden>
+      <label>Wiederholung</label>
+      <div class="knopfreihe">
+        <button id="takt-1" onclick="planTaktSetzen(1)">Jede Woche</button>
+        <button id="takt-2" onclick="planTaktSetzen(2)">Alle 2 Wochen</button>
+      </div>
+    </div>
     <!-- Nur bei Aktivitäten: eine Dauer, optional eine Strecke. Keine Übungen, keine Sätze. -->
     <div id="editor-aktivitaet" hidden>
       <div class="raster abstand">
@@ -1267,7 +1275,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 52;
+const APP_VERSION = 53;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1299,6 +1307,12 @@ function datenNachruesten(daten){
   }
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
+    // D2: Wiederholungs-Regel. wochenTakt 1 = jede Woche, 2 = alle 2 Wochen
+    // (wochenAnker legt fest, welche der beiden Wochen). einzelTermine = Liste
+    // einmaliger Datumsangaben (JJJJ-MM-TT), unabhängig von den Wochentagen.
+    if(p.wochenTakt == null)  p.wochenTakt = 1;
+    if(p.wochenAnker == null) p.wochenAnker = 0;
+    if(!Array.isArray(p.einzelTermine)) p.einzelTermine = [];
     if(p.aufwaermen === undefined) p.aufwaermen = false;   // Bestandspläne bleiben, wie sie waren
     if(p.dehnen === undefined) p.dehnen = false;
     if(!p.sportart) p.sportart = "kraft";                  // v25: alles Bisherige war Kraft
@@ -1939,6 +1953,22 @@ function uebungBeschreiben(u){
 /** Wochentag von heute, 1 = Montag (JS zählt ab Sonntag = 0). */
 function heutigerWochentag(){ return (new Date().getDay() + 6) % 7 + 1; }
 
+/** Fortlaufende Montag-Wochennummer seit einer festen Epoche (2024-01-01 war
+    ein Montag). Dient der „alle 2 Wochen"-Parität. */
+function wocheSeitEpoche(iso){
+  const d = new Date(iso + "T12:00:00");
+  return Math.floor((d - new Date("2024-01-01T12:00:00")) / (7 * 86400000));
+}
+/** D2: Findet an einem konkreten Datum statt? Einzeltermine schlagen alles;
+    sonst muss der Wochentag passen UND (bei Takt 2) die Wochen-Parität. */
+function planAmTag(plan, iso){
+  if(plan.einzelTermine && plan.einzelTermine.includes(iso)) return true;
+  const wt = (new Date(iso + "T12:00:00").getDay() + 6) % 7 + 1;
+  if(!plan.tage.includes(wt)) return false;
+  if((plan.wochenTakt || 1) <= 1) return true;
+  return (((wocheSeitEpoche(iso) % 2) + 2) % 2) === (plan.wochenAnker || 0);
+}
+
 let alleplaeneZeigen = false;   // Schalter unter der Liste, absichtlich NICHT gespeichert
 
 function alleplaeneUmschalten(){ alleplaeneZeigen = !alleplaeneZeigen; planListeZeichnen(); }
@@ -2070,7 +2100,7 @@ let planAuswahl = new Set();
 function sichtbarePlaene(){
   const plaene = sitzung.daten.plaene;
   const heuteTag = heutigerWochentag();
-  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
+  const heuteDrin = p => p.tage.length === 0 || planAmTag(p, heuteAlsText());
   return alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
 }
 function planAuswahlStarten(id){
@@ -2119,7 +2149,7 @@ function planListeZeichnen(){
      Heute-Karte liegt jetzt auf dem Start-Bildschirm, hier gibt es kein
      Doppel mehr. */
   const heuteTag = heutigerWochentag();
-  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
+  const heuteDrin = p => p.tage.length === 0 || planAmTag(p, heuteAlsText());
   const sichtbar = sichtbarePlaene();
   const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
@@ -2441,6 +2471,16 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.045 – 0.053", punkte:[
+    "Kalender ist jetzt anklickbar: tippe einen Tag an, um einen Plan einmalig einzutragen (Einzeltermin), einen Ruhetag zu setzen oder zu sehen, was ansteht.",
+    "Pläne können sich „alle 2 Wochen“ wiederholen — im Editor unter „Wiederholung“ (erscheint, sobald feste Wochentage gewählt sind).",
+    "Fortschritt für ALLE Sportarten: Drills steigern sich über die Bewertung, und nach einer lockeren Ausdauer-Einheit hebt die App Dauer/Strecke auf Wunsch um ~7 % an.",
+    "Im Training trägst du jetzt die WIRKLICH geschafften Wiederholungen ein (+/- am Satz) — nicht mehr nur die geplanten.",
+    "Neue Sportart gewählt? Ein kurzer Wizard fragt Erfahrung, Tage, Dauer (und Strecke) ab und legt einen Starter-Plan an.",
+    "Pläne per langem Druck mehrfach auswählen und zusammen löschen; „Alle auswählen“ inklusive.",
+    "Übungs-Bibliothek zurück auf der Sportart-Seite; alle Sportarten frei abwählbar; Ziel-Datum kürzer (TT.MM.JJ); Texte nicht mehr versehentlich markierbar.",
+    "Die Navigationsleiste sitzt jetzt auf allen Seiten sauber unten; Version steht unter Mehr → Hilfe."
+  ]},
   { stand:"0.041 – 0.044", punkte:[
     "Eigene Übungen: „Eigene Übung“ fragt jetzt zuerst die Sportart und baut dann die Felder — danach steht sie im Profil unter ihrer Sportart und taucht im Auswahl-Dropdown wieder auf.",
     "Profil aufgeräumt: die Ziele stehen jetzt über den Sportarten, und die Sportart-Liste lässt sich einklappen.",
@@ -2634,36 +2674,37 @@ function kalenderZeichnen(){
   const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
   const wochentagErster = (new Date(jahr, monat, 1).getDay() + 6) % 7;   // 0 = Montag
 
-  // Geplante Wochentage: Wochentag -> Liste der Sportarten (jede nur einmal)
-  const planNachTag = {};
-  sitzung.daten.plaene.forEach(p => p.tage.forEach(t => {
-    const liste = planNachTag[t] = planNachTag[t] || [];
-    if(!liste.includes(p.sportart)) liste.push(p.sportart);
-  }));
-  const benutzteSportarten = new Set(Object.values(planNachTag).flat());
+  // Welche Sportarten wirklich vorkommen (für die Legende) — im Loop gefüllt.
+  const benutzteSportarten = new Set();
 
   let html = ["Mo","Di","Mi","Do","Fr","Sa","So"].map(t => '<div class="kopfzelle">' + t + '</div>').join("");
   for(let i = 0; i < wochentagErster; i++) html += '<div class="tag leer2"></div>';
   for(let tag = 1; tag <= tageImMonat; tag++){
     const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
-    const wochentag = (new Date(jahr, monat, tag).getDay() + 6) % 7 + 1;
     const trainings = protoNachDatum[datum] || [];
-    let klasse = "tag", klick = "", stil = "", punkt = "", kern = false;
+    let klasse = "tag", stil = "", punkt = "", kern = false;
+    const klick = ' onclick="tagOeffnen(\'' + datum + '\')"';   // D1: jeder Tag antippbar
 
     if(trainings.length > 0){
-      // Realität schlägt Planung — nicht antippbar
+      // Realität schlägt Planung: der Tag zeigt, was wirklich gemacht wurde.
       const farben = [...new Set(trainings.map(e => e.sportart))];
       farben.forEach(f => benutzteSportarten.add(f));
       const f = tagFarben(farben.map(sportartFarbe), "tag trainiert", true);
       klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
       if(trainings.some(e => e.sonder)) punkt = '<span class="sonderpunkt"></span>';
+    } else if(ruhetage.has(datum)){
+      klasse += " ruhe";                                        // manuell markiert
+    } else if(datum < heute){
+      klasse += " autoruhe";                                    // Vergangenheit ohne Training
     } else {
-      klick = ' onclick="ruhetagUmschalten(\'' + datum + '\')"';
-      if(ruhetage.has(datum)) klasse += " ruhe";                // manuell markiert
-      else if(datum < heute) klasse += " autoruhe";             // Vergangenheit ohne Training
-      else if(planNachTag[wochentag]){                          // Zukunft/heute mit Plan
-        const f = tagFarben(planNachTag[wochentag].map(sportartFarbe), "tag geplant", false);
+      // Heute/Zukunft: was ist für DIESES Datum geplant (Wochentakt + Einzeltermine)?
+      const geplant = sitzung.daten.plaene.filter(p => planAmTag(p, datum));
+      if(geplant.length){
+        const farben = [...new Set(geplant.map(p => p.sportart))];
+        farben.forEach(f => benutzteSportarten.add(f));
+        const f = tagFarben(farben.map(sportartFarbe), "tag geplant", false);
         klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
+        if(geplant.some(p => (p.einzelTermine || []).includes(datum))) punkt = '<span class="sonderpunkt"></span>';
       }
     }
     if(datum === heute) klasse += " heute";
@@ -2688,6 +2729,37 @@ function ruhetagUmschalten(datum){
   if(pos >= 0) liste.splice(pos, 1); else liste.push(datum);
   speichern();
   kalenderZeichnen();
+}
+
+/** D1: Tag-Fenster im Kalender. Zeigt, was an dem Tag geplant/erledigt ist,
+    und bietet Einzeltermin (Plan einmalig an diesem Tag) sowie Ruhetag an. */
+function tagOeffnen(datum){
+  const proto = sitzung.daten.protokoll.filter(e => e.datum === datum);
+  const geplant = sitzung.daten.plaene.filter(p => planAmTag(p, datum));
+  const istRuhe = sitzung.daten.ruhetage.includes(datum);
+  let info = datumKurz(datum);
+  if(proto.length)        info += " · erledigt: " + proto.map(e => e.plan).join(", ");
+  else if(geplant.length) info += " · geplant: " + geplant.map(p => p.name).join(", ");
+  else if(istRuhe)        info += " · Ruhetag";
+  const aktionen = [];
+  if(sitzung.daten.plaene.length)
+    aktionen.push({ text:"➕ Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
+  sitzung.daten.plaene.filter(p => (p.einzelTermine || []).includes(datum)).forEach(p =>
+    aktionen.push({ text:"✕ Einzeltermin entfernen: " + p.name, tun:() => {
+      p.einzelTermine.splice(p.einzelTermine.indexOf(datum), 1); speichern(); kalenderZeichnen();
+    }}));
+  aktionen.push({ text: istRuhe ? "Ruhetag entfernen" : "Als Ruhetag markieren",
+                  tun:() => ruhetagUmschalten(datum) });
+  aktionsMenue(info, aktionen);
+}
+/** Plan-Auswahl für einen Einzeltermin an einem bestimmten Datum. */
+function einzelterminMenue(datum){
+  const aktionen = sitzung.daten.plaene.map(p => ({ text: p.name, tun:() => {
+    if(!Array.isArray(p.einzelTermine)) p.einzelTermine = [];
+    if(!p.einzelTermine.includes(datum)){ p.einzelTermine.push(datum); speichern(); }
+    kalenderZeichnen();
+  }}));
+  aktionsMenue("Welcher Plan am " + datumKurz(datum) + "?", aktionen);
 }
 
 /** Volumenpunkte eines Satzes. Bewusst grob — es geht um den Trend, nicht um Präzision. */
@@ -4763,7 +4835,8 @@ let editorPlan = null;
 function planAnlegen(){
   editorMehr = {};
   editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()], reihenfolge:"klassisch",
-                 aufwaermen:true, dehnen:true, sportart:"kraft", typ:"kraft", tage:[] };
+                 aufwaermen:true, dehnen:true, sportart:"kraft", typ:"kraft", tage:[],
+                 wochenTakt:1, wochenAnker:0, einzelTermine:[] };
   document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
   editorZeichnen(); zeige("view-editor");
 }
@@ -4845,6 +4918,14 @@ function planTagUmschalten(tag){
   editorZeichnen();
 }
 
+/** D2: Wiederholungs-Takt setzen. Bei „alle 2 Wochen" wird der Anker auf die
+    Parität der aktuellen Woche gelegt — so zählt der Zyklus ab dieser Woche. */
+function planTaktSetzen(t){
+  editorPlan.wochenTakt = t;
+  if(t === 2) editorPlan.wochenAnker = ((wocheSeitEpoche(heuteAlsText()) % 2) + 2) % 2;
+  editorZeichnen();
+}
+
 function editorZeichnen(){
   document.getElementById("plan-name").value = editorPlan.name;
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
@@ -4880,6 +4961,12 @@ function editorZeichnen(){
     WOCHENTAGE.slice(1).map((w,i) =>
       '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
       '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("");
+
+  // D2: Wiederholungs-Umschalter nur bei festen Tagen zeigen.
+  const hatTage = editorPlan.tage.length > 0;
+  document.getElementById("plan-takt-block").hidden = !hatTage;
+  document.getElementById("takt-1").classList.toggle("gewaehlt", (editorPlan.wochenTakt || 1) === 1);
+  document.getElementById("takt-2").classList.toggle("gewaehlt", (editorPlan.wochenTakt || 1) === 2);
 
   document.getElementById("rf-klassisch").classList.toggle("gewaehlt", editorPlan.reihenfolge === "klassisch");
   document.getElementById("rf-zirkel").classList.toggle("gewaehlt", editorPlan.reihenfolge === "zirkel");
@@ -5357,7 +5444,7 @@ function aktivitaetSpeichern(){
 function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
   const wochentag = (new Date(datum + "T12:00:00").getDay() + 6) % 7 + 1;
   // Sondertraining = nichts stand für diesen Tag im Plan
-  const geplant = eintragPlan ? eintragPlan.tage.includes(wochentag) : false;
+  const geplant = eintragPlan ? planAmTag(eintragPlan, datum) : false;
   sitzung.daten.protokoll.push({
     datum, plan: eintragPlan ? eintragPlan.name : sportartName(sport),
     planId: eintragPlan ? eintragPlan.id : null,   // v35: stabile Zuordnung; null = freie Aktivität ohne Plan
@@ -5800,7 +5887,7 @@ function heuteKarteZeichnen(){
   const wochentag = heutigerWochentag();
   const name = WOCHENTAGE[wochentag];
   // tag statt Name: Der Plan darf jetzt heißen, wie er will.
-  const plan = sitzung.daten.plaene.find(p => p.tage.includes(wochentag));
+  const plan = sitzung.daten.plaene.find(p => planAmTag(p, heuteAlsText()));
   const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heuteAlsText());
 
   if(plan){

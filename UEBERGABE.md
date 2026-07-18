@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.052 / APP_VERSION 52**.
+> als Paket hochgeladen. Stand: **Version 0.053 / APP_VERSION 53** — Roadmap bis „General Training" (0.050) vollständig umgesetzt.
 
 ---
 
@@ -101,14 +101,18 @@ daten = {
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
   plaene:      [ { id, name, sportart, typ:"kraft"|"aktivitaet", tage:[1..7],   // typ FOLGT der Sportart
+                   wochenTakt:1|2, wochenAnker:0|1, einzelTermine:["JJJJ-MM-TT"],   // D2 (v53): jede/alle-2-Wochen + einmalige Termine
                    // typ "aktivitaet": dauer(s), zeitEinheit, strecke, steigerung:{woche,stufen,vorEntlastung}
                    // uebungen[] gibt es bei BEIDEN Typen (Topspins im Tischtennis-Plan)
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
                    uebungen:[ { id, name, geraet, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
+  eigeneUebungen: { sportId:[ { name, modus, saetze, wdh|dauer } ] },   // C2/C3 (v44): selbst gebaute Übungen je Sportart
   einrichtung: { sportarten:["kraft"], ort, geraete:[], geraeteProOrt:{}, erfahrung, ziel,
-                 wochentage:[], dauer, fokus, bonus:[] },   // ab v23 IMMER da (datenNachruesten legt sie an)
+                 wochentage:[], dauer, fokus, bonus:[],
+                 // C1 (v52): je Aktivitäts-Sportart tage_<id>:[1..7], dauer_<id>:s, strecke_<id>:zahl
+                 ...tage_<sport>, dauer_<sport>, strecke_<sport> },   // ab v23 IMMER da (datenNachruesten legt sie an)
   sicherung:   { zeit, version }
 }
 ```
@@ -125,10 +129,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 52;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.052" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 53;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.053" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v52"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v53"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +391,31 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v53 — D1/D2: Kalender anklickbar + Wiederholungen (letzter Roadmap-Block)
+
+**Datenmodell erweitert** (nur Felder HINZUGEFÜGT, `datenNachruesten` rüstet Alt-Pläne nach):
+`plan.wochenTakt` (1 = jede Woche, 2 = alle 2 Wochen), `plan.wochenAnker` (0/1 = welche der beiden Wochen),
+`plan.einzelTermine` (Liste einmaliger `JJJJ-MM-TT`).
+
+**Zentrale Weiche `planAmTag(plan, iso)`** ersetzt überall das alte `p.tage.includes(wochentag)`:
+Einzeltermin schlägt alles; sonst muss der Wochentag passen UND (bei Takt 2) die Wochen-Parität
+(`wocheSeitEpoche` zählt Montag-Wochen ab 2024-01-01). Verdrahtet in `heuteKarteZeichnen`, den Pläne-Filtern
+(`heuteDrin`/`sichtbarePlaene`), `kalenderZeichnen` und der Sonder-Erkennung in `aktivitaetAblegen`.
+
+**D1 — Kalender anklickbar:** JEDER Tag öffnet `tagOeffnen(datum)` (Aktionsmenü): zeigt geplant/erledigt,
+bietet **Einzeltermin** (`einzelterminMenue` → Plan an genau diesem Tag), bereits gesetzte Einzeltermine
+wieder entfernen, und **Ruhetag** an/aus. `kalenderZeichnen` färbt Tage jetzt datumsgenau über `planAmTag`
+(inkl. Alle-2-Wochen und Einzeltermin-Punkt).
+
+**D2 — Wiederholung im Editor:** Umschalter „Jede Woche / Alle 2 Wochen" (`plan-takt-block`, nur sichtbar bei
+festen Tagen; `planTaktSetzen` ankert Takt 2 an die aktuelle Woche). Pläne ohne Tag = keine Wiederholung
+(unverändert). Getestet (jsdom, 12 Fälle) + alle Regressionen grün.
+
+> **ROADMAP VOLLSTÄNDIG:** A ✅ · B ✅ · C1 ✅ · C2/C3 ✅ · C4 ✅ · D1/D2 ✅ · E1 ✅ · E2 ✅. Milestone
+> „General Training" (0.050) ist erreicht. Offene Ideen darüber hinaus stehen in §12.
+
+---
 
 ### v52 — C1: Einmaliger Mini-Wizard bei neuer Sportart
 
@@ -1003,14 +1032,12 @@ jeder Etappe nach den Entscheidungen):
   **oder** Feld `sportart` auf der Übung. So bauen, dass die spätere Fortschritts-Entscheidung nicht verbaut wird.
 * **0.040 ✅** Editor-Dropdown (Picker ersetzt Bibliothek): Sportart → Gerät/Kontext → passende Übungen vorgeschlagen; **freie Eingabe bleibt**.
   Verbraucht die v37-Übungen und das 0.039-Modell. *(Ende der aktuell zugesagten Strecke „bis 0.040".)*
-* **0.041–0.043** Erste recherchierte Übungs-/Drill-Listen je Sportart (Laufen, Klettern, Tischtennis, Yoga …).
-* **0.044–0.046** **Kernentscheidung + Umbau:** Fortschritt als **Strategie je Sportart-Klasse** —
-  `fortschrittFuer(klasse)` statt der kraft-festen `progressionAnwenden`. Kraft = Doppelprogression (steht),
-  Ausdauer ≈ 30-%-Regel (teils da), Technik/Ballsport = Volumen/Zeit/Skill-Stufen (neu). **Diese Weiche
-  zuerst festlegen, sonst Rework.**
-* **0.047** Ist-Werte im Training → automatische Ableitung (Backlog-Punkt 4), greift dann für **alle** Klassen.
-* **0.048–0.049** Generator + Trainingsbildschirm je Sportart-Klasse, wo sinnvoll.
-* **0.050** Politur + Neuigkeiten-Eintrag „0.050 — General Training".
+* **0.039/0.044 ✅** Übungs-/Drill-Listen je Sportart (`SPORT_UEBUNGEN`) + eigene Übungen (C2/C3). *Erledigt.*
+* **0.050 ✅ (E1)** Fortschritt je Sportart-Klasse: Drills steigern über die Bewertung (`progressionAnwenden`
+  deckt Wdh/Zeit ab), reine Ausdauer über den +7-%-Schritt in `aktivitaetAblegen`. *Erledigt.*
+* **0.051 ✅ (E2)** Ist-Wiederholungen im Training (+/- am Satz, `lauf.istWdh`). *Erledigt.*
+* **0.052 ✅ (C1)** Mini-Wizard bei neuer Sportart. **0.053 ✅ (D)** Kalender anklickbar + Wiederholungen.
+* **Neuigkeiten-Eintrag „0.045–0.053"** fasst die Etappe nutzer-sichtbar zusammen.
 
 **Leitplanken über alles:** eine Datei, offline, verschlüsselt, wartbar ohne KI; getestete Etappen-Kadenz.
 
@@ -1041,7 +1068,7 @@ Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werd
   „`zieleZeichnen`/`zieleStartZeichnen` zusammenführen".
 * **B4 — Pläne-Tab sortieren:** nach Sportart gruppieren / in Untermenüs, darin nach Datum.
 
-**C · Sportart-System vertiefen (baut auf v39/v40)**
+**C · Sportart-System vertiefen — ✅ (C1 v52, C2/C3 v44, C4 v39)**
 * **C1 — Neue Sportart wählen → einmaliger Wizard** (wie Ersteinrichtung) ab dem Sportart-Schritt,
   Fenster für Fenster. Erneutes Antippen einer schon eingerichteten Sportart → **aktuelle** Konfig
   (Ort etc., wie heute bei Kraft). Betrifft `sportartOeffnen` + Wizard-Flow.
@@ -1054,7 +1081,7 @@ Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werd
   Picker (C2) und Profil. (Datenmodell-Vertrag: nur Feld hinzufügen, `datenNachruesten` anlegen.)
 * **C4 — (bestehend, 0.041–0.043)** Sport-Inhalte je Sportart recherchiert vertiefen.
 
-**D · Kalender (großes Feature — eigener Meilenstein, evtl. nach 0.050)**
+**D · Kalender — ✅ v53 (D1 anklickbar, D2 Wiederholungen)**
 * **D1 — Kalender öffnen & Termine erstellen** wie ein normaler Kalender; eigene, **verknüpfte** Pläne
   eintragen.
 * **D2 — Flexible Wiederholung:** Pläne nicht nur Wochentagen zuordenbar, sondern „alle 2 Wochen" o. ä.
@@ -1066,7 +1093,7 @@ Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werd
 * **E1 — (0.044) Fortschritts-Strategie je Sportart-Klasse** (`fortschrittFuer`). Weiche zuerst festlegen.
 * **E2 — (0.047) Ist-Werte im Training → automatische Ableitung.**
 
-**Empfohlene Reihenfolge:** erst **A** (billig, entrümpelt sofort), dann **B** (Struktur), dann **C**
+**Reihenfolge (abgearbeitet):** A → B → C → E1 → C4 → E2 → C1 → D — alles gebaut. *(Original-Empfehlung:)* erst **A** (billig, entrümpelt sofort), dann **B** (Struktur), dann **C**
 (Sportart-System, macht v39/v40 rund), dann **E1** (Fortschritts-Weiche — gate für tiefe Sport-Inhalte),
 dann **C4**, dann **E2**, zuletzt **D** (Kalender) als eigener großer Meilenstein. „General Training"
 (A–C + E) bleibt der 0.050-Kern; der Kalender (D) ist groß genug für einen eigenen Meilenstein danach.
