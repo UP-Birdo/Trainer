@@ -156,12 +156,17 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 #nav button .sym{font-size:18px;line-height:1}
+#nav button .sym svg{width:23px;height:23px;display:block}
 #nav button.aktiv{color:var(--signal)}
 /* Freiraum unter dem letzten Element = Nav-Höhe + Luft.
    Die Safe-Area taucht hier NICHT auf, weil body sie unten schon als
    Padding hat und die Bar sie ebenfalls hat — sie kürzt sich raus.
-   Sichtbare Luft zwischen letztem Text und Bar = die 64px. */
-body.nav-an .view.aktiv{padding-bottom:calc(var(--navhoehe) + 64px)}
+   v41 (A1): Nav-Views füllen den Schirm (min-height) und schieben das
+   Wasserzeichen nach unten — sonst klaffte auf kurzen Seiten (Heute/Pläne)
+   eine Lücke über der fixen Leiste, sie wirkte "nicht ganz unten". */
+body.nav-an .view.aktiv{display:flex;flex-direction:column;
+  min-height:calc(100dvh - var(--navhoehe));padding-bottom:calc(var(--navhoehe) + 24px)}
+body.nav-an .view.aktiv > .wasserzeichen{margin-top:auto}
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
@@ -807,11 +812,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
 <nav id="nav">
-  <button id="nav-start" onclick="navGehe('start')"><span class="sym">⌂</span>Heute</button>
-  <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym">▤</span>Pläne</button>
-  <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym">▦</span>Statistik</button>
-  <button id="nav-profil" onclick="navGehe('profil')"><span class="sym">◉</span>Profil</button>
-  <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym">⚙</span>Mehr</button>
+  <button id="nav-start" onclick="navGehe('start')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M6 9.5V20h12V9.5"/></svg></span>Heute</button>
+  <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span>Pläne</button>
+  <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20V14"/></svg></span>Statistik</button>
+  <button id="nav-profil" onclick="navGehe('profil')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c0-3.6 3-5.6 6.5-5.6s6.5 2 6.5 5.6"/></svg></span>Profil</button>
+  <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></span>Mehr</button>
 </nav>
 
 <!-- Aktionsmenü für langes Drücken -->
@@ -1231,7 +1236,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 40;
+const APP_VERSION = 41;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1686,7 +1691,7 @@ const ZEITEINHEITEN = [
   { id:"min", name:"Minuten",  kurz:"min", faktor:60,   schritt:1,   ansage:"Minuten" },
   { id:"h",   name:"Stunden",  kurz:"h",   faktor:3600, schritt:0.25, ansage:"Stunden" }
 ];
-const MAX_DAUER_S = 6 * 3600;   // 6 Stunden — deckt auch einen langen Wandertag ab
+const MAX_DAUER_S = 24 * 3600;   // v41 (A5): frei wählbar bis 24 h — nur noch eine Sanity-Grenze, kein 6-h-Deckel
 
 function zeitEinheit(id){ return ZEITEINHEITEN.find(e => e.id === id) || ZEITEINHEITEN[0]; }
 
@@ -2461,13 +2466,11 @@ function kalenderZeichnen(){
   // Legende zeigt nur, was hier auch wirklich vorkommt
   const teile = SPORTARTEN.filter(s => benutzteSportarten.has(s.id)).map(s =>
     '<span><span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</span>');
+  // Legende: nur Farbe → Sportart (plus Ruhetag). Bewusst schlank —
+  // die Feinheiten (geplant/mehrere/Sonder) erklären sich beim Antippen.
   document.getElementById("kalender-legende").innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + teile.join("") +
-    (teile.length ? '<span>▢ geplant</span>' : "") +
-    (teile.length > 1 ? '<span>◲ mehrere an einem Tag</span>' : "") +
-    '<span><span style="color:var(--rest)">■</span> Ruhetag – antippen</span>' +
-    '<span><span style="color:var(--muted)">◫</span> ohne Training</span>' +
-    '<span>• Sondertraining</span></div>';
+    '<span><span style="color:var(--rest)">■</span> Ruhetag</span></div>';
 }
 
 function ruhetagUmschalten(datum){
@@ -5317,7 +5320,7 @@ function heuteKarteZeichnen(){
       '<button class="breit" onclick="navGehe(\'plaene\')">Zu den Plänen</button></div></div>';
   } else {
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
-      '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute — Ruhetage kosten die Flamme nicht (bis zu 2 am Stück).</div></div>';
+      '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute.</div></div>';
   }
   return null;
 }

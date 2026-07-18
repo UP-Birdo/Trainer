@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.040 / APP_VERSION 40**.
+> als Paket hochgeladen. Stand: **Version 0.041 / APP_VERSION 41**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 40;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.040" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 41;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.041" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v40"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v41"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,26 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v41 — Aussehen / Entrümpeln (Strang A der Nutzer-Wünsche)
+
+* **A1** Nav-Views (`view-start`/`view-plaene` u. a.) füllen jetzt den Schirm (`min-height:calc(100dvh -
+  var(--navhoehe))`, Flex-Spalte) und schieben das Wasserzeichen per `margin-top:auto` nach unten — sonst
+  klaffte auf kurzen Seiten eine Lücke über der fixen Nav-Leiste, sie wirkte „nicht ganz unten".
+  **Nur strukturell getestet — CSS-Layout braucht Sicht-Check auf dem echten Gerät.**
+* **A2** Nav-Icons vereinheitlicht: **schlichte SVG-Linien-Icons** (Haus/Liste/Balken/Person/Punkte) statt
+  gemischter Glyphen, `stroke="currentColor"` → eine Farbe je Zustand (muted/signal). `#nav .sym svg` = 23 px.
+* **A3** Kalender-Legende verschlankt: nur noch *Farbe → Sportart* + *Ruhetag*; Prosa (geplant/mehrere/
+  ohne Training/Sondertraining) raus.
+* **A4** Ruhetag-Zusatztext gekürzt („Kein Plan für heute."). *Breiteres Entrümpeln kleiner grauer Infos
+  läuft iterativ weiter — A4 ist bewusst nicht „fertig".*
+* **A5** Trainingsdauer frei: `MAX_DAUER_S` 6 h → **24 h** (nur noch Sanity-Grenze). Zahlenfeld + Einheit
+  (s/min/h) gab es schon (`ZEITEINHEITEN`, `akt-dauer`/`akt-einheit`).
+
+Getestet (jsdom): alle Nav-Buttons haben SVG (keine Glyphen mehr), Legende ohne Prosa aber mit Ruhetag+Sportart,
+Dauer > 6 h akzeptiert; alle Alt-Regressionen grün.
+
+---
 
 ### v40 — Geführter Editor-Picker (ersetzt die Übungs-Bibliothek)
 
@@ -795,6 +815,63 @@ jeder Etappe nach den Entscheidungen):
 * **0.050** Politur + Neuigkeiten-Eintrag „0.050 — General Training".
 
 **Leitplanken über alles:** eine Datei, offline, verschlüsselt, wartbar ohne KI; getestete Etappen-Kadenz.
+
+### Nutzer-Wünsche (Stand v40) — in die Roadmap eingegliedert
+
+Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werden beim Bau vergeben
+(jede Änderung = +1); die **empfohlene Reihenfolge** steht unten. Nichts hier ist gebaut.
+
+**A · Aussehen / Entrümpeln — ✅ v41 (A1 braucht Sicht-Check auf dem Gerät)**
+* **A1 — Nav-Leiste nicht bündig unten** auf *Heute* und *Pläne* (anders als Statistik/Profil/Mehr).
+  Layout-Bug, vermutlich seit v34 (neue `view-start` / umgebaute `view-plaene`). CSS prüfen: ist `#nav`
+  wirklich fix, weichen die beiden Views in Höhe/`padding-bottom` ab?
+* **A2 — Tab-Icons vereinheitlichen:** ein Stil, nicht zu detailliert, **eine** Farbe. Aktuell gemischte
+  Glyphen (⌂ ▤ ▦ ◉ ⚙) — konsistenten Satz wählen.
+* **A3 — Kalender-Legende verschlanken:** nur *Farbe → Sportart/Training*, keine Prosa.
+* **A4 — kleine graue Infotexte in ein „i" einklappen** (z. B. der Text unter „Ruhetag"). Global
+  entrümpeln, wirkt sonst aufgebläht. (Muster gibt es schon: `infoUmschalten` / `info-*`.)
+* **A5 — Trainingsdauer frei eingebbar:** Zahlenfeld + Einheit (sec/min/h), **kein 3-h-Deckel**
+  (`MAX_DAUER_S` lockern/ersetzen).
+
+**B · Menüs & Struktur**
+* **B1 — Statistik „Trainings":** kein endloser Verlauf, sondern klickbar zum **vollen Log mit Datum**
+  (eigene Detail-Ansicht: welcher Tag, was getan).
+* **B2 — Profil umsortieren:** **Ziele ÜBER Sportarten**; Sportarten-Liste einklappbar („mehr ansehen"),
+  damit die Seite nicht zu groß wird.
+* **B3 — Ziele auf dem Heute-Bildschirm direkt bearbeitbar** (nicht nur im Profil). `zieleStartZeichnen`
+  vom Lese- zum Bearbeiten-Block ausbauen — deckt zugleich den Backlog-Punkt
+  „`zieleZeichnen`/`zieleStartZeichnen` zusammenführen".
+* **B4 — Pläne-Tab sortieren:** nach Sportart gruppieren / in Untermenüs, darin nach Datum.
+
+**C · Sportart-System vertiefen (baut auf v39/v40)**
+* **C1 — Neue Sportart wählen → einmaliger Wizard** (wie Ersteinrichtung) ab dem Sportart-Schritt,
+  Fenster für Fenster. Erneutes Antippen einer schon eingerichteten Sportart → **aktuelle** Konfig
+  (Ort etc., wie heute bei Kraft). Betrifft `sportartOeffnen` + Wizard-Flow.
+* **C2 — Nach Sportart-Auswahl „deine" Übungen vorschlagen** (die du besitzt/eingerichtet hast), aus denen
+  man wählt; nur diese stehen dann für Pläne dieser Sportart bereit. Verknüpft Picker (v40) + `SPORT_UEBUNGEN`
+  + eigene Übungen (C3).
+* **C3 — Freitext-Übung landet im Profil:** Wer beim Plan-Erstellen eine eigene Übung per Freitext einträgt,
+  soll sie danach im Profil **unter der Sportart** bei den anderen Übungen sehen. Braucht **persistente
+  eigene Übungen je Sportart** (neue Datenstruktur, z. B. `daten.eigeneUebungen[sportart]`); speist dann
+  Picker (C2) und Profil. (Datenmodell-Vertrag: nur Feld hinzufügen, `datenNachruesten` anlegen.)
+* **C4 — (bestehend, 0.041–0.043)** Sport-Inhalte je Sportart recherchiert vertiefen.
+
+**D · Kalender (großes Feature — eigener Meilenstein, evtl. nach 0.050)**
+* **D1 — Kalender öffnen & Termine erstellen** wie ein normaler Kalender; eigene, **verknüpfte** Pläne
+  eintragen.
+* **D2 — Flexible Wiederholung:** Pläne nicht nur Wochentagen zuordenbar, sondern „alle 2 Wochen" o. ä.
+  **Großer Datenmodell-Umbau:** `tage:[1..7]` → Wiederholungsregel. Betrifft Heute-Logik
+  (`heuteKarteZeichnen`/`heuteDrin`), Kalenderfärbung, Ziel-Rechnung (`proWoche`) und `datenNachruesten`.
+  Hängt eng mit D1.
+
+**E · Fortschritt & Training (Kern, bestehend)**
+* **E1 — (0.044) Fortschritts-Strategie je Sportart-Klasse** (`fortschrittFuer`). Weiche zuerst festlegen.
+* **E2 — (0.047) Ist-Werte im Training → automatische Ableitung.**
+
+**Empfohlene Reihenfolge:** erst **A** (billig, entrümpelt sofort), dann **B** (Struktur), dann **C**
+(Sportart-System, macht v39/v40 rund), dann **E1** (Fortschritts-Weiche — gate für tiefe Sport-Inhalte),
+dann **C4**, dann **E2**, zuletzt **D** (Kalender) als eigener großer Meilenstein. „General Training"
+(A–C + E) bleibt der 0.050-Kern; der Kalender (D) ist groß genug für einen eigenen Meilenstein danach.
 
 * Der Nutzer hatte zuletzt einen **überzoomten Screenshot** — Ursache vermutlich Pinch-Zoom
   (Safari ignoriert `user-scalable=no` teilweise). Kalender-Layout wurde robust gemacht; falls es
