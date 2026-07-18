@@ -158,19 +158,16 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 #nav button .sym{font-size:18px;line-height:1}
 #nav button .sym svg{width:23px;height:23px;display:block}
 #nav button.aktiv{color:var(--signal)}
-/* Freiraum unter dem letzten Element = Nav-Höhe + Luft.
-   Die Safe-Area taucht hier NICHT auf, weil body sie unten schon als
-   Padding hat und die Bar sie ebenfalls hat — sie kürzt sich raus.
-   v41 (A1): Nav-Views füllen den Schirm (min-height) und schieben das
-   Wasserzeichen nach unten — sonst klaffte auf kurzen Seiten (Heute/Pläne)
-   eine Lücke über der fixen Leiste, sie wirkte "nicht ganz unten". */
-body.nav-an .view.aktiv{display:flex;flex-direction:column;
-  min-height:calc(100dvh - var(--navhoehe));padding-bottom:calc(var(--navhoehe) + 24px)}
-/* Wasserzeichen (Version/Datum) entrümpelt (v42): nur noch unter "Mehr"/
-   Einstellungen sichtbar und dort am unteren Rand — auf allen anderen
-   Bildschirmen ausgeblendet, damit es nicht im Leerraum schwebt. */
+/* Freiraum unter dem letzten Element = Nav-Höhe + Luft, damit Inhalt nicht
+   hinter der fixen Leiste verschwindet. Die Leiste selbst ist immer `fixed`
+   unten — sie braucht KEIN Flex/min-height auf den Views (das drückte v41/v42
+   Unterseiten zusammen und verschluckte das Wasserzeichen). v45: rückgängig. */
+body.nav-an .view.aktiv{padding-bottom:calc(var(--navhoehe) + 24px)}
+/* Wasserzeichen (Version/Datum): nur unter "Mehr"/Einstellungen sichtbar,
+   dort im normalen Fluss ganz unten (der Inhalt ist lang genug). Auf allen
+   anderen Bildschirmen ausgeblendet, damit es nicht im Leerraum schwebt. */
 .view .wasserzeichen{display:none}
-#view-einstellungen .wasserzeichen{display:block;margin-top:auto}
+#view-einstellungen .wasserzeichen{display:block}
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
@@ -1251,7 +1248,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 44;
+const APP_VERSION = 45;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2357,6 +2354,19 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.041 – 0.044", punkte:[
+    "Eigene Übungen: „Eigene Übung“ fragt jetzt zuerst die Sportart und baut dann die Felder — danach steht sie im Profil unter ihrer Sportart und taucht im Auswahl-Dropdown wieder auf.",
+    "Profil aufgeräumt: die Ziele stehen jetzt über den Sportarten, und die Sportart-Liste lässt sich einklappen.",
+    "Ziele legst du direkt auf „Heute“ an und löschst sie dort — nicht mehr nur im Profil.",
+    "Pläne sind nach Sportart gruppiert.",
+    "Statistik: der Trainingslog zeigt eine kurze Vorschau, „Ganzen Verlauf zeigen“ öffnet alle Einträge mit Datum.",
+    "Neue Tab-Symbole, schlankere Kalender-Legende, Trainingsdauer frei wählbar (bis 24 h)."
+  ]},
+  { stand:"0.036 – 0.040", punkte:[
+    "Über 130 Übungen in der Datenbank — der Plan-Generator nutzt im Gym jetzt wirklich deine Maschinen, gemischt mit Freihantel.",
+    "Für jede Sportart sind Übungen/Drills hinterlegt, die du im Editor auswählen kannst.",
+    "„Übung hinzufügen“ ist ein geführtes Dropdown (Gerät bzw. Sportart → passende Übung) statt der alten Bibliothek."
+  ]},
   { stand:"0.034 – 0.035", punkte:[
     "Neuer Start-Bildschirm „Heute“: zeigt nur dein heutiges Training und wichtige Hinweise.",
     "Deine Ziele stehen jetzt direkt auf dem Start — der Fortschritt bleibt im Blick.",

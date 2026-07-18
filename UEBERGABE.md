@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.044 / APP_VERSION 44**.
+> als Paket hochgeladen. Stand: **Version 0.045 / APP_VERSION 45**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 44;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.044" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 45;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.045" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v44"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v45"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,24 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v45 — Fixes aus Nutzer-Screenshots (Layout, Wasserzeichen, Neuigkeiten)
+
+Drei Rückmeldungen zu v44, alle aus den v41/v42-Layout-Änderungen:
+* **„Zu gequetscht" beim Scrollen** (z. B. Sportart-Seite): Die globale Regel
+  `body.nav-an .view.aktiv{display:flex;flex-direction:column;min-height:calc(100dvh …)}` mischte sich in
+  ALLE Nav-Views (auch Unterseiten) ein. **Entfernt** — die Leiste ist ohnehin `position:fixed;bottom:0`,
+  brauchte das nie. Nur `padding-bottom` bleibt.
+* **Wasserzeichen fehlte unten in „Mehr":** Das `margin-top:auto` im (jetzt entfernten) Flex-Container
+  verschluckte es. Jetzt `#view-einstellungen .wasserzeichen{display:block}` im **normalen Fluss** — der
+  Einstellungs-Inhalt ist lang genug, dass es unten steht. Auf anderen Views weiter `display:none`.
+* **„Was ist neu" ohne die neuen Updates:** `NEUIGKEITEN` war seit 0.035 nicht gepflegt. Zwei Gruppen
+  ergänzt (**0.041–0.044** und **0.036–0.040**), nutzer-sichtbar formuliert, mit typografischen „…“.
+
+Getestet (jsdom): CSS-Regeln umgestellt (kein Flex/min-height/margin-top:auto mehr), NEUIGKEITEN parsebar
+(7 Gruppen), alle Alt-Regressionen grün. **A1/Layout bitte erneut auf dem Gerät prüfen.**
+
+---
 
 ### v44 — Eigene Übungen (C2/C3), Strang C begonnen
 
