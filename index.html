@@ -38,7 +38,7 @@ body.training-fest{position:fixed;inset:0;width:100%;overflow:hidden}
 body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   font-size:16px;-webkit-text-size-adjust:100%;
-  display:flex;flex-direction:column;height:100dvh;
+  position:fixed;inset:0;display:flex;flex-direction:column;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 /* Scrollender Inhaltsbereich; die Nav-Leiste liegt als Flex-Geschwister darunter. */
 #inhalt{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
@@ -827,6 +827,18 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 
 
+<!-- ============================================================
+     Ansicht: Sportart einrichten (einmaliger Mini-Wizard, C1)
+     ============================================================ -->
+<section id="view-sportsetup" class="view">
+  <div class="kopf"><h1 id="sportsetup-titel">Sportart einrichten</h1></div>
+  <div id="sportsetup-inhalt"></div>
+  <div class="knopfreihe abstand">
+    <button class="schmal" onclick="sportSetupZurueck()">Zurück</button>
+    <button class="primaer" id="sportsetup-weiter" onclick="sportSetupWeiter()" style="flex:2">Weiter</button>
+  </div>
+</section>
+
 </div><!-- /#inhalt -->
 
 <!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
@@ -1255,7 +1267,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 48;
+const APP_VERSION = 52;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4481,12 +4493,120 @@ function haengtAnSportart(id){
 }
 
 /** Sportart auf ihrer eigenen Seite an- oder abwählen. */
+/* ---- C1: Einmaliger Mini-Wizard beim Aktivieren einer neuen Sportart.
+   Fragt Fenster für Fenster: Erfahrung (nur wenn noch unbekannt) → Tage →
+   Dauer → (Ausdauer) Strecke. Am Ende entsteht ein Starter-Aktivitätsplan.
+   Bewusst getrennt vom großen Einrichtungs-Wizard. ---- */
+let sportSetup = null;
+
+function sportSetupStarten(sport){
+  aktivitaetsFelderVorbereiten(sitzung.daten.einrichtung);
+  sportSetup = { sport, schritt: 0 };
+  // Schritte EINMAL festlegen — sonst verkürzt das Setzen der Erfahrung die
+  // Liste mitten im Wizard und die Schritt-Nummer verrutscht.
+  const e = sitzung.daten.einrichtung, s = sportart(sport), schritte = [];
+  if(!e.erfahrung) schritte.push("erfahrung");
+  schritte.push("tage", "dauer");
+  if(s.strecke) schritte.push("strecke");
+  sportSetup.schritte = schritte;
+  sportSetupZeichnen();
+  zeige("view-sportsetup");
+}
+
+/** Die beim Start festgelegten Schritte dieses Wizards. */
+function sportSetupSchritte(){ return sportSetup.schritte; }
+
+function sportSetupZeichnen(){
+  const e = sitzung.daten.einrichtung;
+  const s = sportart(sportSetup.sport);
+  const schritte = sportSetupSchritte();
+  const key = schritte[sportSetup.schritt];
+  document.getElementById("sportsetup-titel").textContent = text(s.name) + " einrichten";
+  const ziel = document.getElementById("sportsetup-inhalt");
+  let html = "";
+  if(key === "erfahrung"){
+    html = '<label>Wie erfahren bist du im Training?</label><div class="wahl-raster abstand">' +
+      [["anfaenger","Anfänger"],["fortgeschritten","Fortgeschritten"],["erfahren","Erfahren"]].map(([w,n]) =>
+        '<button class="' + (e.erfahrung === w ? "gewaehlt" : "") + '" onclick="sportSetupErfahrung(\'' + w + '\')">' + n + '</button>').join("") +
+      '</div><div class="meta abstand">Bestimmt die Start-Werte (Wiederholungen, Zeit, Strecke).</div>';
+  } else if(key === "tage"){
+    const tage = e["tage_" + sportSetup.sport] || [];
+    html = '<label>An welchen Tagen machst du ' + text(s.name) + '?</label><div class="tage-raster abstand">' +
+      WOCHENTAGE.slice(1).map((w,i) =>
+        '<button class="' + (tage.includes(i+1) ? "gewaehlt" : "") + '" onclick="sportSetupTag(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("") +
+      '</div><div class="meta abstand">Keine Auswahl = kein fester Tag (keine Wiederholung im Kalender).</div>';
+  } else if(key === "dauer"){
+    const d = e["dauer_" + sportSetup.sport] || 3600;
+    html = '<label for="sportsetup-dauer">Wie lange dauert eine Einheit? (Minuten)</label>' +
+      '<input id="sportsetup-dauer" type="number" inputmode="numeric" value="' + Math.round(d/60) + '">';
+  } else if(key === "strecke"){
+    const strk = s.strecke;
+    const vor = e["strecke_" + sportSetup.sport] || strk.start;
+    html = '<label for="sportsetup-strecke">Typische Strecke (' + strk.einheit + ')</label>' +
+      '<input id="sportsetup-strecke" type="number" inputmode="decimal" step="' + strk.schritt + '" value="' + vor + '">';
+  }
+  ziel.innerHTML = html;
+  document.getElementById("sportsetup-weiter").textContent = sportSetup.schritt >= schritte.length - 1 ? "Fertig" : "Weiter";
+}
+
+function sportSetupErfahrung(w){ sitzung.daten.einrichtung.erfahrung = w; sportSetupZeichnen(); }
+function sportSetupTag(t){
+  const e = sitzung.daten.einrichtung, key = "tage_" + sportSetup.sport;
+  if(!Array.isArray(e[key])) e[key] = [];
+  const i = e[key].indexOf(t);
+  if(i >= 0) e[key].splice(i, 1); else e[key].push(t);
+  sportSetupZeichnen();
+}
+/** Das aktuelle Feld übernehmen (Dauer/Strecke stehen in Eingabefeldern). */
+function sportSetupUebernehmen(key){
+  const e = sitzung.daten.einrichtung;
+  if(key === "dauer"){
+    const v = parseInt(document.getElementById("sportsetup-dauer").value, 10) || 60;
+    e["dauer_" + sportSetup.sport] = begrenzen(v * 60, 60, MAX_DAUER_S);
+  } else if(key === "strecke"){
+    e["strecke_" + sportSetup.sport] = Math.max(0, parseFloat(document.getElementById("sportsetup-strecke").value) || 0);
+  }
+}
+function sportSetupWeiter(){
+  const schritte = sportSetupSchritte();
+  sportSetupUebernehmen(schritte[sportSetup.schritt]);
+  if(sportSetup.schritt >= schritte.length - 1){ sportSetupFertig(); return; }
+  sportSetup.schritt++;
+  sportSetupZeichnen();
+}
+function sportSetupZurueck(){
+  if(sportSetup.schritt === 0){ const sp = sportSetup.sport; sportSetup = null; sportartOeffnen(sp); return; }
+  sportSetup.schritt--;
+  sportSetupZeichnen();
+}
+function sportSetupFertig(){
+  const e = sitzung.daten.einrichtung;
+  const sport = sportSetup.sport;
+  const s = sportart(sport);
+  // Starter-Aktivitätsplan anlegen, falls für die Sportart noch keiner existiert.
+  if(s.planTyp === "aktivitaet" && !sitzung.daten.plaene.some(p => p.sportart === sport)){
+    sitzung.daten.plaene.push({
+      id: neueId(), name: text(s.name), sportart: sport, typ: "aktivitaet", quelle: "assistent",
+      tage: (e["tage_" + sport] || []).slice(), reihenfolge: "klassisch", aufwaermen: false, dehnen: false,
+      dauer: e["dauer_" + sport] || 3600, zeitEinheit: "min",
+      strecke: e["strecke_" + sport] || (s.strecke ? s.strecke.start : 0), uebungen: []
+    });
+  }
+  speichern();
+  sportSetup = null;
+  sportartOeffnen(sport);
+  meldung(text(s.name) + " eingerichtet.");
+}
+
 function sportartNutzenUmschalten(){
   const liste = sitzung.daten.einrichtung.sportarten;
   const pos = liste.indexOf(offeneSportart);
   if(pos < 0){                       // dazuwählen ist harmlos
     liste.push(offeneSportart);
     speichern();
+    // C1: neue Sportart -> einmaliger Mini-Wizard. Nur für Aktivitäten; Kraft
+    // richtet man über Ort/Geräte direkt auf der Sportart-Seite ein.
+    if(sportart(offeneSportart).planTyp === "aktivitaet"){ sportSetupStarten(offeneSportart); return; }
     sportartSeiteZeichnen();
     return;
   }
@@ -5260,8 +5380,24 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
     return;
   }
   startOeffnen();
-  meldung("Eingetragen: " + aktivitaetText(sport, strecke, dauerS, einheit) +
-          (bericht.length ? "\n\n" + bericht.join("\n") : ""));
+  /* E1 — Fortschritt je Sportart-Klasse: Drills laufen oben durch die Bewertung
+     (progressionAnwenden: Wdh/Zeit hoch). Eine REINE Aktivität (Ausdauer u. a.,
+     ohne Drills) steigern wir hier: war die Einheit leicht, hebe Dauer und —
+     wo vorhanden — Strecke um ~7 % an. Kraft ist davon nicht betroffen. */
+  const echterPlan = plan ? sitzung.daten.plaene.find(p => p.id === plan.id) : null;
+  const eingetragen = "Eingetragen: " + aktivitaetText(sport, strecke, dauerS, einheit) +
+                      (bericht.length ? "\n\n" + bericht.join("\n") : "");
+  if(echterPlan && (echterPlan.dauer || echterPlan.strecke)){
+    frage(eingetragen + "\n\nWar die Einheit zu leicht? Dann hebe ich das Ziel um ~7 % an.", false, ja => {
+      if(!ja) return;
+      if(echterPlan.dauer)   echterPlan.dauer   = begrenzen(Math.round(echterPlan.dauer * 1.07), 60, MAX_DAUER_S);
+      if(echterPlan.strecke) echterPlan.strecke = Math.round(echterPlan.strecke * 1.07 * 10) / 10;
+      speichern();
+      meldung("Ziel angehoben: " + aktivitaetText(echterPlan.sportart, echterPlan.strecke, echterPlan.dauer, echterPlan.zeitEinheit));
+    });
+  } else {
+    meldung(eingetragen);
+  }
 }
 
 /* ------------------------------------------------------------
@@ -5349,7 +5485,9 @@ function satzProtokollieren(schritt, istSekunden){
   const u = lauf.plan.uebungen[schritt.uebungIndex];
   const eintrag = { uebungId: u.id, name: u.name, modus: u.modus, satz: schritt.satz, note: null };
   if(u.modus === "zeit") eintrag.dauer = istSekunden;
-  else { eintrag.wdh = u.wdh; eintrag.gewicht = u.gewicht; }
+  // E2: die WIRKLICH geschafften Wiederholungen (per +/- im Training angepasst),
+  // Rückfall auf die geplante Zahl, falls nichts verstellt wurde.
+  else { eintrag.wdh = (lauf.istWdh != null ? lauf.istWdh : u.wdh); eintrag.gewicht = u.gewicht; }
   lauf.saetze.push(eintrag);
 }
 
@@ -5392,6 +5530,12 @@ function schrittBetreten(){
   const phase = document.getElementById("phase");
   const knopf = document.getElementById("haupt-knopf");
   const plus = document.getElementById("plus-knopf");
+  const minus = document.getElementById("minus-knopf");
+  // E2-Standard: Plus/Minus als Uhr-Regler (+30 s / −15 s). Der Wdh-Zweig unten
+  // schaltet sie auf Ist-Wdh-Regler (+1 / −1) um, damit man die WIRKLICHEN
+  // Wiederholungen eintragen kann statt der geplanten.
+  plus.textContent  = "+ 30 s"; plus.onclick  = () => zeitAendern(30);
+  minus.textContent = "− 15 s"; minus.onclick = () => zeitAendern(-15);
 
   document.getElementById("uebungsname").textContent = u.name;
   strichlisteZeichnen(u, s);
@@ -5402,11 +5546,13 @@ function schrittBetreten(){
   if(s.typ === "satz-wdh"){
     phase.textContent = "Satz " + s.satz + " von " + u.saetze;
     phase.classList.remove("pause");
-    zahl.textContent = u.wdh;
+    lauf.istWdh = u.wdh;                          // E2: Ist-Wdh, per +/- anpassbar
+    zahl.textContent = lauf.istWdh;
     zahl.className = "uhr-zahl";
     label.textContent = "WIEDERHOLUNGEN" + (u.gewicht > 0 ? "  ·  " + u.gewicht + " KG" : "");
     knopf.textContent = "Satz fertig";
-    plus.disabled = true;
+    plus.disabled  = false; plus.textContent  = "+1"; plus.onclick  = () => wdhAendern(1);
+    minus.disabled = false; minus.textContent = "−1"; minus.onclick = () => wdhAendern(-1);
     sprich(s.ansage);
   } else if(s.typ === "satz-zeit"){
     phase.textContent = "Satz " + s.satz + " von " + u.saetze;
@@ -5524,6 +5670,15 @@ function hauptKnopf(){
   // "bereit" und "pause" werden nicht protokolliert — einfach weiter.
   lauf.index++;
   schrittBetreten();
+}
+
+/** E2: passt die IST-Wiederholungen des laufenden Wdh-Satzes an (+1/−1). */
+function wdhAendern(delta){
+  if(!lauf) return;
+  const s = lauf.schritte[lauf.index];
+  if(!s || s.typ !== "satz-wdh") return;
+  lauf.istWdh = Math.max(0, (lauf.istWdh != null ? lauf.istWdh : 0) + delta);
+  document.getElementById("uhr-zahl").textContent = lauf.istWdh;
 }
 
 /** Verlängert (+) oder verkürzt (−) den laufenden Countdown.

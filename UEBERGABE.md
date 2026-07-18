@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.048 / APP_VERSION 48**.
+> als Paket hochgeladen. Stand: **Version 0.052 / APP_VERSION 52**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 48;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.048" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 52;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.052" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v48"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v52"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,59 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v52 — C1: Einmaliger Mini-Wizard bei neuer Sportart
+
+Aktiviert man eine **neue Aktivitäts-Sportart**, läuft jetzt ein eigener, kleiner Wizard (eigene Ansicht
+`view-sportsetup`, NICHT im großen Einrichtungs-Wizard): Fenster für Fenster **Erfahrung** (nur wenn noch
+unbekannt) → **Tage** → **Dauer** → (bei Strecken-Sportarten) **Strecke**. Am Ende entsteht ein
+**Starter-Aktivitätsplan** (falls für die Sportart noch keiner existiert). Kraft löst ihn NICHT aus (läuft
+über Ort/Geräte auf der Sportart-Seite). Funktionen: `sportSetupStarten/Schritte/Zeichnen/Erfahrung/Tag/
+Uebernehmen/Weiter/Zurueck/Fertig`; Hook im `pos<0`-Zweig von `sportartNutzenUmschalten`.
+**Wichtig:** Die Schritte werden EINMAL beim Start festgelegt (`sportSetup.schritte`) — sonst würde das
+Setzen der Erfahrung die Liste mitten im Wizard verkürzen und die Schritt-Nummer verrutschen.
+Getestet (jsdom, 13 Fälle) + alle Regressionen grün.
+
+---
+
+### v51 — E2: Echte Ist-Wiederholungen im Training
+
+Bisher loggte ein Wdh-Satz die GEPLANTEN `u.wdh` (Zeit-Sätze dagegen schon die Ist-Sekunden). Jetzt:
+* Auf einem Wdh-Satz werden **Plus/Minus zu +1/−1 Ist-Wdh-Reglern**; `lauf.istWdh` startet bei der geplanten
+  Zahl, die große Anzeige (`uhr-zahl`) zeigt sie live.
+* `satzProtokollieren` schreibt `lauf.istWdh` (Rückfall auf `u.wdh`, falls nichts verstellt).
+* Standardmäßig sind Plus/Minus Uhr-Regler (+30 s/−15 s); nur der Wdh-Zweig schaltet um — beim Wechsel zurück
+  auf einen Zeit-Satz werden Label/Handler zurückgesetzt. **Achtung:** Anzeige-ID ist `uhr-zahl` (nicht „zahl").
+Progression bleibt notenbasiert; E2 betrifft nur, WAS geloggt/als Rekord gewertet wird. Getestet (8 Fälle) + grün.
+
+---
+
+### v50 — E1: Fortschritt je Sportart-Klasse
+
+**Befund:** Drills (in Kraft- WIE Aktivitäts-Plänen) laufen längst durch dieselbe Bewertung →
+`progressionAnwenden` steigert sie klassengerecht (Wdh↑ bzw. Zeit↑, Deload) — auch gewichtslos
+(`gewichtSchritt:0` → nur Wdh/Zeit, kein Gewicht). E1 war für Drills also bereits abgedeckt.
+
+**Neu für REINE Aktivitäten** (Ausdauer u. a., ohne Drills): Nach dem Eintragen fragt `aktivitaetAblegen`
+„War die Einheit zu leicht?" — bei Ja werden **Dauer und (falls vorhanden) Strecke um ~7 %** angehoben
+(`begrenzen(..,60,MAX_DAUER_S)`; Strecke auf 0,1 gerundet). Kraft ist nicht betroffen; Pläne MIT Drills gehen
+weiter in die Bewertung. Getestet (jsdom, 5 Fälle) + alle Regressionen grün.
+
+> **Roadmap-Stand:** A ✅ B ✅ C2/C3 ✅ (C1/C4 offen) · **E1 ✅** · **E2** (Ist-Werte im Training) und **D**
+> (Kalender anklickbar + Wiederholungen) noch offen.
+
+---
+
+### v49 — Nav-Leiste sitzt endlich (Body füllt echten Screen)
+
+v48 machte die Leiste überall gleich, aber ZU HOCH: `height:100dvh` reichte auf dem Gerät nicht bis zum
+physischen Rand (Home-Indicator-Zone blieb als Lücke unter der Leiste). Fix: **`body{position:fixed;inset:0;
+display:flex;flex-direction:column}`** statt `height:100dvh` — genau das Vollbild-Prinzip, das
+`body.training-fest` schon zuverlässig nutzt. Der Body füllt jetzt den echten Bildschirm, `#inhalt` (flex:1)
+scrollt, `#nav` (flex-shrink:0) sitzt ganz unten mit `padding-bottom:safe-area`. **Bitte auf dem Gerät final
+bestätigen.**
+
+---
 
 ### v48 — Nav-Leiste als Flex-Layout (echter Fix) + Versions-Knopf statt Wasserzeichen
 
@@ -1009,7 +1062,7 @@ Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werd
   (`heuteKarteZeichnen`/`heuteDrin`), Kalenderfärbung, Ziel-Rechnung (`proWoche`) und `datenNachruesten`.
   Hängt eng mit D1.
 
-**E · Fortschritt & Training (Kern, bestehend)**
+**E · Fortschritt — E1 ✅ v50, E2 ✅ v51**
 * **E1 — (0.044) Fortschritts-Strategie je Sportart-Klasse** (`fortschrittFuer`). Weiche zuerst festlegen.
 * **E2 — (0.047) Ist-Werte im Training → automatische Ableitung.**
 
