@@ -1251,7 +1251,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 43;
+const APP_VERSION = 44;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1261,6 +1261,8 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
+  // v44 (C3): selbst gebaute Übungen, je Sportart. { sportId: [{name,modus,saetze,wdh|dauer}] }
+  if(!daten.eigeneUebungen || typeof daten.eigeneUebungen !== "object") daten.eigeneUebungen = {};
   // Einrichtung gab es früher erst nach dem Wizard. Sie ist jetzt immer da —
   // sonst müsste jede Stelle einzeln auf undefined prüfen.
   if(!daten.einrichtung) daten.einrichtung = {};
@@ -4154,8 +4156,64 @@ function zielInPlan(zielId, planId){
 
 /* Die Übungs-Bibliothek wurde in v40 durch den geführten Editor-Picker
    ersetzt (uebungPickerZeichnen / pickerHinzu). "Eigene Übung" bleibt. */
-function eigeneUebung(){
-  editorPlan.uebungen.push(neueUebung());
+/* C2/C3: "Eigene Übung" öffnet einen kleinen Builder. Erst die Sportart
+   (nur aus den im Profil gewählten), dann die Felder zum Selbstbauen. Die
+   fertige Übung wird an den Plan gehängt und als eigen markiert — beim
+   Speichern landet sie im Profil unter ihrer Sportart (siehe editorSpeichern). */
+let eigenBauerOffen = false;
+function eigeneUebung(){ eigenBauerOffen = !eigenBauerOffen; uebungPickerZeichnen(); }
+
+/** Der Builder als HTML (leer, wenn zu). Sportart-Auswahl nur aus den im Profil
+    gewählten Sportarten, vorbelegt mit der Sportart des Plans. */
+function eigenBauerHtml(){
+  if(!eigenBauerOffen) return "";
+  const meine = sitzung.daten.einrichtung.sportarten || ["kraft"];
+  const opts = SPORTARTEN.filter(s => meine.includes(s.id)).map(s =>
+    '<option value="' + s.id + '"' + (s.id === editorPlan.sportart ? " selected" : "") + '>' + text(s.name) + '</option>').join("");
+  return '<div class="abstand" style="border-top:1px solid var(--line);padding-top:10px">' +
+    '<label for="eigen-sport">Eigene Übung — Sportart</label>' +
+    '<select id="eigen-sport">' + opts + '</select>' +
+    '<label class="abstand" for="eigen-name">Name</label>' +
+    '<input id="eigen-name" placeholder="z. B. Vorhand-Konter" autocomplete="off">' +
+    '<label class="abstand" for="eigen-modus">Messung</label>' +
+    '<select id="eigen-modus" onchange="eigeneBauerModus()">' +
+      '<option value="wdh">Wiederholungen</option><option value="zeit">Zeit</option></select>' +
+    '<div class="raster abstand">' +
+      '<div><label for="eigen-saetze">Sätze</label><input id="eigen-saetze" type="number" inputmode="numeric" value="3"></div>' +
+      '<div><label id="eigen-wert-label" for="eigen-wert">Wiederholungen</label><input id="eigen-wert" type="number" inputmode="numeric" value="10"></div>' +
+    '</div>' +
+    '<div class="knopfreihe"><button class="primaer schmal" onclick="eigeneErstellen()">Übung erstellen</button></div>' +
+  '</div>';
+}
+
+function eigeneBauerModus(){
+  const m = document.getElementById("eigen-modus");
+  if(!m) return;
+  document.getElementById("eigen-wert-label").textContent = m.value === "zeit" ? "Dauer (s)" : "Wiederholungen";
+}
+
+/** Baut aus den Builder-Feldern eine volle Plan-Übung (ohne Gewicht). */
+function eigeneUebungBauen(name, modus, saetze, wert, sport){
+  const u = neueUebung();
+  u.name = name; u.geraet = "keine"; u.gewicht = 0; u.gewichtSchritt = 0;
+  u.saetze = begrenzen(Math.round(saetze) || 3, 1, 20);
+  u.eigen = true; u.eigenSport = sport;   // Marker: beim Speichern ins Profil
+  if(modus === "zeit"){ u.modus = "zeit"; u.dauer = begrenzen(Math.round(wert) || 60, 5, MAX_DAUER_S); }
+  else { u.modus = "wdh"; u.wdh = Math.max(1, Math.round(wert) || 10);
+         u.wdhMin = Math.max(1, Math.round(u.wdh * 0.7)); u.wdhMax = Math.max(u.wdh, Math.round(u.wdh * 1.4)); }
+  return u;
+}
+
+function eigeneErstellen(){
+  const sport = document.getElementById("eigen-sport").value || editorPlan.sportart;
+  const name  = document.getElementById("eigen-name").value.trim();
+  const modus = document.getElementById("eigen-modus").value;
+  const saetze = parseInt(document.getElementById("eigen-saetze").value, 10);
+  const wert  = parseFloat(document.getElementById("eigen-wert").value);
+  if(!name){ meldung("Bitte einen Namen für die Übung angeben."); return; }
+  if(editorPlan.uebungen.some(u => u.name === name)){ meldung("„" + name + "“ steht schon im Plan."); return; }
+  editorPlan.uebungen.push(eigeneUebungBauen(name, modus, saetze, wert, sport));
+  eigenBauerOffen = false;
   editorZeichnen();
 }
 
@@ -4209,6 +4267,29 @@ function sportartOeffnen(id){
   zeige("view-sportart");
 }
 
+/** Karte mit den eigenen Übungen einer Sportart (leer, wenn keine). */
+function eigeneUebungenHtml(sportId){
+  const liste = (sitzung.daten.eigeneUebungen || {})[sportId] || [];
+  if(!liste.length) return "";
+  return '<div class="karte"><h2>Eigene Übungen</h2><div class="abstand">' +
+    liste.map(v =>
+      '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+        '<span>' + text(v.name) + ' <span class="meta">· ' +
+          (v.modus === "zeit" ? (v.dauer + " s") : (v.wdh + " Wdh")) + ' · ' + v.saetze + ' Sätze</span></span>' +
+        '<button class="rund" onclick="eigeneUebungLoeschen(\'' + sportId + '\',\'' +
+          text(v.name).replace(/'/g, "&#39;") + '\')" aria-label="Löschen">×</button>' +
+      '</div>').join("") + '</div></div>';
+}
+function eigeneUebungLoeschen(sportId, name){
+  frage("Diese eigene Übung löschen?", true, ja => {
+    if(!ja) return;
+    const liste = (sitzung.daten.eigeneUebungen || {})[sportId] || [];
+    sitzung.daten.eigeneUebungen[sportId] = liste.filter(v => v.name !== name);
+    speichern();
+    sportartSeiteZeichnen();
+  });
+}
+
 function sportartSeiteZeichnen(){
   const e = sitzung.daten.einrichtung;
   const s = sportart(offeneSportart);
@@ -4229,8 +4310,9 @@ function sportartSeiteZeichnen(){
   if(!an){ inhalt.innerHTML = ""; return; }
 
   if(s.id !== "kraft"){
-    // Ehrlich: hier gibt es noch nichts einzustellen, und das sagen wir auch.
-    inhalt.innerHTML = '<div class="karte"><div class="meta">Für ' + text(s.name) +
+    // Eigene Übungen (falls vorhanden) zuerst, dann der ehrliche Hinweis.
+    inhalt.innerHTML = eigeneUebungenHtml(s.id) +
+      '<div class="karte"><div class="meta">Für ' + text(s.name) +
       ' gibt es noch nichts einzustellen. Pläne kannst du im Editor anlegen, starten und protokollieren — ' +
       'automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining.</div></div>';
     return;
@@ -4255,7 +4337,7 @@ function sportartSeiteZeichnen(){
           '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
           '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("") +
       '<div id="geraete-neu-knopf"></div>' +
-    '</div>';
+    '</div>' + eigeneUebungenHtml(s.id);
   neueGeraeteKnopfZeichnen();
 }
 
@@ -4671,7 +4753,7 @@ function uebungPickerZeichnen(){
   const knoepfe =
     '<div class="knopfreihe" style="margin-top:8px">' +
       '<button class="primaer schmal" onclick="pickerHinzu()">Hinzufügen</button>' +
-      '<button class="schmal" onclick="eigeneUebung()">Eigene Übung</button>' +
+      '<button class="schmal' + (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung</button>' +
     '</div>';
   if(editorPlan.typ === "kraft"){
     const meine = meineGeraete();   // ["keine", ...eigene Geräte]
@@ -4684,11 +4766,11 @@ function uebungPickerZeichnen(){
       '<div class="raster">' +
         '<select id="picker-geraet" onchange="pickerUebungenZeichnen()">' + optionen + '</select>' +
         '<select id="picker-uebung"></select>' +
-      '</div>' + knoepfe;
+      '</div>' + knoepfe + eigenBauerHtml();
   } else {
     ziel.innerHTML =
       '<label class="abstand">Übung hinzufügen</label>' +
-      '<select id="picker-uebung" style="width:100%"></select>' + knoepfe;
+      '<select id="picker-uebung" style="width:100%"></select>' + knoepfe + eigenBauerHtml();
   }
   pickerUebungenZeichnen();
 }
@@ -4709,6 +4791,10 @@ function pickerUebungenZeichnen(){
   } else {
     namen = sportUebungen(editorPlan.sportart).filter(v => !drin.has(v.name)).map(v => v.name);
   }
+  // v44: eigene Übungen dieser Sportart mit anbieten (unabhängig vom Gerätefilter)
+  const eigene = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || [])
+    .map(v => v.name).filter(n => !drin.has(n) && !namen.includes(n));
+  namen = namen.concat(eigene);
   sel.innerHTML = namen.length
     ? namen.map(n => '<option>' + text(n) + '</option>').join("")
     : '<option value="">— alle passenden schon im Plan —</option>';
@@ -4723,7 +4809,12 @@ function pickerHinzu(){
     meldung("„" + name + "“ steht schon in diesem Plan."); return;
   }
   let u;
-  if(editorPlan.typ === "kraft"){
+  const eigeneVorlage = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || []).find(v => v.name === name);
+  if(eigeneVorlage){
+    // v44: eigene (im Profil hinterlegte) Übung — direkt aus der Vorlage bauen
+    u = eigeneUebungBauen(eigeneVorlage.name, eigeneVorlage.modus, eigeneVorlage.saetze,
+          eigeneVorlage.modus === "zeit" ? eigeneVorlage.dauer : eigeneVorlage.wdh, editorPlan.sportart);
+  } else if(editorPlan.typ === "kraft"){
     const vorlage = UEBUNGEN_DB.find(x => x.name === name);
     if(!vorlage) return;
     // Startwerte wie bei der alten Bibliothek: aus der gespeicherten Einrichtung ableiten
@@ -4777,6 +4868,18 @@ function editorSpeichern(){
   });
   // Eine Aktivität DARF ohne Übungen auskommen — die Dauer ist der Inhalt.
   if(!istAktivitaet && editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
+  // v44 (C3): eigene Übungen erst JETZT (beim Speichern) im Profil unter ihrer
+  // Sportart ablegen — von dort speisen sie Picker und Sportart-Seite.
+  if(!sitzung.daten.eigeneUebungen) sitzung.daten.eigeneUebungen = {};
+  editorPlan.uebungen.filter(u => u.eigen).forEach(u => {
+    const sp = u.eigenSport || editorPlan.sportart;
+    const liste = sitzung.daten.eigeneUebungen[sp] || (sitzung.daten.eigeneUebungen[sp] = []);
+    if(!liste.some(x => x.name === u.name)){
+      liste.push({ name:u.name, modus:u.modus, saetze:u.saetze,
+                   wdh:   u.modus === "wdh"  ? u.wdh   : undefined,
+                   dauer: u.modus === "zeit" ? u.dauer : undefined });
+    }
+  });
   planSichern();
 }
 

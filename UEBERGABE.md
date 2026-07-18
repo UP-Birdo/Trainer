@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.043 / APP_VERSION 43**.
+> als Paket hochgeladen. Stand: **Version 0.044 / APP_VERSION 44**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 43;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.043" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 44;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.044" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v43"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v44"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,37 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v44 — Eigene Übungen (C2/C3), Strang C begonnen
+
+**Nutzer-Entscheidungen zu C** (in dieser Sitzung getroffen): C1 Wizard-Beispiele wie vorgeschlagen für ALLE
+Sportarten + Erfahrungsfrage passt Start-Werte an; C2/C3 eigene Übung **erst beim Speichern** persistieren,
+Builder fragt **zuerst die Sportart** (nur aus den Profil-Sportarten), dann die Felder; erscheint im Profil
+unter der Sportart **und** im Picker. E1 „entscheide du" (+ Erfahrung passt Start je Sportart an). E2 ok.
+D1 eigenes Kalender-Fenster (Vorschau bleibt in Statistik), freie Termine per Tag-Antippen mit demselben
+Erstell-Fenster; D2 „alle 2 Wochen" als Bonus + Pläne ohne Tag = keine Wiederholung, Tag-Antippen ohne
+Wiederholung = einmalig. C4 pro Sportart 2–4 bekannte Übungen (recherchiert).
+
+**v44 baut C2/C3:**
+* Datenmodell: `daten.eigeneUebungen = { sportId: [{name,modus,saetze,wdh|dauer}] }` (in `datenNachruesten`).
+* Builder im Editor-Picker: „Eigene Übung" öffnet ein Formular — **Sportart zuerst** (nur Profil-Sportarten,
+  vorbelegt mit Plan-Sportart), dann Name/Messung(Wdh|Zeit)/Sätze/Wert. `eigeneUebung` (Toggle),
+  `eigenBauerHtml`, `eigeneBauerModus`, `eigeneErstellen`, `eigeneUebungBauen`. Die gebaute Übung wird als
+  `eigen:true`/`eigenSport` markiert und an den Plan gehängt.
+* **Persistenz erst beim Speichern:** `editorSpeichern` legt alle `eigen`-Übungen in
+  `eigeneUebungen[sportart]` ab (Dedupe nach Name).
+* Picker bietet eigene Übungen der Plan-Sportart mit an (`pickerUebungenZeichnen`), baut sie korrekt
+  (`pickerHinzu` prüft `eigeneUebungen` vor DB/Sport).
+* Sportart-Profilseite zeigt „Eigene Übungen" mit Löschen (`eigeneUebungenHtml`, `eigeneUebungLoeschen`) —
+  für Kraft UND Nicht-Kraft.
+
+Getestet (jsdom, 9 Fälle): ganze Kette Builder→Plan→Speichern→Profil→Picker→Einbauen→Löschen; alle
+Alt-Regressionen grün (Picker-Test auf neues Builder-Verhalten angepasst).
+
+> **Status Strang C:** C2/C3 ✅. **C1** (Sportart-Wizard) + **E1/E2** + **D** stehen noch aus — nächste Schritte.
+> **C4** ist durch v39 im Wesentlichen erfüllt (39 Drills, 3–4 je Sportart); gezielt erweiterbar.
+
+---
 
 ### v43 — Menüs & Struktur (Strang B der Nutzer-Wünsche)
 
