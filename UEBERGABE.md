@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.036 / APP_VERSION 36**.
+> als Paket hochgeladen. Stand: **Version 0.040 / APP_VERSION 40**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 36;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.036" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 40;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.040" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v36"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v40"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,106 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v40 — Geführter Editor-Picker (ersetzt die Übungs-Bibliothek)
+
+**Ende der Strecke „bis 0.040".** Im Editor wird eine Übung jetzt über einen **geführten Picker** statt
+über die alte Vollbild-Bibliothek hinzugefügt (Nutzer-Entscheidung: „Dropdown ersetzt die Bibliothek").
+* **Kraft-Plan:** `select` Gerät (Alle/Körpergewicht/eigene Geräte) → `select` passende Übung aus
+  `UEBUNGEN_DB`, gefiltert nach Gerät und „noch nicht im Plan". `pickerHinzu` baut sie mit `uebungBauen`
+  (Startgewichte wie zuvor `bibWaehlen`).
+* **Sportart-Plan:** `select` Drill aus `SPORT_UEBUNGEN[sportart]` (v39); `pickerHinzu` baut mit
+  `sportUebungBauen` (kein Gerät, `art` mitgeführt). Damit haben Nicht-Kraft-Pläne endlich echte,
+  vorgeschlagene Übungen — vorher zeigte „Übung hinzufügen" die kraft-only Bibliothek.
+* **„Eigene Übung" (Freitext) bleibt** — wie zugesagt, hängt eine leere Übung an (`eigeneUebung`).
+* Funktionen: `uebungPickerZeichnen` (baut den Picker je nach `editorPlan.typ`), `pickerUebungenZeichnen`
+  (füllt nur das Übungs-Dropdown, für den Gerätewechsel ohne Voll-Neuaufbau), `pickerHinzu`. Aufruf aus
+  `editorZeichnen` (der Picker ersetzt den alten Knopf `#uebung-hinzu` → jetzt `#uebung-picker`).
+
+> **Entfernt (Aufräumen):** die ganze Ansicht `view-bibliothek`, `bibliothekOeffnen`/`bibZeichnen`/
+> `bibKatSetzen`/`bibMeineUmschalten`/`bibWaehlen`, `uebungAnlegen`, `bibKategorie`/`bibNurMeine`, das
+> nav-Mapping und die dadurch tot gewordene Konstante `KATEGORIE_NAMEN`. Die Bibliothek war nur vom Editor
+> erreichbar — sauber ersetzbar. `geraetName` bleibt (anderweitig genutzt).
+>
+> **Hinweis:** `#picker-uebung` steht im Quelltext zweimal (Kraft- und Sport-Zweig von
+> `uebungPickerZeichnen`), rendert aber immer nur EINEN — dieselbe id ist Absicht, damit
+> `pickerUebungenZeichnen`/`pickerHinzu` das Feld unabhängig vom Zweig finden. Statische Doppel-ID-Prüfung
+> meldet das als Fehlalarm.
+>
+> Getestet (jsdom, 10 Fälle): Kraft-Picker (Gerät-Dropdown, Übungs-Dropdown, Gerätefilter, Hinzufügen,
+> gültige Felder, Duplikat-Schutz), Sport-Picker (Drills, `art`/Gewicht korrekt), freie Eingabe; view-bibliothek
+> restlos weg (0 Referenzen), keine toten Funktionen, alle Alt-Regressionen grün.
+
+---
+
+### v39 — Datenmodell für Sportart-Übungen (`SPORT_UEBUNGEN`)
+
+**Neues Gegenstück zu `UEBUNGEN_DB`, aber JE SPORTART statt je Muskelgruppe.**
+`const SPORT_UEBUNGEN = { laufen:[…], tischtennis:[…], … }` — Vorlagen `{ name, art, modus, saetze, wdh|dauer }`.
+* `art:"technik"` (Fertigkeit: Topspin, Aufschlag) **oder** `art:"kondition"` (Athletik/Ausdauer: Intervalle,
+  Footwork). Das Feld `art` wandert in die Plan-Übung und **trägt die spätere Fortschritts-Strategie (0.044)** —
+  Technik steigert man anders als Kondition. So verbaut das Modell die Entscheidung nicht.
+* `modus`/`saetze`/`wdh|dauer` wie bei Kraft, aber **ohne Gewicht** (Drills laufen über Wdh/Zeit). Bewusst kein
+  neuer `strecke`-Modus — der kommt mit der Ausdauer-Progression später (offene Idee).
+* Seed: **39 Übungen über alle 11 aktivitaet-Sportarten** (3–4 je Sportart, Technik+Kondition gemischt),
+  recherchiert (nur Namen/Art). Voller Ausbau je Sportart = 0.041+.
+
+**Helfer:** `sportUebungen(sportId)` → Liste (oder `[]`); `sportUebungBauen(vorlage)` → volle Plan-Übung
+(wie `uebungBauen` für Kraft, aber `gewicht:0`, `art` mitgeführt, `neueUebung()` als Basis).
+Getestet (jsdom): jede Sportart hat Übungen, keine Fremd-Keys, alle Vorlagen wohlgeformt (art∈{technik,kondition},
+modus∈{wdh,zeit}, wdh/dauer/saetze gesetzt), Builder liefert gültige Übung mit notenHistorie/pause.
+**Noch nicht verdrahtet** — der Editor nutzt es erst ab **0.040** (Dropdown).
+
+---
+
+### v38 — Generator nutzt Maschinen (Gym-Plan mischt Maschine + Freihantel)
+
+**Nutzer-Entscheidung:** Generierte Gym-Pläne sollen die vorhandenen Maschinen nutzen. Ursache des alten
+Verhaltens: der Rundlauf ab Array-Index 0 nahm die (in der DB zuerst stehenden) Körpergewichts-/leichten
+Übungen und erreichte selbst im voll ausgestatteten Gym die Maschinen nie (Test-Gym-Plan: max. 11 kg).
+
+**Fix in `plaeneErstellen`:** Kandidaten je Kategorie werden neu geordnet — **Maschine/Freihantel im
+Reißverschluss** (M, F, M, F …), danach Körpergewicht-an-Gerät, zuletzt reines Körpergewicht.
+`const MASCHINEN_IDS = new Set(GERAETE.filter(g=>g.gruppe==="Maschinen").map(g=>g.id))` (aus der Gruppe
+abgeleitet, keine zweite Liste). Der **Gerätefilter** davor garantiert weiterhin: nur Machbares steht zur
+Wahl — zuhause ohne Maschinen bleibt es automatisch beim Körpergewicht.
+
+> **Bewusst ein MIX, nicht „nur Maschinen".** Erster Versuch war „Maschinen strikt zuerst" → Test ergab
+> 18/18 Maschinen, also fielen LH-Kniebeuge/Klimmzug ganz raus. Der Reißverschluss hält die Grundübungen
+> drin. Getestet (jsdom): Gym-Plan **11 Maschine / 7 Freihantel / 0 Körpergewicht** (voll ausgestattet,
+> 75 kg Anfänger, Beinpresse 55 kg); zuhause **0 Maschinen, 0 kg**; zuhause+Kurzhantel: keine Maschinen,
+> Hanteln genutzt; keine Übung doppelt je Plan; alle Alt-Regressionen grün.
+>
+> **Test-Falle notiert:** `uebungBauen` überträgt `anteil` NICHT auf die gebaute Übung — in Tests darf man
+> Freihantel/Maschine nicht über `u.anteil` klassifizieren (immer leer), sondern über `geraet` + `gewicht`.
+>
+> **Rest-Effekt v37:** Die neuen v37-Übungen sind tiefer in den Listen und tauchen in einem 3-Tage-Plan
+> meist noch nicht auf (Bibliothek/manuelle Auswahl/kommendes Dropdown haben sie voll). Falls sie später
+> auch generiert erscheinen sollen: in ihre kat-Abschnitte einsortieren oder Rotations-Offset — eigener Schritt.
+
+---
+
+### v37 — Übungs-Datenbank erweitert (Start von Milestone 0.050)
+
+**+36 kuratierte Übungen (99 → 135)**, breit über Maschinen, Kabel, Kleingeräte und Freihantel,
+2–3 je zuvor dünnem Gerät. Als **beschrifteter Block am Ende von `UEBUNGEN_DB`** (gut reviewbar/rückrollbar).
+`UEBUNGSPOOL` leitet sich per `filter(kat)` ab → die Neuen sind **automatisch** in Bibliothek und Pool.
+`anteil` ist je Übung an den **Geschwister-Übungen desselben Geräts kalibriert** (z. B. Einbeinige
+Beinpresse 0.45 gegen Beinpresse 0.90); Körpergewicht-Übungen ohne `anteil` → 0 kg, Wdh-Progression.
+Getestet (jsdom): Startgewichte plausibel, Pool/Bibliothek zeigen sie, Generator weiter valide, jedes
+Gerät weiterhin ≥1 Übung.
+
+> **Offene Design-Frage (dem Nutzer gestellt, Antwort steht aus):** Der Generator rotiert `UEBUNGSPOOL`
+> **in Array-Reihenfolge ab Index 0** (`benutzt[kategorie]`), startet bei jeder Generierung neu bei 0 und
+> erreicht die **am Array-Ende** angehängten neuen Übungen praktisch nie. Folge: die Neuen erscheinen in
+> **Bibliothek, Pool und manueller Auswahl** (und im kommenden Editor-Dropdown, 0.039), aber **nicht
+> automatisch in frisch generierten Plänen**. Kein Bug — bewusst als sichere Anhänge-Variante gebaut
+> (null Änderung am bestehenden Generierungs-Verhalten). Optionen für den nächsten Schritt: (a) so lassen
+> (Generator nutzt kuratierten Kern, Rest über Dropdown/Bibliothek), (b) neue Übungen in ihre kat-Abschnitte
+> einsortieren, (c) Generator „gewichtete Geräte-Übung bevorzugen" beibringen. **(c)/(b) ändern das
+> Generierungs-Verhalten und brauchen eigenen Test.**
+
+---
 
 ### v36 — Code-Durchsicht + Neuigkeiten-Seite
 
@@ -672,6 +772,29 @@ Betrifft `view-editor`/`editorZeichnen`/`bibliothekOeffnen`.
 **Reihenfolge-Empfehlung:** (1) Maschinen-Übungen in `UEBUNGEN_DB` erweitern (klein, sichtbar, testbar:
 Generator läuft, Bibliothek zeigt mehr, `pruefung` „jedes Gerät ≥1 Übung" hält). (2) `SPORT_UEBUNGEN`-
 Struktur + Editor-Dropdown. (3) Sport-Inhalte je Sportart recherchieren + Fortschrittsregeln.
+
+### Milestone 0.050 — „General Training" (Roadmap, vom Nutzer bestätigt)
+
+**Leitidee:** Weg vom „Kraft-Tool, das auch Läufe loggt" — hin zum Trainings-Tool, in dem **jede Sportart
+ein vollwertiger Bereich** ist. Etappen (jede eigener Bau-+Test-Durchgang; bis 0.040 fragt Claude vor
+jeder Etappe nach den Entscheidungen):
+
+* **0.037 ✅** Maschinen-/Geräte-Übungen erweitert (+36). *Erledigt.*
+* **0.038 ✅** Generator nutzt vorhandene Maschinen (Reißverschluss Maschine/Freihantel). *Erledigt.*
+* **0.039 ✅** Datenmodell für Sportart-Übungen: `SPORT_UEBUNGEN` (Sportart → Übungen/Drills)
+  **oder** Feld `sportart` auf der Übung. So bauen, dass die spätere Fortschritts-Entscheidung nicht verbaut wird.
+* **0.040 ✅** Editor-Dropdown (Picker ersetzt Bibliothek): Sportart → Gerät/Kontext → passende Übungen vorgeschlagen; **freie Eingabe bleibt**.
+  Verbraucht die v37-Übungen und das 0.039-Modell. *(Ende der aktuell zugesagten Strecke „bis 0.040".)*
+* **0.041–0.043** Erste recherchierte Übungs-/Drill-Listen je Sportart (Laufen, Klettern, Tischtennis, Yoga …).
+* **0.044–0.046** **Kernentscheidung + Umbau:** Fortschritt als **Strategie je Sportart-Klasse** —
+  `fortschrittFuer(klasse)` statt der kraft-festen `progressionAnwenden`. Kraft = Doppelprogression (steht),
+  Ausdauer ≈ 30-%-Regel (teils da), Technik/Ballsport = Volumen/Zeit/Skill-Stufen (neu). **Diese Weiche
+  zuerst festlegen, sonst Rework.**
+* **0.047** Ist-Werte im Training → automatische Ableitung (Backlog-Punkt 4), greift dann für **alle** Klassen.
+* **0.048–0.049** Generator + Trainingsbildschirm je Sportart-Klasse, wo sinnvoll.
+* **0.050** Politur + Neuigkeiten-Eintrag „0.050 — General Training".
+
+**Leitplanken über alles:** eine Datei, offline, verschlüsselt, wartbar ohne KI; getestete Etappen-Kadenz.
 
 * Der Nutzer hatte zuletzt einen **überzoomten Screenshot** — Ursache vermutlich Pinch-Zoom
   (Safari ignoriert `user-scalable=no` teilweise). Kalender-Layout wurde robust gemacht; falls es

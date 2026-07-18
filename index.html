@@ -661,7 +661,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     </div>
   </div>
   <div id="uebung-liste"></div>
-  <button class="breit" id="uebung-hinzu" onclick="uebungAnlegen()">Übung hinzufügen</button>
+  <div id="uebung-picker"></div>
   <div class="knopfreihe">
     <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
     <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
@@ -669,23 +669,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe" id="plan-extra-reihe">
     <button class="schmal" onclick="planDuplizieren(editorPlan.id)">Duplizieren</button>
     <button class="gefahr" onclick="planLoeschen()">Plan löschen</button>
-  </div>
-</section>
-
-<!-- ============================================================
-     Ansicht: Übungs-Bibliothek (Filter + Suche)
-     ============================================================ -->
-<section id="view-bibliothek" class="view">
-  <div class="kopf">
-    <h1>Übung wählen</h1>
-    <button class="schmal" onclick="zeige('view-editor')">Zurück</button>
-  </div>
-  <input id="bib-suche" placeholder="Suchen …" oninput="bibZeichnen()" autocomplete="off">
-  <div class="note abstand" id="bib-kat"></div>
-  <div class="note" id="bib-filter"></div>
-  <div id="bib-liste" class="abstand"></div>
-  <div class="knopfreihe">
-    <button class="schmal" onclick="eigeneUebung()">Eigene Übung eintragen</button>
   </div>
 </section>
 
@@ -1248,7 +1231,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 36;
+const APP_VERSION = 40;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2763,6 +2746,11 @@ const GERAETE = [
   { id:"crosstrainer",name:"Crosstrainer",        gruppe:"Maschinen", orte:["gym"], gymStandard:true }
 ];
 
+/* Maschinen-Geräte (aus der Gruppe abgeleitet, keine zweite Liste zum Pflegen).
+   Der Generator bevorzugt bei vorhandener Ausstattung Maschinen-Übungen —
+   siehe Sortierung in plaeneErstellen. */
+const MASCHINEN_IDS = new Set(GERAETE.filter(g => g.gruppe === "Maschinen").map(g => g.id));
+
 function geraetName(id){
   if(id === "keine") return "Körpergewicht";
   const g = GERAETE.find(x => x.id === id);
@@ -2974,10 +2962,57 @@ const UEBUNGEN_DB = [
   { name:"Burpees",                 kat:"cardio", geraet:"keine" },
   { name:"Hampelmänner",            kat:"cardio", geraet:"keine", modus:"zeit" },
   { name:"High Knees",              kat:"cardio", geraet:"keine", modus:"zeit" },
-  { name:"Laufband / Ergometer",    kat:"cardio", geraet:"cardio", modus:"zeit" }
-];
+  { name:"Laufband / Ergometer",    kat:"cardio", geraet:"cardio", modus:"zeit" },
 
-const KATEGORIE_NAMEN = { beine:"Beine & Po", druck:"Drücken", zug:"Ziehen", rumpf:"Rumpf", cardio:"Cardio" };
+  // ============================================================
+  // v37 — kuratierte Erweiterung: 2–3 gute Übungen je Gerät, breit über
+  // Maschinen, Kabel, Kleingeräte und Freihantel. anteil ist an den bereits
+  // vorhandenen Geschwister-Übungen kalibriert (Startgewicht = Körpergewicht ×
+  // anteil × Faktor); ohne anteil = Körpergewicht, Progression über Wdh.
+  // Der Generator sortiert "Gerät zuerst", zieht Maschinen also nach vorn.
+  // ============================================================
+  // -- Beine --
+  { name:"Einbeinige Beinpresse",      kat:"beine", geraet:"beinpresse",    anteil:0.45 },
+  { name:"Wadenpresse (Beinpresse)",   kat:"beine", geraet:"beinpresse",    anteil:0.70 },
+  { name:"Sitzendes Wadenheben",       kat:"beine", geraet:"wadenmaschine", anteil:0.30 },
+  { name:"Sitzender Beinbeuger",       kat:"beine", geraet:"beinmaschine",  anteil:0.25 },
+  { name:"Frontkniebeugen im Rack",    kat:"beine", geraet:"rack",          anteil:0.30 },
+  { name:"LH-Frontkniebeugen",         kat:"beine", geraet:"langhantel",    anteil:0.30 },
+  { name:"LH-Good-Mornings",           kat:"beine", geraet:"langhantel",    anteil:0.20 },
+  { name:"Kettlebell-Ausfallschritte", kat:"beine", geraet:"kettlebell",    anteil:0.10 },
+  { name:"Wall Balls",                 kat:"beine", geraet:"medizinball",   anteil:0.05 },
+  { name:"Kniebeugen mit Weste",       kat:"beine", geraet:"weste",         anteil:0.10 },
+  { name:"Bank-Step-ups",              kat:"beine", geraet:"bank" },
+  // -- Druck --
+  { name:"Schräge Brustpresse",        kat:"druck", geraet:"brustpresse",      anteil:0.30 },
+  { name:"Enge Brustpresse",           kat:"druck", geraet:"brustpresse",      anteil:0.30 },
+  { name:"Einarmige Schulterpresse",   kat:"druck", geraet:"schultermaschine", anteil:0.11 },
+  { name:"Kabel-Crossover",            kat:"druck", geraet:"kabel",            anteil:0.10 },
+  { name:"Kabel-Seitheben",            kat:"druck", geraet:"kabel",            anteil:0.05 },
+  { name:"Smith-Schulterdrücken",      kat:"druck", geraet:"smith",            anteil:0.20 },
+  { name:"KH-Fliegende",               kat:"druck", geraet:"kurzhantel",       anteil:0.06 },
+  { name:"Trizeps-Dips an der Bank",   kat:"druck", geraet:"bank" },
+  { name:"Negativ-Dips",               kat:"druck", geraet:"dip" },
+  // -- Zug --
+  { name:"Enges Rudern Maschine",      kat:"zug",   geraet:"rudermaschine", anteil:0.35 },
+  { name:"Breites Rudern Maschine",    kat:"zug",   geraet:"rudermaschine", anteil:0.35 },
+  { name:"Rack Pulls",                 kat:"zug",   geraet:"rack",          anteil:0.45 },
+  { name:"Reverse Butterfly",          kat:"zug",   geraet:"butterfly",     anteil:0.12 },
+  { name:"Bizeps-Curls am Kabel",      kat:"zug",   geraet:"kabel",         anteil:0.10 },
+  { name:"Scott-Curls Kurzhantel",     kat:"zug",   geraet:"bizepsbank",    anteil:0.06 },
+  { name:"Smith-Rudern",               kat:"zug",   geraet:"smith",         anteil:0.25 },
+  { name:"Renegade Rows",              kat:"zug",   geraet:"kurzhantel",    anteil:0.10 },
+  // -- Rumpf --
+  { name:"Rotations-Bauchmaschine",    kat:"rumpf", geraet:"bauchmaschine", anteil:0.15 },
+  { name:"Reverse Hyperextension",     kat:"rumpf", geraet:"rueckenbank" },
+  { name:"Seitbeuge an der Bank",      kat:"rumpf", geraet:"rueckenbank" },
+  { name:"Medizinball-Slams",          kat:"rumpf", geraet:"medizinball",   anteil:0.05 },
+  { name:"Türkischer Aufsteher",       kat:"rumpf", geraet:"kettlebell",    anteil:0.08 },
+  // -- Cardio --
+  { name:"Double Unders",              kat:"cardio", geraet:"springseil",   modus:"zeit" },
+  { name:"Crosstrainer-Intervalle",    kat:"cardio", geraet:"crosstrainer", modus:"zeit" },
+  { name:"Intervall-Läufe",            kat:"cardio", geraet:"cardio",       modus:"zeit" }
+];
 
 /* Der Generator arbeitet weiter mit Kategorie-Listen — aus der DB abgeleitet,
    damit es nur EINE Quelle für Übungen gibt. */
@@ -2988,6 +3023,106 @@ const UEBUNGSPOOL = {
   rumpf:  UEBUNGEN_DB.filter(u => u.kat === "rumpf"),
   cardio: UEBUNGEN_DB.filter(u => u.kat === "cardio")
 };
+
+/* ============================================================
+   Sportart-Übungen (v39) — Drills & Athletik JE SPORTART
+   ============================================================
+   Das Gegenstück zu UEBUNGEN_DB (die ist nach Muskelgruppe sortiert und rein
+   kraftbezogen). Hier: Vorlagen je Sportart. Zwei Arten:
+     art:"technik"   = sportartspezifische Fertigkeit (Topspin, Aufschlag …)
+     art:"kondition" = Athletik/Ausdauer für die Sportart (Intervalle, Footwork)
+   modus/saetze/wdh|dauer wie bei Kraftübungen, nur OHNE Gewicht — Sport-Drills
+   laufen über Wiederholungen oder Zeit. Das Feld art wandert in die Plan-Übung
+   und trägt die spätere Fortschritts-Strategie (0.044): Technik steigert man
+   anders als Kondition. Sportart für Sportart erweiterbar (Inhalt = 0.041+). */
+const SPORT_UEBUNGEN = {
+  laufen: [
+    { name:"Lauf-ABC (Skippings, Anfersen)",  art:"technik",   modus:"zeit", saetze:3, dauer:30 },
+    { name:"Steigerungsläufe",                art:"technik",   modus:"zeit", saetze:4, dauer:20 },
+    { name:"Intervall-Läufe (hart/locker)",   art:"kondition", modus:"zeit", saetze:5, dauer:60 },
+    { name:"Bergsprints",                     art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+  ],
+  radfahren: [
+    { name:"Trittfrequenz-Drill (hohe Kadenz)", art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"Berg-Intervalle",                   art:"kondition", modus:"zeit", saetze:4, dauer:120 },
+    { name:"Sprint-Intervalle",                 art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+  ],
+  wandern: [
+    { name:"Bergauf-Intervalle",                art:"kondition", modus:"zeit", saetze:4, dauer:120 },
+    { name:"Ausfallschritte (Trittsicherheit)", art:"kondition", modus:"wdh",  saetze:3, wdh:12 },
+    { name:"Balance auf unebenem Grund",        art:"technik",   modus:"zeit", saetze:3, dauer:45 }
+  ],
+  schwimmen: [
+    { name:"Beinschlag mit Brett",  art:"technik",   modus:"zeit", saetze:4, dauer:45 },
+    { name:"Einarm-Kraul-Drill",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Sprint-Bahnen",         art:"kondition", modus:"zeit", saetze:6, dauer:30 }
+  ],
+  rudern: [
+    { name:"Ruderschlag-Technik (Beine-Rumpf-Arme)", art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"500-m-Intervalle",                       art:"kondition", modus:"zeit", saetze:4, dauer:120 },
+    { name:"Kraftausdauer (niedrige Schlagzahl)",    art:"kondition", modus:"zeit", saetze:3, dauer:180 }
+  ],
+  klettern: [
+    { name:"Fingerhang am Board",           art:"kondition", modus:"zeit", saetze:5, dauer:10 },
+    { name:"Klimmzüge",                     art:"kondition", modus:"wdh",  saetze:4, wdh:8 },
+    { name:"Fußtechnik-Drill (leise Füße)", art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Core / Beinheben",              art:"kondition", modus:"wdh",  saetze:3, wdh:12 }
+  ],
+  tischtennis: [
+    { name:"Vorhand-Topspin (Übungskorb)", art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Rückhand-Konter",              art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Beinarbeit / Footwork",        art:"kondition", modus:"zeit", saetze:3, dauer:60 },
+    { name:"Aufschlag-Training",           art:"technik",   modus:"wdh",  saetze:3, wdh:15 }
+  ],
+  tennis: [
+    { name:"Vorhand cross (Korbübung)",     art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Aufschlag-Training",            art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Split-Step / Footwork",         art:"kondition", modus:"zeit", saetze:3, dauer:30 },
+    { name:"Shuttle-Sprints (Platzlinien)", art:"kondition", modus:"zeit", saetze:6, dauer:25 }
+  ],
+  kampfsport: [
+    { name:"Schattenboxen",                art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Sacktraining (Kombinationen)", art:"kondition", modus:"zeit", saetze:4, dauer:90 },
+    { name:"Kick-Technik (beidseitig)",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 }
+  ],
+  fussball: [
+    { name:"Dribbling-Parcours",            art:"technik",   modus:"zeit", saetze:4, dauer:60 },
+    { name:"Passgenauigkeit (an die Wand)", art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Torschuss-Training",            art:"technik",   modus:"wdh",  saetze:3, wdh:10 },
+    { name:"Sprint-Intervalle",             art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+  ],
+  yoga: [
+    { name:"Sonnengruß (Flow)",         art:"technik",   modus:"zeit", saetze:3, dauer:180 },
+    { name:"Krieger-Sequenz",           art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Balance-Halten (Baum)",     art:"technik",   modus:"zeit", saetze:3, dauer:45 },
+    { name:"Tiefe Vorbeuge (Dehnung)",  art:"kondition", modus:"zeit", saetze:3, dauer:60 }
+  ]
+};
+
+/** Alle hinterlegten Sportart-Übungen einer Sportart (leer, wenn keine). */
+function sportUebungen(sportId){ return SPORT_UEBUNGEN[sportId] || []; }
+
+/** Baut aus einer Sport-Vorlage eine volle Plan-Übung — wie uebungBauen für
+    Kraft, aber ohne Gewicht (Drills laufen über Wdh/Zeit). art wandert mit,
+    damit die spätere Fortschritts-Strategie Technik von Kondition trennt. */
+function sportUebungBauen(vorlage){
+  const u = neueUebung();
+  u.name = vorlage.name;
+  u.geraet = "keine";
+  u.gewicht = 0; u.gewichtSchritt = 0;
+  u.art = vorlage.art || "kondition";
+  u.saetze = vorlage.saetze || 3;
+  u.pause = 60;
+  if(vorlage.modus === "zeit"){
+    u.modus = "zeit"; u.dauer = vorlage.dauer || 60;
+  } else {
+    u.modus = "wdh";
+    u.wdh = vorlage.wdh || 12;
+    u.wdhMin = Math.max(1, Math.round(u.wdh * 0.6));
+    u.wdhMax = Math.round(u.wdh * 1.5);
+  }
+  return u;
+}
 
 /* Aufteilung je Trainingshäufigkeit. Reihenfolge der Kategorien = Priorität;
    wie viele davon genutzt werden, entscheidet die gewählte Trainingsdauer. */
@@ -3461,20 +3596,31 @@ function plaeneErstellen(){
 
     liste.forEach(kategorie => {
       const passend = UEBUNGSPOOL[kategorie].filter(v => geraete.includes(v.geraet));
-      /* Geräteübungen ZUERST. Der Pool steht in Datenbank-Reihenfolge, und die
-         ist körpergewichts-zuerst — mit dem Rundlauf ab Index 0 kamen deshalb
-         selbst im voll ausgestatteten Gym fast nur Liegestütze und Kniebeugen
-         heraus, die Maschinen wurden nie erreicht. Wer angibt, was er hat,
-         will es auch benutzen. Körpergewicht bleibt der Rückfall — für alle
-         ohne Ausstattung ändert sich dadurch nichts.
-         Stabile Sortierung: innerhalb beider Gruppen bleibt die Pool-Reihenfolge,
-         auf der die Rotation über die Tage beruht. */
-      passend.sort((a,b) => (a.geraet === "keine" ? 1 : 0) - (b.geraet === "keine" ? 1 : 0));
       if(passend.length === 0) return;
+      /* Auswahl-Reihenfolge nach Nutzwert am gewählten Ort. Der Rundlauf ab
+         Index 0 nimmt sonst die (in der DB zuerst stehenden) Körpergewichts-
+         übungen und erreicht selbst im voll ausgestatteten Gym die Maschinen nie.
+         v38: Maschinen und Freihantel im REISSVERSCHLUSS (M, F, M, F …) — so
+         nutzt ein Gym-Plan seine Maschinen, ohne die guten Grundübungen
+         (LH-Kniebeuge, Klimmzug) zu verdrängen: ein MIX statt "nur Maschinen".
+         Danach Körpergewicht an Geräten, zuletzt reines Körpergewicht als
+         Rückfall. Der Gerätefilter oben stellt sicher, dass nur Machbares zur
+         Wahl steht — zuhause ohne Maschinen bleibt es automatisch beim
+         Körpergewicht. Stabil: innerhalb jeder Gruppe die Pool-Reihenfolge. */
+      const masch = passend.filter(u => u.anteil && MASCHINEN_IDS.has(u.geraet));
+      const frei  = passend.filter(u => u.anteil && !MASCHINEN_IDS.has(u.geraet));
+      const gewichtet = [];
+      for(let i = 0; i < Math.max(masch.length, frei.length); i++){
+        if(masch[i]) gewichtet.push(masch[i]);
+        if(frei[i])  gewichtet.push(frei[i]);
+      }
+      const geordnet = gewichtet
+        .concat(passend.filter(u => !u.anteil && u.geraet !== "keine"))   // Körpergewicht am Gerät
+        .concat(passend.filter(u => u.geraet === "keine"));               // reines Körpergewicht
       // Variante suchen, die im Plan noch nicht vorkommt (rotiert über die Tage)
       let vorlage = null;
-      for(let versuch = 0; versuch < passend.length; versuch++){
-        const kandidat = passend[((benutzt[kategorie] || 0) + versuch) % passend.length];
+      for(let versuch = 0; versuch < geordnet.length; versuch++){
+        const kandidat = geordnet[((benutzt[kategorie] || 0) + versuch) % geordnet.length];
         if(!plan.uebungen.some(u => u.name === kandidat.name)){ vorlage = kandidat; break; }
       }
       if(!vorlage) return;
@@ -3877,94 +4023,11 @@ function zielInPlan(zielId, planId){
   meldung(text(u.name) + " ist jetzt auch in „" + plan.name + "“.\n\nDamit trainierst du sie öfter pro Woche — die Einschätzung oben rechnet das sofort mit.");
 }
 
-/* ============================================================
-   #region Übungs-Bibliothek
-   Gefilterte, sortierte Liste aus UEBUNGEN_DB. Standardfilter:
-   nur Übungen, die mit den EIGENEN Geräten machbar sind — abschaltbar,
-   damit man sieht, was mit mehr Ausrüstung ginge.
-   ============================================================ */
-let bibKategorie = "alle";
-let bibNurMeine = true;
-
-function bibliothekOeffnen(){
-  bibKategorie = "alle";
-  bibNurMeine = true;
-  document.getElementById("bib-suche").value = "";
-  bibZeichnen();
-  zeige("view-bibliothek");
-}
-
-function bibKatSetzen(k){ bibKategorie = k; bibZeichnen(); }
-function bibMeineUmschalten(){ bibNurMeine = !bibNurMeine; bibZeichnen(); }
-
-function bibZeichnen(){
-  const suche = document.getElementById("bib-suche").value.trim().toLowerCase();
-  const meine = meineGeraete();
-
-  document.getElementById("bib-kat").innerHTML =
-    [["alle","Alle"]].concat(Object.entries(KATEGORIE_NAMEN)).map(([k, n]) =>
-      '<button class="' + (bibKategorie === k ? "gewaehlt" : "") + '" onclick="bibKatSetzen(\'' + k + '\')">' + n + '</button>').join("");
-
-  document.getElementById("bib-filter").innerHTML =
-    '<button class="' + (bibNurMeine ? "gewaehlt" : "") + '" onclick="bibMeineUmschalten()">' +
-    'Nur mit meinen Geräten</button>';
-
-  let liste = UEBUNGEN_DB.slice();
-  if(bibKategorie !== "alle") liste = liste.filter(u => u.kat === bibKategorie);
-  if(bibNurMeine) liste = liste.filter(u => meine.includes(u.geraet));
-  if(suche) liste = liste.filter(u => u.name.toLowerCase().includes(suche) ||
-                                      geraetName(u.geraet).toLowerCase().includes(suche));
-  liste.sort((a,b) => a.kat === b.kat ? a.name.localeCompare(b.name, "de") : a.kat.localeCompare(b.kat));
-
-  const ziel = document.getElementById("bib-liste");
-  if(liste.length === 0){
-    ziel.innerHTML = '<div class="leer">Keine Übung gefunden.' +
-      (bibNurMeine ? '<br><br>Tipp: „Nur mit meinen Geräten“ ausschalten oder im Profil weitere Geräte angeben.' : '') + '</div>';
-    return;
-  }
-  let html = "", letzteKat = null;
-  liste.forEach(u => {
-    if(u.kat !== letzteKat){
-      letzteKat = u.kat;
-      html += '<div style="margin:14px 0 6px"><label>' + KATEGORIE_NAMEN[u.kat] + '</label></div>';
-    }
-    const machbar = meine.includes(u.geraet);
-    html += '<div class="zeile" style="padding:8px 0;border-bottom:1px solid var(--line);opacity:' + (machbar ? 1 : .5) + '">' +
-      '<div><strong>' + text(u.name) + '</strong>' +
-      '<div class="meta">' + geraetName(u.geraet) + (u.modus === "zeit" ? " · Zeit" : "") +
-        (machbar ? "" : " · Gerät fehlt") + '</div></div>' +
-      '<button class="schmal ' + (machbar ? "primaer" : "") + '" onclick="bibWaehlen(\'' + text(u.name).replace(/'/g, "&#39;") + '\')">+</button>' +
-      '</div>';
-  });
-  ziel.innerHTML = html;
-}
-
-/** Übung aus der Bibliothek in den offenen Plan übernehmen —
-    mit Startwerten aus der Einschätzung des Kontos. */
-function bibWaehlen(name){
-  const vorlage = UEBUNGEN_DB.find(u => u.name === name);
-  if(!vorlage) return;
-  if(editorPlan.uebungen.some(u => u.name === vorlage.name)){
-    meldung("„" + vorlage.name + "“ steht schon in diesem Plan."); return;
-  }
-  const e = sitzung.daten.einrichtung || {};
-  const merker = einrichtung;
-  einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger",
-                  ort: e.ort, geraete: e.geraete || [], wochentage: e.wochentage || [],
-                  dauer: e.dauer || "mittel", fokus: e.fokus || "keiner", bonus: e.bonus || [] };
-  const u = uebungBauen(vorlage, startwerteBerechnen(), aktuellesGewichtKg());
-  einrichtung = merker;
-  // Leere Platzhalter-Übung ersetzen statt anhängen
-  const leer = editorPlan.uebungen.findIndex(x => x.name.trim() === "");
-  if(leer >= 0) editorPlan.uebungen[leer] = u; else editorPlan.uebungen.push(u);
-  editorZeichnen();
-  zeige("view-editor");
-}
-
+/* Die Übungs-Bibliothek wurde in v40 durch den geführten Editor-Picker
+   ersetzt (uebungPickerZeichnen / pickerHinzu). "Eigene Übung" bleibt. */
 function eigeneUebung(){
   editorPlan.uebungen.push(neueUebung());
   editorZeichnen();
-  zeige("view-editor");
 }
 
 /* ============================================================
@@ -4342,9 +4405,10 @@ function editorZeichnen(){
   document.getElementById("editor-kraft").hidden = !istKraft;
   document.getElementById("editor-aktivitaet").hidden = istKraft;
   // Übungen darf JEDE Sportart haben: Tischtennis mit "Topspins, 10 Wdh" ist
-  // ein echter Fall — und nur so kommt die Übung ins Ziel-Dropdown.
+  // ein echter Fall — und nur so kommt die Übung ins Ziel-Dropdown. Der Picker
+  // (v40) zeigt je nach Typ Kraft-Übungen (nach Gerät) oder Sport-Drills.
   document.getElementById("uebung-liste").hidden = false;
-  document.getElementById("uebung-hinzu").hidden = false;
+  uebungPickerZeichnen();
   if(!istKraft) aktivitaetsFelderZeichnen();
 
   /* Sieben Tage in EINER Zeile — wie im Kalender. Als 2-Spalten-Raster
@@ -4450,7 +4514,88 @@ function feld(i, schluessel, wert, istZahl){
 }
 function modusSetzen(i, modus){ editorPlan.uebungen[i].modus = modus; editorZeichnen(); }
 function reihenfolgeSetzen(rf){ editorPlan.reihenfolge = rf; editorZeichnen(); }
-function uebungAnlegen(){ bibliothekOeffnen(); }   // Bibliothek statt leerem Feld
+/* Geführter Picker im Editor (v40) — ersetzt die alte Übungs-Bibliothek.
+   Kraft: Gerät → passende Übung aus UEBUNGEN_DB. Sportart: Drill aus
+   SPORT_UEBUNGEN. Plus „Eigene Übung" (Freitext) — bleibt bewusst erhalten. */
+function uebungPickerZeichnen(){
+  const ziel = document.getElementById("uebung-picker");
+  if(!ziel) return;
+  const knoepfe =
+    '<div class="knopfreihe" style="margin-top:8px">' +
+      '<button class="primaer schmal" onclick="pickerHinzu()">Hinzufügen</button>' +
+      '<button class="schmal" onclick="eigeneUebung()">Eigene Übung</button>' +
+    '</div>';
+  if(editorPlan.typ === "kraft"){
+    const meine = meineGeraete();   // ["keine", ...eigene Geräte]
+    const optionen = '<option value="alle">Alle Geräte</option>' +
+      '<option value="keine">Körpergewicht</option>' +
+      GERAETE.filter(g => meine.includes(g.id))
+        .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("");
+    ziel.innerHTML =
+      '<label class="abstand">Übung hinzufügen</label>' +
+      '<div class="raster">' +
+        '<select id="picker-geraet" onchange="pickerUebungenZeichnen()">' + optionen + '</select>' +
+        '<select id="picker-uebung"></select>' +
+      '</div>' + knoepfe;
+  } else {
+    ziel.innerHTML =
+      '<label class="abstand">Übung hinzufügen</label>' +
+      '<select id="picker-uebung" style="width:100%"></select>' + knoepfe;
+  }
+  pickerUebungenZeichnen();
+}
+
+/** Füllt nur das Übungs-Dropdown — bei Gerätewechsel (Kraft) neu, ohne den
+    ganzen Picker neu zu bauen (sonst spränge die Geräteauswahl zurück). */
+function pickerUebungenZeichnen(){
+  const sel = document.getElementById("picker-uebung");
+  if(!sel) return;
+  const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
+  let namen;
+  if(editorPlan.typ === "kraft"){
+    const meine = meineGeraete();
+    const g = (document.getElementById("picker-geraet") || {}).value || "alle";
+    namen = UEBUNGEN_DB
+      .filter(u => meine.includes(u.geraet) && (g === "alle" || u.geraet === g) && !drin.has(u.name))
+      .map(u => u.name);
+  } else {
+    namen = sportUebungen(editorPlan.sportart).filter(v => !drin.has(v.name)).map(v => v.name);
+  }
+  sel.innerHTML = namen.length
+    ? namen.map(n => '<option>' + text(n) + '</option>').join("")
+    : '<option value="">— alle passenden schon im Plan —</option>';
+}
+
+/** Übernimmt die gewählte Übung in den Plan (baut sie je nach Typ auf). */
+function pickerHinzu(){
+  const sel = document.getElementById("picker-uebung");
+  const name = sel && sel.value;
+  if(!name) return;
+  if(editorPlan.uebungen.some(u => u.name === name)){
+    meldung("„" + name + "“ steht schon in diesem Plan."); return;
+  }
+  let u;
+  if(editorPlan.typ === "kraft"){
+    const vorlage = UEBUNGEN_DB.find(x => x.name === name);
+    if(!vorlage) return;
+    // Startwerte wie bei der alten Bibliothek: aus der gespeicherten Einrichtung ableiten
+    const e = sitzung.daten.einrichtung || {};
+    const merker = einrichtung;
+    einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger",
+                    ort: e.ort, geraete: e.geraete || [], wochentage: e.wochentage || [],
+                    dauer: e.dauer || "mittel", fokus: e.fokus || "keiner", bonus: e.bonus || [] };
+    u = uebungBauen(vorlage, startwerteBerechnen(), aktuellesGewichtKg());
+    einrichtung = merker;
+  } else {
+    const vorlage = sportUebungen(editorPlan.sportart).find(x => x.name === name);
+    if(!vorlage) return;
+    u = sportUebungBauen(vorlage);
+  }
+  // Leere Platzhalter-Übung ersetzen statt anhängen (wie zuvor bibWaehlen)
+  const leer = editorPlan.uebungen.findIndex(x => x.name.trim() === "");
+  if(leer >= 0) editorPlan.uebungen[leer] = u; else editorPlan.uebungen.push(u);
+  editorZeichnen();
+}
 function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
 
 /** Übung eine Position nach oben (-1) oder unten (+1) schieben. */
@@ -5121,7 +5266,7 @@ function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
                      "view-statistik":"nav-statistik", "view-profil":"nav-profil",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
-                     "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene",
+                     "view-editor":"nav-plaene",
                      "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
