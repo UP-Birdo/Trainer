@@ -26,6 +26,11 @@
   --navhoehe:62px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
+/* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
+   Webseite). Eingabefelder bleiben editierbar; .geheim (Wiederherstellungs-
+   code) behält seine eigene Regel user-select:all weiter unten. */
+body{-webkit-user-select:none;user-select:none}
+input,textarea,select{-webkit-user-select:text;user-select:text}
 html,body{margin:0;height:100%;overscroll-behavior:none}
 /* Während des Trainings: Seite komplett festnageln — kein Scrollen, kein Wippen.
    Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
@@ -163,9 +168,17 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
    unten — sie braucht KEIN Flex/min-height auf den Views (das drückte v41/v42
    Unterseiten zusammen und verschluckte das Wasserzeichen). v45: rückgängig. */
 body.nav-an .view.aktiv{padding-bottom:calc(var(--navhoehe) + 24px)}
+/* NUR die 5 Haupt-Tabs füllen den Schirm (min-height), damit die fixe Leiste
+   sicher ganz unten sitzt — ohne das kroch sie auf kurzen Seiten (Heute/Profil)
+   hoch. Unterseiten (Sportart, Editor, Verlauf …) bleiben AUSSEN VOR, sonst
+   werden sie gestreckt/gequetscht (der v45-Fehler). */
+body.nav-an #view-start.aktiv,
+body.nav-an #view-plaene.aktiv,
+body.nav-an #view-statistik.aktiv,
+body.nav-an #view-profil.aktiv,
+body.nav-an #view-einstellungen.aktiv{min-height:calc(100dvh - var(--navhoehe))}
 /* Wasserzeichen (Version/Datum): nur unter "Mehr"/Einstellungen sichtbar,
-   dort im normalen Fluss ganz unten (der Inhalt ist lang genug). Auf allen
-   anderen Bildschirmen ausgeblendet, damit es nicht im Leerraum schwebt. */
+   dort im normalen Fluss ganz unten. Sonst überall aus. */
 .view .wasserzeichen{display:none}
 #view-einstellungen .wasserzeichen{display:block}
 body:not(.nav-an) #nav{display:none}
@@ -1248,7 +1261,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 45;
+const APP_VERSION = 47;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1977,7 +1990,7 @@ function zieleStartZeichnen(){
         const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
         return '<div style="padding:8px 0;border-top:1px solid var(--line)">' +
           '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' +
-            text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
+            text(z.einheit || "Wdh") + ' bis ' + datumKurz(z.datum) + '</strong>' +
           '<button class="rund" onclick="zielHeuteLoeschen(\'' + z.id + '\')" aria-label="Ziel löschen">×</button></div>' +
           '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' +
             e.text + '</div></div>';
@@ -2042,6 +2055,45 @@ function zielHeuteLoeschen(id){
   });
 }
 
+/* ---- Mehrfachauswahl von Plänen (v47): langes Drücken startet den Auswahl-
+   modus, Karten antippen wählt aus/ab, dann gemeinsam löschen. ---- */
+let planAuswahlModus = false;
+let planAuswahl = new Set();
+
+/** Die aktuell sichtbaren Pläne (heutige + ohne Tag, oder alle). */
+function sichtbarePlaene(){
+  const plaene = sitzung.daten.plaene;
+  const heuteTag = heutigerWochentag();
+  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
+  return alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
+}
+function planAuswahlStarten(id){
+  planAuswahlModus = true;
+  planAuswahl = new Set([id]);
+  if(navigator.vibrate) navigator.vibrate(15);
+  planListeZeichnen();
+}
+function planAuswahlUmschalten(id){
+  if(planAuswahl.has(id)) planAuswahl.delete(id); else planAuswahl.add(id);
+  if(planAuswahl.size === 0) planAuswahlModus = false;   // nichts mehr gewählt = Modus verlassen
+  planListeZeichnen();
+}
+function planAuswahlBeenden(){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); }
+function planAuswahlAlle(){
+  sichtbarePlaene().forEach(p => planAuswahl.add(p.id));
+  planListeZeichnen();
+}
+function planAuswahlLoeschen(){
+  const n = planAuswahl.size;
+  if(!n) return;
+  frage(n === 1 ? "Diesen Plan löschen?" : ("Diese " + n + " Pläne löschen?"), true, ja => {
+    if(!ja) return;
+    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => !planAuswahl.has(p.id));
+    speichern();
+    planAuswahlBeenden();
+  });
+}
+
 function planListeZeichnen(){
   // Heute-Karte, Sicherungs-Banner und Flamme liegen jetzt auf dem Start-
   // Bildschirm. Hier steht nur noch die Liste aller Pläne.
@@ -2062,7 +2114,7 @@ function planListeZeichnen(){
      Doppel mehr. */
   const heuteTag = heutigerWochentag();
   const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
-  const sichtbar = alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
+  const sichtbar = sichtbarePlaene();
   const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
   const karte = p => {
@@ -2082,6 +2134,14 @@ function planListeZeichnen(){
     // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
     // zeigt darum nur noch die Tage.
     const marke = tage;
+    if(planAuswahlModus){
+      const an = planAuswahl.has(p.id);
+      return '<div class="karte' + (an ? " gewaehlt" : "") + '" data-plan="' + p.id +
+        '" onclick="planAuswahlUmschalten(\'' + p.id + '\')" style="cursor:pointer">' +
+        '<div class="zeile"><h2>' + text(p.name) + '</h2>' +
+        '<span style="font-size:22px;line-height:1">' + (an ? "☑" : "☐") + '</span></div>' +
+        '<div class="meta" style="margin-top:2px">' + marke + '</div></div>';
+    }
     return '<div class="karte" data-plan="' + p.id + '">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
@@ -2108,7 +2168,24 @@ function planListeZeichnen(){
       '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
       grp.map(karte).join("");
   });
-  ziel.innerHTML = html;
+  // v47: Auswahl-Toolbar im Mehrfach-Modus. „Alle auswählen" erscheint, sobald
+  // (mind.) einer gewählt ist und noch nicht alle; „⋯ Bearbeiten" bei genau einem.
+  let toolbar = "";
+  if(planAuswahlModus){
+    const n = planAuswahl.size;
+    const einzige = n === 1 ? [...planAuswahl][0] : null;
+    toolbar =
+      '<div class="karte">' +
+        '<div class="zeile"><strong>' + n + ' ausgewählt</strong>' +
+          '<button class="schmal" onclick="planAuswahlBeenden()">Abbrechen</button></div>' +
+        '<div class="knopfreihe abstand">' +
+          (n < sichtbar.length ? '<button class="schmal" onclick="planAuswahlAlle()">Alle auswählen</button>' : "") +
+          (einzige ? '<button class="schmal" onclick="planMenue(\'' + einzige + '\')">⋯ Bearbeiten</button>' : "") +
+          '<button class="gefahr schmal" onclick="planAuswahlLoeschen()">Löschen (' + n + ')</button>' +
+        '</div>' +
+      '</div>';
+  }
+  ziel.innerHTML = toolbar + html;
 
   document.getElementById("alle-plaene-knopf").innerHTML =
     (versteckt === 0 && !alleplaeneZeigen) ? "" :
@@ -2205,8 +2282,8 @@ function langdruckEinrichten(){
       karte.classList.add("gedrueckt");
       timer = setTimeout(() => {
         karte.classList.remove("gedrueckt");
-        if(navigator.vibrate) navigator.vibrate(15);          // kurzes Feedback, wo unterstützt
-        planMenue(karte.dataset.plan);
+        if(planAuswahlModus) return;                          // im Auswahlmodus toggelt der Tap die Karte
+        planAuswahlStarten(karte.dataset.plan);               // langes Drücken startet Mehrfachauswahl (vibriert selbst)
       }, 500);
     }, { passive:true });
     karte.addEventListener("touchmove", e => {
@@ -2428,6 +2505,8 @@ function profilSpeichern(){
 }
 
 function heuteAlsText(){ return new Date().toISOString().slice(0,10); }
+/** "JJJJ-MM-TT" → "TT.MM.JJ" (2-stelliges Jahr, richtig herum). v46. */
+function datumKurz(iso){ return iso ? iso.slice(8,10) + "." + iso.slice(5,7) + "." + iso.slice(2,4) : ""; }
 
 /** ISO-Wochenschlüssel "2026-W29" für ein Datum "JJJJ-MM-TT". */
 function isoWoche(datumText){
@@ -4119,7 +4198,7 @@ function zieleZeichnen(){
             }).join("") + '</div></div>';
         }
         return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">' +
-          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
+          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + datumKurz(z.datum) + '</strong>' +
           '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')">×</button></div>' +
           '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
           '<div class="knopfreihe"><button class="schmal" onclick="zielPickerUmschalten(\'' + z.id + '\')">' +
@@ -4277,6 +4356,30 @@ function sportartOeffnen(id){
   zeige("view-sportart");
 }
 
+let bibOffen = {};
+/** Nachschlage-Bibliothek der VORHANDENEN Übungen einer Sportart (einklappbar).
+    Kraft: die Datenbank-Übungen (mit Gerät); jede andere Sportart: ihre Drills.
+    Reine Ansicht — hinzugefügt werden Übungen weiterhin im Editor-Picker. */
+function bibliothekHtml(sportId){
+  let liste;
+  if(sportId === "kraft"){
+    liste = UEBUNGEN_DB.map(u => ({ name:u.name, info: geraetName(u.geraet) + (u.modus === "zeit" ? " · Zeit" : "") }));
+  } else {
+    liste = sportUebungen(sportId).map(v => ({ name:v.name,
+      info: (v.art === "technik" ? "Technik" : "Kondition") + " · " + (v.modus === "zeit" ? "Zeit" : "Wdh") }));
+  }
+  if(!liste.length) return "";
+  const offen = !!bibOffen[sportId];
+  return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
+    '<button class="schmal" onclick="bibUmschalten(\'' + sportId + '\')">' +
+      (offen ? "Zuklappen" : "Ansehen (" + liste.length + ")") + '</button></div>' +
+    (offen ? '<div class="abstand">' + liste.map(x =>
+      '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+      '<strong>' + text(x.name) + '</strong><div class="meta">' + text(x.info) + '</div></div>').join("") +
+      '</div>' : "") + '</div>';
+}
+function bibUmschalten(sportId){ bibOffen[sportId] = !bibOffen[sportId]; sportartSeiteZeichnen(); }
+
 /** Karte mit den eigenen Übungen einer Sportart (leer, wenn keine). */
 function eigeneUebungenHtml(sportId){
   const liste = (sitzung.daten.eigeneUebungen || {})[sportId] || [];
@@ -4320,11 +4423,11 @@ function sportartSeiteZeichnen(){
   if(!an){ inhalt.innerHTML = ""; return; }
 
   if(s.id !== "kraft"){
-    // Eigene Übungen (falls vorhanden) zuerst, dann der ehrliche Hinweis.
-    inhalt.innerHTML = eigeneUebungenHtml(s.id) +
+    // Bibliothek der Drills + eigene Übungen, dann der ehrliche Hinweis.
+    inhalt.innerHTML = bibliothekHtml(s.id) + eigeneUebungenHtml(s.id) +
       '<div class="karte"><div class="meta">Für ' + text(s.name) +
-      ' gibt es noch nichts einzustellen. Pläne kannst du im Editor anlegen, starten und protokollieren — ' +
-      'automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining.</div></div>';
+      ' gibt es (außer Übungen) noch nichts einzustellen. Pläne kannst du im Editor anlegen, starten und ' +
+      'protokollieren — automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining.</div></div>';
     return;
   }
 
@@ -4347,7 +4450,7 @@ function sportartSeiteZeichnen(){
           '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
           '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("") +
       '<div id="geraete-neu-knopf"></div>' +
-    '</div>' + eigeneUebungenHtml(s.id);
+    '</div>' + bibliothekHtml(s.id) + eigeneUebungenHtml(s.id);
   neueGeraeteKnopfZeichnen();
 }
 
@@ -4389,8 +4492,8 @@ function sportartNutzenUmschalten(){
     sportartSeiteZeichnen();
     return;
   }
-  if(liste.length === 1){ meldung("Mindestens eine Sportart muss ausgewählt bleiben."); return; }
-
+  // v46: Es ist erlaubt, ALLE Sportarten abzuwählen — dann ist eben keine
+  // ausgewählt, ohne Meldung. Bestehende Pläne behalten ihre Sportart.
   const h = haengtAnSportart(offeneSportart);
   const name = sportartName(offeneSportart);
   if(h.plaene.length === 0 && h.ziele.length === 0){
@@ -5516,7 +5619,7 @@ function danachZeichnen(){
    ============================================================ */
 function navGehe(bereich){
   if(bereich === "start") startOeffnen();
-  else if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
+  else if(bereich === "plaene"){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); zeige("view-plaene"); }
   else if(bereich === "statistik") statistikOeffnen();
   else if(bereich === "profil") profilOeffnen();
   else einstellungenOeffnen();

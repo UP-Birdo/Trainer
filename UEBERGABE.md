@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.045 / APP_VERSION 45**.
+> als Paket hochgeladen. Stand: **Version 0.047 / APP_VERSION 47**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 45;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.045" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 47;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.047" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v45"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v47"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,47 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v47 — Nav-Leiste richtig fixiert + Mehrfachauswahl von Plänen
+
+* **Nav-Bug (Heute/Profil) endgültig:** Die fixe Leiste kroch auf kurzen Seiten hoch, weil v45 das
+  schirmfüllende `min-height` KOMPLETT entfernt hatte. Jetzt füllt `min-height:calc(100dvh - navhoehe)`
+  **nur die 5 Haupt-Tabs** (`#view-start/#view-plaene/#view-statistik/#view-profil/#view-einstellungen`),
+  NICHT die Unterseiten (Sportart, Editor, Verlauf …) — so bleibt die Leiste unten UND nichts wird gequetscht.
+  > **Wasserzeichen in „Mehr":** CSS ist korrekt (jsdom bestätigt `display:block` + gefüllt). Wenn es „fehlt",
+  > ist es fast sicher **PWA-Cache** — App ganz schließen und neu öffnen (Service-Worker-Update braucht oft
+  > einen Neustart).
+* **Mehrfachauswahl von Plänen:** Langes Drücken auf eine Plan-Karte startet den **Auswahlmodus**
+  (`planAuswahlModus`, `planAuswahl`-Set) — Karten zeigen Checkboxen (☐/☑), Antippen wählt aus/ab. Toolbar
+  oben: „N ausgewählt" · „Abbrechen" · **„Alle auswählen"** (sobald ≥1 und nicht alle) · **„⋯ Bearbeiten"**
+  (bei genau einem → altes `planMenue`) · **„Löschen (N)"** (mit Rückfrage, löscht alle gewählten).
+  Alles abwählen verlässt den Modus; der Pläne-Tab öffnet immer frisch (ohne Alt-Auswahl). Funktionen:
+  `sichtbarePlaene`, `planAuswahlStarten/Umschalten/Beenden/Alle/Loeschen`.
+
+Getestet (jsdom: 12 Auswahl-Fälle + CSS-Scoping) + alle Regressionen grün.
+
+---
+
+### v46 — Vier Nutzer-Fixes (+ Bibliothek zurück auf der Sportart-Seite)
+
+* **Alle Sportarten abwählbar:** Die Sperre „Mindestens eine Sportart muss ausgewählt bleiben" in
+  `sportartNutzenUmschalten` ist raus — leer ist jetzt erlaubt, ohne Meldung. (`datenNachruesten` setzt
+  `["kraft"]` nur, wenn das Feld GAR keine Liste ist; eine leere Liste bleibt leer.)
+* **Ziel-Datum richtig herum & kurz:** neuer Helfer `datumKurz("JJJJ-MM-TT") → "TT.MM.JJ"`, in beiden
+  Ziel-Anzeigen (Heute + Profil) statt der rohen ISO-Zeichenkette.
+* **Textauswahl aus:** `body{user-select:none}`, Ausnahmen `input,textarea,select` (editierbar) und `.geheim`
+  (Wiederherstellungscode, behält `user-select:all`).
+* **Übungs-Bibliothek zurück** — als **einklappbare Nachschlage-Karte** auf der Sportart-Seite
+  (`bibliothekHtml`/`bibUmschalten`, `bibOffen`): Kraft = Datenbank-Übungen (mit Gerät), jede andere Sportart
+  = ihre Drills. Auf der Kraft-Seite jetzt zusammen: Ort/Geräte → Übungen → Eigene Übungen. Reine Ansicht;
+  hinzugefügt wird weiter im Editor-Picker.
+
+Getestet (jsdom, 6 Fälle) + alle Regressionen grün.
+
+> **Offen (Kalender = D1):** Der Kalender ist bisher nur auf trainingsfreien Tagen antippbar (Ruhetag).
+> Voll anklickbar (Tag → Plan/Termin) ist das D1-Feature — als Nächstes.
+
+---
 
 ### v45 — Fixes aus Nutzer-Screenshots (Layout, Wasserzeichen, Neuigkeiten)
 
