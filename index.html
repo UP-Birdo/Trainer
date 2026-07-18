@@ -378,9 +378,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <!-- ============================================================
      Ansicht: Plan-Übersicht
      ============================================================ -->
-<section id="view-plaene" class="view">
+<!-- ============================================================
+     Ansicht: Start (Heute) — der Einstieg. Zeigt NUR das Training von
+     heute, wichtige Meldungen (Sicherung) und die aktuellen Ziele.
+     Die Plan-Verwaltung liegt bewusst im eigenen Tab "Pläne" daneben,
+     damit dieser Bildschirm ruhig bleibt: eine Frage — "Was steht heute an?".
+     ============================================================ -->
+<section id="view-start" class="view">
   <div class="kopf">
-    <h1>Trainingspläne</h1>
+    <h1>Heute</h1>
     <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Trainings in Serie (bis zu 2 Ruhetage erlaubt)"></span>
   </div>
   <div id="heute-karte"></div>
@@ -388,11 +394,23 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <span id="sicherung-banner-text"></span>
     <div class="knopfreihe"><button class="primaer schmal" onclick="sicherungTeilen()">Jetzt sichern</button></div>
   </div>
+  <!-- Ziele auf dem Start, weil sie die Richtung vorgeben. Hier nur der
+       Lese-Blick (Stand + Einschätzung); Anlegen/Löschen/In-Pläne-einbauen
+       bleibt im Profil, wo die Bedienelemente sitzen — sonst zwei Orte für
+       dieselbe Sache. Tippen auf ein Ziel führt ins Profil. -->
+  <div id="ziele-start"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Pläne — die Verwaltung aller Trainingspläne.
+     ============================================================ -->
+<section id="view-plaene" class="view">
+  <div class="kopf"><h1>Pläne</h1></div>
   <div id="plan-liste"></div>
   <div id="alle-plaene-knopf"></div>
-  <!-- Bewusst KEIN primaer: Die gelbe Hauptaktion dieses Bildschirms ist
-       "Training starten" auf der Heute-Karte. Zwei gelbe Knöpfe nebeneinander
-       heben sich gegenseitig auf. -->
+  <!-- Bewusst KEIN primaer: Die gelbe Hauptaktion gehört auf den Start
+       ("Training starten"). Zwei gelbe Knöpfe heben sich gegenseitig auf. -->
   <div class="raster abstand">
     <button class="schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>
     <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
@@ -400,6 +418,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe">
     <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Aktivität nachtragen</button>
   </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <!-- ============================================================
@@ -783,7 +802,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Angepasst für nächstes Mal</h1></div>
   <div id="ergebnis-liste"></div>
   <div class="knopfreihe">
-    <button class="primaer" onclick="planListeZeichnen();zeige('view-plaene')">Fertig</button>
+    <button class="primaer" onclick="startOeffnen()">Fertig</button>
   </div>
 </section>
 
@@ -792,6 +811,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <!-- Bottom-Navigation: Kernbereiche in Daumenreichweite -->
 <nav id="nav">
+  <button id="nav-start" onclick="navGehe('start')"><span class="sym">⌂</span>Heute</button>
   <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym">▤</span>Pläne</button>
   <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym">▦</span>Statistik</button>
   <button id="nav-profil" onclick="navGehe('profil')"><span class="sym">◉</span>Profil</button>
@@ -1062,8 +1082,7 @@ async function autoAnmelden(){
     // jeder mit dem entsperrten Handy das Konto übernehmen.
     sitzung = { kontoId: konto.id, datenSchluessel: schluessel, dkBytes: null,
                 daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
-    planListeZeichnen();
-    zeige("view-plaene");
+    startOeffnen();
   } catch(e){
     loginZeichnen();
   }
@@ -1190,15 +1209,14 @@ async function anmelden(){
       } else {
         await merkerLoeschen().catch(() => {});   // Häkchen weg = alter Merker weg
       }
-      planListeZeichnen();
-      zeige("view-plaene");
+      startOeffnen();
     } else {
       /* --- Altes Schema (v2): öffnen, auf neues Schema heben, Code zeigen --- */
       const altSchluessel = await schluesselAbleiten(passwort, base64ZuBytes(gewaehltesKonto.salz));
       const klartext = await gcmEntschluesseln(altSchluessel, gewaehltesKonto.paket);
       const daten = datenNachruesten(JSON.parse(new TextDecoder().decode(klartext)));
       await kontoAufV3Heben(gewaehltesKonto, passwort, daten);
-      codeAnzeigen(() => { planListeZeichnen(); zeige("view-plaene"); });
+      codeAnzeigen(() => { startOeffnen(); });
     }
   } catch(e){
     meldung("Falsches Passwort.");
@@ -1217,7 +1235,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 33;
+const APP_VERSION = 34;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1404,8 +1422,7 @@ async function passwortZuruecksetzen(){
     sitzung = { kontoId: konto.id, datenSchluessel, dkBytes,
                 daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
     meldung("Passwort neu gesetzt. Du bist angemeldet.");
-    planListeZeichnen();
-    zeige("view-plaene");
+    startOeffnen();
   } catch(e){
     meldung("Der Wiederherstellungscode ist nicht korrekt.");
   }
@@ -1858,7 +1875,7 @@ function zeige(id){
   navAktualisieren(id);
   wasserzeichenZeichnen();
   window.scrollTo(0,0);
-  if((id === "view-plaene" || id === "view-login") && typeof updateAnwenden === "function")
+  if((id === "view-start" || id === "view-plaene" || id === "view-login") && typeof updateAnwenden === "function")
     updateAnwenden();   // aufgeschobenes Update nachholen, sobald es gefahrlos ist
 }
 
@@ -1883,10 +1900,50 @@ let alleplaeneZeigen = false;   // Schalter unter der Liste, absichtlich NICHT g
 
 function alleplaeneUmschalten(){ alleplaeneZeigen = !alleplaeneZeigen; planListeZeichnen(); }
 
-function planListeZeichnen(){
+/** Der Start-Bildschirm ("Heute"): das Training von heute, wichtige Meldungen
+    (Sicherung) und die Ziele. Zeichnet dieselben Bausteine wie früher der
+    Pläne-Tab, nur ohne die Plan-Liste — die hat jetzt ihren eigenen Tab. */
+function startOeffnen(){
   sicherungBannerZeichnen();
   flammeZeichnen();
-  const heutePlanId = heuteKarteZeichnen();   // der steht schon oben — nicht nochmal in die Liste
+  heuteKarteZeichnen();
+  zieleStartZeichnen();
+  zeige("view-start");
+}
+
+/** Kompakter LESE-Block der Ziele auf dem Start. Nutzt bewusst dieselbe
+    Einschätzung wie das Profil (zielEinschaetzen) — eine Quelle, keine zweite
+    Wahrheit. Bedienen (anlegen/löschen/einbauen) passiert im Profil; ein Tipp
+    auf die Karte führt genau dorthin. */
+function zieleStartZeichnen(){
+  const ziel = document.getElementById("ziele-start");
+  if(!ziel) return;
+  const ziele = sitzung.daten.ziele || [];
+  if(ziele.length === 0){
+    // Nur ein leiser Hinweis — und nur, wenn es überhaupt etwas zu betrainen
+    // gibt (eine Übung steht in einem Plan). Sonst bleibt der Start ruhig.
+    ziel.innerHTML = planUebungen().length === 0 ? "" :
+      '<div class="karte" onclick="profilOeffnen()" style="cursor:pointer">' +
+      '<div class="zeile"><h2>Ziele</h2><span class="meta">im Profil anlegen ›</span></div>' +
+      '<div class="meta">Noch kein Ziel — z. B. „20 Liegestütze bis 01.09.“. Ziele geben der Progression eine Richtung.</div></div>';
+    return;
+  }
+  ziel.innerHTML =
+    '<div class="karte" onclick="profilOeffnen()" style="cursor:pointer">' +
+    '<div class="zeile"><h2>Ziele</h2><span class="meta">bearbeiten ›</span></div>' +
+    ziele.map(z => {
+      const e = zielEinschaetzen(z);
+      const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
+      return '<div style="padding:8px 0;border-top:1px solid var(--line)">' +
+        '<strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
+        '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
+        '</div>';
+    }).join("") + '</div>';
+}
+
+function planListeZeichnen(){
+  // Heute-Karte, Sicherungs-Banner und Flamme liegen jetzt auf dem Start-
+  // Bildschirm. Hier steht nur noch die Liste aller Pläne.
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
@@ -1897,16 +1954,15 @@ function planListeZeichnen(){
     return;
   }
 
-  /* Sichtbar sind nur: der Plan von HEUTE und Pläne ohne festen Tag.
-     Ein Plan für Freitag hat am Dienstag nichts in der Liste zu suchen —
-     erreichbar bleibt er über "Alle Pläne zeigen". */
+  /* Sichtbar sind: der Plan von HEUTE und Pläne ohne festen Tag. Ein Plan für
+     Freitag hat am Dienstag nichts in der Liste zu suchen — erreichbar bleibt
+     er über "Alle Pläne zeigen". Der heutige Plan steht MIT in der Liste: die
+     Heute-Karte liegt jetzt auf dem Start-Bildschirm, hier gibt es kein
+     Doppel mehr. */
   const heuteTag = heutigerWochentag();
-  /* Sichtbar in der LISTE: Pläne ohne festen Tag (immer nutzbar) und weitere
-     Pläne des heutigen Tages. Der Plan, der oben schon als Heute-Karte steht,
-     fällt raus — sonst stünde er zweimal auf demselben Bildschirm. */
-  const heuteDrin = p => p.id !== heutePlanId && (p.tage.length === 0 || p.tage.includes(heuteTag));
-  const sichtbar = alleplaeneZeigen ? plaene.filter(p => p.id !== heutePlanId) : plaene.filter(heuteDrin);
-  const versteckt = plaene.filter(p => p.id !== heutePlanId).length - plaene.filter(heuteDrin).length;
+  const heuteDrin = p => p.tage.length === 0 || p.tage.includes(heuteTag);
+  const sichtbar = alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
+  const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
   ziel.innerHTML = sichtbar.map(p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
@@ -3318,14 +3374,18 @@ function plaeneErstellen(){
      stehen, nicht erst vor ihrer Verwendung. */
   const neuePlaene = !kraftGewaehlt(einrichtung) ? [] :
     SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
-    const wochentag = WOCHENTAGE[einrichtung.wochentage[tagIndex]];
     let liste = kategorien.slice();
     if(fokusKategorie){
       liste.sort((a,b) => (a === fokusKategorie ? -1 : 0) - (b === fokusKategorie ? -1 : 0));
     }
     liste = liste.slice(0, anzahl);
 
-    const plan = { id:neueId(), name: wochentag + " – " + titel, quelle:"assistent",
+    // Name OHNE Wochentag: der Tag steht im Feld "tage" und in der Marke der
+    // Liste — im Namen wäre er nur Dopplung. Der Titel aus SPLITS trägt die
+    // A/B/C-Unterscheidung noch, weil das Protokoll Pläne bis auf Weiteres
+    // über den Namen zuordnet; die reine Übungs-/Ziel-Zuordnung per ID kommt
+    // im nächsten Schritt, dann können auch die Buchstaben fallen.
+    const plan = { id:neueId(), name: titel, quelle:"assistent",
                    sportart:"kraft", typ:"kraft", tage:[ einrichtung.wochentage[tagIndex] ],   // Tage sind ein FELD, nicht der Name
                    reihenfolge:"klassisch",
                    aufwaermen: einrichtung.bonus.includes("aufwaermen"),
@@ -4624,8 +4684,7 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
     bewertungOeffnen(sitzung.daten.plaene.find(p => p.id === plan.id) || plan, eintrag);
     return;
   }
-  planListeZeichnen();
-  zeige("view-plaene");
+  startOeffnen();
   meldung("Eingetragen: " + aktivitaetText(sport, strecke, dauerS, einheit) +
           (bericht.length ? "\n\n" + bericht.join("\n") : ""));
 }
@@ -4931,8 +4990,7 @@ function trainingAbbrechen(){
   frage("Training abbrechen? Es wird nichts angepasst und nichts protokolliert.", true, ja => {
     if(!ja) return;
     aufraeumen();
-    planListeZeichnen();
-    zeige("view-plaene");
+    startOeffnen();
   });
 }
 
@@ -4983,7 +5041,8 @@ function danachZeichnen(){
    #region Navigation (Bottom-Bar)
    ============================================================ */
 function navGehe(bereich){
-  if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
+  if(bereich === "start") startOeffnen();
+  else if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
   else if(bereich === "statistik") statistikOeffnen();
   else if(bereich === "profil") profilOeffnen();
   else einstellungenOeffnen();
@@ -4991,13 +5050,14 @@ function navGehe(bereich){
 
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
-  const bereiche = { "view-plaene":"nav-plaene", "view-statistik":"nav-statistik", "view-profil":"nav-profil",
+  const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
+                     "view-statistik":"nav-statistik", "view-profil":"nav-profil",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst",
                      "view-editor":"nav-plaene", "view-bibliothek":"nav-plaene",
                      "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
-  ["nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
+  ["nav-start","nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
     document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
 }
 
@@ -5033,6 +5093,14 @@ function heuteKarteZeichnen(){
   } else if(schonTrainiert){
     ziel.innerHTML = '<div class="heute"><div class="heute-label">Heute · ' + name + '</div>' +
       '<h2>Erledigt ✓</h2><div class="meta">Gut gemacht — die Serie läuft.</div></div>';
+  } else if(sitzung.daten.plaene.length === 0){
+    // Noch gar kein Plan: Der Start muss den Weg zeigen. Ohne diesen Zweig
+    // sähe ein neuer Nutzer nur "Ruhetag" und wüsste nicht, dass die Pläne im
+    // Nachbar-Tab entstehen (die leere Liste mit den Anlege-Knöpfen liegt dort).
+    ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--signal)">Willkommen</div>' +
+      '<h2>Noch kein Plan</h2><div class="meta">Leg deinen ersten Trainingsplan an — die App richtet dir anhand weniger Fragen einen passenden ein.</div>' +
+      '<div class="knopfreihe"><button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>' +
+      '<button class="breit" onclick="navGehe(\'plaene\')">Zu den Plänen</button></div></div>';
   } else {
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
       '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute — Ruhetage kosten die Flamme nicht (bis zu 2 am Stück).</div></div>';
