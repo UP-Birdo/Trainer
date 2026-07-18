@@ -2,7 +2,7 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.041 / APP_VERSION 41**.
+> als Paket hochgeladen. Stand: **Version 0.043 / APP_VERSION 43**.
 
 ---
 
@@ -125,10 +125,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 41;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.041" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 43;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.043" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v41"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v43"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -387,6 +387,37 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v43 — Menüs & Struktur (Strang B der Nutzer-Wünsche)
+
+* **B1** Statistik-Trainingslog: nur noch **5 Einträge Vorschau**, darunter „Ganzen Verlauf zeigen (N)" →
+  neue Seite `view-verlauf` mit **allen** Einträgen samt Datum (`protokollEintragHtml` als geteilter Helfer,
+  `verlaufOeffnen`, nav-Mapping auf `nav-statistik`).
+* **B2** Profil umsortiert: **Ziele-Karte jetzt ÜBER der Sportarten-Karte**. Sportarten-Liste **einklappbar** —
+  nur aktive Sportarten offen, inaktive hinter „Mehr anzeigen (N)" (`sportartenAlleZeigen` /
+  `sportartenMehrUmschalten`).
+* **B3** Ziele **direkt auf Heute** anlegen/löschen (nicht mehr nur im Profil). `zieleStartZeichnen` neu:
+  „+" öffnet ein **isoliertes Mini-Formular** mit eigenen IDs `zh-*` (`zielHeuteFormZeigen/Zeichnen/
+  Eintragen`, `zielHeuteLoeschen`), das die vorhandenen Helfer (`planUebungen`, `zielArten`, `zielWertText`,
+  `zielEinschaetzen`) nutzt — **das Profil-Formular bleibt unangetastet**. Jedes Ziel hat ein „×" zum Löschen.
+* **B4** Pläne-Tab **nach Sportart gruppiert**: farbiger Sportart-Kopf je Gruppe (Reihenfolge wie SPORTARTEN,
+  innerhalb alphabetisch), die Karten zeigen nur noch die Tage. `planListeZeichnen` baut die Karte über eine
+  `karte(p)`-Funktion und rendert gruppiert.
+
+Getestet (jsdom, 13 Fälle): B4-Gruppenköpfe + beide Pläne, B1-Vorschau/Verlauf-Knopf/voller Verlauf,
+B3-Anlegen/Löschen/Formular-Zustand; alle Alt-Regressionen grün.
+
+---
+
+### v42 — A1-Korrektur: Wasserzeichen nur unter „Mehr"
+
+Nutzer-Feedback zu v41 (mit Screenshots): der A1-Fix schob das Wasserzeichen auf **jedem** Nav-Bildschirm
+nach unten → auf kurzen Seiten (Heute) schwebte es im Leerraum. Korrektur: **Wasserzeichen überall
+ausgeblendet** (`.view .wasserzeichen{display:none}`), **nur unter `#view-einstellungen` sichtbar** und dort
+per `margin-top:auto` am unteren Rand. Die Nav-Views füllen weiterhin den Schirm (min-height), die Leiste
+ist fix unten. Icons (A2) vom Nutzer als gut bestätigt. **A1-Layout weiter nur per Screenshot verifizierbar.**
+
+---
 
 ### v41 — Aussehen / Entrümpeln (Strang A der Nutzer-Wünsche)
 
@@ -833,7 +864,7 @@ Vom Nutzer gesammelte Änderungen, nach Strängen geordnet. Versionsnummern werd
 * **A5 — Trainingsdauer frei eingebbar:** Zahlenfeld + Einheit (sec/min/h), **kein 3-h-Deckel**
   (`MAX_DAUER_S` lockern/ersetzen).
 
-**B · Menüs & Struktur**
+**B · Menüs & Struktur — ✅ v43**
 * **B1 — Statistik „Trainings":** kein endloser Verlauf, sondern klickbar zum **vollen Log mit Datum**
   (eigene Detail-Ansicht: welcher Tag, was getan).
 * **B2 — Profil umsortieren:** **Ziele ÜBER Sportarten**; Sportarten-Liste einklappbar („mehr ansehen"),

@@ -166,7 +166,11 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
    eine Lücke über der fixen Leiste, sie wirkte "nicht ganz unten". */
 body.nav-an .view.aktiv{display:flex;flex-direction:column;
   min-height:calc(100dvh - var(--navhoehe));padding-bottom:calc(var(--navhoehe) + 24px)}
-body.nav-an .view.aktiv > .wasserzeichen{margin-top:auto}
+/* Wasserzeichen (Version/Datum) entrümpelt (v42): nur noch unter "Mehr"/
+   Einstellungen sichtbar und dort am unteren Rand — auf allen anderen
+   Bildschirmen ausgeblendet, damit es nicht im Leerraum schwebt. */
+.view .wasserzeichen{display:none}
+#view-einstellungen .wasserzeichen{display:block;margin-top:auto}
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
@@ -522,13 +526,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
 
   <div class="karte">
-    <div class="zeile"><h2>Sportarten</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
-    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
-    <div id="profil-sportarten" class="abstand"></div>
-  </div>
-
-  <div class="karte">
     <div class="zeile">
       <h2>Ziele</h2>
       <button class="rund" id="ziel-plus" onclick="zielFormularZeigen()" aria-label="Ziel hinzufügen">+</button>
@@ -547,6 +544,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     </div>
     <div id="ziel-liste" class="abstand"></div>
   </div>
+
+  <div class="karte">
+    <div class="zeile"><h2>Sportarten</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
+    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
+    <div id="profil-sportarten" class="abstand"></div>
+  </div>
+
 
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -807,6 +812,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
 </section>
 
+
+
+<!-- ============================================================
+     Ansicht: Trainings-Verlauf (voller Log, B1)
+     ============================================================ -->
+<section id="view-verlauf" class="view">
+  <div class="kopf"><h1>Trainings-Verlauf</h1>
+    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+  <div id="verlauf-liste" class="meta abstand">–</div>
+</section>
 
 
 
@@ -1236,7 +1251,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 41;
+const APP_VERSION = 43;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1925,30 +1940,107 @@ function startOeffnen(){
     Einschätzung wie das Profil (zielEinschaetzen) — eine Quelle, keine zweite
     Wahrheit. Bedienen (anlegen/löschen/einbauen) passiert im Profil; ein Tipp
     auf die Karte führt genau dorthin. */
+let zielHeuteFormOffen = false;
+
 function zieleStartZeichnen(){
   const ziel = document.getElementById("ziele-start");
   if(!ziel) return;
   const ziele = sitzung.daten.ziele || [];
-  if(ziele.length === 0){
-    // Nur ein leiser Hinweis — und nur, wenn es überhaupt etwas zu betrainen
-    // gibt (eine Übung steht in einem Plan). Sonst bleibt der Start ruhig.
-    ziel.innerHTML = planUebungen().length === 0 ? "" :
-      '<div class="karte" onclick="profilOeffnen()" style="cursor:pointer">' +
-      '<div class="zeile"><h2>Ziele</h2><span class="meta">im Profil anlegen ›</span></div>' +
-      '<div class="meta">Noch kein Ziel — z. B. „20 Liegestütze bis 01.09.“. Ziele geben der Progression eine Richtung.</div></div>';
-    return;
+  const uebungen = planUebungen();
+  // Ohne Übung in einem Plan UND ohne Ziel bleibt der Start ruhig.
+  if(ziele.length === 0 && uebungen.length === 0){ ziel.innerHTML = ""; return; }
+
+  // B3: Ziele werden HIER angelegt/gelöscht (nicht mehr nur im Profil). Der
+  // "+"-Knopf klappt ein isoliertes Mini-Formular auf (eigene IDs zh-*).
+  const kopf = '<div class="zeile"><h2>Ziele</h2>' +
+    (uebungen.length
+      ? '<button class="rund" onclick="zielHeuteFormZeigen()" aria-label="Ziel hinzufügen">' +
+        (zielHeuteFormOffen ? "×" : "+") + '</button>'
+      : "") + '</div>';
+
+  const formular = zielHeuteFormOffen ?
+    '<div class="abstand">' +
+      '<label for="zh-uebung">Übung</label>' +
+      '<select id="zh-uebung" onchange="zielHeuteFormZeichnen()"></select>' +
+      '<label class="abstand" for="zh-art">Worauf</label>' +
+      '<select id="zh-art" onchange="zielHeuteFormZeichnen()"></select>' +
+      '<div class="raster abstand">' +
+        '<div><label id="zh-wert-label" for="zh-wert">Ziel</label><input id="zh-wert" type="number" inputmode="decimal" step="0.5"></div>' +
+        '<div><label for="zh-datum">Bis wann</label><input id="zh-datum" type="date"></div>' +
+      '</div>' +
+      '<div class="meta" id="zh-ist"></div>' +
+      '<div class="knopfreihe"><button class="primaer schmal" onclick="zielHeuteEintragen()">Ziel speichern</button></div>' +
+    '</div>' : "";
+
+  const liste = ziele.length
+    ? ziele.map(z => {
+        const e = zielEinschaetzen(z);
+        const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
+        return '<div style="padding:8px 0;border-top:1px solid var(--line)">' +
+          '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' +
+            text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
+          '<button class="rund" onclick="zielHeuteLoeschen(\'' + z.id + '\')" aria-label="Ziel löschen">×</button></div>' +
+          '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' +
+            e.text + '</div></div>';
+      }).join("")
+    : (zielHeuteFormOffen ? "" :
+        '<div class="meta">Noch kein Ziel — mit + eines anlegen, z. B. „20 Liegestütze bis 01.09.“.</div>');
+
+  ziel.innerHTML = '<div class="karte">' + kopf + formular + liste + '</div>';
+  if(zielHeuteFormOffen) zielHeuteFormZeichnen(true);
+}
+
+function zielHeuteFormZeigen(){ zielHeuteFormOffen = !zielHeuteFormOffen; zieleStartZeichnen(); }
+
+/** Füllt die Felder des Heute-Ziel-Formulars (nutzt dieselben Helfer wie das Profil). */
+function zielHeuteFormZeichnen(neuAufbauen){
+  const uebungen = planUebungen();
+  const fU = document.getElementById("zh-uebung");
+  const fA = document.getElementById("zh-art");
+  if(!fU || !fA) return;
+  if(neuAufbauen){
+    fU.innerHTML = uebungen.map(u =>
+      '<option value="' + text(u.name) + '">' + text(u.name) + '</option>').join("");
   }
-  ziel.innerHTML =
-    '<div class="karte" onclick="profilOeffnen()" style="cursor:pointer">' +
-    '<div class="zeile"><h2>Ziele</h2><span class="meta">bearbeiten ›</span></div>' +
-    ziele.map(z => {
-      const e = zielEinschaetzen(z);
-      const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
-      return '<div style="padding:8px 0;border-top:1px solid var(--line)">' +
-        '<strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + z.datum + '</strong>' +
-        '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
-        '</div>';
-    }).join("") + '</div>';
+  const gewaehlt = uebungen.find(u => u.name === fU.value) || uebungen[0];
+  if(!gewaehlt) return;
+  const arten = zielArten(gewaehlt);
+  const vorher = fA.value;
+  fA.innerHTML = arten.map(a => '<option value="' + a.art + '">' + a.name + ' (' + a.einheit + ')</option>').join("");
+  if(arten.some(a => a.art === vorher)) fA.value = vorher;
+  const art = arten.find(a => a.art === fA.value) || arten[0];
+  if(!art) return;
+  document.getElementById("zh-wert-label").textContent = "Ziel (" + art.einheit + ")";
+  document.getElementById("zh-ist").textContent =
+    "Ist-Stand: " + zielWertText(gewaehlt, art.art) + " · " + gewaehlt.proWoche + "×/Woche im Plan";
+}
+
+function zielHeuteEintragen(){
+  const uebungen = planUebungen();
+  const name = document.getElementById("zh-uebung").value;
+  const u = uebungen.find(x => x.name === name);
+  const art = document.getElementById("zh-art").value;
+  const wert = parseFloat(document.getElementById("zh-wert").value);
+  const datum = document.getElementById("zh-datum").value;
+  if(!u){ meldung("Bitte eine Übung aus deinen Plänen wählen."); return; }
+  if(!(wert > 0) || !datum){ meldung("Bitte einen Zielwert und ein Datum angeben."); return; }
+  if(datum <= heuteAlsText()){ meldung("Das Datum muss in der Zukunft liegen."); return; }
+  const a = zielArten(u).find(x => x.art === art);
+  if(!a){ meldung("Diese Zielart passt nicht zur Übung."); return; }
+  sitzung.daten.ziele.push({ id:neueId(), uebung:u.name, art, wert, einheit:a.einheit, datum,
+                             wdh: art === "wdh" ? wert : undefined });
+  speichern();
+  zielHeuteFormOffen = false;
+  zieleStartZeichnen();
+}
+
+function zielHeuteLoeschen(id){
+  frage("Dieses Ziel löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.ziele = sitzung.daten.ziele.filter(z => z.id !== id);
+    speichern();
+    zieleStartZeichnen();
+  });
 }
 
 function planListeZeichnen(){
@@ -1974,7 +2066,7 @@ function planListeZeichnen(){
   const sichtbar = alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
   const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
-  ziel.innerHTML = sichtbar.map(p => {
+  const karte = p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
     const istAkt = p.typ === "aktivitaet";
     // Letztes Training mit diesem Plan (rückwärts suchen = neuester Eintrag zuerst)
@@ -1988,8 +2080,9 @@ function planListeZeichnen(){
     const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
                    (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
     const tage = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag";
-    const marke = '<span style="color:' + sportartFarbe(p.sportart) + '">■</span> ' +
-                  text(sportartName(p.sportart)) + " · " + tage;
+    // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
+    // zeigt darum nur noch die Tage.
+    const marke = tage;
     return '<div class="karte" data-plan="' + p.id + '">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
@@ -2001,7 +2094,22 @@ function planListeZeichnen(){
         '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
         (istAkt ? '<button class="breit" onclick="planErledigt(\'' + p.id + '\')">Erledigt</button>' : "") +
       '</div></div>';
-  }).join("") || "";
+  };
+
+  /* B4: nach Sportart gruppiert. Reihenfolge der Gruppen wie in SPORTARTEN,
+     innerhalb einer Gruppe alphabetisch nach Plan-Name. Sportarten, die im
+     Moment keine sichtbaren Pläne haben, tauchen nicht auf. Ein farbiger Kopf
+     je Gruppe ersetzt die Sportart-Marke in den einzelnen Karten. */
+  let html = "";
+  const gruppen = SPORTARTEN.filter(s => sichtbar.some(p => (p.sportart || "kraft") === s.id));
+  gruppen.forEach(s => {
+    const grp = sichtbar.filter(p => (p.sportart || "kraft") === s.id)
+                        .sort((a,b) => text(a.name).localeCompare(text(b.name), "de"));
+    html += '<div class="meta" style="margin:14px 0 6px;font-weight:700">' +
+      '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
+      grp.map(karte).join("");
+  });
+  ziel.innerHTML = html;
 
   document.getElementById("alle-plaene-knopf").innerHTML =
     (versteckt === 0 && !alleplaeneZeigen) ? "" :
@@ -2667,20 +2775,38 @@ function gewichtInfoZeichnen(){
   ziel.textContent = teile.join("  ·  ");
 }
 
+/** Ein Protokoll-Eintrag als Zeile (Datum · Plan · Dauer · Sätze). Wird in der
+    Statistik-Vorschau UND im vollen Verlauf genutzt. */
+function protokollEintragHtml(e){
+  return '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+    '<div style="color:var(--chalk)"><span style="color:' + sportartFarbe(e.sportart) + '">■</span> ' +
+      text(e.plan) + (e.sonder ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
+    '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) + " · " +
+      (e.typ === "aktivitaet"
+        ? aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min")
+        : e.dauerMin + " min · " + e.saetze.length + " Sätze") + '</div></div>';
+}
+
 function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
-  // Zwei Zeilen je Eintrag: auf dem Handy passt "Datum · Plan · Dauer · Sätze" nicht nebeneinander
-  document.getElementById("protokoll-liste").innerHTML =
-    p.length === 0 ? "Noch kein Training abgeschlossen." :
-    p.slice().reverse().slice(0,15).map(e =>
-      '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
-      '<div style="color:var(--chalk)"><span style="color:' + sportartFarbe(e.sportart) + '">■</span> ' +
-        text(e.plan) + (e.sonder ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
-      '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) + " · " +
-        (e.typ === "aktivitaet"
-          ? aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min")
-          : e.dauerMin + " min · " + e.saetze.length + " Sätze") + '</div></div>'
-    ).join("");
+  const ziel = document.getElementById("protokoll-liste");
+  if(p.length === 0){ ziel.innerHTML = "Noch kein Training abgeschlossen."; return; }
+  // B1: nur die letzten 5 als Vorschau — der komplette Verlauf (mit Datum) steckt
+  // hinter "Ganzen Verlauf zeigen", damit die Statistik nicht endlos scrollt.
+  const umgekehrt = p.slice().reverse();
+  ziel.innerHTML = umgekehrt.slice(0, 5).map(protokollEintragHtml).join("") +
+    (p.length > 5
+      ? '<div class="knopfreihe" style="margin-top:8px"><button class="schmal breit" ' +
+        'onclick="verlaufOeffnen()">Ganzen Verlauf zeigen (' + p.length + ')</button></div>'
+      : "");
+}
+
+/** Voller Trainings-Verlauf (alle Einträge, neueste zuerst) auf eigener Seite. */
+function verlaufOeffnen(){
+  const p = sitzung.daten.protokoll.slice().reverse();
+  document.getElementById("verlauf-liste").innerHTML =
+    p.length ? p.map(protokollEintragHtml).join("") : '<div class="meta">Noch kein Training.</div>';
+  zeige("view-verlauf");
 }
 
 /* ============================================================
@@ -4045,15 +4171,34 @@ function geraeteKarteZeichnen(){
   if(!e.geraete) e.geraete = [];
   if(!Array.isArray(e.sportarten)) e.sportarten = ["kraft"];
 
-  document.getElementById("profil-sportarten").innerHTML = SPORTARTEN.map(s => {
+  // Eine Zeile je Sportart (Tippen öffnet die Seite dazu).
+  const zeile = s => {
     const an = e.sportarten.includes(s.id);
     return '<button class="sportzeile ' + (an ? "" : "aus") + '" onclick="sportartOeffnen(\'' + s.id + '\')">' +
       '<span class="punkt" style="background:' + (an ? s.farbe : "transparent") +
         ';box-shadow:inset 0 0 0 1px ' + (an ? s.farbe : "var(--muted)") + '"></span>' +
       '<span class="text">' + text(s.name) + '<small>' + (an ? text(s.einheiten) : "nicht ausgewählt") + '</small></span>' +
       '<span class="pfeil">›</span></button>';
-  }).join("");
+  };
+  // B2: nur die AKTIVEN Sportarten stehen offen — der Rest klappt hinter
+  // "Mehr anzeigen", damit die Profilseite nicht zu lang wird.
+  const aktive   = SPORTARTEN.filter(s => e.sportarten.includes(s.id));
+  const inaktive = SPORTARTEN.filter(s => !e.sportarten.includes(s.id));
+  let html = aktive.map(zeile).join("");
+  if(inaktive.length){
+    if(sportartenAlleZeigen){
+      html += inaktive.map(zeile).join("") +
+        '<button class="schmal breit" style="margin-top:8px" onclick="sportartenMehrUmschalten()">Weniger anzeigen</button>';
+    } else {
+      html += '<button class="schmal breit" style="margin-top:8px" onclick="sportartenMehrUmschalten()">' +
+        'Mehr anzeigen (' + inaktive.length + ')</button>';
+    }
+  }
+  document.getElementById("profil-sportarten").innerHTML = html;
 }
+
+let sportartenAlleZeigen = false;
+function sportartenMehrUmschalten(){ sportartenAlleZeigen = !sportartenAlleZeigen; geraeteKarteZeichnen(); }
 
 let offeneSportart = "kraft";
 
@@ -5267,7 +5412,7 @@ function navGehe(bereich){
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
-                     "view-statistik":"nav-statistik", "view-profil":"nav-profil",
+                     "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-profil":"nav-profil",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
                      "view-editor":"nav-plaene",
                      "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
