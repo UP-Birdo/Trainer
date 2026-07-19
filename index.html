@@ -23,7 +23,7 @@
   /* Höhe der Bottom-Bar — FEST, nicht aus dem Textfluss gewachsen.
      Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
      verdeckt (siehe body.nav-an .view.aktiv). */
-  --navhoehe:62px;
+  --navhoehe:52px;   /* v54: reine Tipp-Zeilenhöhe; Safe-Area kommt separat dazu */
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 /* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
@@ -154,18 +154,29 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .wasserzeichen{margin-top:32px;text-align:center;font-family:var(--mono);font-size:9px;
   letter-spacing:.1em;color:var(--chalk);opacity:.14;user-select:none;-webkit-user-select:none}
 
-/* Bottom-Navigation: Kernbereiche in der Daumenzone (unteres Drittel).
-   Ausgeblendet in Training/Login/Wizard — dort zählt jede Fläche. */
-#nav{flex-shrink:0;z-index:6;display:flex;
-  background:var(--panel);border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom)}
-#nav button{flex:1;background:transparent;border-radius:0;height:var(--navhoehe);min-height:0;
-  padding:6px 4px;font-size:10px;
-  font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
-#nav button .sym{font-size:18px;line-height:1}
-#nav button .sym svg{width:23px;height:23px;display:block}
-#nav button.aktiv{color:var(--signal)}
+/* ============================================================
+   Bottom-Navigation (v54: von Grund auf neu, bewusst schlank)
+   --navhoehe = REINE Höhe der Tipp-Zeile. Der Geräte-Sicherheitsabstand
+   (Home-Indikator, safe-area-inset-bottom) kommt SEPARAT als
+   padding-bottom dazu und bläht die Tipp-Zeile nicht mehr auf — genau
+   das machte die Leiste vorher zu hoch. Symbole, Namen und das
+   Umschalten über navGehe() bleiben unverändert.
+   Ausgeblendet in Training/Login/Wizard — dort zählt jede Fläche.
+   ============================================================ */
+#nav{
+  flex-shrink:0; z-index:6; display:flex;
+  background:var(--panel); border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#nav button{
+  flex:1; height:var(--navhoehe); min-height:0; padding:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  background:transparent; border:0; border-radius:0; color:var(--muted);
+  font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+}
+#nav button .sym{ display:flex; line-height:1; }
+#nav button .sym svg{ width:22px; height:22px; display:block; }
+#nav button.aktiv{ color:var(--signal); }
 /* Das Wasserzeichen ist raus (v48) — die Version steht jetzt als Knopf unter
    Mehr → Hilfe. Alle .wasserzeichen-Elemente bleiben im DOM, aber ausgeblendet. */
 .wasserzeichen{display:none}
@@ -1275,7 +1286,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 53;
+const APP_VERSION = 54;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5858,6 +5869,9 @@ function danachZeichnen(){
    #region Navigation (Bottom-Bar)
    ============================================================ */
 function navGehe(bereich){
+  // v54: Beim Wechsel eines Haupttabs die ausgeklappte Sportart-Liste
+  // ("Mehr anzeigen") wieder zuklappen — hält die Profilseite schlank.
+  sportartenAlleZeigen = false;
   if(bereich === "start") startOeffnen();
   else if(bereich === "plaene"){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); zeige("view-plaene"); }
   else if(bereich === "statistik") statistikOeffnen();
