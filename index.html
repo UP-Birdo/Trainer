@@ -11,6 +11,9 @@
 <link rel="manifest" href="manifest.json?v=2">
 <link rel="apple-touch-icon" href="icon-180.png?v=2">
 <title>Trainer</title>
+<!-- Darstellung sofort setzen (vor dem ersten Malen), damit es im Hellmodus
+     nicht kurz dunkel aufblitzt. Schlüssel = trainer.darstellung (siehe darstellungAnwenden). -->
+<script>try{if(localStorage.getItem("trainer.darstellung")==="hell")document.documentElement.classList.add("hell");}catch(e){}</script>
 <style>
 /* ============================================================
    Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
@@ -24,6 +27,18 @@
      Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
      verdeckt (siehe body.nav-an .view.aktiv). */
   --navhoehe:52px;   /* v54: reine Tipp-Zeilenhöhe; Safe-Area kommt separat dazu */
+}
+/* ============================================================
+   Heller Modus (v61) — nur die NEUTRALEN Tokens werden gedreht.
+   Die drei Akzentfarben (signal/rest/warn) werden etwas dunkler, damit sie
+   sowohl als Fläche (mit dunklem Text) ALS AUCH als Beschriftungstext auf
+   hellem Grund lesbar bleiben. Aktiv über html.hell (siehe
+   darstellungAnwenden()). Dunkel bleibt Standard.
+   ============================================================ */
+html.hell{
+  --ground:#F4F3EF; --panel:#FFFFFF; --panel-2:#EAE7E0;
+  --chalk:#1D2024; --muted:#6A6F78; --line:#DAD8D0;
+  --signal:#B0791C; --rest:#2E73B8; --warn:#B23A26;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 /* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
@@ -173,11 +188,11 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 }
 #nav button{
   position:relative;                 /* Anker für den Akzentbalken (::before) */
-  flex:1; height:var(--navhoehe); min-height:0; padding:0;
+  flex:1; height:var(--navhoehe); min-height:0; min-width:0; padding:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   background:transparent; border:0; border-radius:0; color:var(--muted);
-  font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
-  white-space:nowrap; transition:color .18s ease;
+  font-size:10px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;
+  white-space:nowrap; overflow:hidden; transition:color .18s ease;
 }
 /* Akzentbalken über dem aktiven Tab: fährt aus der Mitte auf (scaleX 0 -> 1). */
 #nav button::before{
@@ -572,13 +587,23 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
 
   <div class="karte">
-    <div class="zeile"><h2>Sportarten</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info">i</button></div>
-    <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
-    <div id="profil-sportarten" class="abstand"></div>
+    <h2>Sportarten</h2>
+    <div class="knopfreihe"><button class="schmal" onclick="sportartenTabOeffnen()">Sportarten öffnen</button></div>
   </div>
 
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
 
+<!-- ============================================================
+     Ansicht: Sportarten — seit v60 eigenes Tab (vorher Teil von Profil)
+     ============================================================ -->
+<section id="view-sportarten" class="view">
+  <div class="kopf" style="justify-content:flex-start;gap:12px">
+    <button class="schmal" onclick="profilOeffnen()">‹ Zurück</button>
+    <h1>Sportarten</h1>
+    <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info" style="margin-left:auto">i</button></div>
+  <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
+  <div class="karte"><div id="sportarten-liste" class="abstand"></div></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -587,6 +612,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-einstellungen" class="view">
   <div class="kopf"><h1>Mehr</h1></div>
+
+  <div class="karte">
+    <h2>Profil</h2>
+    <div class="knopfreihe"><button class="schmal" onclick="profilOeffnen()">Profil öffnen</button></div>
+  </div>
+
+  <div class="karte">
+    <h2>Darstellung</h2>
+    <div id="darstellung-wahl" class="wahl-raster abstand"></div>
+  </div>
 
   <div class="karte">
     <h2>Audio</h2>
@@ -732,7 +767,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
   <div id="sportart-inhalt"></div>
 
-  <div class="knopfreihe"><button class="breit" onclick="profilOeffnen()">Fertig</button></div>
+  <div class="knopfreihe"><button class="breit" onclick="sportartenTabOeffnen()">Fertig</button></div>
 </section>
 
 <!-- v55: Ort als eigene Unterseite (Zurück-Knopf oben links) -->
@@ -900,7 +935,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <button id="nav-start" onclick="navGehe('start')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/><path d="M10 20v-5h4v5"/></svg></span>Heute</button>
   <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="16" rx="2.5"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg></span>Pläne</button>
   <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7.5 20v-6"/><path d="M12 20v-10"/><path d="M16.5 20v-4"/></svg></span>Statistik</button>
-  <button id="nav-profil" onclick="navGehe('profil')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5.5 20c0-3.7 2.9-6 6.5-6s6.5 2.3 6.5 6"/></svg></span>Profil</button>
   <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></span>Mehr</button>
 </nav>
 
@@ -1344,7 +1378,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 59;
+const APP_VERSION = 61;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1626,7 +1660,7 @@ function codeErneuern(){
       frischerCode = codeErzeugen();
       konto.huelleCode = await huelleErzeugen(frischerCode, sitzung.dkBytes);
       Speicher.schreiben(tresor);
-      codeAnzeigen(() => profilOeffnen());
+      codeAnzeigen(() => einstellungenOeffnen());
     })().catch(e => meldung("Fehlgeschlagen: " + e.message));
   });
 }
@@ -2422,9 +2456,44 @@ function infoUmschalten(id){
   e.hidden = !e.hidden;
 }
 
+/* ============================================================
+   #region Darstellung (hell/dunkel) — Geräte-Einstellung, nicht im Konto.
+   Dunkel ist Standard. Der Schlüssel wird ZUSÄTZLICH schon im <head>
+   gelesen (Anti-Flash); hier wird gespiegelt und die Statusleisten-Farbe
+   (theme-color) nachgezogen.
+   ============================================================ */
+const DARSTELLUNG_SCHLUESSEL = "trainer.darstellung";
+function darstellungModus(){
+  try { return localStorage.getItem(DARSTELLUNG_SCHLUESSEL) === "hell" ? "hell" : "dunkel"; }
+  catch(e){ return "dunkel"; }
+}
+function darstellungAnwenden(){
+  const hell = darstellungModus() === "hell";
+  document.documentElement.classList.toggle("hell", hell);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", hell ? "#F4F3EF" : "#16181C");
+}
+function darstellungSetzen(modus){
+  try {
+    if(modus === "hell") localStorage.setItem(DARSTELLUNG_SCHLUESSEL, "hell");
+    else localStorage.removeItem(DARSTELLUNG_SCHLUESSEL);   // dunkel = Standard, kein Eintrag nötig
+  } catch(e){ /* Speicher gesperrt */ }
+  darstellungAnwenden();
+  darstellungKarteZeichnen();
+}
+function darstellungKarteZeichnen(){
+  const modus = darstellungModus();
+  document.getElementById("darstellung-wahl").innerHTML =
+    [["dunkel","Dunkel"],["hell","Hell"]].map(([w,n]) =>
+      '<button class="' + (modus === w ? "gewaehlt" : "") +
+      '" onclick="darstellungSetzen(\'' + w + '\')">' + n + '</button>').join("");
+}
+darstellungAnwenden();   // beim Start anwenden (Klasse setzt schon der head, hier folgt theme-color)
+
 function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
   systemKarteZeichnen();
+  darstellungKarteZeichnen();
   const vk = document.getElementById("version-knopf");
   if(vk) vk.textContent = "Version " + ANZEIGE_VERSION + " · JKB";
   zeige("view-einstellungen");
@@ -2464,11 +2533,18 @@ function profilOeffnen(){
   document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("ziel-formular").hidden = true;
-  if(!d.einrichtung) d.einrichtung = { geraete:[] };
-  geraeteVorher = geraeteKonfig("kraft").geraete.slice();   // Schnappschuss: was ist NEU? (v55: pro Sportart)
-  geraeteKarteZeichnen();
   zieleZeichnen();
   zeige("view-profil");
+}
+
+/** Sportarten-Tab (seit v60 eigenständig; vorher Teil von Profil).
+    Rendert die Sportart-Liste und öffnet die Ansicht. */
+function sportartenTabOeffnen(){
+  const d = sitzung.daten;
+  if(!d.einrichtung) d.einrichtung = { geraete:[] };
+  geraeteVorher = geraeteKonfig("kraft").geraete.slice();   // Schnappschuss: was ist NEU? (pro Sportart)
+  geraeteKarteZeichnen();
+  zeige("view-sportarten");
 }
 
 function statistikOeffnen(){
@@ -4554,7 +4630,7 @@ function geraeteKarteZeichnen(){
         'Mehr anzeigen (' + inaktive.length + ')</button>';
     }
   }
-  document.getElementById("profil-sportarten").innerHTML = html;
+  document.getElementById("sportarten-liste").innerHTML = html;
 }
 
 let sportartenAlleZeigen = false;
@@ -6107,27 +6183,27 @@ function danachZeichnen(){
    #region Navigation (Bottom-Bar)
    ============================================================ */
 function navGehe(bereich){
-  // v54: Beim Wechsel eines Haupttabs die ausgeklappte Sportart-Liste
-  // ("Mehr anzeigen") wieder zuklappen — hält die Profilseite schlank.
+  // Beim Tabwechsel die ausgeklappte Sportart-Liste ("Mehr anzeigen")
+  // wieder zuklappen — hält das Sportarten-Tab schlank.
   sportartenAlleZeigen = false;
   if(bereich === "start") startOeffnen();
   else if(bereich === "plaene"){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); zeige("view-plaene"); }
   else if(bereich === "statistik") statistikOeffnen();
-  else if(bereich === "profil") profilOeffnen();
   else einstellungenOeffnen();
 }
 
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
-                     "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-profil":"nav-profil",
+                     "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik",
+                     "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
+                     "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
+                     "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
-                     "view-editor":"nav-plaene",
-                     "view-sportart":"nav-profil",
-                     "view-sport-ort":"nav-profil", "view-sport-geraete":"nav-profil" };   // v55: Unterseiten von Profil
+                     "view-editor":"nav-plaene" };
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
-  ["nav-start","nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
+  ["nav-start","nav-plaene","nav-statistik","nav-einst"].forEach(k =>
     document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
 }
 
@@ -6171,7 +6247,7 @@ function heuteKarteZeichnen(){
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--signal)">Willkommen</div>' +
       '<h2>Noch kein Plan</h2><div class="meta">Leg deinen ersten Trainingsplan an — die App richtet dir anhand weniger Fragen einen passenden ein.</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>' +
-      '<button class="breit" onclick="navGehe(\'plaene\')">Zu den Plänen</button></div></div>';
+      '<button class="breit" onclick="planAnlegen()">Eigenen Plan erstellen</button></div></div>';
   } else {
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
       '<h2>Ruhetag</h2><div class="meta">Kein Plan für heute.</div></div>';
