@@ -1304,7 +1304,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 55;
+const APP_VERSION = 56;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4394,6 +4394,20 @@ function zielInPlan(zielId, planId){
    fertige Übung wird an den Plan gehängt und als eigen markiert — beim
    Speichern landet sie im Profil unter ihrer Sportart (siehe editorSpeichern). */
 let eigenBauerOffen = false;
+let uebungWartet = null;   // v56: Übungsname, der noch auf seine Sportart wartet (mehrere Treffer)
+
+/** In welchen (Profil-)Sportarten gibt es eine Übung mit diesem Namen?
+    Quellen: Kraft-Datenbank, die Drills je Sportart und die eigenen Übungen. */
+function sportartenFuerUebung(name){
+  const konfig = sitzung.daten.einrichtung.sportarten || ["kraft"];
+  const treffer = new Set();
+  if(konfig.includes("kraft") && UEBUNGEN_DB.some(u => u.name === name)) treffer.add("kraft");
+  konfig.forEach(sp => {
+    if(sportUebungen(sp).some(v => v.name === name)) treffer.add(sp);
+    if(((sitzung.daten.eigeneUebungen || {})[sp] || []).some(v => v.name === name)) treffer.add(sp);
+  });
+  return [...treffer];
+}
 function eigeneUebung(){ eigenBauerOffen = !eigenBauerOffen; uebungPickerZeichnen(); }
 
 /** Der Builder als HTML (leer, wenn zu). Sportart-Auswahl nur aus den im Profil
@@ -4438,13 +4452,21 @@ function eigeneUebungBauen(name, modus, saetze, wert, sport){
 }
 
 function eigeneErstellen(){
-  const sport = document.getElementById("eigen-sport").value || editorPlan.sportart;
+  const sport = document.getElementById("eigen-sport").value || editorPlan.sportart || "kraft";
   const name  = document.getElementById("eigen-name").value.trim();
   const modus = document.getElementById("eigen-modus").value;
   const saetze = parseInt(document.getElementById("eigen-saetze").value, 10);
   const wert  = parseFloat(document.getElementById("eigen-wert").value);
   if(!name){ meldung("Bitte einen Namen für die Übung angeben."); return; }
+  // v56: kein Mischen — eine neue Übung muss zur (evtl. schon festen) Plan-Sportart passen.
+  if(editorPlan.uebungen.length > 0 && editorPlan.sportart && editorPlan.sportart !== sport){
+    meldung("Dieser Plan gehört zu " + sportart(editorPlan.sportart).name +
+            ". Eine Übung einer anderen Sportart passt nicht dazu — entferne erst die vorhandenen."); return;
+  }
   if(editorPlan.uebungen.some(u => u.name === name)){ meldung("„" + name + "“ steht schon im Plan."); return; }
+  if(!editorPlan.sportart) planSportartSetzen(sport);   // v56: Plan an diese Sportart binden
+  // (Als eigene Übung der Sportart wird sie automatisch beim Speichern des Plans
+  //  abgelegt — u.eigen/u.eigenSport, siehe editorSpeichern.)
   editorPlan.uebungen.push(eigeneUebungBauen(name, modus, saetze, wert, sport));
   eigenBauerOffen = false;
   editorZeichnen();
@@ -4957,8 +4979,8 @@ let editorPlan = null;
 
 function planAnlegen(){
   editorMehr = {};
-  editorPlan = { id:neueId(), name:"", uebungen:[neueUebung()], reihenfolge:"klassisch",
-                 aufwaermen:true, dehnen:true, sportart:"kraft", typ:"kraft", tage:[],
+  editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
+                 aufwaermen:true, dehnen:true, sportart:"", typ:"", tage:[],
                  wochenTakt:1, wochenAnker:0, einzelTermine:[] };
   document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
   editorZeichnen(); zeige("view-editor");
@@ -4982,6 +5004,13 @@ function bonusUmschalten(feld){
     die der neue Typ braucht. Vorhandene Übungen bleiben liegen: Wer
     zurückwechselt, findet seinen Plan unversehrt vor. */
 function planSportartSetzen(id){
+  // v56: Ein Plan gehört zu genau EINER Sportart. Sind schon Übungen drin,
+  // ist ein Wechsel gesperrt — erst die Übungen entfernen.
+  if(editorPlan.uebungen.length > 0 && editorPlan.sportart && editorPlan.sportart !== id){
+    meldung("Dieser Plan gehört zu " + sportart(editorPlan.sportart).name +
+            ". Entferne erst die Übungen, wenn du die Sportart wechseln willst.");
+    return;
+  }
   editorPlan.sportart = id;
   editorPlan.typ = planTypFuer(id);
   if(editorPlan.typ === "aktivitaet"){
@@ -5052,29 +5081,32 @@ function planTaktSetzen(t){
 function editorZeichnen(){
   document.getElementById("plan-name").value = editorPlan.name;
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
-  if(!editorPlan.sportart) editorPlan.sportart = "kraft";
   if(!Array.isArray(editorPlan.tage)) editorPlan.tage = [];
+  const hatSport = !!editorPlan.sportart;   // v56: Plan darf (noch) ohne Sportart sein
+  const fest = editorPlan.uebungen.length > 0;   // sind Übungen drin, ist die Sportart fix
 
-  // Angeboten werden nur die Sportarten aus dem Profil — plus die des Plans
-  // selbst, damit ein bestehender Plan seine Sportart nie stillschweigend verliert.
+  // Sportart-Knöpfe: Steht die Sportart schon (Übungen vorhanden), wird nur sie
+  // gezeigt — der Plan gehört zu genau EINER Sportart, kein Mischen. Sonst alle
+  // Profil-Sportarten zur Wahl; ohne Auswahl ergibt sie sich aus der ersten Übung.
   const meine = (sitzung.daten.einrichtung.sportarten || ["kraft"]).slice();
-  if(!meine.includes(editorPlan.sportart)) meine.push(editorPlan.sportart);
-  document.getElementById("plan-sportart").innerHTML = SPORTARTEN.filter(s => meine.includes(s.id)).map(s =>
-    '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
-    '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join("");
+  if(hatSport && !meine.includes(editorPlan.sportart)) meine.push(editorPlan.sportart);
+  document.getElementById("plan-sportart").innerHTML = fest
+    ? '<button class="gewaehlt" onclick="planSportartSetzen(\'' + editorPlan.sportart + '\')">' + text(sportart(editorPlan.sportart).name) + '</button>'
+    : ((hatSport ? "" : '<div class="meta" style="margin-bottom:8px">Wähle unten eine Übung — die Sportart ergibt sich daraus. Oder tippe hier direkt eine an.</div>') +
+       SPORTARTEN.filter(s => meine.includes(s.id)).map(s =>
+         '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
+         '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join(""));
 
   /* Der Plan-Typ folgt der Sportart — nichts, was der Nutzer extra wählen muss.
      Krafttraining bekommt Übungen und Sätze, jede andere Sportart eine Dauer. */
   const istKraft = editorPlan.typ === "kraft";
-  // Reihenfolge, Zirkel, Aufwärmen und Dehnen ergeben nur beim Krafttraining Sinn.
-  document.getElementById("editor-kraft").hidden = !istKraft;
-  document.getElementById("editor-aktivitaet").hidden = istKraft;
-  // Übungen darf JEDE Sportart haben: Tischtennis mit "Topspins, 10 Wdh" ist
-  // ein echter Fall — und nur so kommt die Übung ins Ziel-Dropdown. Der Picker
-  // (v40) zeigt je nach Typ Kraft-Übungen (nach Gerät) oder Sport-Drills.
+  // Detail-Blöcke (Reihenfolge/Zirkel/Aufwärmen bzw. Aktivitätsfelder) erst,
+  // wenn die Sportart feststeht — vorher gibt es nichts sinnvoll einzustellen.
+  document.getElementById("editor-kraft").hidden = !(hatSport && istKraft);
+  document.getElementById("editor-aktivitaet").hidden = !(hatSport && !istKraft);
   document.getElementById("uebung-liste").hidden = false;
   uebungPickerZeichnen();
-  if(!istKraft) aktivitaetsFelderZeichnen();
+  if(hatSport && !istKraft) aktivitaetsFelderZeichnen();
 
   /* Sieben Tage in EINER Zeile — wie im Kalender. Als 2-Spalten-Raster
      brauchte das vier Zeilen plus einen "Kein fester Tag"-Knopf: ~250 px,
@@ -5191,6 +5223,17 @@ function reihenfolgeSetzen(rf){ editorPlan.reihenfolge = rf; editorZeichnen(); }
 function uebungPickerZeichnen(){
   const ziel = document.getElementById("uebung-picker");
   if(!ziel) return;
+  // v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer)?
+  if(uebungWartet){
+    const kandidaten = sportartenFuerUebung(uebungWartet)
+      .filter(sp => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(sp));
+    ziel.innerHTML =
+      '<label class="abstand">„' + text(uebungWartet) + '" gibt es in mehreren Sportarten — welche gilt für diesen Plan?</label>' +
+      '<div class="wahl-raster">' + kandidaten.map(sp =>
+        '<button onclick="pickerSportBestaetigen(\'' + sp + '\')">' + text(sportart(sp).name) + '</button>').join("") + '</div>' +
+      '<div class="knopfreihe" style="margin-top:8px"><button class="schmal" onclick="pickerWahlAbbrechen()">Abbrechen</button></div>';
+    return;
+  }
   const knoepfe =
     '<div class="knopfreihe" style="margin-top:8px">' +
       '<button class="primaer schmal" onclick="pickerHinzu()">Hinzufügen</button>' +
@@ -5223,6 +5266,21 @@ function pickerUebungenZeichnen(){
   if(!sel) return;
   const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
   let namen;
+  if(!editorPlan.sportart){
+    // v56: Plan noch ohne Sportart -> Übungen ALLER Profil-Sportarten anbieten.
+    const konfig = sitzung.daten.einrichtung.sportarten || ["kraft"];
+    const menge = new Set();
+    if(konfig.includes("kraft")) UEBUNGEN_DB.forEach(u => menge.add(u.name));
+    konfig.forEach(sp => {
+      sportUebungen(sp).forEach(v => menge.add(v.name));
+      ((sitzung.daten.eigeneUebungen || {})[sp] || []).forEach(v => menge.add(v.name));
+    });
+    namen = [...menge].filter(n => !drin.has(n)).sort((a,b) => a.localeCompare(b, "de"));
+    sel.innerHTML = namen.length
+      ? namen.map(n => '<option value="' + text(n) + '">' + text(n) + '</option>').join("")
+      : '<option value="">— noch keine Übungen im Profil —</option>';
+    return;
+  }
   if(editorPlan.typ === "kraft"){
     const meine = meineGeraete(editorPlan.sportart);
     const g = (document.getElementById("picker-geraet") || {}).value || "alle";
@@ -5246,6 +5304,19 @@ function pickerHinzu(){
   const sel = document.getElementById("picker-uebung");
   const name = sel && sel.value;
   if(!name) return;
+  // v56: Hat der Plan noch keine Sportart? -> aus der Übung ableiten.
+  if(!editorPlan.sportart){
+    const kandidaten = sportartenFuerUebung(name)
+      .filter(sp => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(sp));
+    if(kandidaten.length === 1){ planSportartSetzen(kandidaten[0]); }        // 1:1 -> automatisch
+    else if(kandidaten.length > 1){ uebungWartet = name; uebungPickerZeichnen(); return; }  // mehrdeutig -> Chips
+    else { meldung("Diese Übung gehört zu keiner deiner Sportarten."); return; }
+  }
+  uebungInPlanHinzufuegen(name);
+}
+
+/** Baut die Übung passend zum Plan-Typ und hängt sie an (ersetzt einen Platzhalter). */
+function uebungInPlanHinzufuegen(name){
   if(editorPlan.uebungen.some(u => u.name === name)){
     meldung("„" + name + "“ steht schon in diesem Plan."); return;
   }
@@ -5276,6 +5347,14 @@ function pickerHinzu(){
   if(leer >= 0) editorPlan.uebungen[leer] = u; else editorPlan.uebungen.push(u);
   editorZeichnen();
 }
+
+/** Chip geklickt: die wartende Übung bekommt ihre Sportart und wird angehängt. */
+function pickerSportBestaetigen(sportId){
+  const name = uebungWartet; uebungWartet = null;
+  planSportartSetzen(sportId);            // Sportart + Typ festlegen (rendert)
+  uebungInPlanHinzufuegen(name);          // dann die Übung anhängen (rendert)
+}
+function pickerWahlAbbrechen(){ uebungWartet = null; uebungPickerZeichnen(); }
 function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
 
 /** Übung eine Position nach oben (-1) oder unten (+1) schieben. */
