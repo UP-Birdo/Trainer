@@ -620,8 +620,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
   <div class="karte">
     <h2>Hilfe</h2>
-    <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">📖 Gut zu wissen &amp; Regelwerk</button></div>
-    <div class="knopfreihe abstand"><button class="schmal" onclick="neuigkeitenOeffnen()">✨ Neuigkeiten (Was ist neu?)</button></div>
+    <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">Gut zu wissen &amp; Regelwerk</button></div>
+    <div class="knopfreihe abstand"><button class="schmal" onclick="neuigkeitenOeffnen()">Neuigkeiten (Was ist neu?)</button></div>
     <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="versionInfo()">Version</button></div>
   </div>
 
@@ -687,7 +687,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="info-bonus" class="meta info-text" hidden>Fachlicher Konsens (Cleveland Clinic, Harvard Health): <strong style="color:var(--chalk)">dynamisch aufwärmen vor</strong> dem Training, <strong style="color:var(--chalk)">statisch dehnen danach</strong>. Langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.</div>
     <div class="raster" style="margin-top:8px">
       <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">🔥 Aufwärmen</button></div>
-      <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">🧘 Dehnen</button></div>
+      <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">Dehnen</button></div>
     </div>
     </div>
   </div>
@@ -783,12 +783,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <label>Reihenfolge</label>
     <div class="note">
       <button id="vs-klassisch" onclick="vorschauKlassisch()">Klassisch</button>
-      <button id="vs-zirkel" onclick="vorschauMischen()">🔀 Zirkel</button>
+      <button id="vs-zirkel" onclick="vorschauMischen()">Zirkel</button>
     </div>
     <label class="abstand">Für diesen Durchgang</label>
     <div class="note">
       <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">🔥 Aufwärmen</button>
-      <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">🧘 Dehnen</button>
+      <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">Dehnen</button>
     </div>
     <div class="meta" style="margin-top:10px">„Zirkel“ nochmal antippen mischt neu. Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
   </div>
@@ -813,7 +813,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div>
       <div id="uhr-zahl" class="uhr-zahl">–</div>
       <div id="uhr-label" class="uhr-label"></div>
-      <div id="uhr-rekord" class="uhr-label pr" hidden>🏆 REKORD</div>
+      <div id="uhr-rekord" class="uhr-label pr" hidden>REKORD</div>
     </div>
   </div>
   <div id="danach" class="meta" style="text-align:center;margin-bottom:8px"></div>
@@ -1304,7 +1304,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 56;
+const APP_VERSION = 57;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2205,8 +2205,8 @@ function planListeZeichnen(){
       // nie verknüpfte Einträge, planId null/undefined — dient der Name als Rückfall.
       if(e.planId ? e.planId === p.id : e.plan === p.name){ zuletzt = e.datum; break; }
     }
-    const zusatz = (p.reihenfolge === "zirkel" ? " · 🔀" : "") +
-                   (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · 🧘" : "");
+    const zusatz = (p.reihenfolge === "zirkel" ? " · Zirkel" : "") +
+                   (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · Dehnen" : "");
     const tage = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag";
     // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
     // zeigt darum nur noch die Tage.
@@ -2479,7 +2479,7 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Bildschirm bleibt an</strong> (Wake Lock) — die App muss im Vordergrund bleiben, sonst friert " + systemText("iOS", "Android", "das System") + " sie ein.",
       "Spotify zuerst starten, dann die App öffnen. Ansagen kommen über die Musik.",
       "Der Piepton wird vorab auf dem Audio-Thread geplant und kommt auch bei gedrosseltem Browser pünktlich.",
-      "<strong style='color:var(--chalk)'>🏆 Rekord</strong> erscheint, wenn ein Satz alles bisherige übertrifft.",
+      "<strong style='color:var(--chalk)'>Rekord</strong> erscheint, wenn ein Satz alles bisherige übertrifft.",
       "<strong style='color:var(--chalk)'>Zirkel:</strong> Runde für Runde je ein Satz pro Übung, Reihenfolge pro Runde neu gemischt.",
       "Abbrechen verwirft das Training komplett — nichts wird protokolliert oder angepasst."
     ]) +
@@ -2512,6 +2512,13 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.054 – 0.057", punkte:[
+    "Schlichteres Aussehen: die bunten Symbole sind raus — nur die Flamme bleibt.",
+    "Pläne gehen jetzt von der Übung aus: Sportart-Feld leer lassen, eine Übung wählen (aus allen deinen Sportarten) — die Sportart ergibt sich von selbst. Gibt es die Übung in mehreren Sportarten, fragt die App kurz nach.",
+    "Ein Plan gehört fest zu EINER Sportart — kein Mischen mehr. Eigene Übung neu? Einmal die Sportart wählen, danach ist sie gemerkt.",
+    "Ausstattung jetzt je Sportart getrennt: jede Sportart hat ihren eigenen Austragungsort und ihr eigenes Equipment (zwei eigene Unterseiten auf der Sportart-Seite). Die Bibliothek zeigt nur, was zu deiner Ausstattung passt — nach Gerät gruppiert, Körpergewicht immer dabei.",
+    "Die untere Leiste ist kompakter; die ausgeklappte Sportart-Liste klappt beim Wechsel des Tabs wieder ein."
+  ]},
   { stand:"0.045 – 0.053", punkte:[
     "Kalender ist jetzt anklickbar: tippe einen Tag an, um einen Plan einmalig einzutragen (Einzeltermin), einen Ruhetag zu setzen oder zu sehen, was ansteht.",
     "Pläne können sich „alle 2 Wochen“ wiederholen — im Editor unter „Wiederholung“ (erscheint, sobald feste Wochentage gewählt sind).",
@@ -2784,7 +2791,7 @@ function tagOeffnen(datum){
   else if(istRuhe)        info += " · Ruhetag";
   const aktionen = [];
   if(sitzung.daten.plaene.length)
-    aktionen.push({ text:"➕ Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
+    aktionen.push({ text:"Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
   sitzung.daten.plaene.filter(p => (p.einzelTermine || []).includes(datum)).forEach(p =>
     aktionen.push({ text:"✕ Einzeltermin entfernen: " + p.name, tun:() => {
       p.einzelTermine.splice(p.einzelTermine.indexOf(datum), 1); speichern(); kalenderZeichnen();
@@ -3591,7 +3598,7 @@ const WIZARD_FRAGEN = [
     nurWenn: kraftGewaehlt,
     optionen:[
       ["aufwaermen","🔥 Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
-      ["dehnen","🧘 Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
+      ["dehnen","Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
     ]}
 ]
 /* Für JEDE gewählte Sportart außer Krafttraining zwei Fragen: wann und wie lange.
@@ -5803,7 +5810,7 @@ function schrittBetreten(){
     document.getElementById("uhr-rekord").hidden = true;
     gesamtBalkenZeichnen(0);
     const ph = document.getElementById("phase");
-    ph.textContent = (istWarm ? "🔥 Aufwärmen · " : "🧘 Dehnen · ") + s.nummer + " von " + s.gesamt;
+    ph.textContent = (istWarm ? "🔥 Aufwärmen · " : "Dehnen · ") + s.nummer + " von " + s.gesamt;
     ph.classList.toggle("pause", !istWarm);
     const z = document.getElementById("uhr-zahl");
     z.className = "uhr-zahl" + (istWarm ? "" : " pause");
@@ -6035,7 +6042,7 @@ function bisherigerRekord(uebungId, modus){
   return best;
 }
 
-/** Zeigt "🏆 REKORD", wenn der anstehende Satz alles bisherige übertrifft. */
+/** Zeigt "REKORD", wenn der anstehende Satz alles bisherige übertrifft. */
 function rekordPruefen(schritt){
   const anzeige = document.getElementById("uhr-rekord");
   if(!schritt || (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
@@ -6050,7 +6057,7 @@ function danachZeichnen(){
   const ziel = document.getElementById("danach");
   const naechster = lauf.schritte.slice(lauf.index + 1)
     .find(x => x.typ !== "pause" && x.typ !== "bereit");
-  if(!naechster){ ziel.textContent = "Danach: fertig 🎉"; return; }
+  if(!naechster){ ziel.textContent = "Danach: fertig"; return; }
   if(naechster.typ === "aufwaermen" || naechster.typ === "dehnen"){ ziel.textContent = "Danach: " + naechster.name; return; }
   const u = lauf.plan.uebungen[naechster.uebungIndex];
   ziel.textContent = "Danach: " + u.name + " · " + uebungBeschreiben(u);
@@ -6106,7 +6113,7 @@ function heuteKarteZeichnen(){
           ? aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit)
           : plan.uebungen.length + ' Übungen · ' +
             plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
-            (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · 🧘' : '')) + '</div>' +
+            (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
         (plan.typ === "aktivitaet" ? (schonTrainiert ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
                                    : (schonTrainiert ? "Nochmal trainieren" : "Training starten")) + '</button>' +
@@ -6127,7 +6134,7 @@ function heuteKarteZeichnen(){
       '<button class="breit" onclick="navGehe(\'plaene\')">Zu den Plänen</button></div></div>';
   } else {
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
-      '<h2>Ruhetag 🌙</h2><div class="meta">Kein Plan für heute.</div></div>';
+      '<h2>Ruhetag</h2><div class="meta">Kein Plan für heute.</div></div>';
   }
   return null;
 }

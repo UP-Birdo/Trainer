@@ -2,7 +2,10 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.053 / APP_VERSION 53** — Roadmap bis „General Training" (0.050) vollständig umgesetzt.
+> als Paket hochgeladen. Stand: **Version 0.057 / APP_VERSION 57**. Roadmap bis „General Training" (0.050) vollständig
+> umgesetzt; danach vier Nutzer-Blöcke gebaut (v54–v57, siehe Historie): kompaktere Nav-Leiste + Auto-Einklappen,
+> **Ausstattung je Sportart getrennt** (eigener Ort/Equipment pro Sportart), **übungsgetriebene Plan-Erstellung**
+> (Sportart ergibt sich aus der Übung, kein Mischen) und schlichteres Aussehen (Deko-Emojis raus, nur die Flamme bleibt).
 
 ---
 
@@ -44,7 +47,7 @@ beide Dateien liefern, Nutzer committet.
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Die komplette App (HTML + CSS + JS, ~183 kB) |
+| `index.html` | Die komplette App (HTML + CSS + JS, ~318 kB) |
 | `sw.js` | Service Worker: `index.html` Netz-zuerst, Rest Cache-zuerst |
 | `manifest.json` | PWA-Manifest (Name „Trainer", standalone, portrait) |
 | `icon-192/512.png` | Manifest-Icons |
@@ -109,8 +112,9 @@ daten = {
                    uebungen:[ { id, name, geraet, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
   eigeneUebungen: { sportId:[ { name, modus, saetze, wdh|dauer } ] },   // C2/C3 (v44): selbst gebaute Übungen je Sportart
-  einrichtung: { sportarten:["kraft"], ort, geraete:[], geraeteProOrt:{}, erfahrung, ziel,
-                 wochentage:[], dauer, fokus, bonus:[],
+  einrichtung: { sportarten:["kraft"], erfahrung, ziel, wochentage:[], dauer, fokus, bonus:[],
+                 geraeteKonfig:{ sportId:{ ort, geraete:[], geraeteProOrt:{} } },  // v55: Ausstattung JE Sportart getrennt (Zugriff über Accessor geraeteKonfig(id))
+                 ort, geraete:[], geraeteProOrt:{},   // v55: globale Felder = Altlast — datenNachruesten migriert sie EINMAL nach geraeteKonfig.kraft, danach ungelesen (bleiben liegen: Feld-Vertrag)
                  // C1 (v52): je Aktivitäts-Sportart tage_<id>:[1..7], dauer_<id>:s, strecke_<id>:zahl
                  ...tage_<sport>, dauer_<sport>, strecke_<sport> },   // ab v23 IMMER da (datenNachruesten legt sie an)
   sicherung:   { zeit, version }
@@ -129,10 +133,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 53;                              // interne Ganzzahl — bei JEDEM Update +1
-const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.053" — abgeleitet, kann nie auseinanderlaufen
+const APP_VERSION = 57;                              // interne Ganzzahl — bei JEDEM Update +1
+const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v53"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v57"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -391,6 +395,73 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v57 — Schlichteres Aussehen (Deko-Emojis raus, Flamme bleibt)
+
+Rein kosmetisch, keine Logik berührt. Alle **farbigen** Emojis aus der UI entfernt
+(🧘 Dehnen, 🏆 Rekord, 🔀 Zirkel, 📖 Gut-zu-wissen, ✨ Neuigkeiten, 🎉, 🌙 Ruhetag, ➕).
+**Die Flamme 🔥 bleibt** (Trainings-Serie *und* „🔥 Aufwärmen" — beides derselbe Glyph, Nutzer-Ansage
+„bis auf die Flamme"). Einfarbige **Funktions-Glyphen** bleiben ebenfalls, das sind Bedienelemente,
+keine Deko: `✓` (Häkchen), `☑`/`☐` (Checkbox-Umschalter), `✕` (Schließen), `‹ › →` (Navigation/Pfeile).
+
+Badges, die **nur** aus einem Emoji bestanden (Plan-Karte „· 🧘", „· 🔀"), zeigen jetzt das schlichte
+**Wort** („· Dehnen", „· Zirkel"), sonst wären sie leer. Alle Regressionen grün.
+
+### v56 — Übungsgetriebene Plan-Erstellung (Sportart ergibt sich aus der Übung; kein Mischen)
+
+**Nutzer-Wunsch, vorab bestätigt:** (1) Feld leer lassen, Übung eintragen, Sportart wird erkannt;
+neuer Name → Sportart einmal von Hand wählen → wird eigene Übung dieser Sportart. (2) **Kein Mischen** —
+ein Plan gehört zu genau **einer** Sportart.
+
+* **`planAnlegen`** startet jetzt **sportlos**: `sportart:"", typ:"", uebungen:[]` (vorher Kraft-Zwang + Platzhalter-Übung).
+* **`editorZeichnen`** — Leerzustand: Detail-Blöcke (`editor-kraft`/`editor-aktivitaet`) bleiben versteckt,
+  bis die Sportart feststeht; die Sportart-Reihe zeigt einen Hinweis + alle Profil-Sportarten zur Wahl.
+  Sobald **≥1 Übung** drin ist, ist die Reihe **fix** (`fest`) und zeigt nur noch die eine Sportart.
+* **Helfer `sportartenFuerUebung(name)`** — in welchen Profil-Sportarten gibt es die Übung? Quellen:
+  `UEBUNGEN_DB`→kraft, `sportUebungen(sp)`, `eigeneUebungen[sp]`.
+* **Picker Union-Modus** (`pickerUebungenZeichnen`, Zweig `!editorPlan.sportart`): Dropdown listet Übungen
+  **aller** Profil-Sportarten (sortiert, ohne Doppelte).
+* **`pickerHinzu` aufgeteilt:** leitet bei sportlosem Plan die Sportart aus der Übung ab — **1 Treffer** →
+  automatisch (`planSportartSetzen`), **mehrere** → Chip-Auswahl (`uebungWartet` + `pickerSportBestaetigen`/
+  `pickerWahlAbbrechen`), **0** → Meldung. Die eigentliche Anhäng-Logik liegt jetzt in `uebungInPlanHinzufuegen(name)`.
+* **Kein Mischen:** `planSportartSetzen` blockt den Wechsel, sobald Übungen drin sind (Meldung).
+  `eigeneErstellen` bindet den Plan an die im Builder gewählte Sportart; **gemerkt** wird die neue Übung
+  automatisch beim Speichern über die bestehende `u.eigen`/`u.eigenSport`-Logik in `editorSpeichern`
+  (keine Doppel-Speicherung nötig).
+* **Leer-Plan-Schutz** greift schon: `editorSpeichern` blockt Nicht-Aktivitäts-Pläne ohne Übung; ein
+  sportloser leerer Plan hat `typ:""` → gilt als Nicht-Aktivität → nicht speicherbar.
+* Getestet (jsdom `verify56`: sportloser Start · Auto-Zuweisung · Kein-Mischen · Aktivitätsplan ohne Übung
+  speicherbar) + `flow`/`flow2` grün. **Am Gerät gegenzuchecken:** Leerzustand-Layout, Chip-Auswahl bei
+  einer Übung, die es in mehreren Sportarten gibt, fixierte Sportart-Reihe.
+
+### v55 — Ausstattung je Sportart getrennt (eigener Ort + Equipment pro Sportart)
+
+**Nutzer-Wunsch, vorab bestätigt:** getrennt pro Sportart, Körpergewicht immer in der Bibliothek, zwei
+**separate** Unterseiten mit Zurück-Knopf oben links.
+
+* **Datenmodell:** `einrichtung.geraeteKonfig[sportId] = {ort, geraete, geraeteProOrt}`, Zugriff über
+  Accessor `geraeteKonfig(id)`. **Migration** in `datenNachruesten`: verschiebt die alten globalen
+  `ort`/`geraete`/`geraeteProOrt` **einmal** nach `geraeteKonfig.kraft` (idempotent, überschreibt nie
+  Vorhandenes). Globale Felder bleiben liegen (Feld-Vertrag), werden aber nicht mehr gelesen.
+* **~10 Konsumenten** umgestellt: Wizard-Commit, `sportartSeiteZeichnen`, `profilOrtSetzen`,
+  `profilGeraetUmschalten`, `geraetSichern`, `neueGeraeteKnopfZeichnen` (+ Null-Guard), `neueUebungenEinbauen`,
+  die `geraeteVorher`-Snapshots und `meineGeraete(sportId)` samt seinen zwei Picker-Aufrufern.
+* **Zwei neue Unterseiten** auf der Sportart-Seite: `view-sport-ort` und `view-sport-geraete` (je
+  „‹ Zurück" oben links). Neue Funktionen: `sportOrtOeffnen/Zeichnen`, `sportGeraeteOeffnen/Zeichnen`,
+  `sportUnterseiteZurueck`, `sportKonfigNeuZeichnen`. Der alte Kraft-Block der Sportart-Seite wurde durch
+  zwei Nav-Knöpfe (Austragungsort · Equipment) + die Bibliothek ersetzt.
+* **Bibliothek gefiltert + gruppiert:** nur Übungen, die zur gewählten Ausstattung passen, nach **Gerät**
+  gruppiert (Körpergewicht „keine"→„Körpergewicht" immer zuerst, dann in `GERAETE`-Reihenfolge).
+* Getestet (`verify55`: Migration idempotent + nicht-destruktiv; Ort je Sportart gemerkt) + Regressionen grün.
+
+### v54 — Nav-Leiste kompakter + „Mehr anzeigen" klappt beim Tab-Wechsel ein
+
+* Nav war zu hoch: 62-px-Knopf + `safe-area-inset-bottom` (≈ 34 px) ≈ 96 px. `--navhoehe` 62 → **52 px**,
+  `#nav` als schlankes Flex-Layout neu aufgebaut.
+* Die ausgeklappte Sportart-Liste (`sportartenAlleZeigen`) **kollabiert** jetzt beim Wechsel des Haupt-Tabs:
+  `sportartenAlleZeigen = false;` am Anfang von `navGehe()`.
+
+---
 
 ### v53 — D1/D2: Kalender anklickbar + Wiederholungen (letzter Roadmap-Block)
 
@@ -1019,6 +1090,14 @@ Betrifft `view-editor`/`editorZeichnen`/`bibliothekOeffnen`.
 **Reihenfolge-Empfehlung:** (1) Maschinen-Übungen in `UEBUNGEN_DB` erweitern (klein, sichtbar, testbar:
 Generator läuft, Bibliothek zeigt mehr, `pruefung` „jedes Gerät ≥1 Übung" hält). (2) `SPORT_UEBUNGEN`-
 Struktur + Editor-Dropdown. (3) Sport-Inhalte je Sportart recherchieren + Fortschrittsregeln.
+
+> **Aktualisierung (Stand v56):** Punkt (2) ist gebaut und seither weiterentwickelt. Der Editor-Picker
+> ist inzwischen **übungsgetrieben** (v56): der Plan startet ohne Sportart, das Dropdown bietet Übungen
+> **aller** Profil-Sportarten an, und die Sportart wird aus der gewählten Übung abgeleitet (1 Treffer
+> automatisch, mehrere per Chip-Auswahl) — ein Plan bleibt fest an **eine** Sportart gebunden. Die
+> Ausstattung (Ort/Geräte), nach der der Kraft-Zweig filtert, liegt seit **v55** getrennt je Sportart
+> in `geraeteKonfig[sportId]`. Freie Eingabe über „Eigene Übung" ist weiterhin da (Nutzer-Bedingung).
+> Offen bleibt (3): eigene, recherchierte Übungs-/Drill-Inhalte und Fortschrittsregeln je Sportart.
 
 ### Milestone 0.050 — „General Training" (Roadmap, vom Nutzer bestätigt)
 
