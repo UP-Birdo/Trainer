@@ -1,39 +1,71 @@
-"""Erzeugt die App-Icons: vier schräge Striche, der letzte gelb (Satz-Strichliste).
+"""Erzeugt die App-Icons: weiße Athleten-Figur auf blauem Verlauf.
 
-Warum es das Skript diesmal gibt: Die alten Icons waren mit harten Pixelkanten
-gezeichnet (0 % Mischpixel) — bei SCHRÄGEN Strichen ergibt das Treppenstufen,
-und genau das liest sich auf dem Retina-Display als unscharf. Die Maße sind aus
-dem alten icon-512 ausgemessen und unverändert übernommen; neu ist allein das
-16-fache Supersampling mit LANCZOS-Verkleinerung, das die Schrägen glatt rechnet.
+Vorlage ist das im Claude-Design gebaute Icon (Trainer_Icon.html, viewBox
+0 0 300 300): ein abgerundetes Quadrat mit einer Figur aus Kopf, breitem
+Arm-Querbalken, Rumpf und zwei Beinen, Figur bei 85 % Deckkraft.
+
+Zwei bewusste Abweichungen von der SVG, damit es als Home-Screen-Icon
+sauber aussieht:
+  1. RANDLOS quadratisch (keine eingebauten runden Ecken) - iOS/Android
+     legen ihre eigene Maske drueber; sonst gaebe es doppelte Ecken.
+  2. Der Verlauf der Live-Version (#4fadff -> #1e73e6 -> #145fd0) statt des
+     flachen Blaus der statischen SVG-Vorschau.
+
+Gerendert wird EIN grosser Master mit Supersampling, dann per LANCZOS auf
+512/192/180 heruntergerechnet - das glaettet die Rundungen.
 """
+import math
+import numpy as np
 from PIL import Image, ImageDraw
 
-GRUND  = (22, 24, 28)     # --ground  #16181C
-KREIDE = (140, 145, 153)  # --muted   #8C9199
-SIGNAL = (242, 193, 78)   # --signal  #F2C14E
-S = 16                    # Supersampling-Faktor
+V         = 300
+WINKEL    = 160
+STOPS     = [(0.00, (79, 173, 255)),
+             (0.55, (30, 115, 230)),
+             (1.00, (20,  95, 208))]
+FIG_RGB   = (255, 255, 255)
+FIG_ALPHA = 0.85
 
-# Anteile der Kantenlänge, ausgemessen am alten 512er-Icon
-BREITE  = 39.5 / 512      # Strichbreite
-LUECKE  = 32.0 / 512      # Abstand zwischen den Strichen
-HOEHE   = 216.0 / 512     # Strichhöhe
-NEIGUNG = 23.0 / 512      # seitlicher Versatz oben
+BASIS = 512
+SS    = 4
+M     = BASIS * SS
 
-def icon(groesse):
-    g = groesse * S
-    bild = Image.new("RGB", (g, g), GRUND)
-    d = ImageDraw.Draw(bild)
-    breite, luecke, hoehe, neigung = BREITE*g, LUECKE*g, HOEHE*g, NEIGUNG*g
-    gesamt  = 4*breite + 3*luecke + neigung          # Gesamtbreite inkl. Schräge
-    x0      = (g - gesamt) / 2                       # waagerecht mittig (das alte Icon saß 11 px daneben)
-    y_oben  = (g - hoehe) / 2
-    y_unten = y_oben + hoehe
-    for i in range(4):
-        links = x0 + i * (breite + luecke)
-        farbe = SIGNAL if i == 3 else KREIDE
-        d.polygon([(links + neigung, y_oben), (links + neigung + breite, y_oben),
-                   (links + breite,  y_unten), (links,                   y_unten)], fill=farbe)
-    return bild.resize((groesse, groesse), Image.LANCZOS)
+a = math.radians(WINKEL)
+dx, dy = math.sin(a), -math.cos(a)
+ys, xs = np.mgrid[0:M, 0:M].astype(np.float32)
+t = xs * dx + ys * dy
+t = (t - t.min()) / (t.max() - t.min())
 
-for n in (180, 192, 512):
-    icon(n).save(f"/home/claude/trainer/icon-{n}.png", optimize=True)
+def verlauf(t):
+    out = np.zeros(t.shape + (3,), np.float32)
+    for i in range(len(STOPS) - 1):
+        t0, c0 = STOPS[i]
+        t1, c1 = STOPS[i + 1]
+        m = (t >= t0) & (t <= t1) if i == 0 else (t > t0) & (t <= t1)
+        f = (t[m] - t0) / (t1 - t0)
+        for k in range(3):
+            out[m, k] = c0[k] + (c1[k] - c0[k]) * f
+    return out
+
+master = Image.fromarray(verlauf(t).astype(np.uint8), "RGB")
+
+s = M / V
+maske = Image.new("L", (M, M), 0)
+d = ImageDraw.Draw(maske)
+def rr(x, y, w, h, r):
+    d.rounded_rectangle([x * s, y * s, (x + w) * s, (y + h) * s], radius=r * s, fill=255)
+
+d.ellipse([(150 - 20) * s, (86 - 20) * s, (150 + 20) * s, (86 + 20) * s], fill=255)
+rr(40, 120, 220, 26, 13)
+rr(118, 120, 64, 150, 20)
+rr(120, 200, 26, 70, 13)
+rr(154, 200, 26, 70, 13)
+
+weiss   = Image.new("RGB", (M, M), FIG_RGB)
+maske85 = maske.point(lambda v: int(v * FIG_ALPHA))
+master  = Image.composite(weiss, master, maske85)
+
+for groesse in (512, 192, 180):
+    master.resize((groesse, groesse), Image.LANCZOS).save(
+        f"/home/claude/trainer/icon-{groesse}.png", optimize=True)
+print("Icons erzeugt: icon-512.png, icon-192.png, icon-180.png")
