@@ -206,6 +206,24 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 #nav button .sym svg{ width:23px; height:23px; display:block; transition:transform .18s ease; }
 #nav button.aktiv{ color:var(--signal); }
 #nav button.aktiv .sym svg{ transform:translateY(-1px); }   /* aktives Icon minimal angehoben */
+/* ============================================================
+   iPhone-Sonderoptik der Bottom-Bar (v65): KEIN Hintergrund, und statt des
+   Akzentbalkens ein graues Pill hinter dem aktiven Tab (wie in der iOS-
+   App-Store-Leiste). Greift nur bei body.sys-ios (System = iPhone).
+   ============================================================ */
+body.sys-ios #nav{ background:transparent; border-top:0; }
+body.sys-ios #nav button{ z-index:0; }                 /* Stapelkontext, damit das Pill DAHINTER liegt */
+body.sys-ios #nav button::before{
+  /* aus dem 26x3-Balken oben wird ein Pill hinter Icon + Text */
+  top:5px; right:8px; bottom:5px; left:8px;
+  width:auto; height:auto; border-radius:16px;
+  background:var(--panel-2);
+  transform:none;                                       /* scaleX-Animation des Balkens aus */
+  z-index:-1;                                            /* hinter Icon + Text */
+  opacity:0; transition:opacity .18s ease;
+}
+body.sys-ios #nav button.aktiv::before{ transform:none; opacity:1; }
+body.sys-ios #nav button.aktiv .sym svg{ transform:none; }   /* im Pill nicht anheben */
 /* Das Wasserzeichen ist raus (v48) — die Version steht jetzt als Knopf unter
    Mehr → Hilfe. Alle .wasserzeichen-Elemente bleiben im DOM, aber ausgeblendet. */
 .wasserzeichen{display:none}
@@ -1378,7 +1396,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 64;
+const APP_VERSION = 65;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1823,6 +1841,7 @@ function systemName(){ return systemText("iPhone", "Android", "Desktop"); }
 
 /** Füllt die Stellen, an denen der Text vom System abhängt. */
 function systemTexteAnwenden(){
+  document.body.classList.toggle("sys-ios", systemAktiv() === "ios");   // v65: iPhone-Sonderoptik der Bottom-Bar
   const sperre = systemText("iPhone-Sperre", "Android-Displaysperre", "Gerätesperre");
   document.getElementById("text-sperre").textContent = sperre;
   document.getElementById("text-ersetzen").textContent = systemText(
