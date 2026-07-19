@@ -2,10 +2,14 @@
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen. Stand: **Version 0.057 / APP_VERSION 57**. Roadmap bis „General Training" (0.050) vollständig
-> umgesetzt; danach vier Nutzer-Blöcke gebaut (v54–v57, siehe Historie): kompaktere Nav-Leiste + Auto-Einklappen,
-> **Ausstattung je Sportart getrennt** (eigener Ort/Equipment pro Sportart), **übungsgetriebene Plan-Erstellung**
-> (Sportart ergibt sich aus der Übung, kein Mischen) und schlichteres Aussehen (Deko-Emojis raus, nur die Flamme bleibt).
+> als Paket hochgeladen (Tooling zusätzlich: `icons.py` + das Master-Icon `Trainer-Icon-1024.png`).
+> Stand: **Version 0.071 / APP_VERSION 71**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> mehrere Nutzer-Blöcke (v54–v71, siehe Historie). Zuletzt (v58–v71): **Navigation neu** (vier Tabs, Profil unter „Mehr",
+> Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
+> (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
+> (Seite per `no-store`), **Pläne immer alle nach Sportart** + Langdruck öffnet direkt das Aktionsmenü
+> (Mehrfachauswahl entfernt), **Equipment-Liste beim Plan-Start**, **Kraft nachtragen** (Equipment→Übung, Sätze optional),
+> **eigenes Zeit-Feld im Wizard**, restliche Emojis raus (nur Flamme bleibt) und **neues App-Icon** (goldene Figur auf Dunkel).
 
 ---
 
@@ -52,11 +56,16 @@ beide Dateien liefern, Nutzer committet.
 | `manifest.json` | PWA-Manifest (Name „Trainer", standalone, portrait) |
 | `icon-192/512.png` | Manifest-Icons |
 | `icon-180.png` | iOS `apple-touch-icon` |
+| `Trainer-Icon-1024.png` | Master-Icon (Quelle für die drei Größen; nur Tooling, nicht deployt) |
+| `icons.py` | Erzeugt die drei Icon-Größen aus dem Master (nur Tooling) |
 
-Icons zeigen vier schräge Striche (die Satz-Strichliste der App), der letzte gelb.
-Erzeugt mit `icons.py` (Python/PIL, **liegt jetzt bei**). v26: Die alten Icons hatten 0 % Mischpixel,
-also gar kein Antialiasing — bei schrägen Strichen ergibt das Treppenstufen. Neu: 16-faches
-Supersampling + LANCZOS. Maße sind aus dem alten 512er ausgemessen und unverändert.
+Das Icon zeigt seit v71 eine **goldene Athleten-Figur (T-Pose) auf dunklem Verlauf** (aus dem Claude-Design;
+davor v58-Historie: erst vier gelbe Striche, dann v62/63 eine blaue Figur). `icons.py` liest das Master-PNG
+`Trainer-Icon-1024.png`, füllt dessen transparente (abgerundete) Ecken **nahtlos** per Kanten-Fortsetzung
+(scipy-Distanztransformation) zu einem randlosen Quadrat — sonst gäbe es beim System-Abrunden schwarze
+Eck-Schnipsel — und rechnet per LANCZOS auf 512/192/180 herunter. **Neues Icon einspielen:** Master ersetzen,
+`python3 icons.py` laufen lassen, `?v=` an `apple-touch-icon`/`manifest.json` in der `index.html` hochzählen,
+`sw.js`-Version + `APP_VERSION` mitziehen. iOS cached Home-Icons hart → am Gerät App entfernen + neu hinzufügen.
 
 ---
 
@@ -133,10 +142,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 57;                              // interne Ganzzahl — bei JEDEM Update +1
+const APP_VERSION = 71;                              // interne Ganzzahl — bei JEDEM Update +1
 const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v57"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v71"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -395,6 +404,66 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v58–v71 — Nutzer-Runde nach 0.057 (UI-Neubau, iOS-Fixes, neue Features)
+
+Alles hier kam aus direkten Nutzer-Screenshots/-Ansagen, iterativ Screen für Screen. Reihenfolge neueste zuerst.
+
+**v71 — Neues App-Icon (goldene Figur auf Dunkel).** Master `Trainer-Icon-1024.png` ersetzt, `icons.py` neu erzeugt
+(siehe Abschnitt 3). `?v=5` an `apple-touch-icon`/`manifest.json`. Neuigkeiten-Eintrag „0.058–0.071" ergänzt.
+
+**v70 — Kraft nachtragen.** „Aktivität nachtragen" heißt jetzt „Training nachtragen" (View-Titel „Training eintragen")
+und kann AUCH Kraft: Sportart Krafttraining → Equipment (aus `GERAETE`, per `<optgroup>` gruppiert) → Übung
+(`UEBUNGEN_DB` nach `geraet` gefiltert) → optional Sätze×Wdh×Gewicht. Ohne Sätze ein `typ:"kraft", sonder:true`-Eintrag
+mit leerem `saetze` → färbt Kalender + zählt Serie; mit Sätzen fließt es ins Volumen. **Geht NICHT durch die Bewertung**
+→ automatische Progression bleibt unberührt. Neue Funktionen: `eintragGeraeteOptionen`, `eintragKraftUebungen`,
+`eintragKraftVorschau`, `kraftNachtragen`. `view-eintragen` in `#ein-aktivitaet`/`#ein-kraft` aufgeteilt.
+
+**v69 — Emojis + Equipment beim Start.** ⏸/▶ komplett raus (Pause-Knopf „Pause"/„Weiter"), Flamme bei „Aufwärmen"
+raus (Text „Aufwärmen"), Plan-Marke „· 🔥" → „· Aufwärmen". **Flamme bleibt NUR bei der Trainings-Serie** — das
+einzige Emoji der App (Nutzer-Ansage). Auf dem Vorschau-Screen (`vorschauZeichnen`) oben eine Karte
+`#vorschau-equipment` mit dem benötigten Equipment aus den Plan-Übungen („keine"=Körpergewicht raus; bei
+Aktivitätsplänen ausgeblendet).
+
+**v68 — Pläne immer alle nach Sportart.** Der „heute/alle"-Filter (`alleplaeneZeigen`, `alleplaeneUmschalten`,
+`#alle-plaene-knopf`) ist raus; `sichtbarePlaene()` gibt immer alle zurück, Gruppierung nach Sportart bleibt.
+
+**v67 — Eigenes Zeit-Feld im Wizard.** Bei den `dauer_<sportart>`-Schritten (Flag `zeitCustom:true`) steht unter den
+Presets ein Minuten-Feld (`wzZeitCustomHtml`/`wzZeitCustom`): setzt `einrichtung[id]=String(min*60)`, ohne Auto-Weiter,
+ohne Re-Render (Fokus bleibt). Nebenbei die Single-Auswahl-Hervorhebung auf `String(...)===String(...)` umgestellt
+(numerische Preset-Werte wurden vorher nicht markiert). Assistenten-Name überall „Trainingsplanung".
+
+**v66 — Pläne: Langdruck öffnet direkt das Aktionsmenü.** Der Mehrfach-Auswahlmodus (`planAuswahl*`, Kästchen,
+„N ausgewählt"-Leiste, „⋯ Bearbeiten"-Umweg) ist KOMPLETT ENTFERNT. Langes Drücken/Rechtsklick → `planMenue`
+(Bearbeiten/Duplizieren/▲▼/Löschen). Massen-Löschen gibt es bewusst nicht mehr (Löschen pro Plan übers Menü).
+
+**v65 — iPhone-Sonderoptik der Bottom-Bar.** Nur bei `body.sys-ios` (aus `systemAktiv()==="ios"`, gesetzt in
+`systemTexteAnwenden`): Leiste ohne Hintergrund/Border, statt Akzentbalken ein graues Pill (`var(--panel-2)`) hinter
+dem aktiven Tab (`#nav button::before` umdefiniert, `z-index:-1`). Android/Desktop behalten die alte Leiste.
+
+**v64 — Update-Schleifen-Fix (WICHTIG).** Symptom: nach einem Deploy hing die App beim ersten Start (Safari „zu oft neu
+geladen"), Icon/Version änderten sich nicht. Ursache: SW holte die Seite im Standard-Cache-Modus → HTTP-Cache lieferte
+kurz die ALTE `index.html` → Auto-Update sah am Server „neuer" → endloses `reload()`, das nichts bewirkte. Fix: SW holt
+die Seite jetzt mit `fetch(anfrage.url, {cache:"no-store"})`; zusätzlich Schleifen-Schutz in `updatePruefen()` (pro
+Sitzung max. 1 Reload je Server-Version via `sessionStorage`).
+
+**v60–v63 — Struktur-Umbau, heller Modus, erstes neues Icon.** Profil wandert unter „Mehr" (Eintrag „Profil öffnen").
+Sportarten werden erst ein eigener Reiter (v60), dann per Nutzer-Wunsch wieder ein **Knopf im Profil** (v61) → Ansicht
+`view-sportarten` bleibt, erreichbar über Profil, mit „‹ Zurück". Sport-Liste rendert in `#sportarten-liste` (vorher
+`#profil-sportarten`), `geraeteKarteZeichnen` zieht mit; `sportartenTabOeffnen()` öffnet sie. **Heller Modus** (v61):
+`html.hell`-Token-Override (nur neutrale Tokens gedreht, Akzente etwas abgedunkelt für Lesbarkeit auf Hell), Umschalter
+unter Mehr → Darstellung, Schlüssel `trainer.darstellung`, Anti-Flash-Skript im `<head>`,
+`darstellungAnwenden/Setzen/KarteZeichnen`. v62/v63: erstes neues Icon (blaue Figur) — von v71 (gold) abgelöst.
+
+**v59 — iOS-Layout-Fix (WICHTIG).** Symptom: die Bottom-Bar „flog" beim Kaltstart zu hoch, ruckte erst nach einer Geste
+zurecht (Doppel-Finger-Tipp = Zoom, danach Tipps daneben). Ursache: iOS vermisst `body{position:fixed;inset:0}` beim
+Start falsch. Fix: Body hängt jetzt an `height:var(--app-h,100%)`; `--app-h` wird per JS auf `window.innerHeight`
+gesetzt (`appHoeheSetzen`, auf resize/orientationchange/pageshow/load/visualViewport + 300 ms-Nachzügler);
+`training-fest` zieht mit. Das erledigt die alte offene Baustelle „A1" (Nav nicht bündig unten).
+
+**v58 — Bottom-Bar optisch neu.** Einheitlicher Strich-Iconsatz; ursprünglich Akzentbalken oben (auf iPhone später
+durch das Pill ersetzt, s. v65). Verdrahtung (`navGehe`/`navAktualisieren`, Button-IDs, `.aktiv`, `body.nav-an`) bewusst
+unverändert. **Aktuelle Nav-Reihenfolge: Heute · Pläne · Statistik · Mehr** (Profil + Sportarten liegen unter „Mehr").
 
 ### v57 — Schlichteres Aussehen (Deko-Emojis raus, Flamme bleibt)
 
@@ -1013,6 +1082,11 @@ Angriffsfläche), Social/Community-Feed, Abzeichen-Sammlung, Übungsdatenbank mi
 ---
 
 ## 13. Bekannte Baustellen
+
+> **Hinweis (v71):** Mehrere ältere UI-Baustellen sind inzwischen erledigt/überholt — siehe Historie v58–v71.
+> Insbesondere: „A1" (Nav nicht bündig unten) via `--app-h`-Fix (v59); die umständliche Mehrfachauswahl bei Plänen
+> ist entfernt (v66); der Update-Ladefehler ist behoben (v64); Profil/Sportarten liegen jetzt unter „Mehr"/Profil.
+> Vor dem Anfassen alter Punkte hier bitte dort gegenprüfen.
 
 * **RICHTUNG (v34, Nutzer-Ansage): Die App ist kein Kraft-Tool, sondern ein *allgemeines* Trainings-Tool.**
   Andere Sportarten sollen **genauso tief** ausgebaut werden wie Krafttraining — nicht als leichte

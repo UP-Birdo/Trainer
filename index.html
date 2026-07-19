@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Trainer">
 <meta name="theme-color" content="#16181C">
-<link rel="manifest" href="manifest.json?v=4">
-<link rel="apple-touch-icon" href="icon-180.png?v=4">
+<link rel="manifest" href="manifest.json?v=5">
+<link rel="apple-touch-icon" href="icon-180.png?v=5">
 <title>Trainer</title>
 <!-- Darstellung sofort setzen (vor dem ersten Malen), damit es im Hellmodus
      nicht kurz dunkel aufblitzt. Schlüssel = trainer.darstellung (siehe darstellungAnwenden). -->
@@ -484,7 +484,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-plaene" class="view">
   <div class="kopf"><h1>Pläne</h1></div>
   <div id="plan-liste"></div>
-  <div id="alle-plaene-knopf"></div>
   <!-- Bewusst KEIN primaer: Die gelbe Hauptaktion gehört auf den Start
        ("Training starten"). Zwei gelbe Knöpfe heben sich gegenseitig auf. -->
   <div class="raster abstand">
@@ -492,7 +491,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
   </div>
   <div class="knopfreihe">
-    <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Aktivität nachtragen</button>
+    <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Training nachtragen</button>
   </div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -761,7 +760,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button class="info-knopf" onclick="infoUmschalten('info-bonus')" aria-label="Info">i</button></div>
     <div id="info-bonus" class="meta info-text" hidden>Fachlicher Konsens (Cleveland Clinic, Harvard Health): <strong style="color:var(--chalk)">dynamisch aufwärmen vor</strong> dem Training, <strong style="color:var(--chalk)">statisch dehnen danach</strong>. Langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.</div>
     <div class="raster" style="margin-top:8px">
-      <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">🔥 Aufwärmen</button></div>
+      <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">Aufwärmen</button></div>
       <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">Dehnen</button></div>
     </div>
     </div>
@@ -832,18 +831,39 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <section id="view-eintragen" class="view">
-  <div class="kopf"><h1>Aktivität eintragen</h1></div>
+  <div class="kopf"><h1>Training eintragen</h1></div>
   <div class="karte">
     <label for="ein-sport">Sportart</label>
     <select id="ein-sport" onchange="eintragenZeichnen()"></select>
-    <div class="raster abstand">
-      <div><label for="ein-datum">Wann</label><input id="ein-datum" type="date"></div>
-      <div><label for="ein-einheit">Zeiteinheit</label><select id="ein-einheit" onchange="eintragenZeichnen()"></select></div>
+    <label class="abstand" for="ein-datum">Wann</label>
+    <input id="ein-datum" type="date">
+
+    <!-- Aktivitäts-Felder (Dauer / Strecke) -->
+    <div id="ein-aktivitaet">
+      <div class="raster abstand">
+        <div><label for="ein-einheit">Zeiteinheit</label><select id="ein-einheit" onchange="eintragenZeichnen()"></select></div>
+        <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
+      </div>
+      <div id="ein-strecke-feld" class="abstand"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
     </div>
-    <div class="raster abstand">
-      <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
-      <div id="ein-strecke-feld"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
+
+    <!-- Kraft-Felder: Equipment -> Übung -> optional Sätze (v70) -->
+    <div id="ein-kraft" hidden>
+      <label class="abstand" for="ein-geraet">Equipment</label>
+      <select id="ein-geraet" onchange="eintragKraftUebungen()"></select>
+      <label class="abstand" for="ein-uebung">Übung</label>
+      <select id="ein-uebung" onchange="eintragenZeichnen()"></select>
+      <label class="abstand">Sätze (optional)</label>
+      <div class="raster">
+        <div><label for="ein-saetze">Sätze</label><input id="ein-saetze" type="number" inputmode="numeric" placeholder="—" oninput="eintragenZeichnen()"></div>
+        <div><label for="ein-wdh">Wdh</label><input id="ein-wdh" type="number" inputmode="numeric" placeholder="—" oninput="eintragenZeichnen()"></div>
+      </div>
+      <div class="raster abstand">
+        <div><label for="ein-gewicht">Gewicht (kg)</label><input id="ein-gewicht" type="number" inputmode="decimal" step="0.5" placeholder="—" oninput="eintragenZeichnen()"></div>
+      </div>
+      <div class="meta" style="margin-top:6px">Ohne Sätze wird nur festgehalten, dass du trainiert hast (färbt Kalender und Serie). Mit Sätzen fließt es ins Volumen ein.</div>
     </div>
+
     <div class="meta" id="ein-vorschau" style="margin-top:10px"></div>
   </div>
   <div class="knopfreihe"><button class="primaer breit" onclick="aktivitaetSpeichern()">Eintragen</button></div>
@@ -853,6 +873,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-vorschau" class="view">
   <div class="kopf"><h1 id="vorschau-name">–</h1></div>
   <div class="meta" id="vorschau-meta"></div>
+  <div class="karte abstand" id="vorschau-equipment" hidden></div>
 
   <div class="karte abstand">
     <label>Reihenfolge</label>
@@ -862,7 +883,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     </div>
     <label class="abstand">Für diesen Durchgang</label>
     <div class="note">
-      <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">🔥 Aufwärmen</button>
+      <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">Aufwärmen</button>
       <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">Dehnen</button>
     </div>
     <div class="meta" style="margin-top:10px">„Zirkel“ nochmal antippen mischt neu. Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
@@ -894,7 +915,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div id="danach" class="meta" style="text-align:center;margin-bottom:8px"></div>
   <button id="haupt-knopf" class="primaer breit" onclick="hauptKnopf()">Satz fertig</button>
   <div class="knopfreihe">
-    <button class="schmal" id="pause-knopf" onclick="pauseKnopf()">⏸ Pause</button>
+    <button class="schmal" id="pause-knopf" onclick="pauseKnopf()">Pause</button>
     <button class="schmal" id="plus-knopf" onclick="zeitAendern(30)">+ 30 s</button>
     <button class="schmal" id="minus-knopf" onclick="zeitAendern(-15)">− 15 s</button>
   </div>
@@ -1404,7 +1425,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 67;
+const APP_VERSION = 71;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2111,10 +2132,6 @@ function planAmTag(plan, iso){
   return (((wocheSeitEpoche(iso) % 2) + 2) % 2) === (plan.wochenAnker || 0);
 }
 
-let alleplaeneZeigen = false;   // Schalter unter der Liste, absichtlich NICHT gespeichert
-
-function alleplaeneUmschalten(){ alleplaeneZeigen = !alleplaeneZeigen; planListeZeichnen(); }
-
 /** Der Start-Bildschirm ("Heute"): das Training von heute, wichtige Meldungen
     (Sicherung) und die Ziele. Zeichnet dieselben Bausteine wie früher der
     Pläne-Tab, nur ohne die Plan-Liste — die hat jetzt ihren eigenen Tab. */
@@ -2233,14 +2250,9 @@ function zielHeuteLoeschen(id){
   });
 }
 
-/* ---- Mehrfachauswahl von Plänen (v47): langes Drücken startet den Auswahl-
-   modus, Karten antippen wählt aus/ab, dann gemeinsam löschen. ---- */
-/** Die aktuell sichtbaren Pläne (heutige + ohne Tag, oder alle). */
+/** Alle Pläne (v68: immer alle, nach Sportart gruppiert — kein Heute-Filter mehr). */
 function sichtbarePlaene(){
-  const plaene = sitzung.daten.plaene;
-  const heuteTag = heutigerWochentag();
-  const heuteDrin = p => p.tage.length === 0 || planAmTag(p, heuteAlsText());
-  return alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
+  return sitzung.daten.plaene.slice();
 }
 
 function planListeZeichnen(){
@@ -2252,19 +2264,10 @@ function planListeZeichnen(){
     ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
       '<div class="knopfreihe"><button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' +
       '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div></div>';
-    document.getElementById("alle-plaene-knopf").innerHTML = "";
     return;
   }
 
-  /* Sichtbar sind: der Plan von HEUTE und Pläne ohne festen Tag. Ein Plan für
-     Freitag hat am Dienstag nichts in der Liste zu suchen — erreichbar bleibt
-     er über "Alle Pläne zeigen". Der heutige Plan steht MIT in der Liste: die
-     Heute-Karte liegt jetzt auf dem Start-Bildschirm, hier gibt es kein
-     Doppel mehr. */
-  const heuteTag = heutigerWochentag();
-  const heuteDrin = p => p.tage.length === 0 || planAmTag(p, heuteAlsText());
   const sichtbar = sichtbarePlaene();
-  const versteckt = plaene.length - plaene.filter(heuteDrin).length;
 
   const karte = p => {
     const saetze = p.uebungen.reduce((s,u) => s + u.saetze, 0);
@@ -2278,7 +2281,7 @@ function planListeZeichnen(){
       if(e.planId ? e.planId === p.id : e.plan === p.name){ zuletzt = e.datum; break; }
     }
     const zusatz = (p.reihenfolge === "zirkel" ? " · Zirkel" : "") +
-                   (p.aufwaermen ? " · 🔥" : "") + (p.dehnen ? " · Dehnen" : "");
+                   (p.aufwaermen ? " · Aufwärmen" : "") + (p.dehnen ? " · Dehnen" : "");
     const tage = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag";
     // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
     // zeigt darum nur noch die Tage.
@@ -2310,12 +2313,6 @@ function planListeZeichnen(){
       grp.map(karte).join("");
   });
   ziel.innerHTML = html;
-
-  document.getElementById("alle-plaene-knopf").innerHTML =
-    (versteckt === 0 && !alleplaeneZeigen) ? "" :
-    '<div class="knopfreihe"><button class="schmal breit" onclick="alleplaeneUmschalten()">' +
-    (alleplaeneZeigen ? "Nur heutige Pläne zeigen" : "Alle Pläne zeigen (" + versteckt + " weitere)") +
-    '</button></div>';
   langdruckEinrichten();
 }
 
@@ -2601,6 +2598,17 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.058 – 0.071", punkte:[
+    "Neues App-Icon.",
+    "Heller Modus: umschaltbar unter Mehr → Darstellung. Dunkel bleibt Standard.",
+    "Aufgeräumte Navigation: vier Tabs (Heute · Pläne · Statistik · Mehr). Profil liegt jetzt unter „Mehr“, die Sportarten erreichst du über einen Knopf im Profil. Auf dem iPhone sitzt die Leiste ohne Hintergrund, der aktive Tab bekommt ein dezentes graues Feld.",
+    "Pläne zeigen immer alle Pläne nach Sportart (kein „heute/alle“-Umschalten mehr). Ein langer Druck auf einen Plan öffnet direkt Bearbeiten/Duplizieren/Löschen.",
+    "Beim Starten eines Plans steht oben, welches Equipment du brauchst.",
+    "Krafttraining nachtragen: unter „Training nachtragen“ geht jetzt auch Kraft — Equipment und Übung wählen, Sätze/Wdh/Gewicht optional. Ohne Sätze zählt es für Kalender und Serie, mit Sätzen fürs Volumen.",
+    "Im Trainings-Assistenten kannst du bei der Dauer jetzt auch eine eigene Zeit eintippen.",
+    "Schlichter: die letzten Symbole (Pause, Aufwärmen) sind raus — die Flamme der Trainings-Serie ist das einzige Emoji.",
+    "Ein seltener Ladefehler nach Updates (App hängt beim Start) ist behoben."
+  ]},
   { stand:"0.054 – 0.057", punkte:[
     "Schlichteres Aussehen: die bunten Symbole sind raus — nur die Flamme bleibt.",
     "Pläne gehen jetzt von der Übung aus: Sportart-Feld leer lassen, eine Übung wählen (aus allen deinen Sportarten) — die Sportart ergibt sich von selbst. Gibt es die Übung in mehreren Sportarten, fragt die App kurz nach.",
@@ -3686,7 +3694,7 @@ const WIZARD_FRAGEN = [
     hilfe:"Empfehlung: dynamisch aufwärmen vor dem Training, statisch dehnen danach. Pro Plan später einzeln abschaltbar.",
     nurWenn: kraftGewaehlt,
     optionen:[
-      ["aufwaermen","🔥 Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
+      ["aufwaermen","Aufwärmen (ca. 4 Min)","Dynamisch: Marschieren, Armkreisen, Beinschwingen"],
       ["dehnen","Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
     ]}
 ]
@@ -5706,15 +5714,83 @@ function stoppuhrAufraeumen(){
 let eintragPlan = null;
 
 /** plan = Vorlage (optional), sekunden = gemessene Zeit (optional). */
+/* ============================================================
+   #region Kraft nachtragen (v70)
+   Wählbar unter "Training eintragen": Equipment -> Übung, optional
+   Sätze/Wdh/Gewicht. OHNE Sätze wird nur festgehalten, dass trainiert
+   wurde (färbt Kalender + zählt für die Serie); MIT Sätzen fließt es ins
+   Volumen ein. Geht NICHT durch die Bewertung -> die automatische
+   Progression bleibt unberührt.
+   ============================================================ */
+function eintragGeraeteOptionen(){
+  let html = '<option value="keine">Körpergewicht</option>';
+  ["Klein","Gewichte","Gestelle","Maschinen"].forEach(gr => {
+    const items = GERAETE.filter(g => g.gruppe === gr);
+    if(items.length) html += '<optgroup label="' + gr + '">' +
+      items.map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("") + '</optgroup>';
+  });
+  return html;
+}
+function eintragKraftUebungen(){
+  const g = document.getElementById("ein-geraet").value;
+  const liste = UEBUNGEN_DB.filter(u => u.geraet === g);
+  document.getElementById("ein-uebung").innerHTML = liste.length
+    ? liste.map(u => '<option value="' + text(u.name) + '">' + text(u.name) + '</option>').join("")
+    : '<option value="">– keine Übung für dieses Equipment –</option>';
+  eintragenZeichnen();
+}
+function eintragKraftVorschau(){
+  const uebung = document.getElementById("ein-uebung").value;
+  const s = parseInt(document.getElementById("ein-saetze").value) || 0;
+  const w = parseInt(document.getElementById("ein-wdh").value) || 0;
+  const kg = parseFloat(String(document.getElementById("ein-gewicht").value).replace(",", ".")) || 0;
+  let z = uebung;
+  if(s > 0 && w > 0) z += " · " + s + "×" + w + (kg ? " · " + kg + " kg" : "");
+  document.getElementById("ein-vorschau").textContent = uebung ? "Wird eingetragen: " + z : "";
+}
+function kraftNachtragen(){
+  const uebung = document.getElementById("ein-uebung").value;
+  const datum = document.getElementById("ein-datum").value;
+  if(!datum){ meldung("Bitte ein Datum angeben."); return; }
+  if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen."); return; }
+  if(!uebung){ meldung("Bitte eine Übung wählen."); return; }
+  const s = parseInt(document.getElementById("ein-saetze").value) || 0;
+  const w = parseInt(document.getElementById("ein-wdh").value) || 0;
+  const kg = parseFloat(String(document.getElementById("ein-gewicht").value).replace(",", ".")) || 0;
+  const saetze = [];
+  if(s > 0 && w > 0){
+    for(let i = 1; i <= Math.min(s, 20); i++)
+      saetze.push({ uebungId:null, name:uebung, modus:"wdh", satz:i, wdh:w, gewicht:kg, note:null });
+  }
+  sitzung.daten.protokoll.push({
+    datum, plan:uebung, planId:null, sportart:"kraft", typ:"kraft", sonder:true,
+    dauerMin: Math.max(1, saetze.length * 2), saetze
+  });
+  sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  speichern();
+  meldung("Krafttraining eingetragen: " + uebung +
+    (saetze.length ? " · " + saetze.length + "×" + w + (kg ? " · " + kg + " kg" : "") : ""));
+  planListeZeichnen();
+  zeige("view-plaene");
+}
+
 function eintragenOeffnen(plan, sekunden){
   eintragPlan = plan || null;
   const sport = plan ? plan.sportart : ersteAktivitaetsSportart();
   const feld = document.getElementById("ein-sport");
-  // Angeboten wird, was im Profil gewählt ist — Krafttraining nicht: das läuft über Pläne.
+  // v70: Kraft steht jetzt AUCH zur Wahl (Nachtragen über Equipment -> Übung),
+  // dahinter die Aktivitäts-Sportarten aus dem Profil.
   const meine = (sitzung.daten.einrichtung.sportarten || []).filter(id => planTypFuer(id) === "aktivitaet");
-  const liste = meine.length ? meine : SPORTARTEN.filter(x => x.planTyp === "aktivitaet").map(x => x.id);
+  const aktListe = meine.length ? meine : SPORTARTEN.filter(x => x.planTyp === "aktivitaet").map(x => x.id);
+  const liste = ["kraft", ...aktListe];
   feld.innerHTML = liste.map(id => '<option value="' + id + '">' + text(sportartName(id)) + '</option>').join("");
   feld.value = liste.includes(sport) ? sport : liste[0];
+
+  // Kraft-Auswahl vorbereiten: Equipment-Liste + Übungen fürs Körpergewicht
+  document.getElementById("ein-geraet").innerHTML = eintragGeraeteOptionen();
+  document.getElementById("ein-geraet").value = "keine";
+  ["ein-saetze","ein-wdh","ein-gewicht"].forEach(id => document.getElementById(id).value = "");
+  eintragKraftUebungen();
 
   document.getElementById("ein-datum").value = heuteAlsText();
   document.getElementById("ein-einheit").innerHTML = ZEITEINHEITEN.map(z =>
@@ -5735,6 +5811,10 @@ function ersteAktivitaetsSportart(){
 
 function eintragenZeichnen(){
   const sport = document.getElementById("ein-sport").value;
+  const istKraft = sport === "kraft";
+  document.getElementById("ein-kraft").hidden = !istKraft;
+  document.getElementById("ein-aktivitaet").hidden = istKraft;
+  if(istKraft){ eintragKraftVorschau(); return; }
   const sp = sportart(sport);
   const einheit = document.getElementById("ein-einheit").value;
   document.getElementById("ein-dauer-label").textContent = "Dauer (" + zeitEinheit(einheit).kurz + ")";
@@ -5749,6 +5829,7 @@ function eintragenZeichnen(){
 
 function aktivitaetSpeichern(){
   const sport = document.getElementById("ein-sport").value;
+  if(sport === "kraft"){ kraftNachtragen(); return; }
   const sp = sportart(sport);
   const einheit = document.getElementById("ein-einheit").value;
   const datum = document.getElementById("ein-datum").value;
@@ -5861,10 +5942,23 @@ function vorschauZeichnen(){
   document.getElementById("vs-aufwaermen").classList.toggle("gewaehlt", !!p.aufwaermen);
   document.getElementById("vs-dehnen").classList.toggle("gewaehlt", !!p.dehnen);
 
+  // Benötigtes Equipment oben auflisten (nur Kraftpläne; „keine" = Körpergewicht raus).
+  const eqEl = document.getElementById("vorschau-equipment");
+  if(p.typ === "aktivitaet" || !p.uebungen.length){
+    eqEl.hidden = true;
+  } else {
+    const ids = [...new Set(p.uebungen.map(u => u.geraet).filter(g => g && g !== "keine"))];
+    eqEl.hidden = false;
+    eqEl.innerHTML = '<label>Benötigtes Equipment</label>' +
+      '<div class="meta" style="margin-top:4px">' +
+      (ids.length ? ids.map(id => text(geraetName(id))).join(" · ") : "Kein Equipment nötig — reines Körpergewicht") +
+      '</div>';
+  }
+
   let nummer = 0;
   document.getElementById("vorschau-liste").innerHTML = ablaufErzeugen(p).map(schritt => {
     // Pausen sind keine eigenen Punkte, sondern die Zeile dazwischen
-    if(schritt.typ === "pause") return '<div class="vs-pause">⏸ ' + schritt.sekunden + ' s Pause</div>';
+    if(schritt.typ === "pause") return '<div class="vs-pause">' + schritt.sekunden + ' s Pause</div>';
     if(schritt.typ === "bereit") return "";       // gehört zum Satz, kein eigener Punkt
     nummer++;
     let titel, unter;
@@ -5909,7 +6003,7 @@ function schrittBetreten(){
   clearInterval(lauf.timerId);
   lauf.pausiert = false;
   const pauseK = document.getElementById("pause-knopf");
-  pauseK.textContent = "⏸ Pause";
+  pauseK.textContent = "Pause";
   pauseK.classList.remove("gewaehlt");
   if(lauf.index >= lauf.schritte.length){ trainingBeenden(); return; }
 
@@ -5927,7 +6021,7 @@ function schrittBetreten(){
     document.getElementById("uhr-rekord").hidden = true;
     gesamtBalkenZeichnen(0);
     const ph = document.getElementById("phase");
-    ph.textContent = (istWarm ? "🔥 Aufwärmen · " : "Dehnen · ") + s.nummer + " von " + s.gesamt;
+    ph.textContent = (istWarm ? "Aufwärmen · " : "Dehnen · ") + s.nummer + " von " + s.gesamt;
     ph.classList.toggle("pause", !istWarm);
     const z = document.getElementById("uhr-zahl");
     z.className = "uhr-zahl" + (istWarm ? "" : " pause");
@@ -6119,11 +6213,11 @@ function pauseKnopf(){
     lauf.pausiert = true;
     toeneVerwerfen();
     clearInterval(lauf.timerId);
-    knopf.textContent = "▶ Weiter";
+    knopf.textContent = "Weiter";
     knopf.classList.add("gewaehlt");
   } else {
     lauf.pausiert = false;
-    knopf.textContent = "⏸ Pause";
+    knopf.textContent = "Pause";
     knopf.classList.remove("gewaehlt");
     countdownStarten(lauf.restBeiPause);
   }
@@ -6230,7 +6324,7 @@ function heuteKarteZeichnen(){
           ? aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit)
           : plan.uebungen.length + ' Übungen · ' +
             plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
-            (plan.aufwaermen ? ' · 🔥' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
+            (plan.aufwaermen ? ' · Aufwärmen' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
         (plan.typ === "aktivitaet" ? (schonTrainiert ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
                                    : (schonTrainiert ? "Nochmal trainieren" : "Training starten")) + '</button>' +
