@@ -261,6 +261,14 @@ body:not(.nav-an) #nav{display:none}
 /* minmax(0,1fr) statt 1fr: lange Optionsnamen dürfen die Spalte nicht sprengen. */
 .wz-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
+/* Eigenes Zeit-Feld unter den Dauer-Presets (v67) — Optik wie eine wz-opt-Zeile. */
+.wz-zeit-custom{margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.wz-zeit-custom.gewaehlt{border-color:var(--signal)}
+.wz-zeit-custom label{display:block;font-size:16px;margin-bottom:8px}
+.wz-zeit-custom.gewaehlt label{color:var(--signal)}
+.wz-zeit-eingabe{display:flex;align-items:center;gap:10px}
+.wz-zeit-eingabe input{width:120px;text-align:center}
+.wz-zeit-eingabe span{color:var(--muted);font-size:14px}
 
 /* Auswahl-Raster im Profil (Sportarten, Ort, Geräte).
    Zwei feste Spalten statt umbrechender Flex-Reihe — auf dem Handy
@@ -1396,7 +1404,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 65;
+const APP_VERSION = 67;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2227,41 +2235,12 @@ function zielHeuteLoeschen(id){
 
 /* ---- Mehrfachauswahl von Plänen (v47): langes Drücken startet den Auswahl-
    modus, Karten antippen wählt aus/ab, dann gemeinsam löschen. ---- */
-let planAuswahlModus = false;
-let planAuswahl = new Set();
-
 /** Die aktuell sichtbaren Pläne (heutige + ohne Tag, oder alle). */
 function sichtbarePlaene(){
   const plaene = sitzung.daten.plaene;
   const heuteTag = heutigerWochentag();
   const heuteDrin = p => p.tage.length === 0 || planAmTag(p, heuteAlsText());
   return alleplaeneZeigen ? plaene.slice() : plaene.filter(heuteDrin);
-}
-function planAuswahlStarten(id){
-  planAuswahlModus = true;
-  planAuswahl = new Set([id]);
-  if(navigator.vibrate) navigator.vibrate(15);
-  planListeZeichnen();
-}
-function planAuswahlUmschalten(id){
-  if(planAuswahl.has(id)) planAuswahl.delete(id); else planAuswahl.add(id);
-  if(planAuswahl.size === 0) planAuswahlModus = false;   // nichts mehr gewählt = Modus verlassen
-  planListeZeichnen();
-}
-function planAuswahlBeenden(){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); }
-function planAuswahlAlle(){
-  sichtbarePlaene().forEach(p => planAuswahl.add(p.id));
-  planListeZeichnen();
-}
-function planAuswahlLoeschen(){
-  const n = planAuswahl.size;
-  if(!n) return;
-  frage(n === 1 ? "Diesen Plan löschen?" : ("Diese " + n + " Pläne löschen?"), true, ja => {
-    if(!ja) return;
-    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => !planAuswahl.has(p.id));
-    speichern();
-    planAuswahlBeenden();
-  });
 }
 
 function planListeZeichnen(){
@@ -2271,7 +2250,7 @@ function planListeZeichnen(){
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
     ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
-      '<div class="knopfreihe"><button class="primaer schmal" onclick="einrichtungOeffnen()">Einschätzung starten</button>' +
+      '<div class="knopfreihe"><button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' +
       '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div></div>';
     document.getElementById("alle-plaene-knopf").innerHTML = "";
     return;
@@ -2304,14 +2283,6 @@ function planListeZeichnen(){
     // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
     // zeigt darum nur noch die Tage.
     const marke = tage;
-    if(planAuswahlModus){
-      const an = planAuswahl.has(p.id);
-      return '<div class="karte' + (an ? " gewaehlt" : "") + '" data-plan="' + p.id +
-        '" onclick="planAuswahlUmschalten(\'' + p.id + '\')" style="cursor:pointer">' +
-        '<div class="zeile"><h2>' + text(p.name) + '</h2>' +
-        '<span style="font-size:22px;line-height:1">' + (an ? "☑" : "☐") + '</span></div>' +
-        '<div class="meta" style="margin-top:2px">' + marke + '</div></div>';
-    }
     return '<div class="karte" data-plan="' + p.id + '">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
@@ -2338,24 +2309,7 @@ function planListeZeichnen(){
       '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
       grp.map(karte).join("");
   });
-  // v47: Auswahl-Toolbar im Mehrfach-Modus. „Alle auswählen" erscheint, sobald
-  // (mind.) einer gewählt ist und noch nicht alle; „⋯ Bearbeiten" bei genau einem.
-  let toolbar = "";
-  if(planAuswahlModus){
-    const n = planAuswahl.size;
-    const einzige = n === 1 ? [...planAuswahl][0] : null;
-    toolbar =
-      '<div class="karte">' +
-        '<div class="zeile"><strong>' + n + ' ausgewählt</strong>' +
-          '<button class="schmal" onclick="planAuswahlBeenden()">Abbrechen</button></div>' +
-        '<div class="knopfreihe abstand">' +
-          (n < sichtbar.length ? '<button class="schmal" onclick="planAuswahlAlle()">Alle auswählen</button>' : "") +
-          (einzige ? '<button class="schmal" onclick="planMenue(\'' + einzige + '\')">⋯ Bearbeiten</button>' : "") +
-          '<button class="gefahr schmal" onclick="planAuswahlLoeschen()">Löschen (' + n + ')</button>' +
-        '</div>' +
-      '</div>';
-  }
-  ziel.innerHTML = toolbar + html;
+  ziel.innerHTML = html;
 
   document.getElementById("alle-plaene-knopf").innerHTML =
     (versteckt === 0 && !alleplaeneZeigen) ? "" :
@@ -2452,8 +2406,8 @@ function langdruckEinrichten(){
       karte.classList.add("gedrueckt");
       timer = setTimeout(() => {
         karte.classList.remove("gedrueckt");
-        if(planAuswahlModus) return;                          // im Auswahlmodus toggelt der Tap die Karte
-        planAuswahlStarten(karte.dataset.plan);               // langes Drücken startet Mehrfachauswahl (vibriert selbst)
+        if(navigator.vibrate) navigator.vibrate(15);          // kurzes haptisches Feedback
+        planMenue(karte.dataset.plan);                        // langes Drücken öffnet direkt das Aktionsmenü
       }, 500);
     }, { passive:true });
     karte.addEventListener("touchmove", e => {
@@ -3745,9 +3699,9 @@ const WIZARD_FRAGEN = [
     hilfe:"Diese Tage färbt der Kalender in der Farbe der Sportart. Keinen ausgewählt = der Plan bleibt ohne festen Tag, und du trägst ihn ein, wenn er passiert ist.",
     nurWenn: e => (e.sportarten || []).includes(s.id),
     optionen: WOCHENTAGE.slice(1).map((w,i) => [i+1, w.slice(0,2), w]) },
-  { id:"dauer_" + s.id, typ:"single", raster:true, sportBezug:s.id,
+  { id:"dauer_" + s.id, typ:"single", raster:true, sportBezug:s.id, zeitCustom:true,
     frage:"Wie lange dauert eine Einheit " + s.name + "?",
-    hilfe:"Ein Richtwert für die Planung — beim Eintragen zählt, wie lange es wirklich war.",
+    hilfe:"Ein Richtwert für die Planung — beim Eintragen zählt, wie lange es wirklich war. Oder gib unten deine eigene Zeit ein.",
     nurWenn: e => (e.sportarten || []).includes(s.id),
     optionen: [[1800,"30 min"],[3600,"1 Std"],[5400,"1,5 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
 ]));
@@ -3823,7 +3777,7 @@ function wzZeichnen(){
     }
   } else {
     optionenHtml = f.optionen.map(([wert, titel, unter]) =>
-      '<button class="wz-opt ' + (einrichtung[f.id] === wert ? "gewaehlt" : "") +
+      '<button class="wz-opt ' + (String(einrichtung[f.id]) === String(wert) ? "gewaehlt" : "") +
       '" onclick="wzSingle(\'' + f.id + '\',\'' + wert + '\')">' + titel +
       (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
   }
@@ -3831,7 +3785,8 @@ function wzZeichnen(){
   document.getElementById("wz-buehne").innerHTML =
     '<h2 class="wz-frage">' + f.frage + '</h2>' +
     '<div class="wz-hilfe">' + f.hilfe + '</div>' +
-    '<div class="' + (f.raster ? "wz-raster" : "wz-optionen") + '">' + optionenHtml + '</div>';
+    '<div class="' + (f.raster ? "wz-raster" : "wz-optionen") + '">' + optionenHtml + '</div>' +
+    (f.zeitCustom ? wzZeitCustomHtml(f) : "");
 
   document.getElementById("wz-zurueck").textContent = wzSchritt === 0 ? "Abbrechen" : "Zurück";
   document.getElementById("wz-weiter").textContent = "Weiter";
@@ -3868,6 +3823,33 @@ function wzBonus(wert){
   const pos = einrichtung.bonus.indexOf(wert);
   if(pos >= 0) einrichtung.bonus.splice(pos, 1); else einrichtung.bonus.push(wert);
   wzZeichnen();
+}
+
+/** Custom-Zeitfeld unter den Dauer-Presets. Zeigt die aktuellen Minuten,
+    wenn der Wert keinem Preset entspricht — dann ist das Feld „gewählt". */
+function wzZeitCustomHtml(f){
+  const presets = f.optionen.map(o => String(o[0]));
+  const wert = einrichtung[f.id];
+  const eigen = wert && !presets.includes(String(wert));
+  return '<div class="wz-zeit-custom' + (eigen ? " gewaehlt" : "") + '">' +
+    '<label for="wz-zeit-feld">Eigene Zeit</label>' +
+    '<div class="wz-zeit-eingabe">' +
+      '<input id="wz-zeit-feld" type="number" inputmode="numeric" min="5" max="600" step="5" ' +
+        'placeholder="z. B. 40" value="' + (eigen ? Math.round(Number(wert) / 60) : "") + '" ' +
+        'oninput="wzZeitCustom(\'' + f.id + '\', this.value)">' +
+      '<span>Minuten</span>' +
+    '</div></div>';
+}
+
+/** Eigene Minuten -> Sekunden. Kein Auto-Weiter (man tippt noch); nur die
+    Umfärbung wird aktualisiert, ohne das Feld neu zu bauen (Fokus bleibt). */
+function wzZeitCustom(id, minutenText){
+  const m = parseInt(minutenText, 10);
+  if(!m || m < 1) return;
+  einrichtung[id] = String(m * 60);
+  document.querySelectorAll("#wz-buehne .wz-opt").forEach(b => b.classList.remove("gewaehlt"));
+  const cust = document.querySelector("#wz-buehne .wz-zeit-custom");
+  if(cust) cust.classList.add("gewaehlt");
 }
 
 function wzZurueck(){
@@ -6206,7 +6188,7 @@ function navGehe(bereich){
   // wieder zuklappen — hält das Sportarten-Tab schlank.
   sportartenAlleZeigen = false;
   if(bereich === "start") startOeffnen();
-  else if(bereich === "plaene"){ planAuswahlModus = false; planAuswahl.clear(); planListeZeichnen(); zeige("view-plaene"); }
+  else if(bereich === "plaene"){ planListeZeichnen(); zeige("view-plaene"); }
   else if(bereich === "statistik") statistikOeffnen();
   else einstellungenOeffnen();
 }
