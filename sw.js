@@ -11,7 +11,7 @@
    ============================================================ */
 "use strict";
 
-const VERSION = "v63";
+const VERSION = "v64";
 const CACHE = "trainingsapp-" + VERSION;
 const DATEIEN = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png"];
 
@@ -36,9 +36,13 @@ self.addEventListener("fetch", ereignis => {
   const istSeite = anfrage.mode === "navigate" || anfrage.url.endsWith("index.html");
 
   if (istSeite) {
-    // Netz zuerst: frische Version holen, im Cache ablegen, offline aus dem Cache.
+    // Netz zuerst, aber CACHE UMGEHEN (no-store). Sonst kann der HTTP-Cache
+    // nach einem Deploy noch die ALTE index.html liefern -> die laufende
+    // Version bleibt alt, der Auto-Update-Check sieht am Server eine neuere
+    // Version und löst endlose location.reload() aus (Update greift nie).
+    // Offline fällt es wie gehabt auf den Cache zurück.
     ereignis.respondWith(
-      fetch(anfrage)
+      fetch(anfrage.url, { cache: "no-store" })
         .then(antwort => {
           const kopie = antwort.clone();
           caches.open(CACHE).then(cache => cache.put(anfrage, kopie));

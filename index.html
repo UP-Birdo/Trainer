@@ -1378,7 +1378,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 63;
+const APP_VERSION = 64;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6374,7 +6374,16 @@ async function updatePruefen(){
     if(!antwort.ok) return;
     const quelltext = await antwort.text();
     const treffer = quelltext.match(/const APP_VERSION = (\d+);/);
-    if(treffer && parseInt(treffer[1]) > APP_VERSION){
+    if(!treffer) return;
+    const serverVersion = parseInt(treffer[1]);
+    // Schleifen-Schutz: pro Sitzung nur EINMAL je Server-Version neu laden.
+    // Falls ein Reload die Version wider Erwarten nicht anhebt (Cache), würde
+    // sonst endlos neu geladen. sessionStorage überlebt reload(), nicht aber
+    // einen echten Neustart der App.
+    let schonProbiert = 0;
+    try { schonProbiert = parseInt(sessionStorage.getItem("trainer.updateReload") || "0"); } catch(e){}
+    if(serverVersion > APP_VERSION && serverVersion !== schonProbiert){
+      try { sessionStorage.setItem("trainer.updateReload", String(serverVersion)); } catch(e){}
       updateWartet = true;
       updateAnwenden();
     }
