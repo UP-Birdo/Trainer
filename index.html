@@ -34,11 +34,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 html,body{margin:0;height:100%;overscroll-behavior:none}
 /* Während des Trainings: Seite komplett festnageln — kein Scrollen, kein Wippen.
    Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
-body.training-fest{position:fixed;inset:0;width:100%;overflow:hidden}
+body.training-fest{position:fixed;top:0;left:0;right:0;height:var(--app-h,100%);width:100%;overflow:hidden}
 body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   font-size:16px;-webkit-text-size-adjust:100%;
-  position:fixed;inset:0;display:flex;flex-direction:column;
+  /* Höhe kommt aus --app-h (per JS = echte sichtbare Höhe), Rückfall 100%.
+     iOS vermisst position:fixed;inset:0 beim App-Start manchmal zu kurz —
+     dann sitzt die Bottom-Leiste zu hoch ("fliegt"). Siehe appHoeheSetzen(). */
+  position:fixed;top:0;left:0;right:0;height:var(--app-h,100%);display:flex;flex-direction:column;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 /* Scrollender Inhaltsbereich; die Nav-Leiste liegt als Flex-Geschwister darunter. */
 #inhalt{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
@@ -926,6 +929,29 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 "use strict";
 
 /* ============================================================
+   #region Sichtbare Höhe (iOS-Layout-Fix)
+   iOS vermisst position:fixed;inset:0 beim App-Start manchmal falsch
+   (Safe-Area/Home-Indikator unten noch nicht "eingerastet") -> der Body
+   ist zu kurz, die Bottom-Leiste sitzt zu hoch und wirkt losgelöst.
+   Erst eine Neuberechnung (Drehung/Zoom) rückt es zurecht. Deshalb setzen
+   wir die echte sichtbare Höhe hier explizit und aktualisieren sie bei
+   jedem Ereignis, das sie ändern könnte. Body hängt per CSS an --app-h.
+   ============================================================ */
+function appHoeheSetzen(){
+  // innerHeight = volle sichtbare Höhe im Standalone-PWA; ruhiger als
+  // visualViewport.height (das bei Tastatur/Zoom zappelt).
+  var h = window.innerHeight;
+  if(h) document.documentElement.style.setProperty("--app-h", h + "px");
+}
+appHoeheSetzen();
+window.addEventListener("resize", appHoeheSetzen);
+window.addEventListener("orientationchange", appHoeheSetzen);
+window.addEventListener("pageshow", appHoeheSetzen);   // Rückkehr aus dem Hintergrund
+window.addEventListener("load", appHoeheSetzen);
+if(window.visualViewport) window.visualViewport.addEventListener("resize", appHoeheSetzen);
+setTimeout(appHoeheSetzen, 300);   // Nachzügler: Safe-Area rastet teils erst kurz nach Start ein
+
+/* ============================================================
    SICHERHEITSARCHITEKTUR (bitte lesen, bevor hier etwas geändert wird)
 
    Pro Konto existiert ein zufälliger 256-Bit-DATENSCHLÜSSEL.
@@ -1318,7 +1344,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 58;
+const APP_VERSION = 59;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
