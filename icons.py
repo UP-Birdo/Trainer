@@ -1,71 +1,37 @@
-"""Erzeugt die App-Icons: weiße Athleten-Figur auf blauem Verlauf.
+"""Erzeugt die App-Icons aus dem Master-PNG des Designs.
 
-Vorlage ist das im Claude-Design gebaute Icon (Trainer_Icon.html, viewBox
-0 0 300 300): ein abgerundetes Quadrat mit einer Figur aus Kopf, breitem
-Arm-Querbalken, Rumpf und zwei Beinen, Figur bei 85 % Deckkraft.
+Quelle: Trainer-Icon-1024.png (1024x1024, RGBA) neben diesem Skript - die
+glasige Athleten-Figur auf blauem Verlauf, exakt aus dem Claude-Design
+exportiert. Das Master hat abgerundete Ecken mit TRANSPARENTEM Aussenrand.
 
-Zwei bewusste Abweichungen von der SVG, damit es als Home-Screen-Icon
-sauber aussieht:
-  1. RANDLOS quadratisch (keine eingebauten runden Ecken) - iOS/Android
-     legen ihre eigene Maske drueber; sonst gaebe es doppelte Ecken.
-  2. Der Verlauf der Live-Version (#4fadff -> #1e73e6 -> #145fd0) statt des
-     flachen Blaus der statischen SVG-Vorschau.
+Warum wir es nicht 1:1 nehmen: Home-Screen-Icons rundet iOS/Android selbst.
+Eingebackene runde Ecken + Systemmaske ergaeben doppelte Ecken bzw. schwarze
+Schnipsel (Transparenz wird dort schwarz gefuellt). Deshalb fuellen wir die
+transparenten Ecken NAHTLOS auf, indem wir den jeweils naechsten
+undurchsichtigen Bildpunkt fortsetzen (scipy-Distanztransformation). So bleibt
+Figur + Verlauf 1:1 erhalten, das Icon wird aber randlos-quadratisch.
 
-Gerendert wird EIN grosser Master mit Supersampling, dann per LANCZOS auf
-512/192/180 heruntergerechnet - das glaettet die Rundungen.
+Danach per LANCZOS auf 512/192/180 herunterrechnen.
 """
-import math
 import numpy as np
-from PIL import Image, ImageDraw
+from scipy import ndimage
+from PIL import Image
 
-V         = 300
-WINKEL    = 160
-STOPS     = [(0.00, (79, 173, 255)),
-             (0.55, (30, 115, 230)),
-             (1.00, (20,  95, 208))]
-FIG_RGB   = (255, 255, 255)
-FIG_ALPHA = 0.85
+QUELLE = "/home/claude/trainer/Trainer-Icon-1024.png"
 
-BASIS = 512
-SS    = 4
-M     = BASIS * SS
+im  = Image.open(QUELLE).convert("RGBA")
+arr = np.array(im)
+rgb, alpha = arr[..., :3], arr[..., 3]
 
-a = math.radians(WINKEL)
-dx, dy = math.sin(a), -math.cos(a)
-ys, xs = np.mgrid[0:M, 0:M].astype(np.float32)
-t = xs * dx + ys * dy
-t = (t - t.min()) / (t.max() - t.min())
-
-def verlauf(t):
-    out = np.zeros(t.shape + (3,), np.float32)
-    for i in range(len(STOPS) - 1):
-        t0, c0 = STOPS[i]
-        t1, c1 = STOPS[i + 1]
-        m = (t >= t0) & (t <= t1) if i == 0 else (t > t0) & (t <= t1)
-        f = (t[m] - t0) / (t1 - t0)
-        for k in range(3):
-            out[m, k] = c0[k] + (c1[k] - c0[k]) * f
-    return out
-
-master = Image.fromarray(verlauf(t).astype(np.uint8), "RGB")
-
-s = M / V
-maske = Image.new("L", (M, M), 0)
-d = ImageDraw.Draw(maske)
-def rr(x, y, w, h, r):
-    d.rounded_rectangle([x * s, y * s, (x + w) * s, (y + h) * s], radius=r * s, fill=255)
-
-d.ellipse([(150 - 20) * s, (86 - 20) * s, (150 + 20) * s, (86 + 20) * s], fill=255)
-rr(40, 120, 220, 26, 13)
-rr(118, 120, 64, 150, 20)
-rr(120, 200, 26, 70, 13)
-rr(154, 200, 26, 70, 13)
-
-weiss   = Image.new("RGB", (M, M), FIG_RGB)
-maske85 = maske.point(lambda v: int(v * FIG_ALPHA))
-master  = Image.composite(weiss, master, maske85)
+# Fuer jeden Pixel den naechsten UNDURCHSICHTIGEN Pixel finden und dessen
+# Farbe uebernehmen. Undurchsichtige Pixel bleiben sie selbst; die transparenten
+# Ecken bekommen die Farbe der naechsten Kante -> Verlauf laeuft nahtlos weiter.
+transparent = alpha == 0
+idx = ndimage.distance_transform_edt(transparent, return_distances=False, return_indices=True)
+randlos = rgb[idx[0], idx[1]]
+master  = Image.fromarray(randlos.astype(np.uint8), "RGB")
 
 for groesse in (512, 192, 180):
     master.resize((groesse, groesse), Image.LANCZOS).save(
         f"/home/claude/trainer/icon-{groesse}.png", optimize=True)
-print("Icons erzeugt: icon-512.png, icon-192.png, icon-180.png")
+print("Icons erzeugt aus", QUELLE)
