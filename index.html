@@ -721,6 +721,24 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe"><button class="breit" onclick="profilOeffnen()">Fertig</button></div>
 </section>
 
+<!-- v55: Ort als eigene Unterseite (Zurück-Knopf oben links) -->
+<section id="view-sport-ort" class="view">
+  <div class="kopf" style="justify-content:flex-start;gap:12px">
+    <button class="schmal" onclick="sportUnterseiteZurueck()">‹ Zurück</button>
+    <h1 id="sport-ort-titel">Ort</h1>
+  </div>
+  <div id="sport-ort-inhalt"></div>
+</section>
+
+<!-- v55: Equipment als eigene Unterseite (Zurück-Knopf oben links) -->
+<section id="view-sport-geraete" class="view">
+  <div class="kopf" style="justify-content:flex-start;gap:12px">
+    <button class="schmal" onclick="sportUnterseiteZurueck()">‹ Zurück</button>
+    <h1 id="sport-geraete-titel">Equipment</h1>
+  </div>
+  <div id="sport-geraete-inhalt"></div>
+</section>
+
 <section id="view-stoppuhr" class="view">
   <div class="kopf"><h1 id="stopp-name">–</h1></div>
   <div class="meta" id="stopp-sport"></div>
@@ -1286,7 +1304,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 54;
+const APP_VERSION = 55;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1315,6 +1333,18 @@ function datenNachruesten(daten){
   if(daten.einrichtung.ort === "draussen"){
     daten.einrichtung.ort = "zuhause";
     daten.einrichtung.geraete = (daten.einrichtung.geraeteProOrt.zuhause || []).slice();
+  }
+  // v55: Geräte & Ort werden ab jetzt PRO SPORTART gemerkt. Der Bestand lag
+  // bisher global und beschrieb faktisch das Krafttraining — er wandert 1:1
+  // nach kraft. Idempotent: ein vorhandener kraft-Eintrag wird nie überschrieben.
+  if(!daten.einrichtung.geraeteKonfig || typeof daten.einrichtung.geraeteKonfig !== "object")
+    daten.einrichtung.geraeteKonfig = {};
+  if(!daten.einrichtung.geraeteKonfig.kraft){
+    daten.einrichtung.geraeteKonfig.kraft = {
+      ort: daten.einrichtung.ort,                               // darf undefined sein
+      geraete: (daten.einrichtung.geraete || []).slice(),
+      geraeteProOrt: JSON.parse(JSON.stringify(daten.einrichtung.geraeteProOrt || {}))
+    };
   }
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
@@ -2395,7 +2425,7 @@ function profilOeffnen(){
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
   document.getElementById("ziel-formular").hidden = true;
   if(!d.einrichtung) d.einrichtung = { geraete:[] };
-  geraeteVorher = (d.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
+  geraeteVorher = geraeteKonfig("kraft").geraete.slice();   // Schnappschuss: was ist NEU? (v55: pro Sportart)
   geraeteKarteZeichnen();
   zieleZeichnen();
   zeige("view-profil");
@@ -3585,17 +3615,18 @@ let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
 
 function einrichtungOeffnen(){
   const alt = sitzung.daten.einrichtung || {};
+  const altK = geraeteKonfig("kraft");                 // v55: Kraft-Geräte pro Sport
   einrichtung = {
     sportarten: (alt.sportarten || ["kraft"]).slice(),
-    ort: alt.ort || null,
-    geraete: (alt.geraete || []).slice(),
+    ort: altK.ort || null,
+    geraete: altK.geraete.slice(),
     erfahrung: alt.erfahrung || null,
     ziel: alt.ziel || null,
     wochentage: (alt.wochentage || []).slice(),
     dauer: alt.dauer || "mittel",
     fokus: alt.fokus || "keiner",
     bonus: (alt.bonus || ["aufwaermen","dehnen"]).slice(),
-    geraeteProOrt: JSON.parse(JSON.stringify(alt.geraeteProOrt || {}))
+    geraeteProOrt: JSON.parse(JSON.stringify(altK.geraeteProOrt || {}))
   };
   // Vorbelegen aus vorhandenen Aktivitätsplänen: Wer schon Dienstag Tischtennis
   // spielt, soll das im Wizard vorgefunden — nicht neu eintippen.
@@ -3799,10 +3830,24 @@ function wzZusammenfassung(){
 /** Körpergewicht geht immer, dazu die ausgewählten Geräte. */
 function verfuegbareGeraete(){ return ["keine"].concat(einrichtung.geraete || []); }
 
-/** Geräte des angemeldeten Kontos (für Bibliothek/Filter außerhalb des Wizards). */
-function meineGeraete(){
-  const e = sitzung.daten.einrichtung || {};
-  return ["keine"].concat(e.geraete || []);
+/** v55: Geräte-/Ort-Konfiguration EINER Sportart. Legt sie bei Bedarf leer
+    an, damit keine andere Stelle auf undefined prüfen muss. k.ort darf
+    undefined bleiben — der Wizard erzwingt dann eine Wahl; Anzeigen defaulten
+    selbst auf "zuhause". Nur Sportarten MIT Geräten (heute: Kraft) bekommen
+    überhaupt einen Eintrag. */
+function geraeteKonfig(sportId){
+  const e = sitzung.daten.einrichtung;
+  if(!e.geraeteKonfig) e.geraeteKonfig = {};
+  if(!e.geraeteKonfig[sportId]) e.geraeteKonfig[sportId] = { geraete:[], geraeteProOrt:{} };
+  const k = e.geraeteKonfig[sportId];
+  if(!Array.isArray(k.geraete)) k.geraete = [];
+  if(!k.geraeteProOrt) k.geraeteProOrt = {};
+  return k;
+}
+
+/** Geräte einer Sportart fürs Filtern (Bibliothek/Editor-Picker). */
+function meineGeraete(sportId){
+  return ["keine"].concat(geraeteKonfig(sportId || "kraft").geraete || []);
 }
 
 function aktuellesGewichtKg(){
@@ -3952,8 +3997,14 @@ function plaeneErstellen(){
       ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
       ziel:einrichtung.ziel, wochentage:einrichtung.wochentage.slice(),
       dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice(),
-      geraeteProOrt: JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}))
+      geraeteProOrt: JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {})),
+      geraeteKonfig: (sitzung.daten.einrichtung || {}).geraeteKonfig || {}   // v55: Pro-Sport-Speicher NICHT verlieren
     };
+    // v55: die im Wizard eingestellten Kraft-Geräte in ihren Pro-Sport-Slot schreiben
+    const kraftK = geraeteKonfig("kraft");
+    kraftK.ort = einrichtung.ort;
+    kraftK.geraete = einrichtung.geraete.slice();
+    kraftK.geraeteProOrt = JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}));
     // Tage und Dauer je Sportart mitsichern — der Wizard soll sie wiederfinden
     SPORTARTEN.filter(x => x.planTyp === "aktivitaet").forEach(x => {
       sitzung.daten.einrichtung["tage_" + x.id] = (einrichtung["tage_" + x.id] || []).slice();
@@ -4444,7 +4495,7 @@ let offeneSportart = "kraft";
 
 function sportartOeffnen(id){
   offeneSportart = id;
-  geraeteVorher = (sitzung.daten.einrichtung.geraete || []).slice();   // Schnappschuss: was ist NEU?
+  geraeteVorher = geraeteKonfig(id).geraete.slice();   // Schnappschuss: was ist NEU? (v55: pro Sportart)
   sportartSeiteZeichnen();
   zeige("view-sportart");
 }
@@ -4454,13 +4505,32 @@ let bibOffen = {};
     Kraft: die Datenbank-Übungen (mit Gerät); jede andere Sportart: ihre Drills.
     Reine Ansicht — hinzugefügt werden Übungen weiterhin im Editor-Picker. */
 function bibliothekHtml(sportId){
-  let liste;
   if(sportId === "kraft"){
-    liste = UEBUNGEN_DB.map(u => ({ name:u.name, info: geraetName(u.geraet) + (u.modus === "zeit" ? " · Zeit" : "") }));
-  } else {
-    liste = sportUebungen(sportId).map(v => ({ name:v.name,
-      info: (v.art === "technik" ? "Technik" : "Kondition") + " · " + (v.modus === "zeit" ? "Zeit" : "Wdh") }));
+    // v55: nur Übungen, die zum gewählten Equipment passen — Körpergewicht
+    // IMMER dazu — und nach Gerät gruppiert ("ein Gerät hat diese Übungen").
+    const k = geraeteKonfig("kraft");
+    const erlaubt = ["keine"].concat(k.geraete || []);
+    const passend = UEBUNGEN_DB.filter(u => erlaubt.includes(u.geraet));
+    if(!passend.length) return "";
+    const offen = !!bibOffen[sportId];
+    // Reihenfolge: Körpergewicht zuerst, dann die Geräte in GERAETE-Reihenfolge
+    const reihenfolge = ["keine"].concat(GERAETE.map(g => g.id).filter(id => (k.geraete || []).includes(id)));
+    const gruppenHtml = reihenfolge.map(gid => {
+      const us = passend.filter(u => u.geraet === gid);
+      if(!us.length) return "";
+      return '<div class="wahl-gruppe"><label>' + text(geraetName(gid)) + '</label></div>' +
+        us.map(u =>
+          '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><strong>' + text(u.name) + '</strong>' +
+          (u.modus === "zeit" ? '<div class="meta">Zeit</div>' : "") + '</div>').join("");
+    }).join("");
+    return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
+      '<button class="schmal" onclick="bibUmschalten(\'' + sportId + '\')">' +
+        (offen ? "Zuklappen" : "Ansehen (" + passend.length + ")") + '</button></div>' +
+      (offen ? '<div class="abstand">' + gruppenHtml + '</div>' : "") + '</div>';
   }
+  // andere Sportarten: flache Liste ihrer Drills
+  const liste = sportUebungen(sportId).map(v => ({ name:v.name,
+    info: (v.art === "technik" ? "Technik" : "Kondition") + " · " + (v.modus === "zeit" ? "Zeit" : "Wdh") }));
   if(!liste.length) return "";
   const offen = !!bibOffen[sportId];
   return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
@@ -4524,34 +4594,78 @@ function sportartSeiteZeichnen(){
     return;
   }
 
-  // Krafttraining: Ort und Geräte
-  const ort = e.ort || "zuhause";
-  const passend = geraeteFuerOrt(ort);
-  const gruppen = [...new Set(passend.map(g => g.gruppe))];
+  // Krafttraining (v55): Ort & Equipment liegen auf eigenen Unterseiten —
+  // hier nur zwei Knöpfe dorthin, plus die (nach Equipment gefilterte) Bibliothek.
+  const k = geraeteKonfig(s.id);
+  const ort = k.ort || "zuhause";
+  const ortName = { zuhause:"Zuhause", gym:"Gym", eigene:"Eigene Auswahl" }[ort] || ort;
+  const zahl = (k.geraete || []).length;
+  const zeileKnopf = (aufruf, titel, wert) =>
+    '<button class="breit" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px" onclick="' + aufruf + '">' +
+      '<span>' + titel + '</span><span class="meta">' + text(wert) + ' ›</span></button>';
   inhalt.innerHTML =
     '<div class="karte">' +
-      '<div class="zeile"><h2>Ort</h2>' +
-        '<button class="info-knopf" onclick="infoUmschalten(\'info-geraete\')" aria-label="Info">i</button></div>' +
-      '<div id="info-geraete" class="meta info-text" hidden>Was du hier auswählst, steuert die ganze App: welche Übungen die Bibliothek anbietet und was der Plangenerator einbaut. Die Auswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt — beim Wechsel wird nichts übernommen, und gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist.</div>' +
-      '<div class="wahl-raster abstand">' +
+      zeileKnopf("sportOrtOeffnen()", "Austragungsort", ortName) +
+      zeileKnopf("sportGeraeteOeffnen()", "Equipment / Hilfsmittel",
+                 zahl ? (zahl + (zahl === 1 ? " Gerät" : " Geräte")) : "nur Körpergewicht") +
+    '</div>' + bibliothekHtml(s.id) + eigeneUebungenHtml(s.id);
+}
+
+/* v55: Ort und Equipment als eigene Unterseiten (aus der Sportart-Seite heraus).
+   Beide schreiben über dieselben Handler (profilOrtSetzen/profilGeraetUmschalten)
+   in geraeteKonfig(offeneSportart) — nur die Anzeige liegt jetzt getrennt. */
+function sportOrtOeffnen(){ sportOrtZeichnen(); zeige("view-sport-ort"); }
+function sportGeraeteOeffnen(){ sportGeraeteZeichnen(); zeige("view-sport-geraete"); }
+function sportUnterseiteZurueck(){ sportartSeiteZeichnen(); zeige("view-sportart"); }
+
+/** Zeichnet die gerade offene Ansicht neu — je nachdem, welche aktiv ist. */
+function sportKonfigNeuZeichnen(){
+  if(document.getElementById("view-sport-ort").classList.contains("aktiv")) sportOrtZeichnen();
+  else if(document.getElementById("view-sport-geraete").classList.contains("aktiv")) sportGeraeteZeichnen();
+  else sportartSeiteZeichnen();
+}
+
+function sportOrtZeichnen(){
+  const k = geraeteKonfig(offeneSportart);
+  const ort = k.ort || "zuhause";
+  document.getElementById("sport-ort-titel").textContent = sportart(offeneSportart).name + " · Ort";
+  document.getElementById("sport-ort-inhalt").innerHTML =
+    '<div class="karte">' +
+      '<div class="wahl-raster">' +
         [["zuhause","Zuhause"],["gym","Gym"],["eigene","Eigene Auswahl"]].map(([w,n]) =>
           '<button class="' + (ort === w ? "gewaehlt" : "") + '" onclick="profilOrtSetzen(\'' + w + '\')">' + n + '</button>').join("") +
       '</div>' +
+      '<div class="meta abstand">Der Ort steuert, welche Geräte zur Wahl stehen und welche Übungen die Bibliothek zeigt. Die Geräteauswahl wird <strong style="color:var(--chalk)">pro Ort getrennt</strong> gemerkt.</div>' +
+    '</div>';
+}
+
+function sportGeraeteZeichnen(){
+  const k = geraeteKonfig(offeneSportart);
+  const ort = k.ort || "zuhause";
+  const passend = geraeteFuerOrt(ort);
+  const gruppen = [...new Set(passend.map(g => g.gruppe))];
+  document.getElementById("sport-geraete-titel").textContent = sportart(offeneSportart).name + " · Equipment";
+  document.getElementById("sport-geraete-inhalt").innerHTML =
+    '<div class="karte">' +
+      '<div class="meta">Am Ort <strong style="color:var(--chalk)">' +
+        text({ zuhause:"Zuhause", gym:"Gym", eigene:"Eigene Auswahl" }[ort] || ort) +
+        '</strong> verfügbar. Körpergewichtsübungen gibt es immer.</div>' +
       gruppen.map(gr =>
         '<div class="wahl-gruppe"><label>' + gr + '</label></div><div class="wahl-raster">' +
         passend.filter(g => g.gruppe === gr).map(g =>
-          '<button class="' + (e.geraete.includes(g.id) ? "gewaehlt" : "") +
+          '<button class="' + (k.geraete.includes(g.id) ? "gewaehlt" : "") +
           '" onclick="profilGeraetUmschalten(\'' + g.id + '\')">' + text(g.name) + '</button>').join("") + '</div>').join("") +
       '<div id="geraete-neu-knopf"></div>' +
-    '</div>' + bibliothekHtml(s.id) + eigeneUebungenHtml(s.id);
+    '</div>';
   neueGeraeteKnopfZeichnen();
 }
 
 /** Knopf nur, wenn seit dem Öffnen der Seite wirklich Geräte DAZUgekommen sind. */
 function neueGeraeteKnopfZeichnen(){
-  const e = sitzung.daten.einrichtung;
-  const neue = e.geraete.filter(g => !geraeteVorher.includes(g));
-  document.getElementById("geraete-neu-knopf").innerHTML = neue.length === 0 ? "" :
+  const ziel = document.getElementById("geraete-neu-knopf");
+  if(!ziel) return;   // v55: der Knopf lebt nur noch auf der Equipment-Unterseite
+  const neue = geraeteKonfig(offeneSportart).geraete.filter(g => !geraeteVorher.includes(g));  // v55: pro Sportart
+  ziel.innerHTML = neue.length === 0 ? "" :
     '<div class="knopfreihe"><button class="primaer schmal" onclick="neueUebungenEinbauen()">' +
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
 }
@@ -4726,23 +4840,22 @@ function sportartNutzenUmschalten(){
     machen im Gym-Profil nichts gelb und umgekehrt. Nur beim allerersten
     Besuch eines Orts gibt es eine Vorauswahl (Gym: Standardausstattung). */
 function profilOrtSetzen(ort){
-  const e = sitzung.daten.einrichtung;
-  if(!e.geraeteProOrt) e.geraeteProOrt = {};
-  if(e.ort) e.geraeteProOrt[e.ort] = (e.geraete || []).slice();   // aktuellen Ort sichern
+  const k = geraeteKonfig(offeneSportart);                        // v55: pro Sportart
+  if(k.ort) k.geraeteProOrt[k.ort] = (k.geraete || []).slice();   // aktuellen Ort sichern
 
-  e.ort = ort;
-  if(e.geraeteProOrt[ort]){
-    e.geraete = e.geraeteProOrt[ort].slice();                     // bekannter Ort -> genau seine Auswahl
+  k.ort = ort;
+  if(k.geraeteProOrt[ort]){
+    k.geraete = k.geraeteProOrt[ort].slice();                     // bekannter Ort -> genau seine Auswahl
   } else {
-    e.geraete = (ort === "gym") ? gymStandardGeraete() : [];      // neuer Ort -> sinnvolle Vorauswahl
-    e.geraeteProOrt[ort] = e.geraete.slice();
+    k.geraete = (ort === "gym") ? gymStandardGeraete() : [];      // neuer Ort -> sinnvolle Vorauswahl
+    k.geraeteProOrt[ort] = k.geraete.slice();
   }
   // Sicherheitsnetz: nichts anzeigen, was es an diesem Ort nicht gibt
   const moeglich = geraeteFuerOrt(ort).map(g => g.id);
-  e.geraete = e.geraete.filter(g => moeglich.includes(g));
-  e.geraeteProOrt[ort] = e.geraete.slice();
+  k.geraete = k.geraete.filter(g => moeglich.includes(g));
+  k.geraeteProOrt[ort] = k.geraete.slice();
   speichern();
-  sportartSeiteZeichnen();
+  sportKonfigNeuZeichnen();
 }
 
 /** Welche Übungen in welchen Plänen brauchen dieses Gerät?
@@ -4757,8 +4870,7 @@ function haengtAnGeraet(id){
 }
 
 function profilGeraetUmschalten(id){
-  const e = sitzung.daten.einrichtung;
-  const liste = e.geraete;
+  const liste = geraeteKonfig(offeneSportart).geraete;            // v55: pro Sportart
   const pos = liste.indexOf(id);
   if(pos < 0){                                    // dazuwählen ist harmlos
     liste.push(id);
@@ -4789,11 +4901,10 @@ function profilGeraetUmschalten(id){
 }
 
 function geraetSichern(liste){
-  const e = sitzung.daten.einrichtung;
-  if(!e.geraeteProOrt) e.geraeteProOrt = {};
-  e.geraeteProOrt[e.ort || "zuhause"] = liste.slice();            // Gedächtnis des Orts mitführen
+  const k = geraeteKonfig(offeneSportart);                        // v55: pro Sportart
+  k.geraeteProOrt[k.ort || "zuhause"] = liste.slice();            // Gedächtnis des Orts mitführen
   speichern();
-  sportartSeiteZeichnen();
+  sportKonfigNeuZeichnen();
 }
 
 /** Baut für neu hinzugekommene Geräte passende Übungen in die
@@ -4801,14 +4912,15 @@ function geraetSichern(liste){
     damit die Einheiten nicht explodieren. */
 function neueUebungenEinbauen(){
   const e = sitzung.daten.einrichtung;
-  const neueGeraete = e.geraete.filter(g => !geraeteVorher.includes(g));
+  const k = geraeteKonfig("kraft");                              // v55: Kraft-Geräte pro Sport
+  const neueGeraete = k.geraete.filter(g => !geraeteVorher.includes(g));
   const kandidaten = UEBUNGEN_DB.filter(u => neueGeraete.includes(u.geraet));
   const plaene = sitzung.daten.plaene.filter(p => p.quelle === "assistent");
   if(plaene.length === 0){ meldung("Es gibt keine automatisch erstellten Pläne. Über „Bearbeiten“ → „Übung hinzufügen“ kannst du die neuen Geräte jederzeit selbst einbauen."); return; }
 
   const merker = einrichtung;
-  einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger", ort: e.ort,
-                  geraete: e.geraete, wochentage: e.wochentage || [], dauer: e.dauer || "mittel",
+  einrichtung = { ziel: e.ziel || "muskel", erfahrung: e.erfahrung || "anfaenger", ort: k.ort,
+                  geraete: k.geraete, wochentage: e.wochentage || [], dauer: e.dauer || "mittel",
                   fokus: e.fokus || "keiner", bonus: e.bonus || [] };
   const werte = startwerteBerechnen();
   const kg = aktuellesGewichtKg();
@@ -4833,8 +4945,8 @@ function neueUebungenEinbauen(){
 
   if(bericht.length === 0){ meldung("Für die neuen Geräte gibt es keine passende Ergänzung — die Kategorien sind in deinen Plänen schon abgedeckt. Über die Bibliothek kannst du trotzdem jede Übung von Hand einbauen."); return; }
   speichern();
-  geraeteVorher = e.geraete.slice();
-  sportartSeiteZeichnen();
+  geraeteVorher = k.geraete.slice();
+  sportKonfigNeuZeichnen();
   meldung("Eingebaut:\n\n" + bericht.join("\n") + "\n\nDie Startwerte sind vorsichtig gewählt — die Progression kalibriert sie nach.");
 }
 
@@ -5085,7 +5197,7 @@ function uebungPickerZeichnen(){
       '<button class="schmal' + (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung</button>' +
     '</div>';
   if(editorPlan.typ === "kraft"){
-    const meine = meineGeraete();   // ["keine", ...eigene Geräte]
+    const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
     const optionen = '<option value="alle">Alle Geräte</option>' +
       '<option value="keine">Körpergewicht</option>' +
       GERAETE.filter(g => meine.includes(g.id))
@@ -5112,7 +5224,7 @@ function pickerUebungenZeichnen(){
   const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
   let namen;
   if(editorPlan.typ === "kraft"){
-    const meine = meineGeraete();
+    const meine = meineGeraete(editorPlan.sportart);
     const g = (document.getElementById("picker-geraet") || {}).value || "alle";
     namen = UEBUNGEN_DB
       .filter(u => meine.includes(u.geraet) && (g === "alle" || u.geraet === g) && !drin.has(u.name))
@@ -5885,7 +5997,8 @@ function navAktualisieren(id){
                      "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-profil":"nav-profil",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
                      "view-editor":"nav-plaene",
-                     "view-sportart":"nav-profil" };   // Unterseite von Profil — wie der Editor unter Pläne
+                     "view-sportart":"nav-profil",
+                     "view-sport-ort":"nav-profil", "view-sport-geraete":"nav-profil" };   // v55: Unterseiten von Profil
   const an = !!bereiche[id];
   document.body.classList.toggle("nav-an", an);
   ["nav-start","nav-plaene","nav-statistik","nav-profil","nav-einst"].forEach(k =>
