@@ -19,26 +19,33 @@
    Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
    ============================================================ */
 :root{
-  --ground:#16181C; --panel:#1E2126; --panel-2:#252930;
-  --chalk:#EDEAE3; --muted:#8C9199; --line:#2C3037;
-  --signal:#F2C14E; --rest:#3E8FD6; --warn:#C8553D;
+  --ground:#0F1114; --panel:#1A1D23; --panel-2:#252A31;
+  --chalk:#F5F3F0; --muted:#8B909A; --line:#2D3239;
+  --signal:#F4C74E; --rest:#3B92E8; --warn:#D95C47;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
   /* Höhe der Bottom-Bar — FEST, nicht aus dem Textfluss gewachsen.
      Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
      verdeckt (siehe body.nav-an .view.aktiv). */
   --navhoehe:52px;   /* v54: reine Tipp-Zeilenhöhe; Safe-Area kommt separat dazu */
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:0 4px 6px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+  --shadow-lg:0 10px 20px rgba(0,0,0,0.16);
+  --transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* ============================================================
-   Heller Modus (v61) — nur die NEUTRALEN Tokens werden gedreht.
-   Die drei Akzentfarben (signal/rest/warn) werden etwas dunkler, damit sie
-   sowohl als Fläche (mit dunklem Text) ALS AUCH als Beschriftungstext auf
-   hellem Grund lesbar bleiben. Aktiv über html.hell (siehe
-   darstellungAnwenden()). Dunkel bleibt Standard.
+   Heller Modus (v61+) — verfeinert mit besseren Kontrasten.
+   Nur die NEUTRALEN Tokens werden gedreht.
+   Die drei Akzentfarben (signal/rest/warn) sind optimiert für
+   Lesbarkeit auf hellem Grund UND als Text. 
+   Aktiv über html.hell (siehe darstellungAnwenden()). Dunkel bleibt Standard.
    ============================================================ */
 html.hell{
-  --ground:#F4F3EF; --panel:#FFFFFF; --panel-2:#EAE7E0;
-  --chalk:#1D2024; --muted:#6A6F78; --line:#DAD8D0;
-  --signal:#B0791C; --rest:#2E73B8; --warn:#B23A26;
+  --ground:#FAFAF8; --panel:#FFFFFF; --panel-2:#F3F1ED;
+  --chalk:#0D1117; --muted:#5F6B78; --line:#E8E5DF;
+  --signal:#C89E1C; --rest:#1D6DB5; --warn:#C74830;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:0 10px 20px rgba(0,0,0,0.10);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 /* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
@@ -66,45 +73,59 @@ h1{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute
 h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 .kopf{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 
-button{font-family:inherit;font-size:16px;border:0;border-radius:4px;padding:14px 16px;
-  min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer}
+button{font-family:inherit;font-size:16px;border:0;border-radius:6px;padding:14px 16px;
+  min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer;
+  transition:var(--transition);box-shadow:var(--shadow-sm)}
+button:hover:not(:disabled){background:var(--line);box-shadow:var(--shadow-md)}
+button:active:not(:disabled){transform:scale(0.98)}
 button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-button.primaer{background:var(--signal);color:#16181C}
-button.gefahr{background:transparent;color:var(--warn);border:1px solid var(--line)}
+button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--shadow-md)}
+button.primaer:hover:not(:disabled){box-shadow:var(--shadow-lg);opacity:0.95}
+button.gefahr{background:transparent;color:var(--warn);border:2px solid var(--warn);transition:var(--transition)}
+button.gefahr:hover:not(:disabled){background:rgba(215,92,71,0.08)}
 button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
 button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
-  background:var(--panel-2);border:1px solid var(--line)}
+  background:var(--panel-2);border:2px solid var(--line);transition:var(--transition)}
+button.rund:hover:not(:disabled){border-color:var(--signal);background:rgba(244,199,78,0.08)}
 button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /* 44px = Mindestgröße für Tippziele */
 button:disabled{opacity:.4}
 .knopfreihe{display:flex;gap:8px;margin-top:12px}
 .knopfreihe>*{flex:1}
 
 input,select{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
-  border:1px solid var(--line);border-radius:4px;padding:11px 12px;width:100%;min-height:44px;appearance:none}
-input:focus,select:focus{outline:none;border-color:var(--signal)}
-label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+  border:2px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;min-height:44px;appearance:none;
+  transition:var(--transition)}
+input:hover,select:hover{border-color:var(--muted)}
+input:focus,select:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+input::placeholder{color:var(--muted);opacity:0.7}
+label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px;font-weight:600}
 
-.karte{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:10px;max-width:100%;overflow:hidden}
+.karte{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;max-width:100%;overflow:hidden;
+  transition:var(--transition);box-shadow:var(--shadow-sm)}
+.karte:hover{border-color:var(--muted);box-shadow:var(--shadow-md)}
 .zeile{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
-.leer{border:1px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted)}
-.hinweis{background:var(--panel);border-left:3px solid var(--warn);padding:10px 12px;
-  font-size:13px;color:var(--muted);border-radius:0 4px 4px 0;margin-bottom:16px;line-height:1.5}
+.leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
+  background:rgba(139,144,154,0.03);transition:var(--transition)}
+.hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
+  font-size:13px;color:var(--muted);border-radius:4px;margin-bottom:16px;line-height:1.6;box-shadow:var(--shadow-sm);transition:var(--transition)}
+.hinweis:hover{box-shadow:var(--shadow-md)}
 .raster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .abstand{margin-top:16px}
 .geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
-  background:var(--panel-2);border:1px dashed var(--signal);border-radius:6px;
-  padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all}
+  background:var(--panel-2);border:2px dashed var(--signal);border-radius:6px;
+  padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;transition:var(--transition)}
+.geheim:hover{background:rgba(244,199,78,0.08)}
 .kennzahl{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--signal)}
-.kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
 /* Strichliste der Sätze */
 .strichliste{display:flex;gap:5px;margin:12px 0 14px;flex-wrap:wrap}
-.strich{width:9px;height:32px;border-radius:1px;transform:skewX(-8deg);
-  border:1.5px solid var(--line);background:transparent}
-.strich.erledigt{background:var(--muted);border-color:var(--muted)}
-.strich.jetzt{background:var(--signal);border-color:var(--signal)}
+.strich{width:9px;height:32px;border-radius:2px;transform:skewX(-8deg);
+  border:2px solid var(--line);background:transparent;transition:var(--transition)}
+.strich.erledigt{background:var(--signal);border-color:var(--signal);box-shadow:var(--shadow-sm)}
+.strich.jetzt{background:var(--rest);border-color:var(--rest);box-shadow:0 0 8px rgba(59,146,232,0.3)}
 
 /* Trainingsansicht */
 /* Trainingsansicht: exakt Bildschirmhöhe (Body ist währenddessen fixiert) —
@@ -124,8 +145,8 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .stopp-uhr{display:flex;align-items:center;justify-content:center;padding:24px 0}
 .stopp-uhr .uhr-zahl{font-size:clamp(48px,18vw,96px)}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
-.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px}
-.balken span{display:block;height:100%;background:var(--signal);width:0%}
+.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.1)}
+.balken span{display:block;height:100%;background:var(--signal);width:0%;transition:width 0.3s ease;box-shadow:0 0 8px rgba(244,199,78,0.4)}
 .balken-text{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px}
 @media (prefers-reduced-motion:no-preference){
   .uhr-zahl.gleich{animation:puls .6s ease-in-out infinite}
@@ -135,38 +156,42 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 /* Bewertung */
 .note{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .note button{flex:1 1 auto;min-width:60px;padding:12px 8px;font-family:var(--mono);background:var(--panel-2);
-  color:var(--muted);white-space:normal;line-height:1.25;font-size:14px}
-.notenhilfe{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+  color:var(--muted);white-space:normal;line-height:1.25;font-size:14px;border:2px solid var(--line);
+  border-radius:6px;transition:var(--transition)}
+.note button:hover:not(:disabled){border-color:var(--muted);background:rgba(139,144,154,0.03)}
+.note button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+.notenhilfe{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
 
 /* Umschalter Wdh/Zeit */
 .umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel)}
 
 /* Statistik */
-.diagramm{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.diagramm{width:100%;height:auto;display:block;background:var(--panel);border:2px solid var(--line);border-radius:8px;box-shadow:var(--shadow-sm)}
 .diagramm text{font-family:var(--mono)}   /* var() in SVG-Attributen ist ungültig — CSS greift stattdessen */
 /* minmax(0,1fr) statt 1fr: verhindert, dass Zellinhalte die Spalten
    breiter machen als den Bildschirm (klassische Grid-Falle). */
 .kalender{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:10px;
   width:100%;max-width:100%}
 .kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0;
-  min-width:0;overflow:hidden}
-.tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px;
+  min-width:0;overflow:hidden;font-weight:600}
+.tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:6px;
   font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer;
-  min-width:0;overflow:hidden;position:relative}
+  min-width:0;overflow:hidden;position:relative;transition:var(--transition);border:2px solid transparent}
+.tag:hover:not(.leer2){border-color:var(--signal)}
 .tag.leer2{background:transparent;cursor:default}
-.tag.trainiert{color:#16181C;font-weight:700;cursor:default}   /* Farbe kommt je Sportart aus dem JS */
-.tag.geplant{background:transparent;border:1.5px solid var(--line);font-weight:700}  /* nur umrandet = noch nicht passiert */
-.tag.ruhe{background:var(--rest);color:#16181C;font-weight:700}
-.tag.autoruhe{background:transparent;border:1px dashed var(--line);color:var(--muted)}
-.tag.heute{outline:1.5px solid var(--chalk)}
+.tag.trainiert{color:#0F1114;font-weight:700;cursor:default;box-shadow:var(--shadow-sm)}   /* Farbe kommt je Sportart aus dem JS */
+.tag.geplant{background:transparent;border:2px solid var(--line);font-weight:700}  /* nur umrandet = noch nicht passiert */
+.tag.ruhe{background:var(--rest);color:#FFFFFF;font-weight:700}
+.tag.autoruhe{background:transparent;border:2px dashed var(--line);color:var(--muted)}
+.tag.heute{outline:2px solid var(--signal);outline-offset:1px}
 /* Kern für Tage mit drei und mehr Sportarten: Die Zahl braucht einen ruhigen
    Untergrund, sonst verschwindet sie auf einem der Tortenstücke. */
 .tag.mehrfach .kern{position:absolute;inset:5px;border-radius:3px;background:var(--ground);
   color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:700}
 /* Sondertraining = Training aus einem Plan ohne festen Tag */
 .sonderpunkt{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-  width:4px;height:4px;border-radius:50%;background:#16181C;opacity:.55}
+  width:5px;height:5px;border-radius:50%;background:var(--signal);opacity:.7}
 
 /* Wasserzeichen: statisch GANZ UNTEN am Ende einer Ansicht (kein Overlay). */
 .wasserzeichen{margin-top:32px;text-align:center;font-family:var(--mono);font-size:9px;
@@ -183,8 +208,9 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
    ============================================================ */
 #nav{
   flex-shrink:0; z-index:6; display:flex;
-  background:var(--panel); border-top:1px solid var(--line);
+  background:var(--panel); border-top:2px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -2px 8px rgba(0,0,0,0.1);
 }
 #nav button{
   position:relative;                 /* Anker für den Akzentbalken (::before) */
@@ -192,7 +218,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   background:transparent; border:0; border-radius:0; color:var(--muted);
   font-size:10px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;
-  white-space:nowrap; overflow:hidden; transition:color .18s ease;
+  white-space:nowrap; overflow:hidden; transition:var(--transition);
 }
 /* Akzentbalken über dem aktiven Tab: fährt aus der Mitte auf (scaleX 0 -> 1). */
 #nav button::before{
@@ -211,7 +237,7 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
    Akzentbalkens ein graues Pill hinter dem aktiven Tab (wie in der iOS-
    App-Store-Leiste). Greift nur bei body.sys-ios (System = iPhone).
    ============================================================ */
-body.sys-ios #nav{ background:transparent; border-top:0; }
+body.sys-ios #nav{ background:transparent; border-top:0; box-shadow:none; }
 body.sys-ios #nav button{ z-index:0; }                 /* Stapelkontext, damit das Pill DAHINTER liegt */
 body.sys-ios #nav button::before{
   /* aus dem 26x3-Balken oben wird ein Pill hinter Icon + Text */
@@ -220,7 +246,7 @@ body.sys-ios #nav button::before{
   background:var(--panel-2);
   transform:none;                                       /* scaleX-Animation des Balkens aus */
   z-index:-1;                                            /* hinter Icon + Text */
-  opacity:0; transition:opacity .18s ease;
+  opacity:0; transition:opacity var(--transition);
 }
 body.sys-ios #nav button.aktiv::before{ transform:none; opacity:1; }
 body.sys-ios #nav button.aktiv .sym svg{ transform:none; }   /* im Pill nicht anheben */
@@ -230,7 +256,9 @@ body.sys-ios #nav button.aktiv .sym svg{ transform:none; }   /* im Pill nicht an
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
-.heute{background:var(--panel);border:1px solid var(--signal);border-radius:6px;padding:16px;margin-bottom:14px}
+.heute{background:var(--panel);border:2px solid var(--signal);border-radius:8px;padding:16px;margin-bottom:14px;
+  box-shadow:0 4px 12px rgba(244,199,78,0.15);transition:var(--transition)}
+.heute:hover{box-shadow:0 8px 16px rgba(244,199,78,0.2)}
 .heute-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);font-weight:700}
 .heute h2{font-size:24px;margin:6px 0 4px}
 
@@ -246,24 +274,28 @@ body:not(.nav-an) #nav{display:none}
 /* Wizard: eine Frage pro Bildschirm, wischbar */
 #view-wizard.aktiv{display:flex;flex-direction:column;height:100%;padding:16px 16px 20px;max-width:640px;margin:0 auto}
 .wz-fortschritt{display:flex;gap:4px;margin-bottom:20px}
-.wz-punkt{flex:1;height:3px;border-radius:2px;background:var(--line)}
-.wz-punkt.erledigt{background:var(--signal)}
+.wz-punkt{flex:1;height:4px;border-radius:2px;background:var(--line);transition:var(--transition)}
+.wz-punkt.erledigt{background:var(--signal);box-shadow:0 0 6px rgba(244,199,78,0.3)}
 .wz-punkt.jetzt{background:var(--chalk)}
 .wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
 .wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
 .wz-hilfe{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px}
 .wz-optionen{display:flex;flex-direction:column;gap:8px}
-.wz-opt{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
-  padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35}
-.wz-opt.gewaehlt{border-color:var(--signal);background:var(--panel-2);color:var(--signal)}
+.wz-opt{width:100%;text-align:left;background:var(--panel);border:2px solid var(--line);
+  padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35;border-radius:6px;
+  transition:var(--transition);cursor:pointer}
+.wz-opt:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
+.wz-opt.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 .wz-opt small{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-weight:400}
 .wz-opt.gewaehlt small{color:var(--muted)}
 /* minmax(0,1fr) statt 1fr: lange Optionsnamen dürfen die Spalte nicht sprengen. */
 .wz-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
 /* Eigenes Zeit-Feld unter den Dauer-Presets (v67) — Optik wie eine wz-opt-Zeile. */
-.wz-zeit-custom{margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
-.wz-zeit-custom.gewaehlt{border-color:var(--signal)}
+.wz-zeit-custom{margin-top:8px;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:12px 14px;
+  transition:var(--transition)}
+.wz-zeit-custom:hover{border-color:var(--muted)}
+.wz-zeit-custom.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 .wz-zeit-custom label{display:block;font-size:16px;margin-bottom:8px}
 .wz-zeit-custom.gewaehlt label{color:var(--signal)}
 .wz-zeit-eingabe{display:flex;align-items:center;gap:10px}
@@ -277,19 +309,24 @@ body:not(.nav-an) #nav{display:none}
 .wahl-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .wahl-raster button{width:100%;min-height:44px;padding:10px 8px;font-size:14px;
   background:var(--panel-2);color:var(--muted);white-space:normal;line-height:1.25;
-  border:1px solid var(--line)}
-.wahl-raster button.gewaehlt{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:700}
+  border:2px solid var(--line);border-radius:6px;transition:var(--transition)}
+.wahl-raster button:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
+.wahl-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);font-weight:700;
+  box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 .wahl-gruppe{margin:14px 0 6px}
 /* Wochentage in einer Zeile, wie die Kopfzeile des Kalenders.
    minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
 .tage-raster{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .tage-raster button{min-height:44px;padding:8px 2px;font-size:12px;font-family:var(--mono);
-  background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
+  background:var(--panel-2);color:var(--muted);border:2px solid var(--line);border-radius:6px;transition:var(--transition)}
+.tage-raster button:hover{border-color:var(--muted)}
+.tage-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal)}
 /* Sportart-Liste im Profil: eine Zeile pro Sportart, tippen öffnet die Seite */
 .sportzeile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
-  padding:11px 12px;margin-bottom:6px;min-height:52px}
+  background:var(--panel-2);border:2px solid var(--line);border-radius:6px;
+  padding:11px 12px;margin-bottom:6px;min-height:52px;transition:var(--transition);cursor:pointer}
+.sportzeile:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
 .sportzeile .punkt{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .sportzeile .text{flex:1;min-width:0;color:var(--chalk);font-size:14px;line-height:1.25}
 .sportzeile .text small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
@@ -297,18 +334,20 @@ body:not(.nav-an) #nav{display:none}
 .sportzeile .pfeil{color:var(--muted);font-size:16px;flex:0 0 auto}
 
 /* Aktionsmenü (langes Drücken auf eine Plan-Karte) */
-#menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
-  align-items:flex-end;justify-content:center;padding:16px;z-index:11}
+#menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;
+  align-items:flex-end;justify-content:center;padding:16px;z-index:11;backdrop-filter:blur(2px)}
 #menue-hintergrund.offen{display:flex}
-#menue{background:var(--panel);border:1px solid var(--line);border-radius:10px;
-  padding:14px;max-width:420px;width:100%}
+#menue{background:var(--panel);border:2px solid var(--line);border-radius:12px;
+  padding:14px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
 #menue h2{margin-bottom:12px}
-#menue button{width:100%;margin-bottom:8px;text-align:left}
-.karte.gedrueckt{border-color:var(--signal)}
+#menue button{width:100%;margin-bottom:8px;text-align:left;transition:var(--transition)}
+#menue button:hover{background:var(--panel-2)}
+.karte.gedrueckt{border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 /* Vorschau — das Inhaltsverzeichnis vor dem Training */
 .vs-zeile{display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--panel);
-  border:1px solid var(--line);border-radius:6px;margin-bottom:5px}
-.vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right}
+  border:2px solid var(--line);border-radius:6px;margin-bottom:5px;transition:var(--transition)}
+.vs-zeile:hover{border-color:var(--muted)}
+.vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right;font-weight:600}
 .vs-titel{font-size:14px;color:var(--chalk);line-height:1.3;min-width:0}
 .vs-titel small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
 .vs-pause{font-size:11px;color:var(--rest);font-family:var(--mono);margin:0 0 5px 34px}
@@ -317,18 +356,61 @@ body:not(.nav-an) #nav{display:none}
 .karte[data-plan]{user-select:none;-webkit-user-select:none}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
-.info-knopf{width:22px;height:22px;min-height:22px;border-radius:50%;padding:0;font-size:12px;
-  font-family:var(--mono);background:transparent;border:1px solid var(--muted);color:var(--muted);
-  flex:0 0 auto;line-height:1}
-.info-text{margin-top:8px;line-height:1.55}
+.info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
+  font-family:var(--mono);background:transparent;border:2px solid var(--muted);color:var(--muted);
+  flex:0 0 auto;line-height:1;transition:var(--transition);font-weight:700}
+.info-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 6px rgba(244,199,78,0.15);transform:scale(1.05)}
+.info-text{margin-top:8px;line-height:1.6;animation:slideDown 0.3s ease-out}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+/* Toast-Benachrichtigungen (Feedback nach Aktionen) */
+#toast-container{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:11;
+  display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;
+  max-width:90%;width:300px}
+.toast{background:var(--panel);border:2px solid var(--line);border-radius:8px;padding:12px 16px;
+  color:var(--chalk);font-weight:600;box-shadow:var(--shadow-md);animation:toastIn 0.3s ease-out;
+  display:flex;align-items:center;gap:12px;font-size:14px;pointer-events:auto;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.toast.erfolg{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal)}
+.toast.fehler{border-color:var(--warn);background:rgba(215,92,71,0.08);color:var(--warn)}
+.toast.info{border-color:var(--rest);background:rgba(59,146,232,0.08);color:var(--rest)}
+.toast-icon{font-size:18px;flex:0 0 auto}
+.toast-undo{margin-left:auto;padding:4px 8px;font-size:12px;cursor:pointer;background:transparent;
+  border:none;color:inherit;text-decoration:underline;font-weight:700;transition:var(--transition);
+  flex:0 0 auto}
+.toast-undo:active{opacity:0.7}
+@keyframes toastIn{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-16px);}}
+
+/* Floating Action Button */
+.fab{position:fixed;bottom:calc(var(--navhoehe) + 20px + env(safe-area-inset-bottom));right:20px;
+  width:56px;height:56px;border-radius:50%;background:var(--signal);color:#16181C;border:none;
+  font-size:24px;font-weight:700;box-shadow:var(--shadow-lg);cursor:pointer;z-index:9;
+  transition:var(--transition);display:flex;align-items:center;justify-content:center}
+.fab:hover:not(:disabled){box-shadow:0 12px 24px rgba(244,199,78,0.4);transform:scale(1.08)}
+.fab:active:not(:disabled){transform:scale(0.95)}
+.fab.fab-klein{width:48px;height:48px;font-size:20px}
+
+/* Close-Button (X oben rechts) */
+.schließen-knopf{position:absolute;top:20px;right:16px;width:36px;height:36px;min-height:36px;
+  padding:0;border-radius:50%;background:transparent;border:2px solid var(--line);
+  color:var(--chalk);font-size:18px;transition:var(--transition);z-index:5}
+.schließen-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);background:rgba(244,199,78,0.08)}
+
+/* Profil-Menü Sektionen */
+.menu-sektion{margin-bottom:24px}
+.menu-sektion > h2{color:var(--muted);font-size:13px;letter-spacing:.18em;text-transform:uppercase;
+  margin:0 0 12px;font-weight:700;padding:0 0 0 4px}
+.menu-sektion > .karte{margin:0}
+.menu-sektion:first-child{margin-top:0}
 
 /* Eigener Dialog (ersetzt confirm/alert) */
-#dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
-  align-items:center;justify-content:center;padding:24px;z-index:10}
+#dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;
+  align-items:center;justify-content:center;padding:24px;z-index:10;backdrop-filter:blur(2px)}
 #dialog-hintergrund.offen{display:flex}
-#dialog{background:var(--panel);border:1px solid var(--line);border-radius:8px;
-  padding:20px;max-width:420px;width:100%}
-#dialog p{margin:0 0 16px;line-height:1.5;white-space:pre-line}
+#dialog{background:var(--panel);border:2px solid var(--line);border-radius:12px;
+  padding:20px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
+#dialog p{margin:0 0 16px;line-height:1.6;white-space:pre-line}
 
 /* ============================================================
    AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
@@ -449,6 +531,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" id="wz-zurueck" onclick="wzZurueck()">Zurück</button>
     <button class="primaer" id="wz-weiter" onclick="wzWeiter()" style="flex:2">Weiter</button>
   </div>
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
+    <span id="wz-schritt-anzeige">Schritt 1/7</span>
+  </div>
 </section>
 
 <!-- ============================================================
@@ -493,6 +578,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe">
     <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Training nachtragen</button>
   </div>
+  
+  <!-- FAB für neuen Plan -->
+  <button class="fab" onclick="planAnlegen()" title="Neuer Plan" aria-label="Neuer Plan">+</button>
+  
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -640,7 +729,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
   <div class="karte">
     <h2>Profil</h2>
-    <div class="knopfreihe"><button class="schmal" onclick="profilOeffnen()">Profil öffnen</button></div>
+    <div class="knopfreihe"><button class="primaer schmal" onclick="profilOeffnen()">Profil verwalten</button></div>
   </div>
 
   <div class="karte">
@@ -974,6 +1063,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 </div><!-- /#inhalt -->
 
+<!-- Toast-Benachrichtigungen (Feedback-System) -->
+<div id="toast-container"></div>
+
 <!-- Bottom-Navigation (v58: komplett neu). Einheitlicher Strich-Iconsatz,
      Akzentbalken über dem aktiven Tab (siehe CSS). IDs, onclick-Ziele und die
      Reihenfolge sind BEWUSST unverändert — daran hängen navGehe() und
@@ -1031,6 +1123,38 @@ window.addEventListener("pageshow", appHoeheSetzen);   // Rückkehr aus dem Hint
 window.addEventListener("load", appHoeheSetzen);
 if(window.visualViewport) window.visualViewport.addEventListener("resize", appHoeheSetzen);
 setTimeout(appHoeheSetzen, 300);   // Nachzügler: Safe-Area rastet teils erst kurz nach Start ein
+
+/* ============================================================
+   #region Toast-Benachrichtigungen (Feedback nach Aktionen)
+   ============================================================ */
+function zeigenToast(text, art="info", undo=null){
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = "toast " + (art || "info");
+  
+  let icon = "ℹ️";
+  if(art === "erfolg") icon = "✓";
+  if(art === "fehler") icon = "✕";
+  
+  let html = `<span class="toast-icon">${icon}</span><span>${text}</span>`;
+  if(undo){
+    html += `<button class="toast-undo" onclick="this.parentElement.ondone && this.parentElement.ondone()">Rückgängig</button>`;
+  }
+  toast.innerHTML = html;
+  
+  if(undo){
+    toast.ondone = undo;
+  }
+  
+  container.appendChild(toast);
+  
+  // Auto-remove nach 3.5 Sekunden (oder 5 Sekunden wenn Undo-Button)
+  const delay = undo ? 5000 : 3500;
+  setTimeout(() => {
+    toast.style.animation = "toastOut 0.3s ease-out";
+    setTimeout(() => toast.remove(), 300);
+  }, delay);
+}
 
 /* ============================================================
    SICHERHEITSARCHITEKTUR (bitte lesen, bevor hier etwas geändert wird)
@@ -1425,7 +1549,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 71;
+const APP_VERSION = 72;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1754,6 +1878,7 @@ function sicherungErledigt(){
   sitzung.daten.sicherung = { zeit: Date.now(), version: APP_VERSION };
   speichern();
   sicherungBannerZeichnen();
+  zeigenToast("✓ Sicherung erstellt", "erfolg");
 }
 
 /** Öffnet auf dem iPhone das Teilen-Menü ("In Dateien sichern" -> Ordner wählen).
@@ -1931,7 +2056,7 @@ function uhrText(restSekunden){
 function zeitAnsage(sekunden, einheitId){
   const e = zeitEinheit(einheitId);
   const wert = inEinheit(sekunden, e.id);
-  if(e.id === "s") return wert + " Sekunden";
+  if(e.id === "s") return wert + (wert === 1 ? " Sekunde" : " Sekunden");
   return String(wert).replace(".", ",") + " " + (wert === 1 ? e.ansage.slice(0,-1) : e.ansage);
 }
 
@@ -2076,7 +2201,11 @@ function progressionAnwenden(uebung, note){
       else u.wdh = u.wdhMax;
     }
     if(u.wdh < u.wdhMin){
-      if(u.gewichtSchritt > 0 && u.gewicht - u.gewichtSchritt > 0){
+      // Spiegelbild des Steigerungspfads: Gewicht eine Stufe runter (bis 0 =
+      // Körpergewicht), Wdh zurück auf wdhMax. ">=" statt "- schritt > 0", damit
+      // auch die leichteste Stufe (Gewicht == Schritt) noch entlastet werden kann
+      // und nicht ewig auf wdhMin klebt. Nie negativ.
+      if(u.gewichtSchritt > 0 && u.gewicht >= u.gewichtSchritt){
         u.gewicht = Math.round((u.gewicht - u.gewichtSchritt)*4)/4; u.wdh = u.wdhMax;
       } else u.wdh = u.wdhMin;
     }
@@ -2119,8 +2248,12 @@ function heutigerWochentag(){ return (new Date().getDay() + 6) % 7 + 1; }
 /** Fortlaufende Montag-Wochennummer seit einer festen Epoche (2024-01-01 war
     ein Montag). Dient der „alle 2 Wochen"-Parität. */
 function wocheSeitEpoche(iso){
-  const d = new Date(iso + "T12:00:00");
-  return Math.floor((d - new Date("2024-01-01T12:00:00")) / (7 * 86400000));
+  // UTC-Tageszählung statt lokaler Date-Differenz: bei Sommerzeit ist ein
+  // Sommertag lokal nur 23/25 h vom Winter-Epochen-Tag entfernt, wodurch die
+  // "alle 2 Wochen"-Parität an den Zeitumstellungen umkippte (v. a. montags).
+  const [y, m, d] = iso.split("-").map(Number);
+  const tage = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(2024, 0, 1)) / 86400000);
+  return Math.floor(tage / 7);
 }
 /** D2: Findet an einem konkreten Datum statt? Einzeltermine schlagen alles;
     sonst muss der Wochentag passen UND (bei Takt 2) die Wochen-Parität. */
@@ -2300,14 +2433,14 @@ function planListeZeichnen(){
   };
 
   /* B4: nach Sportart gruppiert. Reihenfolge der Gruppen wie in SPORTARTEN,
-     innerhalb einer Gruppe alphabetisch nach Plan-Name. Sportarten, die im
-     Moment keine sichtbaren Pläne haben, tauchen nicht auf. Ein farbiger Kopf
-     je Gruppe ersetzt die Sportart-Marke in den einzelnen Karten. */
+     innerhalb einer Gruppe die vom Nutzer gewählte Reihenfolge (▲/▼ im Plan-
+     Menü, gespeichert als Array-Reihenfolge). Sportarten, die im Moment keine
+     sichtbaren Pläne haben, tauchen nicht auf. Ein farbiger Kopf je Gruppe
+     ersetzt die Sportart-Marke in den einzelnen Karten. */
   let html = "";
   const gruppen = SPORTARTEN.filter(s => sichtbar.some(p => (p.sportart || "kraft") === s.id));
   gruppen.forEach(s => {
-    const grp = sichtbar.filter(p => (p.sportart || "kraft") === s.id)
-                        .sort((a,b) => text(a.name).localeCompare(text(b.name), "de"));
+    const grp = sichtbar.filter(p => (p.sportart || "kraft") === s.id);   // stabile Filter-Reihenfolge = Array-Reihenfolge
     html += '<div class="meta" style="margin:14px 0 6px;font-weight:700">' +
       '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
       grp.map(karte).join("");
@@ -2359,16 +2492,21 @@ function menueSchliessen(e){
 
 function planMenue(planId){
   const plaene = sitzung.daten.plaene;
-  const index = plaene.findIndex(p => p.id === planId);
-  const plan = plaene[index];
+  const plan = plaene.find(p => p.id === planId);
+  // Pfeile beziehen sich auf die Position INNERHALB der Sportart-Gruppe, so
+  // wie die Liste sie zeigt — nicht auf den rohen Array-Index (sonst passen
+  // die angebotenen Pfeile nicht zur sichtbaren Position).
+  const sport = plan.sportart || "kraft";
+  const gruppe = plaene.filter(p => (p.sportart || "kraft") === sport);
+  const pos = gruppe.findIndex(p => p.id === planId);
   // Symbole nur bei den Pfeilen: dort IST der Pfeil die Aussage.
   // Bei Bearbeiten/Duplizieren/Löschen sagt das Wort schon alles.
   const aktionen = [
     { text:"Bearbeiten", tun:() => editorOeffnen(planId) },
     { text:"Duplizieren", tun:() => planDuplizieren(planId) }
   ];
-  if(index > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
-  if(index < plaene.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => planSchieben(planId, 1) });
+  if(pos > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
+  if(pos < gruppe.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => planSchieben(planId, 1) });
   aktionen.push({ text:"Löschen", stil:"gefahr", tun:() => planLoeschenById(planId) });
   aktionsMenue(plan.name, aktionen);
 }
@@ -2376,9 +2514,14 @@ function planMenue(planId){
 function planSchieben(planId, richtung){
   const liste = sitzung.daten.plaene;
   const i = liste.findIndex(p => p.id === planId);
-  const ziel = i + richtung;
-  if(ziel < 0 || ziel >= liste.length) return;
-  [liste[i], liste[ziel]] = [liste[ziel], liste[i]];
+  const sport = liste[i].sportart || "kraft";
+  // Mit dem NÄCHSTEN Plan derselben Sportart tauschen (Pläne anderer Sportarten
+  // dazwischen überspringen) — die Liste ist nach Sportart gruppiert, ein Tausch
+  // über Gruppengrenzen hinweg wäre unsichtbar.
+  let j = i + richtung;
+  while(j >= 0 && j < liste.length && (liste[j].sportart || "kraft") !== sport) j += richtung;
+  if(j < 0 || j >= liste.length) return;
+  [liste[i], liste[j]] = [liste[j], liste[i]];
   speichern();
   planListeZeichnen();
 }
@@ -2598,6 +2741,14 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.072", punkte:[
+    "Statistik: das Monats-Volumen-Diagramm wird wieder gefüllt (es blieb ab ~3 Monaten Daten leer).",
+    "Stoppuhr: „Fertig“ mit sehr kurzer Zeit führt nicht mehr zu einem Hänger.",
+    "Pläne innerhalb einer Sportart lassen sich per ▲/▼ jetzt wirklich umsortieren.",
+    "Schwerpunkt „Oberkörper“ trainiert wieder Rücken und Arme (nicht nur Druck) und legt tatsächlich eine Übung drauf.",
+    "Datum rund um Mitternacht korrekt: neue Einträge landen zuverlässig am richtigen Tag.",
+    "Feinschliff bei Ziel-Einschätzung, Entlastung leichter Übungen und dem „alle 2 Wochen“-Rhythmus."
+  ]},
   { stand:"0.058 – 0.071", punkte:[
     "Neues App-Icon.",
     "Heller Modus: umschaltbar unter Mehr → Darstellung. Dunkel bleibt Standard.",
@@ -2693,24 +2844,33 @@ function profilSpeichern(){
     const alt = liste.length ? liste[liste.length - 1].kg : null;
     if(vorhanden) vorhanden.kg = kg; else liste.push({ datum: heute, kg });
     liste.sort((a,b) => a.datum.localeCompare(b.datum));
-    if(alt !== kg) hinweis = "\n\nGewicht für heute eingetragen — die Statistik ist aktualisiert.";
+    if(alt !== kg) hinweis = " + Gewicht aktualisiert";
   }
   speichern();
-  meldung("Profil gespeichert." + hinweis);
+  zeigenToast("✓ Profil gespeichert" + hinweis, "erfolg");
 }
 
-function heuteAlsText(){ return new Date().toISOString().slice(0,10); }
+function heuteAlsText(){
+  // LOKALES Datum, nicht toISOString() (=UTC): sonst zeigt die App zwischen
+  // lokal 00:00 und 01:00/02:00 noch "gestern" und speichert Einträge auf den
+  // falschen Tag. Der Rest der Datums-Logik rechnet ebenfalls lokal.
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 /** "JJJJ-MM-TT" → "TT.MM.JJ" (2-stelliges Jahr, richtig herum). v46. */
 function datumKurz(iso){ return iso ? iso.slice(8,10) + "." + iso.slice(5,7) + "." + iso.slice(2,4) : ""; }
 
 /** ISO-Wochenschlüssel "2026-W29" für ein Datum "JJJJ-MM-TT". */
 function isoWoche(datumText){
-  const d = new Date(datumText + "T12:00:00");
-  const donnerstag = new Date(d);
-  donnerstag.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));   // Donnerstag der Woche bestimmt das Jahr
-  const jahresanfang = new Date(donnerstag.getFullYear(), 0, 1);
+  // Durchgehend UTC-Mitternacht rechnen: früher lag der Donnerstag auf 12:00,
+  // der Jahresanfang aber auf 00:00 — der halbe Tag Versatz machte die
+  // Wochennummer in Jahren, die auf einen Freitag fallen (z. B. 2027), um 1 zu hoch.
+  const [y, m, d] = datumText.split("-").map(Number);
+  const donnerstag = new Date(Date.UTC(y, m - 1, d));
+  donnerstag.setUTCDate(donnerstag.getUTCDate() + 3 - ((donnerstag.getUTCDay() + 6) % 7));   // Donnerstag der Woche bestimmt das Jahr
+  const jahresanfang = new Date(Date.UTC(donnerstag.getUTCFullYear(), 0, 1));
   const woche = Math.ceil(((donnerstag - jahresanfang) / 86400000 + 1) / 7);
-  return donnerstag.getFullYear() + "-W" + String(woche).padStart(2, "0");
+  return donnerstag.getUTCFullYear() + "-W" + String(woche).padStart(2, "0");
 }
 
 /** Verschiebt ein Datum um n Tage und liefert "JJJJ-MM-TT". */
@@ -2941,7 +3101,7 @@ function volumenZeichnen(){
   // Zeitachse vom ersten Training bis heute aufbauen (lückenlos, aber ohne Vorlauf)
   const achse = [];
   if(proMonat){
-    let d = new Date(erstes + "-01T12:00:00");
+    let d = new Date(erstes.slice(0,7) + "-01T12:00:00");   // erstes ist ein volles Datum "JJJJ-MM-TT" — nur JJJJ-MM nehmen, sonst Invalid Date
     const ende = new Date(heute.slice(0,7) + "-01T12:00:00");
     while(d <= ende){
       const k = d.toISOString().slice(0,7);
@@ -3803,7 +3963,9 @@ function wzZeichnen(){
 
 /* Einfachauswahl schaltet automatisch weiter — spart einen Tipp pro Frage. */
 function wzSingle(id, wert){
-  einrichtung[id] = wert;
+  // Aktivitäts-Dauer (dauer_lauf etc.) sind Sekunden und müssen Zahlen sein;
+  // der Kraft-"dauer"-Schlüssel (kurz/mittel/…) und alle anderen bleiben Strings.
+  einrichtung[id] = id.indexOf("dauer_") === 0 ? Number(wert) : wert;
   // Ortswechsel: Geräte auf sinnvolle Vorauswahl setzen und Unpassendes entfernen
   if(id === "ort"){
     if(!einrichtung.geraeteProOrt) einrichtung.geraeteProOrt = {};
@@ -3854,7 +4016,7 @@ function wzZeitCustomHtml(f){
 function wzZeitCustom(id, minutenText){
   const m = parseInt(minutenText, 10);
   if(!m || m < 1) return;
-  einrichtung[id] = String(m * 60);
+  einrichtung[id] = m * 60;   // Sekunden als Zahl (nicht String) — konsistent mit aktivitaetsFelderVorbereiten
   document.querySelectorAll("#wz-buehne .wz-opt").forEach(b => b.classList.remove("gewaehlt"));
   const cust = document.querySelector("#wz-buehne .wz-zeit-custom");
   if(cust) cust.classList.add("gewaehlt");
@@ -4057,20 +4219,27 @@ function plaeneErstellen(){
   const benutzt = {};   // je Kategorie: wie viele Varianten schon vergeben (für Abwechslung über die Tage)
   const anzahl = UEBUNGEN_JE_DAUER[einrichtung.dauer] || 4;
 
-  /* Schwerpunkt: die gewählte Kategorie wandert nach vorn, damit sie
-     bei kurzen Einheiten sicher drin ist und eine Übung mehr bekommt. */
-  const fokusKategorie = { ober:"druck", beine:"beine", rumpf:"rumpf" }[einrichtung.fokus];
+  /* Schwerpunkt: "Oberkörper" umfasst Druck UND Zug (Brust/Schultern +
+     Rücken/Arme) — nur "druck" würde Rücken und Arme aus dem Plan werfen.
+     Die Grundtage bleiben ausgewogen (die ersten `anzahl` Kategorien bleiben
+     unangetastet); der Schwerpunkt bekommt an Tagen, die ihn trainieren,
+     EINE Übung mehr — so, wie es der Hilfetext verspricht. */
+  const fokusKategorien = { ober:["druck","zug"], beine:["beine"], rumpf:["rumpf"] }[einrichtung.fokus] || [];
 
   /* Ohne Krafttraining gibt es keine Wochentage und damit kein SPLITS[0] —
      der Aufruf würde hier abstürzen. Die Wache MUSS vor der Berechnung
      stehen, nicht erst vor ihrer Verwendung. */
   const neuePlaene = !kraftGewaehlt(einrichtung) ? [] :
     SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
-    let liste = kategorien.slice();
-    if(fokusKategorie){
-      liste.sort((a,b) => (a === fokusKategorie ? -1 : 0) - (b === fokusKategorie ? -1 : 0));
+    let liste = kategorien.slice(0, anzahl);
+    if(fokusKategorien.length){
+      // Eine zusätzliche Übung der Schwerpunkt-Kategorie: bevorzugt eine bei
+      // kurzen Einheiten abgeschnittene, sonst eine Wiederholung einer schon
+      // geplanten. Tage, die den Schwerpunkt gar nicht trainieren, bleiben unberührt.
+      const extra = kategorien.slice(anzahl).find(k => fokusKategorien.includes(k))
+                 || kategorien.find(k => fokusKategorien.includes(k));
+      if(extra) liste.push(extra);
     }
-    liste = liste.slice(0, anzahl);
 
     // Name OHNE Wochentag: der Tag steht im Feld "tage" und in der Marke der
     // Liste — im Namen wäre er nur Dopplung. Der Titel aus SPLITS trägt die
@@ -4295,14 +4464,22 @@ function zielEintragen(){
   document.getElementById("ziel-formular").hidden = true;
   document.getElementById("ziel-wert").value = "";
   zieleZeichnen();
+  zeigenToast("✓ Ziel hinzugefügt", "erfolg");
 }
 
 function zielLoeschen(id){
   frage("Dieses Ziel löschen?", true, ja => {
     if(!ja) return;
+    const geloescht = sitzung.daten.ziele.find(z => z.id === id);
     sitzung.daten.ziele = sitzung.daten.ziele.filter(z => z.id !== id);
     speichern();
     zieleZeichnen();
+    zeigenToast("Ziel gelöscht", "info", () => {
+      sitzung.daten.ziele.push(geloescht);
+      speichern();
+      zieleZeichnen();
+      zeigenToast("✓ Wiederhergestellt", "erfolg");
+    });
   });
 }
 
@@ -4336,8 +4513,15 @@ function zielEinschaetzen(ziel){
        Woche eine Entlastung. Also: Wie oft muss ich mit 1,2 multiplizieren? */
     let stand = ist, wochen = 0, stufen = 0;
     while(stand < ziel.wert && wochen < 260){
+      if(stufen >= ENTLASTUNG_NACH){
+        // Wie zieleAnwenden: ZWEI zuwachsfreie Wochen (Entlastung + Rückkehr),
+        // also ein 5-Wochen-Zyklus. Früher wurde nur EINE gezählt (4-Wochen-
+        // Zyklus) — das unterschätzte die nötige Zeit um ~25 %.
+        wochen += 2;
+        stufen = 0;
+        continue;
+      }
       wochen++;
-      if(stufen >= ENTLASTUNG_NACH){ stufen = 0; continue; }   // Entlastungswoche bringt keinen Zuwachs
       const schritt = sportart(u.sportart).strecke.schritt;
       stand += Math.max(schritt, Math.round(stand * STEIGERUNG_MAX / schritt) * schritt);
       stufen++;
@@ -4467,7 +4651,7 @@ function zieleZeichnen(){
         if(offenerZielPicker === z.id){
           picker = '<div class="abstand"><label>In welche Pläne einbauen?</label><div class="note">' +
             sitzung.daten.plaene.map(p => {
-              const drin = p.uebungen.some(u => u.name.toLowerCase().includes(z.uebung.toLowerCase()));
+              const drin = p.uebungen.some(u => u.name.toLowerCase() === z.uebung.toLowerCase());   // exakt wie zielInPlan — Teilstring würde z. B. "Curl" gegen "Bizeps Curl" fälschlich als drin melden
               return drin
                 ? '<button disabled>✓ ' + text(p.name) + '</button>'
                 : '<button onclick="zielInPlan(\'' + z.id + '\',\'' + p.id + '\')">' + text(p.name) + '</button>';
@@ -5487,7 +5671,19 @@ function pickerSportBestaetigen(sportId){
   uebungInPlanHinzufuegen(name);          // dann die Übung anhängen (rendert)
 }
 function pickerWahlAbbrechen(){ uebungWartet = null; uebungPickerZeichnen(); }
-function uebungLoeschen(i){ editorPlan.uebungen.splice(i,1); editorZeichnen(); }
+function uebungLoeschen(i){
+  editorPlan.uebungen.splice(i,1);
+  // editorMehr ist nach Index verschlüsselt: nach dem Löschen nachrücken lassen,
+  // sonst erbt die falsche Übung den auf-/zugeklappten "Feinheiten"-Zustand.
+  const neu = {};
+  Object.keys(editorMehr).forEach(k => {
+    const n = +k;
+    if(n < i) neu[n] = editorMehr[k];
+    else if(n > i) neu[n - 1] = editorMehr[k];
+  });
+  editorMehr = neu;
+  editorZeichnen();
+}
 
 /** Übung eine Position nach oben (-1) oder unten (+1) schieben. */
 function uebungSchieben(i, richtung){
@@ -5495,6 +5691,9 @@ function uebungSchieben(i, richtung){
   const ziel = i + richtung;
   if(ziel < 0 || ziel >= liste.length) return;
   [liste[i], liste[ziel]] = [liste[ziel], liste[i]];
+  // editorMehr (index-verschlüsselt) mitvertauschen, damit die aufgeklappten
+  // "Feinheiten" an der Übung hängen, nicht an der Position.
+  const tmp = editorMehr[i]; editorMehr[i] = editorMehr[ziel]; editorMehr[ziel] = tmp;
   editorZeichnen();
 }
 
@@ -5542,6 +5741,7 @@ function planSichern(){
   if(index >= 0) plaene[index] = editorPlan; else plaene.push(editorPlan);
   speichern();
   planListeZeichnen();
+  zeigenToast("✓ Plan gespeichert", "erfolg");
   zeige("view-plaene");
 }
 
@@ -5689,9 +5889,11 @@ function stoppuhrKnopf(){
 
 function stoppuhrFertig(){
   const sekunden = Math.round(stoppuhrSekunden());
+  // Guard VOR dem Aufräumen: sonst steht die Uhr-Ansicht mit stoppuhr===null
+  // da und der nächste Tap auf Start/Fertig stürzt ab.
+  if(sekunden < 10){ meldung("Die Uhr lief noch nicht — erst starten oder die Zeit von Hand eintragen."); return; }
   const plan = stoppuhr.plan;
   stoppuhrAufraeumen();
-  if(sekunden < 10){ meldung("Die Uhr lief noch nicht — erst starten oder die Zeit von Hand eintragen."); return; }
   eintragenOeffnen(plan, sekunden);
 }
 
@@ -6171,7 +6373,11 @@ function hauptKnopf(){
   if(s.typ === "satz-wdh"){
     satzProtokollieren(s, 0);                                      // Satz fertig
   } else if(s.typ === "satz-zeit"){
-    const gehalten = Math.round((Date.now() - (lauf.ende - lauf.dauer * 1000)) / 1000);
+    // Ist-Haltezeit = Solldauer − Restzeit. Bei Pause ist die Restzeit
+    // eingefroren (restBeiPause); sonst würde die weiterlaufende Wanduhr die
+    // Pausensekunden fälschlich als gehaltene Zeit mitzählen.
+    const rest = lauf.pausiert ? lauf.restBeiPause : (lauf.ende - Date.now()) / 1000;
+    const gehalten = Math.round(lauf.dauer - rest);
     satzProtokollieren(s, begrenzen(gehalten, 0, s.sekunden));     // übersprungen: Ist-Zeit zählt
   }
   // "bereit" und "pause" werden nicht protokolliert — einfach weiter.
@@ -6416,11 +6622,13 @@ function bewertungAnwenden(){
      Ziele zuerst: Sie setzen die Obergrenze, gegen die die Progression rechnet. */
   const zielBericht = plan ? kraftZieleAnwenden(plan) : [];
   const zeilen = [];
-  plan.uebungen = plan.uebungen.map(alt => {
-    const neu = progressionAnwenden(alt, bewertung[alt.id]);
-    zeilen.push({ name:alt.name, alt, neu });
-    return neu;
-  });
+  if(plan){   // gleicher Guard wie oben: ist der Plan nicht (mehr) im Konto, nur Serie/Ergebnis zeigen, nicht abstürzen
+    plan.uebungen = plan.uebungen.map(alt => {
+      const neu = progressionAnwenden(alt, bewertung[alt.id]);
+      zeilen.push({ name:alt.name, alt, neu });
+      return neu;
+    });
+  }
 
   // Noten in die Satzzeilen des Protokolls übernehmen
   if(lauf.protokollEintrag){
