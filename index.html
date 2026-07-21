@@ -569,19 +569,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-plaene" class="view">
   <div class="kopf"><h1>Pläne</h1></div>
   <div id="plan-liste"></div>
-  <!-- Bewusst KEIN primaer: Die gelbe Hauptaktion gehört auf den Start
-       ("Training starten"). Zwei gelbe Knöpfe heben sich gegenseitig auf. -->
-  <div class="raster abstand">
-    <button class="schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>
-    <button class="schmal" onclick="planAnlegen()">Eigenen Plan anlegen</button>
-  </div>
-  <div class="knopfreihe">
-    <button class="schmal breit" onclick="eintragenOeffnen(null,0)">Training nachtragen</button>
-  </div>
-  
-  <!-- FAB für neuen Plan -->
-  <button class="fab" onclick="planAnlegen()" title="Neuer Plan" aria-label="Neuer Plan">+</button>
-  
+
+  <!-- Alle Wege zum Anlegen/Nachtragen bündelt das „+“ (planNeuMenue) —
+       ein Menü statt mehrerer Knöpfe, sportart-neutral und erweiterbar. -->
+  <button class="fab" onclick="planNeuMenue()" title="Neu anlegen" aria-label="Neu anlegen">+</button>
+
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -792,8 +784,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Hilfe</h2>
     <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">Gut zu wissen &amp; Regelwerk</button></div>
-    <div class="knopfreihe abstand"><button class="schmal" onclick="neuigkeitenOeffnen()">Neuigkeiten (Was ist neu?)</button></div>
-    <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="versionInfo()">Version</button></div>
+    <!-- Ein Knopf statt zweier: „Was ist neu?“ zeigt den Versions-Verlauf, die
+         aktuelle Version steht als Beschriftung darauf (siehe einstellungenOeffnen). -->
+    <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="neuigkeitenOeffnen()">Was ist neu?</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1564,7 +1557,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 73;
+const APP_VERSION = 75;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2484,6 +2477,19 @@ function planDuplizieren(planId){
   planListeZeichnen();
 }
 
+/* Das „+“ unter Pläne: EIN schlankes Menü statt mehrerer Knöpfe nebeneinander.
+   Bewusst sportart-neutral formuliert, damit es alle Sportarten trägt — der
+   Assistent fragt die Sportarten selbst ab, „Eigener Plan“ deckt jede Sportart
+   ab, und Nachtragen gilt ohnehin für alle. Neue Einträge hier ergänzen, wenn
+   später weitere Wege dazukommen. */
+function planNeuMenue(){
+  aktionsMenue("Neu anlegen", [
+    { text:"🧭 Plan mit Assistent", tun: einrichtungOeffnen },
+    { text:"✎ Eigenen Plan erstellen", tun: planAnlegen },
+    { text:"✓ Training nachtragen", tun:() => eintragenOeffnen(null, 0) }
+  ]);
+}
+
 /* ============================================================
    #region Aktionsmenü & langes Drücken
    Langes Drücken (500 ms) auf eine Plan-Karte öffnet das Menü.
@@ -2626,11 +2632,9 @@ function einstellungenOeffnen(){
   systemKarteZeichnen();
   darstellungKarteZeichnen();
   const vk = document.getElementById("version-knopf");
-  if(vk) vk.textContent = "Version " + ANZEIGE_VERSION + " · JKB";
+  if(vk) vk.textContent = "Was ist neu?  ·  Version " + ANZEIGE_VERSION;
   zeige("view-einstellungen");
 }
-/** Kleine Info zur Version (Kürzel JKB + Datum). Ersetzt das alte Wasserzeichen. */
-function versionInfo(){ meldung("Trainer " + ANZEIGE_VERSION + " · Stand " + heuteAlsText() + " · JKB"); }
 
 function systemKarteZeichnen(){
   let gewaehlt = null;
@@ -2760,11 +2764,18 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.075", punkte:[
+    "Mehr → Hilfe aufgeräumt: „Version“ und „Neuigkeiten“ sind ein Knopf („Was ist neu?“) — er zeigt den Verlauf, die Versionsnummer steht darauf und oben auf der Seite."
+  ]},
+  { stand:"0.074", punkte:[
+    "Trainingsplanung: Eine Auswahl schaltet nicht mehr sofort weiter — du wählst in Ruhe und gehst dann mit „Weiter“. So lässt sich eine Antwort noch ändern.",
+    "Pläne-Tab aufgeräumt: Das „+“ öffnet jetzt ein schlankes Menü (Assistent · Eigener Plan · Training nachtragen) statt mehrerer Knöpfe."
+  ]},
   { stand:"0.073", punkte:[
-    "<strong style='color:var(--chalk)'>Einträge korrigierbar:</strong> im vollen Verlauf (Statistik → „Ganzen Verlauf zeigen“) lässt sich jeder Eintrag mit × löschen — mit Rückgängig-Knopf, falls es ein Versehen war.",
-    "<strong style='color:var(--chalk)'>Spontan trainiert?</strong> Die „Heute“-Karte hat jetzt an plan­freien Tagen Knöpfe für „Training eintragen“ und „Als Ruhetag markieren“ — kein Umweg mehr über andere Tabs.",
-    "<strong style='color:var(--chalk)'>Übungs-Fortschritt:</strong> neue Kurve in der Statistik — Übung wählen und den Bestwert je Trainingstag sehen (z. B. Bankdrücken über die Zeit, als geschätztes 1RM).",
-    "<strong style='color:var(--chalk)'>Trainingsnotiz:</strong> pro Training ein Freitext („schlecht geschlafen“, „Schulter zwickt“) — beim Bewerten und beim Nachtragen, sichtbar im Verlauf.",
+    "Einträge korrigierbar: im vollen Verlauf (Statistik → „Ganzen Verlauf zeigen“) lässt sich jeder Eintrag mit × löschen — mit Rückgängig-Knopf, falls es ein Versehen war.",
+    "Spontan trainiert? Die „Heute“-Karte hat jetzt an planfreien Tagen Knöpfe für „Training eintragen“ und „Als Ruhetag markieren“ — kein Umweg mehr über andere Tabs.",
+    "Übungs-Fortschritt: neue Kurve in der Statistik — Übung wählen und den Bestwert je Trainingstag sehen (z. B. Bankdrücken über die Zeit, als geschätztes 1RM).",
+    "Trainingsnotiz: pro Training ein Freitext („schlecht geschlafen“, „Schulter zwickt“) — beim Bewerten und beim Nachtragen, sichtbar im Verlauf.",
     "Plan-Karten haben jetzt einen sichtbaren „⋯“-Knopf für Bearbeiten/Duplizieren/Verschieben/Löschen (langes Drücken geht weiter)."
   ]},
   { stand:"0.072", punkte:[
@@ -2848,6 +2859,7 @@ function neuigkeitenOeffnen(){
     '<div class="karte"><h2>' + text(stand) + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
     punkte.map(p => '• ' + text(p)).join("<br>") + '</div></div>';
   document.getElementById("neuigkeiten-inhalt").innerHTML =
+    '<div class="meta abstand">Trainer ' + ANZEIGE_VERSION + " · Stand " + heuteAlsText() + " · JKB</div>" +
     NEUIGKEITEN.map(n => abschnitt(n.stand, n.punkte)).join("");
   zeige("view-neuigkeiten");
 }
@@ -4093,7 +4105,9 @@ function wzZeichnen(){
   document.getElementById("wz-weiter").disabled = false;
 }
 
-/* Einfachauswahl schaltet automatisch weiter — spart einen Tipp pro Frage. */
+/* Einfachauswahl markiert nur (Umfärbung) — weiter geht es bewusst erst über
+   den „Weiter“-Knopf, damit man eine Auswahl in Ruhe ändern kann. wzWeiter
+   verlangt, dass etwas gewählt wurde. */
 function wzSingle(id, wert){
   // Aktivitäts-Dauer (dauer_lauf etc.) sind Sekunden und müssen Zahlen sein;
   // der Kraft-"dauer"-Schlüssel (kurz/mittel/…) und alle anderen bleiben Strings.
@@ -4107,8 +4121,7 @@ function wzSingle(id, wert){
     const moeglich = geraeteFuerOrt(wert).map(g => g.id);
     einrichtung.geraete = einrichtung.geraete.filter(g => moeglich.includes(g));
   }
-  wzZeichnen();
-  setTimeout(() => { wzSchritt++; wzZeichnen(); }, 180);
+  wzZeichnen();   // nur neu zeichnen (markieren) — kein Auto-Weiter mehr
 }
 function wzMulti(id, wert){
   const liste = einrichtung[id];
