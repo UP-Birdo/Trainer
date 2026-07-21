@@ -3,6 +3,10 @@
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
 > Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
 > als Paket hochgeladen (Tooling zusätzlich: `icons.py` + das Master-Icon `Trainer-Icon-1024.png`).
+>
+> **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
+> (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
+> UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
 > Stand: **Version 0.071 / APP_VERSION 71**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
 > mehrere Nutzer-Blöcke (v54–v71, siehe Historie). Zuletzt (v58–v71): **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
@@ -1263,6 +1267,7 @@ dann **C4**, dann **E2**, zuletzt **D** (Kalender) als eigener großer Meilenste
 
 ## 14. Wie du nach dem Umzug startest
 
-1. Alle 7 Dateien (6 App-Dateien + dieses Dokument) ins neue Chatfenster hochladen.
-2. Diesen Satz mitschicken: *„Das ist mein Trainer-Projekt, lies UEBERGABE.md — wir machen dort weiter."*
-3. Der nächste Claude liest die Übergabe, kann `index.html` direkt bearbeiten und weiterbauen.
+1. Alle 8 Dateien (6 App-Dateien + `UEBERGABE.md` + `SIMPELHEIT.md`) ins neue Chatfenster hochladen.
+2. Diesen Satz mitschicken: *„Das ist mein Trainer-Projekt, lies UEBERGABE.md **und SIMPELHEIT.md** — wir machen dort weiter."*
+3. Der nächste Claude liest **beide** Dokumente (erst UEBERGABE = Ist-Zustand, dann SIMPELHEIT = Auftrag),
+   kann `index.html` direkt bearbeiten und weiterbauen.

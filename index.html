@@ -106,6 +106,20 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 .karte:hover{border-color:var(--muted);box-shadow:var(--shadow-md)}
 .zeile{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
+/* v76: Simpelheit — Stufen-Auswahl (view-simpelheit) & Notizblock (Stufe 1/2) */
+textarea{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
+  border:2px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;appearance:none;resize:vertical}
+textarea:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+textarea::placeholder{color:var(--muted);opacity:0.7}
+.stufe-wahl{display:block;width:100%;text-align:left;margin-bottom:10px;padding:14px 16px;min-height:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chalk)}
+.stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:0 0 0 2px rgba(244,199,78,0.15)}
+.stufe-wahl strong{color:var(--chalk);font-size:15px}
+.notiz-name{font-weight:700;font-size:16px}
+.notiz-text{min-height:90px}
+.notiz-zeile{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.notiz-zeile input:first-child{flex:1}
+.notiz-wdh{width:84px;flex:0 0 auto;text-align:center}
 .leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
   background:rgba(139,144,154,0.03);transition:var(--transition)}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
@@ -522,6 +536,21 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <!-- ============================================================
+     Ansicht: Einfachheit wählen (Simpelheits-Stufe 1–5, v76).
+     Genutzt bei der Ersteinrichtung UND als Umschalter unter „Mehr".
+     Eine Stufe = eine Sicht, kein zweites Datenformat.
+     ============================================================ -->
+<section id="view-simpelheit" class="view">
+  <div class="kopf">
+    <h1 id="simpelheit-titel">Wie einfach soll die App sein?</h1>
+    <button id="simpelheit-zurueck" class="schmal" hidden onclick="einstellungenOeffnen()">Zurück</button>
+  </div>
+  <div class="hinweis" id="simpelheit-hinweis">Du kannst das jederzeit unter „Mehr" ändern — Umstellen ändert nie deine Daten.</div>
+  <div id="simpelheit-inhalt"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
      Ansicht: Trainingsplanung (Wizard — eine Frage pro Bildschirm)
      ============================================================ -->
 <section id="view-wizard" class="view">
@@ -567,7 +596,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Pläne — die Verwaltung aller Trainingspläne.
      ============================================================ -->
 <section id="view-plaene" class="view">
-  <div class="kopf"><h1>Pläne</h1></div>
+  <!-- v76: Auf Stufe 1/2 ist dies der „Notizblock"; der Titel wechselt und der
+       „⋯ Mehr"-Knopf ersetzt die (dort ausgeblendete) Nav-Leiste. -->
+  <div class="kopf"><h1 id="plaene-titel">Pläne</h1>
+    <button id="plaene-mehr" class="schmal" hidden onclick="einstellungenOeffnen()">⋯ Mehr</button></div>
   <div id="plan-liste"></div>
 
   <!-- Alle Wege zum Anlegen/Nachtragen bündelt das „+“ (planNeuMenue) —
@@ -725,9 +757,21 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Einstellungen (Zahnrad) — alles, was man selten braucht
      ============================================================ -->
 <section id="view-einstellungen" class="view">
-  <div class="kopf"><h1>Mehr</h1></div>
+  <!-- v76: „Zurück" nur auf Stufe 1/2 sichtbar (dort gibt es keine Nav-Leiste,
+       „Mehr" wird über das ⋯ im Notizblock geöffnet). -->
+  <div class="kopf"><h1>Mehr</h1>
+    <button id="mehr-zurueck" class="schmal" hidden onclick="startOeffnen()">Zurück</button></div>
 
+  <!-- v76: Einfachheit ist auf JEDER Stufe erreichbar (fester Anker). -->
   <div class="karte">
+    <div class="zeile"><h2>Einfachheit</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-simpelheit')" aria-label="Info">i</button></div>
+    <div id="info-simpelheit" class="meta info-text" hidden>Die Stufe steuert nur, wie viel die App zeigt — von „Notizblock" (1) bis „Vollausbau" (5). Umstellen ändert nie deine Daten: Runterstellen blendet nur aus, Hochstellen wieder ein.</div>
+    <div class="meta abstand" id="simpelheit-stand"></div>
+    <div class="knopfreihe"><button class="schmal" onclick="simpelheitFrageOeffnen(false)">Einfachheit ändern</button></div>
+  </div>
+
+  <div class="karte" id="mehr-profil-karte">
     <h2>Profil</h2>
     <div class="knopfreihe"><button class="primaer schmal" onclick="profilOeffnen()">Profil verwalten</button></div>
   </div>
@@ -1557,7 +1601,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 75;
+const APP_VERSION = 76;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1599,8 +1643,17 @@ function datenNachruesten(daten){
       geraeteProOrt: JSON.parse(JSON.stringify(daten.einrichtung.geraeteProOrt || {}))
     };
   }
+  // v76 (Simpelheit): Die Stufe 1–5 steuert NUR, wie viel Oberfläche sichtbar ist —
+  // sie ist kein zweites Datenformat (siehe SIMPELHEIT.md, goldene Regel). Bestandskonten
+  // benutzen heute die volle App; sie auf Stufe 1 zu werfen, würde ihre Oberfläche
+  // verstecken. Also Default 5. Neue Konten werden im Ersteinrichten gefragt und
+  // überschreiben den Default sofort. Idempotent (zweiter Lauf lässt den Wert stehen).
+  if(daten.einrichtung.simpelheit == null) daten.einrichtung.simpelheit = 5;
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
+    // v76 (Simpelheit): Roher Text der Stufe-1/2-Abschnitte. Bleibt auch nach dem
+    // Hochstufen erhalten (Übungs-Erkennung ist nicht-destruktiv) — Felder werden nie entfernt.
+    if(typeof p.freitext !== "string") p.freitext = "";
     // D2: Wiederholungs-Regel. wochenTakt 1 = jede Woche, 2 = alle 2 Wochen
     // (wochenAnker legt fest, welche der beiden Wochen). einzelTermine = Liste
     // einmaliger Datumsangaben (JJJJ-MM-TT), unabhängig von den Wochentagen.
@@ -1663,6 +1716,7 @@ function datenNachruesten(daten){
     if(!Array.isArray(e.saetze)) e.saetze = [];
     if(!e.id) e.id = neueId();               // v72: stabile ID zum Löschen einzelner Einträge
     if(e.notiz === undefined) e.notiz = "";  // v72: Freitext-Notiz je Training
+    if(typeof e.freitext !== "string") e.freitext = "";  // v76: Stufe-1/2 Schnellnotiz ("was ich getan habe")
     // v35: Zuordnung Protokoll->Plan über die stabile plan.id statt über den Namen.
     // Einmalige Rück-Verknüpfung: der zum gespeicherten Namen passende Plan gibt
     // seine id her. Historische Namen waren eindeutig (Wochentag-Präfix bzw. A/B/C),
@@ -1730,9 +1784,10 @@ async function kontoAnlegen(){
   tresor.konten.push(konto);
   Speicher.schreiben(tresor);
   sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
-  // Nach dem Code-Bildschirm direkt in die Einschätzung — beim allerersten
-  // Öffnen soll ein passender Plan entstehen, nicht eine leere Liste.
-  codeAnzeigen(() => einrichtungOeffnen());
+  // v76: Nach dem Code-Bildschirm zuerst die Einfachheit fragen (Abschnitt 6.5).
+  // simpelheitWaehlen leitet danach je Stufe weiter: Stufe 5 in den Assistenten
+  // (der baut den ersten Plan), darunter aufs jeweilige Zuhause.
+  codeAnzeigen(() => simpelheitFrageOeffnen(true));
 }
 
 function codeAnzeigen(danach){
@@ -2227,7 +2282,310 @@ function progressionAnwenden(uebung, note){
 /* ============================================================
    #region Ansichten
    ============================================================ */
+/* ============================================================
+   #region Simpelheit — Stufe & Sicht-Filter (v76, SIMPELHEIT.md)
+   Die goldene Regel: die Stufe 1–5 ist NUR eine Sicht, kein zweites
+   Datenformat. Sie steuert ausschließlich, WIE VIEL vom (einen) Modell
+   angezeigt und abgefragt wird. Senken löscht nie Daten, Heben erfindet
+   nie Daten. Genau EINE Funktion liest die Stufe, genau EIN Filter sagt,
+   welche Ansicht eine Stufe sehen darf — beides fragen Navigation und
+   View-Aufbau ab, statt die Bedingung überall einzeln zu wiederholen.
+   ============================================================ */
+/** Die aktuelle Simpelheits-Stufe (1–5). Vor der Anmeldung / bei kaputtem
+    Wert defensiv 5 (voller Stand) — nie weniger zeigen, als das Konto hat. */
+function stufe(){
+  const s = sitzung && sitzung.daten && sitzung.daten.einrichtung
+    ? sitzung.daten.einrichtung.simpelheit : 5;
+  return (typeof s === "number" && s >= 1 && s <= 5) ? s : 5;
+}
+
+/* Ab welcher Stufe ist eine Ansicht überhaupt erreichbar? Nicht gelistete
+   Ansichten (Login, Code, Notizblock=view-plaene, Mehr, Hilfe …) gelten ab 1.
+   Stufe 5 = heutiger Vollausbau, deshalb steht nichts auf 6. */
+const VIEW_MIN_STUFE = {
+  "view-start": 3,                                   // "Heute" gibt es erst mit echtem Training
+  "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
+  "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
+  "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
+  "view-statistik": 4, "view-verlauf": 4,
+  "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
+  "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
+  "view-wizard": 5
+};
+/** Darf die aktuelle Stufe diese Ansicht sehen? */
+function viewErlaubt(id){ return stufe() >= (VIEW_MIN_STUFE[id] || 1); }
+
+/** Welche Nav-Tabs zeigt eine Stufe? Stufe 1/2 haben GAR KEINE Leiste
+    (Zugang zu „Mehr" über das ⋯ im Notizblock). Stufe 5 = heutiger Stand. */
+function navTabsFuerStufe(s){
+  if(s <= 2) return [];
+  if(s === 3) return ["nav-start","nav-plaene","nav-einst"];              // ohne Statistik
+  if(s === 4) return ["nav-start","nav-plaene","nav-statistik","nav-einst"];
+  return ["nav-start","nav-plaene","nav-statistik","nav-einst"];          // 5 = alles
+}
+
+/* --- Die fünf Stufen: Titel + eine Klartext-Zeile je Stufe (Abschnitt 3). --- */
+const SIMPELHEIT_STUFEN = [
+  { n:1, titel:"Notizblock",          text:"Nur eine Seite mit Abschnitten und Freitext. Kein Training, keine Zahlen." },
+  { n:2, titel:"Notizblock + Zahlen", text:"Wie 1, plus je Zeile Übungsname und Wiederholungen." },
+  { n:3, titel:"Plan + Training",     text:"Echte Pläne mit Sätzen × Wdh × Gewicht, „letztes Mal“, Pause-Timer und Protokoll." },
+  { n:4, titel:"+ Auswertung",        text:"Zusätzlich die volle Statistik: Kalender, Volumen, Gewichtskurve, Fortschritt." },
+  { n:5, titel:"Vollausbau",          text:"Alles: Trainingsplanung-Assistent, Sportarten, Ziele, Kalender-Wiederholungen, Ansagen." }
+];
+
+let simpelheitErstmalig = false;   // Ersteinrichtung (true) vs. Umschalten im Betrieb (false)
+
+/** Öffnet die Stufen-Auswahl. erstmalig = im Register-Flow (dann kein „Zurück",
+    andere Überschrift, danach in die passende Startansicht). */
+function simpelheitFrageOeffnen(erstmalig){
+  simpelheitErstmalig = !!erstmalig;
+  document.getElementById("simpelheit-titel").textContent =
+    erstmalig ? "Wie einfach soll die App sein?" : "Einfachheit ändern";
+  document.getElementById("simpelheit-zurueck").hidden = erstmalig;   // im Erst-Flow kein Rückweg
+  simpelheitFrageZeichnen();
+  zeige("view-simpelheit");
+}
+
+function simpelheitFrageZeichnen(){
+  const jetzt = simpelheitErstmalig ? 0 : stufe();   // im Erst-Flow nichts vorwählen
+  document.getElementById("simpelheit-inhalt").innerHTML =
+    SIMPELHEIT_STUFEN.map(s =>
+      '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
+        '<strong>' + s.n + ' · ' + text(s.titel) + '</strong>' +
+        '<div class="meta" style="margin-top:4px;white-space:normal">' + text(s.text) + '</div>' +
+      '</button>').join("");
+}
+
+function simpelheitWaehlen(n){
+  const vorher = stufe();
+  sitzung.daten.einrichtung.simpelheit = n;   // NUR die Sicht ändern — Daten bleiben unangetastet (die Invariante).
+  speichern();
+  if(simpelheitErstmalig){
+    simpelheitErstmalig = false;
+    // Nur Stufe 5 startet direkt den Assistenten (der baut den ersten Plan).
+    // Darunter landet der Nutzer auf seinem Zuhause und legt selbst an.
+    if(n >= 5) einrichtungOeffnen();
+    else startOeffnen();
+    return;
+  }
+  // Umschalten im Betrieb: nichts konvertieren, nur neu zeichnen. Beim Hochstufen
+  // aus 1/2 bietet die App an, erkannte Freitext-Übungen zu verknüpfen (Angebot, nie Zwang).
+  if(n > vorher && vorher <= 2 && n >= 3){ hochstufenAngebot(); return; }
+  startOeffnen();
+}
+
+/** Stand-Zeile in der „Mehr"-Karte. */
+function simpelheitKarteZeichnen(){
+  const el = document.getElementById("simpelheit-stand");
+  if(!el) return;
+  const s = SIMPELHEIT_STUFEN.find(x => x.n === stufe()) || SIMPELHEIT_STUFEN[4];
+  el.textContent = "Stufe " + s.n + " · " + s.titel;
+}
+
+/* Übungs-Erkennung beim Hochstufen (Abschnitt 5): Angebot, nie automatisch.
+   Geht die Freitext-Zeilen der Abschnitte durch und schlägt Zeilen, die
+   (normalisiert: Groß/Klein, Leerzeichen) einem bekannten Übungsnamen
+   entsprechen, zum Verknüpfen vor. Nicht-destruktiv: freitext bleibt erhalten,
+   ein Fehlschlag kostet nie Daten — die goldene Regel bleibt heil. */
+function normName(s){ return String(s).trim().toLowerCase().replace(/\s+/g, " "); }
+
+function hochstufenAngebot(){
+  const bekannt = new Map();   // normalisierter Name -> Anzeigename
+  UEBUNGEN_DB.forEach(u => bekannt.set(normName(u.name), u.name));
+  Object.values(SPORT_UEBUNGEN).forEach(liste => (liste || []).forEach(u => {
+    if(!bekannt.has(normName(u.name))) bekannt.set(normName(u.name), u.name);
+  }));
+  const treffer = [];   // { plan, name }
+  sitzung.daten.plaene.forEach(p => {
+    if(!p.freitext) return;
+    p.freitext.split(/\r?\n/).forEach(zeile => {
+      const roh = zeile.trim();
+      if(!roh) return;
+      const echt = bekannt.get(normName(roh));
+      if(echt && !p.uebungen.some(u => normName(u.name) === normName(echt)) &&
+         !treffer.some(t => t.plan === p && normName(t.name) === normName(echt)))
+        treffer.push({ plan:p, name:echt });
+    });
+  });
+  if(treffer.length === 0){ startOeffnen(); return; }
+  const namen = [...new Set(treffer.map(t => t.name))].slice(0, 6).join(", ");
+  frage(treffer.length + " erkannte Übung(en) übernehmen? (" + namen + ") Dein Freitext bleibt erhalten.", true, ja => {
+    if(ja){
+      treffer.forEach(t => {
+        if(t.plan.uebungen.some(u => normName(u.name) === normName(t.name))) return;   // Dedupe
+        const db = UEBUNGEN_DB.find(x => normName(x.name) === normName(t.name));
+        const u = neueUebung();
+        u.name = t.name;
+        u.geraet = db ? db.geraet : "keine";
+        t.plan.uebungen.push(u);
+      });
+      speichern();
+    }
+    startOeffnen();
+  });
+}
+
+/* ============================================================
+   #region Notizblock (Stufe 1/2) — der Editor der einfachen Stufen
+   Eine Seite: Abschnitte (= Pläne). Stufe 1 = Name + Freitext, Stufe 2 = Name
+   + Zeilen aus Übungsname & Wiederholungen. Schreibt in dieselben plaene[] wie
+   die vollen Stufen (freitext bzw. uebungen[]) — kein zweites Format.
+   ============================================================ */
+/** Kopf des Pläne-Tabs auf die Stufe einstellen (Titel + „⋯ Mehr"-Zugang). */
+function notizblockKopfSetzen(){
+  const einfach = stufe() <= 2;
+  const titel = document.getElementById("plaene-titel");
+  const mehr  = document.getElementById("plaene-mehr");
+  if(titel) titel.textContent = einfach ? "Notizblock" : "Pläne";
+  if(mehr)  mehr.hidden = !einfach;
+}
+
+function findePlan(id){ return sitzung.daten.plaene.find(p => p.id === id); }
+
+/** Ein Abschnitt IST ein Plan (Doku Abschnitt 5). Default-Sportart kraft wie
+    überall in der App — so ist er auf jeder höheren Stufe ein gültiger Plan,
+    ganz ohne Umbau. */
+function neuerAbschnitt(name){
+  return { id:neueId(), name:name || "Neuer Abschnitt", sportart:"kraft", typ:"kraft",
+           tage:[], wochenTakt:1, wochenAnker:0, einzelTermine:[],
+           reihenfolge:"klassisch", aufwaermen:false, dehnen:false, uebungen:[], freitext:"" };
+}
+
+function notizblockZeichnen(){
+  const ziel = document.getElementById("plan-liste");
+  const s = stufe();
+  const plaene = sitzung.daten.plaene;
+  let html = plaene.length === 0
+    ? '<div class="leer">Noch nichts notiert.<br><br>Tipp auf „+", um einen Abschnitt anzulegen.</div>'
+    : plaene.map(p => notizAbschnittHtml(p, s)).join("");
+  html += notizGetanHtml();   // Schnellnotiz „was ich getan habe" (Entscheidung 9.2)
+  ziel.innerHTML = html;
+}
+
+function notizAbschnittHtml(p, s){
+  const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
+    'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
+  let koerper;
+  if(s <= 1){
+    koerper = '<textarea class="notiz-text" placeholder="Frei notieren — eine Zeile je Übung, wenn du magst." ' +
+      'onchange="abschnittFreitextSetzen(\'' + p.id + '\', this.value)">' + text(p.freitext || "") + '</textarea>';
+  } else {
+    const zeilen = (p.uebungen || []).map(u =>
+      '<div class="notiz-zeile">' +
+        '<input placeholder="Übung" value="' + text(u.name) + '" ' +
+          'onchange="notizZeileNameSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
+        '<input class="notiz-wdh" type="number" inputmode="numeric" placeholder="Wdh" value="' +
+          (typeof u.wdh === "number" && u.wdh > 0 ? u.wdh : "") + '" ' +
+          'onchange="notizZeileWdhSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
+        '<button class="rund" aria-label="Zeile löschen" onclick="notizZeileLoeschen(\'' + p.id + '\', \'' + u.id + '\')">×</button>' +
+      '</div>').join("");
+    koerper = zeilen +
+      '<div class="knopfreihe abstand"><button class="schmal" onclick="notizZeileHinzu(\'' + p.id + '\')">+ Zeile</button></div>';
+  }
+  return '<div class="karte" data-plan="' + p.id + '">' + kopf + '<div class="abstand">' + koerper + '</div>' +
+    '<div class="knopfreihe abstand"><button class="schmal gefahr" onclick="abschnittLoeschen(\'' + p.id + '\')">Abschnitt löschen</button></div></div>';
+}
+
+function abschnittAnlegen(){
+  const p = neuerAbschnitt("");
+  sitzung.daten.plaene.push(p);
+  speichern();
+  notizblockZeichnen();
+  const feld = document.querySelector('.karte[data-plan="' + p.id + '"] .notiz-name');
+  if(feld){ feld.focus(); feld.select(); }
+}
+
+function abschnittNameSetzen(id, wert){
+  const p = findePlan(id); if(!p) return;
+  p.name = wert.trim() || "Abschnitt";
+  speichern();   // kein Neuzeichnen: das Feld zeigt den Wert schon, der Fokus bleibt
+}
+function abschnittFreitextSetzen(id, wert){
+  const p = findePlan(id); if(!p) return;
+  p.freitext = wert;
+  speichern();
+}
+function abschnittLoeschen(id){
+  frage("Diesen Abschnitt löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== id);
+    speichern();
+    notizblockZeichnen();
+  });
+}
+function notizZeileHinzu(planId){
+  const p = findePlan(planId); if(!p) return;
+  const u = neueUebung(); u.name = ""; u.geraet = "keine"; u.wdh = 0;   // leeres Wdh-Feld im Notizblock
+  p.uebungen.push(u);
+  speichern();
+  notizblockZeichnen();
+  const felder = document.querySelectorAll('.karte[data-plan="' + planId + '"] .notiz-zeile input');
+  if(felder.length >= 2) felder[felder.length - 2].focus();   // Namensfeld der neuen (letzten) Zeile
+}
+function notizZeileNameSetzen(planId, uId, wert){
+  const p = findePlan(planId); if(!p) return;
+  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
+  u.name = wert.trim();
+  speichern();
+}
+function notizZeileWdhSetzen(planId, uId, wert){
+  const p = findePlan(planId); if(!p) return;
+  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
+  const n = parseInt(wert, 10);
+  if(n > 0) u.wdh = n;   // leer/0 lässt den bisherigen Wert stehen
+  speichern();
+}
+function notizZeileLoeschen(planId, uId){
+  const p = findePlan(planId); if(!p) return;
+  p.uebungen = p.uebungen.filter(x => x.id !== uId);
+  speichern();
+  notizblockZeichnen();
+}
+
+/* Stufe-1/2-Logging (Entscheidung 9.2): schnell festhalten, was man getan hat.
+   Legt einen Protokolleintrag mit freitext an — als „Sonder"-Eintrag ohne Sätze,
+   genau wie „Training nachtragen ohne Sätze" (v70): färbt den Kalender + zählt die
+   Serie, fließt aber nicht ins Volumen. Auf höheren Stufen erscheint er ehrlich
+   im Verlauf (Heben erfindet nie Daten). */
+function notizGetanHtml(){
+  const letzte = sitzung.daten.protokoll.filter(e => e.freitext).slice(-5).reverse();
+  const liste = letzte.map(e =>
+    '<div class="zeile" style="padding:6px 0;border-top:1px solid var(--line)">' +
+      '<div><strong>' + datumKurz(e.datum) + '</strong> · ' + text(e.freitext) + '</div>' +
+      '<button class="rund" aria-label="Eintrag löschen" onclick="notizGetanLoeschen(\'' + e.id + '\')">×</button>' +
+    '</div>').join("");
+  return '<div class="karte"><h2>Getan</h2>' +
+    '<div class="meta abstand">Kurz festhalten, was du gemacht hast.</div>' +
+    '<textarea id="notiz-getan" placeholder="z. B. „30 Min spazieren“" style="min-height:56px"></textarea>' +
+    '<div class="knopfreihe abstand"><button class="primaer schmal" onclick="notizGetanEintragen()">Eintragen</button></div>' +
+    liste + '</div>';
+}
+function notizGetanEintragen(){
+  const feld = document.getElementById("notiz-getan");
+  const txt = (feld.value || "").trim();
+  if(!txt){ meldung("Bitte kurz eintragen, was du getan hast."); return; }
+  sitzung.daten.protokoll.push({
+    id:neueId(), datum:heuteAlsText(), plan:"", planId:null,
+    sportart:"kraft", typ:"kraft", sonder:true, saetze:[], notiz:"", freitext:txt
+  });
+  speichern();
+  zeigenToast("Notiert", "info");
+  notizblockZeichnen();
+}
+function notizGetanLoeschen(id){
+  sitzung.daten.protokoll = sitzung.daten.protokoll.filter(e => e.id !== id);
+  speichern();
+  notizblockZeichnen();
+}
+
 function zeige(id){
+  // v76: Der Sicht-Filter als zentrales Sicherheitsnetz (Doku: „ein Filter, den
+  // Navigation UND View-Aufbau abfragen"). Eine Ansicht, die die aktuelle Stufe
+  // nicht sehen darf, wird nie gezeigt — sie ist über die Navigation ohnehin nicht
+  // erreichbar; das fängt nur den Fall ab, dass ein Stufenwechsel eine offene
+  // Ansicht „hängen" ließe. Das Ziel von startOeffnen ist immer erlaubt (Stufe 1/2:
+  // Notizblock=view-plaene, ab 3: view-start) — keine Rekursion.
+  if(!viewErlaubt(id)){ startOeffnen(); return; }
   document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
   document.getElementById(id).classList.add("aktiv");
   document.body.classList.toggle("training-fest", id === "view-training");
@@ -2279,6 +2637,10 @@ function planAmTag(plan, iso){
     (Sicherung) und die Ziele. Zeichnet dieselben Bausteine wie früher der
     Pläne-Tab, nur ohne die Plan-Liste — die hat jetzt ihren eigenen Tab. */
 function startOeffnen(){
+  // v76: Stufe 1/2 haben keinen „Heute"-Bildschirm (kein Training) — ihr
+  // Zuhause ist der Notizblock. startOeffnen ist DIE zentrale „geh nach Hause"-
+  // Funktion (Login, nach Training, nach Code …), deshalb wird hier geleitet.
+  if(stufe() <= 2){ planListeZeichnen(); zeige("view-plaene"); return; }
   sicherungBannerZeichnen();
   flammeZeichnen();
   heuteKarteZeichnen();
@@ -2295,6 +2657,9 @@ let zielHeuteFormOffen = false;
 function zieleStartZeichnen(){
   const ziel = document.getElementById("ziele-start");
   if(!ziel) return;
+  // v76: Ziele sind ein Stufe-5-Feature (Entscheidung Abschnitt 9.1). Darunter
+  // bleibt der Start ruhig — kein Erfinden von Oberfläche.
+  if(stufe() < 5){ ziel.innerHTML = ""; return; }
   const ziele = sitzung.daten.ziele || [];
   const uebungen = planUebungen();
   // Ohne Übung in einem Plan UND ohne Ziel bleibt der Start ruhig.
@@ -2399,13 +2764,21 @@ function sichtbarePlaene(){
 }
 
 function planListeZeichnen(){
+  // v76: Kopf (Titel + „⋯ Mehr") auf die Stufe einstellen; auf Stufe 1/2 ist
+  // dieser Tab der Notizblock (eine Seite, Abschnitte mit Freitext bzw.
+  // Name+Wdh-Zeilen) statt der Karten-Liste.
+  notizblockKopfSetzen();
+  if(stufe() <= 2){ notizblockZeichnen(); return; }
   // Heute-Karte, Sicherungs-Banner und Flamme liegen jetzt auf dem Start-
   // Bildschirm. Hier steht nur noch die Liste aller Pläne.
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
+    // Der Assistent ist Stufe 5; darunter nur „Eigenen Plan" + Beispiel.
     ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
-      '<div class="knopfreihe"><button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' +
+      '<div class="knopfreihe">' +
+      (stufe() >= 5 ? '<button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' : '') +
+      '<button class="' + (stufe() >= 5 ? "" : "primaer ") + 'schmal" onclick="planAnlegen()">Eigenen Plan</button>' +
       '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div></div>';
     return;
   }
@@ -2483,11 +2856,14 @@ function planDuplizieren(planId){
    ab, und Nachtragen gilt ohnehin für alle. Neue Einträge hier ergänzen, wenn
    später weitere Wege dazukommen. */
 function planNeuMenue(){
-  aktionsMenue("Neu anlegen", [
-    { text:"🧭 Plan mit Assistent", tun: einrichtungOeffnen },
-    { text:"✎ Eigenen Plan erstellen", tun: planAnlegen },
-    { text:"✓ Training nachtragen", tun:() => eintragenOeffnen(null, 0) }
-  ]);
+  // v76: Auf Stufe 1/2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
+  // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
+  if(stufe() <= 2){ abschnittAnlegen(); return; }
+  const eintraege = [];
+  if(stufe() >= 5) eintraege.push({ text:"🧭 Plan mit Assistent", tun: einrichtungOeffnen });
+  eintraege.push({ text:"✎ Eigenen Plan erstellen", tun: planAnlegen });
+  eintraege.push({ text:"✓ Training nachtragen", tun:() => eintragenOeffnen(null, 0) });
+  aktionsMenue("Neu anlegen", eintraege);
 }
 
 /* ============================================================
@@ -2631,6 +3007,11 @@ function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
   systemKarteZeichnen();
   darstellungKarteZeichnen();
+  simpelheitKarteZeichnen();
+  // v76: Profil (mit Zielen + Sportart-System) ist ein Stufe-5-Feature.
+  document.getElementById("mehr-profil-karte").hidden = stufe() < 5;
+  // v76: Stufe 1/2 haben keine Nav-Leiste — Rückweg aus „Mehr" per Knopf.
+  document.getElementById("mehr-zurueck").hidden = stufe() > 2;
   const vk = document.getElementById("version-knopf");
   if(vk) vk.textContent = "Was ist neu?  ·  Version " + ANZEIGE_VERSION;
   zeige("view-einstellungen");
@@ -2764,6 +3145,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.076", punkte:[
+    "Neu: „Einfachheit“ 1–5 — die App passt sich an, wie viel du sehen willst. Stufe 1/2 ist ein reiner Notizblock (Abschnitte, Freitext, optional Wiederholungen), ab Stufe 3 kommt echtes Training mit Sätzen und Timer, ab 4 die Auswertung, Stufe 5 ist der volle Umfang.",
+    "Beim Einrichten wird die Stufe gefragt; ändern jederzeit unter Mehr → Einfachheit. Umstellen ändert nie deine Daten — Runterstellen blendet nur aus, Hochstellen wieder ein.",
+    "Auf den einfachen Stufen kannst du mit „Getan“ schnell festhalten, was du gemacht hast."
+  ]},
   { stand:"0.075", punkte:[
     "Mehr → Hilfe aufgeräumt: „Version“ und „Neuigkeiten“ sind ein Knopf („Was ist neu?“) — er zeigt den Verlauf, die Versionsnummer steht darauf und oben auf der Seite."
   ]},
@@ -6651,7 +7037,13 @@ function navAktualisieren(id){
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
                      "view-editor":"nav-plaene" };
-  const an = !!bereiche[id];
+  // v76: Stufenabhängige Leiste. Welche Tabs überhaupt sichtbar sind, bestimmt
+  // die Stufe (navTabsFuerStufe) — Stufe 1/2 = gar keine Leiste, Stufe 3 ohne
+  // Statistik. Es wird nichts umgebaut, nur ein-/ausgeblendet.
+  const tabs = navTabsFuerStufe(stufe());
+  ["nav-start","nav-plaene","nav-statistik","nav-einst"].forEach(k =>
+    document.getElementById(k).hidden = !tabs.includes(k));
+  const an = !!bereiche[id] && tabs.length > 0;
   document.body.classList.toggle("nav-an", an);
   ["nav-start","nav-plaene","nav-statistik","nav-einst"].forEach(k =>
     document.getElementById(k).classList.toggle("aktiv", bereiche[id] === k));
@@ -6706,10 +7098,16 @@ function heuteKarteZeichnen(){
     // Noch gar kein Plan: Der Start muss den Weg zeigen. Ohne diesen Zweig
     // sähe ein neuer Nutzer nur "Ruhetag" und wüsste nicht, dass die Pläne im
     // Nachbar-Tab entstehen (die leere Liste mit den Anlege-Knöpfen liegt dort).
+    // v76: Der Trainingsplanung-Assistent ist ein Stufe-5-Feature. Auf Stufe 3/4
+    // legt der Nutzer selbst an — sonst würde eine Oberfläche versprochen, die
+    // seine Stufe gar nicht zeigt.
+    const mitAssistent = stufe() >= 5;
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--signal)">Willkommen</div>' +
-      '<h2>Noch kein Plan</h2><div class="meta">Leg deinen ersten Trainingsplan an — die App richtet dir anhand weniger Fragen einen passenden ein.</div>' +
-      '<div class="knopfreihe"><button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>' +
-      '<button class="breit" onclick="planAnlegen()">Eigenen Plan erstellen</button></div></div>';
+      '<h2>Noch kein Plan</h2><div class="meta">Leg deinen ersten Trainingsplan an' +
+        (mitAssistent ? ' — die App richtet dir anhand weniger Fragen einen passenden ein.' : '.') + '</div>' +
+      '<div class="knopfreihe">' +
+        (mitAssistent ? '<button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>' : '') +
+        '<button class="' + (mitAssistent ? "" : "primaer ") + 'breit" onclick="planAnlegen()">Eigenen Plan erstellen</button></div></div>';
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
