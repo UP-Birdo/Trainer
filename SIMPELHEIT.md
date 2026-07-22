@@ -130,6 +130,17 @@ zum **Verknüpfen anbieten**: „‚Klimmzüge' passt zu einer bekannten Übung 
 
 Damit ist das Matching Kür, kein Muss — und die goldene Regel bleibt heil (kein erzwungenes 1→5-Parsen).
 
+> **Aktualisierung v77 (Nutzer-Entscheidung, überstimmt diesen Abschnitt teilweise):** Es gibt jetzt
+> zusätzlich ein dokumentiertes **Muster**: Zeilen der Form „Sätze 2 Wdh 20 Liegestütze" (bzw.
+> „Sätze 3 Zeit 45 Plank", Zeit in Sekunden) werden beim Bearbeiten der Stufe-1-Seite **live** als echte
+> Übungen geparst (`abschnittTextSetzen`), und die Übungen des Plans werden umgekehrt als solche Zeilen
+> in den Stufe-1-Text gerendert (`abschnittTextErzeugen`) — Stufe 1 ist damit ein Text-Editor derselben
+> Daten. Zeile löschen = Übung löschen; vorhandene Übungen werden über den Namen wiedergefunden, damit
+> Gewicht/Pause/Notenhistorie erhalten bleiben. Das Angebot oben gilt weiter für **nackte** Übungsnamen
+> ohne Muster (übernommene Zeilen wandern dann aus dem Freitext in die Übung). Die goldene Regel bleibt
+> gültig: der **Stufenwechsel** selbst konvertiert nach wie vor nichts — geparst wird nur, wenn der
+> Nutzer wirklich tippt.
+
 ---
 
 ## 6. Konkrete Code-Änderungen (Auftrag)

@@ -1601,7 +1601,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 76;
+const APP_VERSION = 77;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2385,8 +2385,11 @@ function simpelheitKarteZeichnen(){
 /* Übungs-Erkennung beim Hochstufen (Abschnitt 5): Angebot, nie automatisch.
    Geht die Freitext-Zeilen der Abschnitte durch und schlägt Zeilen, die
    (normalisiert: Groß/Klein, Leerzeichen) einem bekannten Übungsnamen
-   entsprechen, zum Verknüpfen vor. Nicht-destruktiv: freitext bleibt erhalten,
-   ein Fehlschlag kostet nie Daten — die goldene Regel bleibt heil. */
+   entsprechen, zum Verknüpfen vor. Ein Fehlschlag kostet nie Daten.
+   v77: Muster-Zeilen („Sätze 2 Wdh 20 …“) laufen längst live über
+   abschnittTextSetzen — dieses Angebot fängt nur noch NACKTE Namen. Bei
+   Übernahme wandert die Zeile aus dem Freitext in die Übung (die im
+   Notizblock ihre eigene Muster-Zeile rendert — sonst stünde sie doppelt). */
 function normName(s){ return String(s).trim().toLowerCase().replace(/\s+/g, " "); }
 
 function hochstufenAngebot(){
@@ -2418,6 +2421,10 @@ function hochstufenAngebot(){
         u.name = t.name;
         u.geraet = db ? db.geraet : "keine";
         t.plan.uebungen.push(u);
+        // v77: Die Zeile lebt jetzt als Übung weiter (Muster-Zeile im Notizblock) —
+        // bliebe der rohe Name zusätzlich im Freitext, stünde er doppelt da.
+        t.plan.freitext = (t.plan.freitext || "").split(/\r?\n/)
+          .filter(z => normName(z) !== normName(t.name)).join("\n");
       });
       speichern();
     }
@@ -2455,9 +2462,14 @@ function notizblockZeichnen(){
   const ziel = document.getElementById("plan-liste");
   const s = stufe();
   const plaene = sitzung.daten.plaene;
-  let html = plaene.length === 0
+  // v77: Das Muster sichtbar erklären — Zeilen in dieser Form SIND Übungen des
+  // Plans (dieselben Daten wie auf Stufe 5), alles andere bleibt einfache Notiz.
+  const hinweis = s <= 1
+    ? '<div class="meta" style="margin-bottom:10px">Übungs-Zeilen: „Sätze 2 Wdh 20 Liegestütze“ bzw. „Sätze 3 Zeit 45 Plank“ (Zeit in Sekunden) — so geschriebene Zeilen sind echte Übungen des Plans und tauchen auf den höheren Stufen im Editor auf. Alles andere bleibt Notiz.</div>'
+    : "";
+  let html = hinweis + (plaene.length === 0
     ? '<div class="leer">Noch nichts notiert.<br><br>Tipp auf „+", um einen Abschnitt anzulegen.</div>'
-    : plaene.map(p => notizAbschnittHtml(p, s)).join("");
+    : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
   html += notizGetanHtml();   // Schnellnotiz „was ich getan habe" (Entscheidung 9.2)
   ziel.innerHTML = html;
 }
@@ -2467,8 +2479,12 @@ function notizAbschnittHtml(p, s){
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
   let koerper;
   if(s <= 1){
-    koerper = '<textarea class="notiz-text" placeholder="Frei notieren — eine Zeile je Übung, wenn du magst." ' +
-      'onchange="abschnittFreitextSetzen(\'' + p.id + '\', this.value)">' + text(p.freitext || "") + '</textarea>';
+    // v77: Die Textarea zeigt die ÜBUNGEN des Plans als Muster-Zeilen („Sätze 2
+    // Wdh 20 Liegestütze“) plus den restlichen Freitext — Stufe 1 sieht damit
+    // dieselben Daten wie Stufe 5. Beim Ändern parst abschnittTextSetzen alles
+    // zurück: Muster-Zeilen werden echte Übungen, der Rest bleibt Freitext.
+    koerper = '<textarea class="notiz-text" placeholder="Frei notieren — „Sätze 2 Wdh 20 Liegestütze“ wird als Übung erkannt." ' +
+      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value)">' + text(abschnittTextErzeugen(p)) + '</textarea>';
   } else {
     const zeilen = (p.uebungen || []).map(u =>
       '<div class="notiz-zeile">' +
@@ -2500,10 +2516,95 @@ function abschnittNameSetzen(id, wert){
   p.name = wert.trim() || "Abschnitt";
   speichern();   // kein Neuzeichnen: das Feld zeigt den Wert schon, der Fokus bleibt
 }
-function abschnittFreitextSetzen(id, wert){
+/* ------------------------------------------------------------
+   v77: Stufe 1 ↔ Stufe 5 — EIN Datenbestand, zwei Darstellungen.
+   Die Stufe-1-Textarea ist ein vollwertiger Text-Editor derselben Daten:
+   Übungen des Plans werden als Muster-Zeilen GERENDERT, Muster-Zeilen des
+   Nutzers werden zurück in echte Übungen GEPARST. Der Stufenwechsel selbst
+   konvertiert weiterhin nichts (die Invariante aus SIMPELHEIT.md) — geändert
+   wird nur, wenn der Nutzer hier wirklich tippt.
+   Muster (Zeit in Sekunden, Groß/Klein und ae/ä egal):
+     „Sätze 2 Wdh 20 Liegestütze“   -> Wdh-Übung
+     „Sätze 3 Zeit 45 Plank“        -> Zeit-Übung
+   ------------------------------------------------------------ */
+const NOTIZ_MUSTER = /^s(?:ä|ae)tze\s+(\d+)\s+(wdh|zeit)\s+(\d+)\s+(.+)$/i;
+
+/** Eine Übung als Muster-Zeile für den Stufe-1-Text. Zeit immer in Sekunden —
+    eine Einheit in der Zeile („30 min“) müsste der Parser mitschleppen. */
+function uebungAlsZeile(u){
+  return u.modus === "zeit"
+    ? "Sätze " + u.saetze + " Zeit " + u.dauer + " " + u.name
+    : "Sätze " + u.saetze + " Wdh " + u.wdh + " " + u.name;
+}
+
+/** Stufe-1-Sicht eines Abschnitts: erst die Übungen als Muster-Zeilen
+    (dieselben Daten wie Stufe 5), darunter der restliche Freitext.
+    Reine SICHT — hier wird nichts verändert oder gespeichert. */
+function abschnittTextErzeugen(p){
+  const zeilen = (p.uebungen || []).filter(u => u.name && u.name.trim()).map(uebungAlsZeile);
+  const frei = (p.freitext || "").trim() ? p.freitext : "";
+  return zeilen.join("\n") + (zeilen.length && frei ? "\n" : "") + frei;
+}
+
+/** Parst den kompletten Textarea-Inhalt zurück in den Plan (ersetzt das alte
+    abschnittFreitextSetzen). Muster-Zeilen werden Übungen: vorhandene werden
+    über den Namen wiedergefunden — Gewicht, Pause und Notenhistorie bleiben
+    dabei erhalten —, neue werden angelegt (Gerät aus UEBUNGEN_DB, kanonische
+    Schreibweise; gewichtSchritt 0 — Heben erfindet keine Gewichte). Zeilen
+    ohne Muster bleiben Freitext. Übungen, deren Zeile fehlt, werden entfernt
+    (Zeile gelöscht = Übung gelöscht, wie im Stufe-5-Editor). Die Reihenfolge
+    der Zeilen ist die Reihenfolge der Übungen. */
+function abschnittTextSetzen(id, wert){
   const p = findePlan(id); if(!p) return;
-  p.freitext = wert;
+  const pool = p.uebungen.slice();   // bisherige Übungen — Name-Matching statt Neuaufbau
+  const uebungen = [], rest = [], frisch = [];
+  String(wert).split(/\r?\n/).forEach(zeile => {
+    const m = zeile.trim().match(NOTIZ_MUSTER);
+    if(!m){ rest.push(zeile); return; }
+    const saetze = begrenzen(parseInt(m[1], 10) || 1, 1, 20);
+    const istZeit = m[2].toLowerCase() === "zeit";
+    const zahl = parseInt(m[3], 10) || 0;
+    let name = m[4].trim();
+    // Doppelter Name in den Zeilen: die zweite bleibt Text (ein Plan führt
+    // jede Übung nur einmal — wie der Duplikat-Schutz im Editor-Picker).
+    if(!name || uebungen.some(u => normName(u.name) === normName(name))){ rest.push(zeile); return; }
+    const db = UEBUNGEN_DB.find(x => normName(x.name) === normName(name));
+    if(db) name = db.name;                       // bekannter Name -> kanonische Schreibweise
+    const iAlt = pool.findIndex(u => normName(u.name) === normName(name));
+    let u;
+    if(iAlt >= 0){
+      u = pool.splice(iAlt, 1)[0];               // vorhanden: nur ändern, was die Zeile nennt
+    } else {
+      u = neueUebung();
+      u.name = name;
+      u.geraet = db ? db.geraet : "keine";
+      u.gewicht = 0; u.gewichtSchritt = 0;       // kein erfundenes Startgewicht (goldene Regel)
+      frisch.push(name);
+    }
+    u.saetze = saetze;
+    if(istZeit){
+      u.modus = "zeit";
+      u.dauer = begrenzen(zahl || 30, 5, MAX_DAUER_S);
+    } else {
+      u.modus = "wdh";
+      u.wdh = Math.max(1, zahl);
+      if(!u.wdhMin) u.wdhMin = Math.max(1, Math.round(u.wdh * 0.7));
+      if(!u.wdhMax) u.wdhMax = Math.round(u.wdh * 1.4);
+      u.wdhMin = Math.min(u.wdhMin, u.wdh);      // Bereich muss den Ist-Wert umschließen,
+      u.wdhMax = Math.max(u.wdhMax, u.wdh);      // sonst klemmt die Progression sofort
+    }
+    uebungen.push(u);
+  });
+  while(rest.length && !rest[0].trim()) rest.shift();               // Leerzeilen an den Rändern
+  while(rest.length && !rest[rest.length - 1].trim()) rest.pop();   // stammen vom Rendern, nicht vom Nutzer
+  p.uebungen = uebungen;
+  p.freitext = rest.join("\n");
   speichern();
+  // Kein Neuzeichnen (Fokus/Scroll bleiben, wie beim Namensfeld) —
+  // Rückmeldung über Toasts; die normalisierte Sicht kommt beim nächsten Rendern.
+  const weg = pool.filter(u => u.name && u.name.trim());
+  if(frisch.length) zeigenToast("Als Übung erkannt: " + frisch.join(", "), "erfolg");
+  if(weg.length) zeigenToast("Übung entfernt: " + weg.map(u => u.name).join(", "), "info");
 }
 function abschnittLoeschen(id){
   frage("Diesen Abschnitt löschen?", true, ja => {
@@ -3145,6 +3246,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.077", punkte:[
+    "Notizblock (Stufe 1) und Pläne (Stufe 5) zeigen jetzt dieselben Daten: Die Übungen eines Plans stehen im Notizblock als Text-Zeilen nach dem Muster „Sätze 2 Wdh 20 Liegestütze“ (Zeit-Übungen: „Sätze 3 Zeit 45 Plank“, Zeit in Sekunden).",
+    "Andersrum genauso: Schreibst du im Notizblock eine Zeile nach diesem Muster, wird sie eine echte Übung des Plans und erscheint auf den höheren Stufen im Editor. Alles andere bleibt einfache Notiz.",
+    "Zeile ändern passt die Übung an, Zeile löschen entfernt sie — Gewichte und Fortschritt bleiben erhalten, solange der Name gleich bleibt. Das Muster steht als Hinweis über dem Notizblock."
+  ]},
   { stand:"0.076", punkte:[
     "Neu: „Einfachheit“ 1–5 — die App passt sich an, wie viel du sehen willst. Stufe 1/2 ist ein reiner Notizblock (Abschnitte, Freitext, optional Wiederholungen), ab Stufe 3 kommt echtes Training mit Sätzen und Timer, ab 4 die Auswertung, Stufe 5 ist der volle Umfang.",
     "Beim Einrichten wird die Stufe gefragt; ändern jederzeit unter Mehr → Einfachheit. Umstellen ändert nie deine Daten — Runterstellen blendet nur aus, Hochstellen wieder ein.",

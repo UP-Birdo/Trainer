@@ -7,13 +7,15 @@
 > **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
 > (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
 > UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
-> Stand: **Version 0.071 / APP_VERSION 71**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
-> mehrere Nutzer-Blöcke (v54–v71, siehe Historie). Zuletzt (v58–v71): **Navigation neu** (vier Tabs, Profil unter „Mehr",
+> Stand: **Version 0.077 / APP_VERSION 77**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> mehrere Nutzer-Blöcke (v54–v71, siehe Historie). v58–v71: **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
 > (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
 > (Seite per `no-store`), **Pläne immer alle nach Sportart** + Langdruck öffnet direkt das Aktionsmenü
 > (Mehrfachauswahl entfernt), **Equipment-Liste beim Plan-Start**, **Kraft nachtragen** (Equipment→Übung, Sätze optional),
 > **eigenes Zeit-Feld im Wizard**, restliche Emojis raus (nur Flamme bleibt) und **neues App-Icon** (goldene Figur auf Dunkel).
+> Danach: v72–v75 Nutzer-Fixes/Feinschliff, **v76 setzt SIMPELHEIT.md komplett um** (Stufen 1–5, Notizblock, „Getan"),
+> **v77 macht den Notizblock bidirektional** (Muster-Zeilen ↔ echte Übungen, siehe Historie).
 
 ---
 
@@ -408,6 +410,46 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v77 — Notizblock ↔ Plan: Muster-Zeilen (Stufe 1 = Text-Editor derselben Daten)
+
+**Nutzer-Ansage:** Stufe-5-Daten sollen in Stufe 1 sichtbar sein und umgekehrt. Planname = Überschrift
+(war schon so, Abschnitt IST ein Plan); Übungen erscheinen im Stufe-1-Text als Muster-Zeilen, und Zeilen
+nach dem Muster werden echte Übungen des Plans.
+
+* **Muster** (Groß/Klein und ae/ä egal, Zeit in Sekunden): `Sätze 2 Wdh 20 Liegestütze` bzw.
+  `Sätze 3 Zeit 45 Plank` (`NOTIZ_MUSTER`). Zeit-Übungen MÜSSEN mitgerendert werden — sonst wären sie
+  auf Stufe 1 unsichtbar und würden beim ersten Bearbeiten stillschweigend gelöscht.
+* **`abschnittTextErzeugen(p)`** rendert die Übungen als Muster-Zeilen VOR den Freitext in die Textarea —
+  reine Sicht, der Stufenwechsel konvertiert weiterhin nichts (Invariante aus SIMPELHEIT.md bleibt heil;
+  geändert wird nur, wenn der Nutzer wirklich tippt).
+* **`abschnittTextSetzen(id, text)`** (ersetzt `abschnittFreitextSetzen`) parst beim Ändern jede Zeile:
+  Treffer = Übung — **vorhandene über `normName` wiedergefunden** (Gewicht, Pause, Notenhistorie, ID bleiben
+  erhalten; nur Sätze/Wdh bzw. Zeit/Modus ändern sich), neue über `neueUebung` (Gerät + kanonischer Name aus
+  `UEBUNGEN_DB`, `gewichtSchritt 0` — Heben erfindet keine Gewichte). Nicht-Treffer bleiben Freitext.
+  **Zeile gelöscht = Übung gelöscht** (wie im Stufe-5-Editor), Zeilen-Reihenfolge = Übungs-Reihenfolge.
+  Doppelte Namen: die zweite Zeile bleibt Text. `wdhMin`/`wdhMax` werden so gedehnt, dass sie den Ist-Wert
+  umschließen — sonst klemmt die Progression sofort.
+* **Kein Re-Render beim Parsen** (onchange feuert beim Fokuswechsel — ein Neuzeichnen würde den neuen Fokus
+  killen, dieselbe Falle wie beim Namensfeld). Feedback über Toasts („Als Übung erkannt" / „Übung entfernt");
+  die normalisierte Sicht erscheint beim nächsten Zeichnen.
+* **`hochstufenAngebot`** fängt nur noch NACKTE Namen (Muster läuft live) und räumt übernommene Zeilen aus
+  dem Freitext — die Übung rendert ihre eigene Muster-Zeile, sonst stünde sie doppelt da.
+* Muster-Hinweis steht über dem Notizblock + als Textarea-Platzhalter.
+* Getestet (Code.exe als Node — auf dem Rechner ist kein Node installiert, `ELECTRON_RUN_AS_NODE=1` mit
+  VS Codes `Code.exe` ist der Ersatz): 26 Fälle — Rendern, Rundlauf (IDs/Gewicht/Historie/Freitext identisch,
+  idempotent), neue Übung (kanonischer Name, Gerät, Bereich, kein Gewicht), Löschen, Modus-Wechsel per Zeile,
+  tolerantes Muster, Doppelt-Schutz. `node --check` grün.
+
+### v72–v76 — Kurz nachgetragen (die Historie war bei v71 stehen geblieben)
+
+v72 Fixes (stabile Protokoll-IDs + `notiz`-Feld, Monats-Volumen, ▲/▼-Sortierung, Mitternachts-Datum) ·
+v73 Verlauf-Einträge löschbar mit Undo, Heute-Karte mit „Training eintragen"/„Ruhetag", Übungs-Fortschritts-
+Kurve (`fortschrittZeichnen`), Trainingsnotiz, sichtbarer „⋯"-Knopf · v74 Wizard ohne Auto-Weiter, „+"-FAB
+mit Menü im Pläne-Tab (`planNeuMenue`) · v75 „Was ist neu?"-Knopf vereint Version+Neuigkeiten ·
+**v76 setzt SIMPELHEIT.md um:** Stufen 1–5 (`stufe()`, `VIEW_MIN_STUFE`, `navTabsFuerStufe`, Gate in
+`zeige()`), Notizblock Stufe 1/2, „Getan"-Schnellnotiz (`protokoll[].freitext`), Ersteinrichtungs-Frage nach
+dem Code-Bildschirm, Umschalter unter Mehr, `hochstufenAngebot`. Nutzer-sichtbare Details: `NEUIGKEITEN` im Code.
 
 ### v58–v71 — Nutzer-Runde nach 0.057 (UI-Neubau, iOS-Fixes, neue Features)
 
