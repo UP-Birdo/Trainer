@@ -140,6 +140,12 @@ Damit ist das Matching Kür, kein Muss — und die goldene Regel bleibt heil (ke
 > ohne Muster (übernommene Zeilen wandern dann aus dem Freitext in die Übung). Die goldene Regel bleibt
 > gültig: der **Stufenwechsel** selbst konvertiert nach wie vor nichts — geparst wird nur, wenn der
 > Nutzer wirklich tippt.
+>
+> **Aktualisierung v79 (Nutzer-Entscheidung):** Noch einen Schritt weiter — beim Bearbeiten der
+> Stufe-1-Seite wird **jede nicht-leere Zeile** eine Übung: ohne Muster zählt nur der Name (vorhandene
+> Übungen behalten ihre Werte, neue bekommen Standardwerte). Freitext im Abschnitt gibt es damit
+> praktisch nicht mehr; Notizen gehören in „Getan". Außerdem: Heißt ein Abschnitt wie eine Sportart
+> („Laufen"), übernimmt der Plan sie automatisch samt Typ.
 
 ---
 

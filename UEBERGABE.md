@@ -7,7 +7,7 @@
 > **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
 > (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
 > UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
-> Stand: **Version 0.078 / APP_VERSION 78**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> Stand: **Version 0.079 / APP_VERSION 79**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
 > mehrere Nutzer-Blöcke (v54–v71, siehe Historie). v58–v71: **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
 > (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
@@ -16,7 +16,9 @@
 > **eigenes Zeit-Feld im Wizard**, restliche Emojis raus (nur Flamme bleibt) und **neues App-Icon** (goldene Figur auf Dunkel).
 > Danach: v72–v75 Nutzer-Fixes/Feinschliff, **v76 setzt SIMPELHEIT.md komplett um** (Stufen 1–5, Notizblock, „Getan"),
 > **v77 macht den Notizblock bidirektional** (Muster-Zeilen ↔ echte Übungen), **v78 fixt den Tastatur-Schwarzbildschirm**
-> (`--app-h` misst nie bei offener Tastatur) und entrümpelt die NEUIGKEITEN (siehe Historie).
+> (`--app-h` misst nie bei offener Tastatur) und entrümpelt die NEUIGKEITEN, **v79 baut den Notizblock aus**
+> (jede Zeile = Übung, Sätze-Spalte auf Stufe 2, Langdruck-Menü statt Löschen-Knopf, Sportart aus der
+> Überschrift, Editor bietet ALLE Sportarten — siehe Historie).
 
 ---
 
@@ -149,10 +151,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 78;                              // interne Ganzzahl — bei JEDEM Update +1
+const APP_VERSION = 79;                              // interne Ganzzahl — bei JEDEM Update +1
 const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v78"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v79"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -412,6 +414,36 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v79 — Notizblock-Ausbau (Nutzer-Runde nach v78)
+
+Fünf Nutzer-Ansagen in einem Durchgang:
+
+* **Jede nicht-leere Zeile IST eine Übung** (Stufe 1). `abschnittTextSetzen` parst jetzt auch Zeilen OHNE
+  Muster: die ganze Zeile ist der Name — eine vorhandene Übung behält dabei alle Werte, eine neue bekommt
+  Standardwerte (3×10, `gewichtSchritt 0`). Freitext im Abschnitt gibt es praktisch nicht mehr (nur doppelte
+  Namen bleiben Text); Notizen gehören in „Getan". **Folge für Altdaten:** Freitext-Notizen aus v76/77 werden
+  beim ersten Bearbeiten des Abschnitts zu Übungen — gewollt (Nutzer-Ansage).
+* **Textarea wächst mit** (`notizTextWachsen`, `oninput` + nach dem Zeichnen): Enter dehnt den Abschnitt aus,
+  statt intern zu scrollen (`overflow:hidden`, `resize:none`, +4 px für die Ränder bei border-box).
+* **Stufe 2 mit Sätze-Spalte + Spaltenköpfen** (`notizZeileSaetzeSetzen`, CSS `.notiz-zahl`/`.notiz-kopf`;
+  `.notiz-wdh` ersetzt). `notizZeileHinzu` fokussiert über die Zeile, nicht über den Feld-Index (3 Felder!).
+* **„Abschnitt löschen"-Knopf entfernt** (Stufe 1 zu komplex, Stufe 2 zu groß). Stattdessen trägt die
+  Abschnitts-Karte das **Langdruck-Menü** (`langdruckEinrichten()` läuft jetzt auch im Notizblock).
+  `planMenue`/`planSchieben` sind stufenbewusst: auf Stufe 1/2 ohne „Bearbeiten" (Editor ist dort gesperrt,
+  bearbeitet wird inline) und mit **flachem** Verschieben (Array-Reihenfolge; ab Stufe 3 weiter innerhalb
+  der Sportart-Gruppe). **Falle dabei:** Langdruck/Rechtsklick, der in einem Eingabefeld beginnt, wird
+  ignoriert (`imFeld`-Wache) — sonst öffnete Text-Markieren in der Textarea das Plan-Menü.
+* **Sportart aus der Überschrift:** Heißt ein Abschnitt (normalisiert) wie eine Sportart, setzt
+  `abschnittNameSetzen` `sportart` + `typ` (+ Aktivitäts-Felder) und meldet es per Toast. Umbenennen weg
+  vom Sportart-Namen lässt die Zuordnung bewusst stehen.
+* **Editor bietet ALLE Sportarten** statt nur der Profil-Sportarten (überstimmt die v56-Einschränkung).
+  Grund: Die Sportarten-Seite ist Stufe 5 — wer sie nie sah, hatte nur Krafttraining im Profil, der Editor
+  bot genau einen Knopf. Der Übungs-Picker (Union-Modus) filtert weiter nach Profil-Sportarten.
+* Getestet (Code.exe als Node): 26 Fälle — Rundlauf identisch/idempotent, nackte Zeile → Übung
+  (Standardwerte, kein Gewicht), nackter bekannter Name behält Werte, Muster setzt Werte, Doppelt-Schutz,
+  Löschen per Zeile, Sportart-Erkennung (inkl. klein geschrieben + Umbenennen), Sätze-Setter,
+  flaches vs. gruppiertes Verschieben. `node --check` grün.
 
 ### v78 — Tastatur-Fix (--app-h) + NEUIGKEITEN entrümpelt
 

@@ -116,10 +116,17 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:0 0 0 2px rgba(244,199,78,0.15)}
 .stufe-wahl strong{color:var(--chalk);font-size:15px}
 .notiz-name{font-weight:700;font-size:16px}
-.notiz-text{min-height:90px}
+/* v79: wächst per JS mit dem Inhalt (notizTextWachsen) — kein internes Scrollen */
+.notiz-text{min-height:90px;overflow:hidden;resize:none}
 .notiz-zeile{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .notiz-zeile input:first-child{flex:1}
-.notiz-wdh{width:84px;flex:0 0 auto;text-align:center}
+.notiz-zahl{width:64px;flex:0 0 auto;text-align:center}
+/* v79: Spaltenköpfe der Stufe-2-Zeilen — gleiche Breiten wie die Felder darunter */
+.notiz-kopf{display:flex;gap:8px;margin-bottom:4px}
+.notiz-kopf label{margin:0}
+.notiz-kopf label:first-child{flex:1}
+.notiz-kopf .notiz-zahl{width:64px}
+.notiz-kopf-frei{width:44px;flex:0 0 auto}   /* Spalte des ×-Knopfs */
 .leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
   background:rgba(139,144,154,0.03);transition:var(--transition)}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
@@ -1617,7 +1624,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 78;
+const APP_VERSION = 79;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2478,16 +2485,29 @@ function notizblockZeichnen(){
   const ziel = document.getElementById("plan-liste");
   const s = stufe();
   const plaene = sitzung.daten.plaene;
-  // v77: Das Muster sichtbar erklären — Zeilen in dieser Form SIND Übungen des
-  // Plans (dieselben Daten wie auf Stufe 5), alles andere bleibt einfache Notiz.
+  // v79: Jede Zeile IST eine Übung (Nutzer-Ansage) — der Hinweis erklärt das
+  // Muster, mit dem man Sätze/Wiederholungen gleich mitschreiben kann.
   const hinweis = s <= 1
-    ? '<div class="meta" style="margin-bottom:10px">Übungs-Zeilen: „Sätze 2 Wdh 20 Liegestütze“ bzw. „Sätze 3 Zeit 45 Plank“ (Zeit in Sekunden) — so geschriebene Zeilen sind echte Übungen des Plans und tauchen auf den höheren Stufen im Editor auf. Alles andere bleibt Notiz.</div>'
+    ? '<div class="meta" style="margin-bottom:10px">Eine Übung je Zeile — der Name allein reicht. Mit „Sätze 2 Wdh 20 Liegestütze“ legst du Sätze und Wiederholungen fest, mit „Sätze 3 Zeit 45 Plank“ eine Zeit-Übung (Sekunden).</div>'
     : "";
   let html = hinweis + (plaene.length === 0
     ? '<div class="leer">Noch nichts notiert.<br><br>Tipp auf „+", um einen Abschnitt anzulegen.</div>'
     : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
   html += notizGetanHtml();   // Schnellnotiz „was ich getan habe" (Entscheidung 9.2)
   ziel.innerHTML = html;
+  // v79: Textfelder an den Inhalt anpassen (Enter dehnt den Abschnitt aus,
+  // statt intern zu scrollen) + Langdruck-Menü auf den Abschnitts-Karten
+  // (Duplizieren/Verschieben/Löschen — der große Löschen-Knopf ist weg).
+  ziel.querySelectorAll(".notiz-text").forEach(notizTextWachsen);
+  langdruckEinrichten();
+}
+
+/** Textarea wächst mit dem Inhalt — Enter dehnt den Abschnitt aus, statt im
+    Feld zu scrollen. +4 px = oberer + unterer Rand (box-sizing:border-box,
+    scrollHeight zählt die Ränder nicht mit). */
+function notizTextWachsen(el){
+  el.style.height = "auto";
+  el.style.height = (el.scrollHeight + 4) + "px";
 }
 
 function notizAbschnittHtml(p, s){
@@ -2495,27 +2515,36 @@ function notizAbschnittHtml(p, s){
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
   let koerper;
   if(s <= 1){
-    // v77: Die Textarea zeigt die ÜBUNGEN des Plans als Muster-Zeilen („Sätze 2
-    // Wdh 20 Liegestütze“) plus den restlichen Freitext — Stufe 1 sieht damit
+    // Die Textarea zeigt die ÜBUNGEN des Plans als Zeilen — Stufe 1 sieht damit
     // dieselben Daten wie Stufe 5. Beim Ändern parst abschnittTextSetzen alles
-    // zurück: Muster-Zeilen werden echte Übungen, der Rest bleibt Freitext.
-    koerper = '<textarea class="notiz-text" placeholder="Frei notieren — „Sätze 2 Wdh 20 Liegestütze“ wird als Übung erkannt." ' +
+    // zurück (v79: JEDE nicht-leere Zeile ist eine Übung). oninput lässt das
+    // Feld mitwachsen, statt intern zu scrollen.
+    koerper = '<textarea class="notiz-text" placeholder="Eine Übung je Zeile — z. B. „Liegestütze“ oder „Sätze 2 Wdh 20 Liegestütze“." ' +
+      'oninput="notizTextWachsen(this)" ' +
       'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value)">' + text(abschnittTextErzeugen(p)) + '</textarea>';
   } else {
+    // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
+    // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
     const zeilen = (p.uebungen || []).map(u =>
       '<div class="notiz-zeile">' +
         '<input placeholder="Übung" value="' + text(u.name) + '" ' +
           'onchange="notizZeileNameSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
-        '<input class="notiz-wdh" type="number" inputmode="numeric" placeholder="Wdh" value="' +
+        '<input class="notiz-zahl" type="number" inputmode="numeric" placeholder="3" value="' +
+          (typeof u.saetze === "number" && u.saetze > 0 ? u.saetze : "") + '" ' +
+          'onchange="notizZeileSaetzeSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
+        '<input class="notiz-zahl" type="number" inputmode="numeric" placeholder="10" value="' +
           (typeof u.wdh === "number" && u.wdh > 0 ? u.wdh : "") + '" ' +
           'onchange="notizZeileWdhSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
         '<button class="rund" aria-label="Zeile löschen" onclick="notizZeileLoeschen(\'' + p.id + '\', \'' + u.id + '\')">×</button>' +
       '</div>').join("");
-    koerper = zeilen +
+    koerper = '<div class="notiz-kopf"><label>Übung</label><label class="notiz-zahl">Sätze</label>' +
+      '<label class="notiz-zahl">Wdh</label><span class="notiz-kopf-frei"></span></div>' +
+      zeilen +
       '<div class="knopfreihe abstand"><button class="schmal" onclick="notizZeileHinzu(\'' + p.id + '\')">+ Zeile</button></div>';
   }
-  return '<div class="karte" data-plan="' + p.id + '">' + kopf + '<div class="abstand">' + koerper + '</div>' +
-    '<div class="knopfreihe abstand"><button class="schmal gefahr" onclick="abschnittLoeschen(\'' + p.id + '\')">Abschnitt löschen</button></div></div>';
+  // v79: kein „Abschnitt löschen"-Knopf mehr (zu groß, zu präsent) — Löschen,
+  // Duplizieren und Verschieben liegen im Langdruck-Menü der Karte.
+  return '<div class="karte" data-plan="' + p.id + '">' + kopf + '<div class="abstand">' + koerper + '</div></div>';
 }
 
 function abschnittAnlegen(){
@@ -2530,18 +2559,38 @@ function abschnittAnlegen(){
 function abschnittNameSetzen(id, wert){
   const p = findePlan(id); if(!p) return;
   p.name = wert.trim() || "Abschnitt";
+  // v79: Heißt der Abschnitt wie eine Sportart („Laufen", „Tischtennis"),
+  // übernimmt der Plan sie samt Typ — ab Stufe 3 steht er damit gleich richtig
+  // einsortiert. Umbenennen WEG vom Sportart-Namen lässt die Zuordnung stehen
+  // (sonst würde jede Titel-Korrektur den Plan zurück auf Kraft werfen).
+  const sp = SPORTARTEN.find(x => normName(x.name) === normName(p.name));
+  if(sp && p.sportart !== sp.id){
+    p.sportart = sp.id;
+    p.typ = planTypFuer(sp.id);
+    if(p.typ === "aktivitaet"){   // Felder, die der Typ braucht (wie planSportartSetzen)
+      if(typeof p.dauer !== "number") p.dauer = 1800;
+      if(!p.zeitEinheit) p.zeitEinheit = "min";
+      if(typeof p.strecke !== "number") p.strecke = hatStrecke(sp.id) ? sportart(sp.id).strecke.start : 0;
+      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+    }
+    zeigenToast("Als " + sp.name + " erkannt", "info");
+  }
   speichern();   // kein Neuzeichnen: das Feld zeigt den Wert schon, der Fokus bleibt
 }
 /* ------------------------------------------------------------
    v77: Stufe 1 ↔ Stufe 5 — EIN Datenbestand, zwei Darstellungen.
    Die Stufe-1-Textarea ist ein vollwertiger Text-Editor derselben Daten:
-   Übungen des Plans werden als Muster-Zeilen GERENDERT, Muster-Zeilen des
+   Übungen des Plans werden als Muster-Zeilen GERENDERT, die Zeilen des
    Nutzers werden zurück in echte Übungen GEPARST. Der Stufenwechsel selbst
    konvertiert weiterhin nichts (die Invariante aus SIMPELHEIT.md) — geändert
    wird nur, wenn der Nutzer hier wirklich tippt.
    Muster (Zeit in Sekunden, Groß/Klein und ae/ä egal):
      „Sätze 2 Wdh 20 Liegestütze“   -> Wdh-Übung
      „Sätze 3 Zeit 45 Plank“        -> Zeit-Übung
+   v79 (Nutzer-Ansage): JEDE nicht-leere Zeile ist eine Übung — ohne Muster
+   zählt nur der Name (eine vorhandene Übung behält alle Werte, eine neue
+   bekommt Standardwerte). Freitext im Abschnitt gibt es damit praktisch
+   nicht mehr (nur doppelte Namen bleiben Text); Notizen gehören in „Getan".
    ------------------------------------------------------------ */
 const NOTIZ_MUSTER = /^s(?:ä|ae)tze\s+(\d+)\s+(wdh|zeit)\s+(\d+)\s+(.+)$/i;
 
@@ -2562,25 +2611,23 @@ function abschnittTextErzeugen(p){
   return zeilen.join("\n") + (zeilen.length && frei ? "\n" : "") + frei;
 }
 
-/** Parst den kompletten Textarea-Inhalt zurück in den Plan (ersetzt das alte
-    abschnittFreitextSetzen). Muster-Zeilen werden Übungen: vorhandene werden
+/** Parst den kompletten Textarea-Inhalt zurück in den Plan. v79: JEDE
+    nicht-leere Zeile ist eine Übung — mit Muster setzt die Zeile auch
+    Sätze/Wert, ohne Muster zählt nur der Name. Vorhandene Übungen werden
     über den Namen wiedergefunden — Gewicht, Pause und Notenhistorie bleiben
     dabei erhalten —, neue werden angelegt (Gerät aus UEBUNGEN_DB, kanonische
-    Schreibweise; gewichtSchritt 0 — Heben erfindet keine Gewichte). Zeilen
-    ohne Muster bleiben Freitext. Übungen, deren Zeile fehlt, werden entfernt
-    (Zeile gelöscht = Übung gelöscht, wie im Stufe-5-Editor). Die Reihenfolge
-    der Zeilen ist die Reihenfolge der Übungen. */
+    Schreibweise; gewichtSchritt 0 — Heben erfindet keine Gewichte). Übungen,
+    deren Zeile fehlt, werden entfernt (Zeile gelöscht = Übung gelöscht, wie
+    im Stufe-5-Editor). Zeilen-Reihenfolge = Übungs-Reihenfolge. */
 function abschnittTextSetzen(id, wert){
   const p = findePlan(id); if(!p) return;
   const pool = p.uebungen.slice();   // bisherige Übungen — Name-Matching statt Neuaufbau
   const uebungen = [], rest = [], frisch = [];
   String(wert).split(/\r?\n/).forEach(zeile => {
-    const m = zeile.trim().match(NOTIZ_MUSTER);
-    if(!m){ rest.push(zeile); return; }
-    const saetze = begrenzen(parseInt(m[1], 10) || 1, 1, 20);
-    const istZeit = m[2].toLowerCase() === "zeit";
-    const zahl = parseInt(m[3], 10) || 0;
-    let name = m[4].trim();
+    const t = zeile.trim();
+    if(!t) return;                               // Leerzeilen sind nur Optik
+    const m = t.match(NOTIZ_MUSTER);
+    let name = m ? m[4].trim() : t;              // ohne Muster ist die ganze Zeile der Name
     // Doppelter Name in den Zeilen: die zweite bleibt Text (ein Plan führt
     // jede Übung nur einmal — wie der Duplikat-Schutz im Editor-Picker).
     if(!name || uebungen.some(u => normName(u.name) === normName(name))){ rest.push(zeile); return; }
@@ -2597,17 +2644,20 @@ function abschnittTextSetzen(id, wert){
       u.gewicht = 0; u.gewichtSchritt = 0;       // kein erfundenes Startgewicht (goldene Regel)
       frisch.push(name);
     }
-    u.saetze = saetze;
-    if(istZeit){
-      u.modus = "zeit";
-      u.dauer = begrenzen(zahl || 30, 5, MAX_DAUER_S);
-    } else {
-      u.modus = "wdh";
-      u.wdh = Math.max(1, zahl);
-      if(!u.wdhMin) u.wdhMin = Math.max(1, Math.round(u.wdh * 0.7));
-      if(!u.wdhMax) u.wdhMax = Math.round(u.wdh * 1.4);
-      u.wdhMin = Math.min(u.wdhMin, u.wdh);      // Bereich muss den Ist-Wert umschließen,
-      u.wdhMax = Math.max(u.wdhMax, u.wdh);      // sonst klemmt die Progression sofort
+    if(m){                                       // nur ein Muster ändert Werte
+      u.saetze = begrenzen(parseInt(m[1], 10) || 1, 1, 20);
+      const zahl = parseInt(m[3], 10) || 0;
+      if(m[2].toLowerCase() === "zeit"){
+        u.modus = "zeit";
+        u.dauer = begrenzen(zahl || 30, 5, MAX_DAUER_S);
+      } else {
+        u.modus = "wdh";
+        u.wdh = Math.max(1, zahl);
+        if(!u.wdhMin) u.wdhMin = Math.max(1, Math.round(u.wdh * 0.7));
+        if(!u.wdhMax) u.wdhMax = Math.round(u.wdh * 1.4);
+        u.wdhMin = Math.min(u.wdhMin, u.wdh);    // Bereich muss den Ist-Wert umschließen,
+        u.wdhMax = Math.max(u.wdhMax, u.wdh);    // sonst klemmt die Progression sofort
+      }
     }
     uebungen.push(u);
   });
@@ -2622,22 +2672,19 @@ function abschnittTextSetzen(id, wert){
   if(frisch.length) zeigenToast("Als Übung erkannt: " + frisch.join(", "), "erfolg");
   if(weg.length) zeigenToast("Übung entfernt: " + weg.map(u => u.name).join(", "), "info");
 }
-function abschnittLoeschen(id){
-  frage("Diesen Abschnitt löschen?", true, ja => {
-    if(!ja) return;
-    sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== id);
-    speichern();
-    notizblockZeichnen();
-  });
-}
+/* abschnittLoeschen (der große Knopf) ist in v79 entfallen — Löschen läuft
+   übers Langdruck-Menü der Karte (planMenue -> planLoeschenById). */
 function notizZeileHinzu(planId){
   const p = findePlan(planId); if(!p) return;
   const u = neueUebung(); u.name = ""; u.geraet = "keine"; u.wdh = 0;   // leeres Wdh-Feld im Notizblock
   p.uebungen.push(u);
   speichern();
   notizblockZeichnen();
-  const felder = document.querySelectorAll('.karte[data-plan="' + planId + '"] .notiz-zeile input');
-  if(felder.length >= 2) felder[felder.length - 2].focus();   // Namensfeld der neuen (letzten) Zeile
+  // Namensfeld der neuen (= letzten) Zeile fokussieren. Über die Zeile suchen,
+  // nicht über einen Feld-Index — die Zeile hat seit v79 drei Eingabefelder.
+  const reihen = document.querySelectorAll('.karte[data-plan="' + planId + '"] .notiz-zeile');
+  const letzte = reihen[reihen.length - 1];
+  if(letzte) letzte.querySelector("input").focus();
 }
 function notizZeileNameSetzen(planId, uId, wert){
   const p = findePlan(planId); if(!p) return;
@@ -2650,6 +2697,14 @@ function notizZeileWdhSetzen(planId, uId, wert){
   const u = p.uebungen.find(x => x.id === uId); if(!u) return;
   const n = parseInt(wert, 10);
   if(n > 0) u.wdh = n;   // leer/0 lässt den bisherigen Wert stehen
+  speichern();
+}
+/** v79: Sätze-Spalte der Stufe-2-Zeilen (vorher gab es nur Wiederholungen). */
+function notizZeileSaetzeSetzen(planId, uId, wert){
+  const p = findePlan(planId); if(!p) return;
+  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
+  const n = parseInt(wert, 10);
+  if(n > 0) u.saetze = begrenzen(n, 1, 20);   // leer/0 lässt den bisherigen Wert stehen
   speichern();
 }
 function notizZeileLoeschen(planId, uId){
@@ -3010,18 +3065,20 @@ function menueSchliessen(e){
 function planMenue(planId){
   const plaene = sitzung.daten.plaene;
   const plan = plaene.find(p => p.id === planId);
-  // Pfeile beziehen sich auf die Position INNERHALB der Sportart-Gruppe, so
-  // wie die Liste sie zeigt — nicht auf den rohen Array-Index (sonst passen
-  // die angebotenen Pfeile nicht zur sichtbaren Position).
-  const sport = plan.sportart || "kraft";
-  const gruppe = plaene.filter(p => (p.sportart || "kraft") === sport);
+  // Pfeile beziehen sich auf die Position, WIE DIE LISTE SIE ZEIGT: ab Stufe 3
+  // innerhalb der Sportart-Gruppe, im Notizblock (Stufe 1/2) auf die flache
+  // Array-Reihenfolge — sonst passen die Pfeile nicht zur sichtbaren Position.
+  const einfach = stufe() <= 2;
+  const gruppe = einfach ? plaene
+    : plaene.filter(p => (p.sportart || "kraft") === (plan.sportart || "kraft"));
   const pos = gruppe.findIndex(p => p.id === planId);
   // Symbole nur bei den Pfeilen: dort IST der Pfeil die Aussage.
   // Bei Bearbeiten/Duplizieren/Löschen sagt das Wort schon alles.
-  const aktionen = [
-    { text:"Bearbeiten", tun:() => editorOeffnen(planId) },
-    { text:"Duplizieren", tun:() => planDuplizieren(planId) }
-  ];
+  // v79: „Bearbeiten" erst ab Stufe 3 — der Editor ist darunter gesperrt
+  // (VIEW_MIN_STUFE), und im Notizblock bearbeitet man direkt in der Karte.
+  const aktionen = [];
+  if(!einfach) aktionen.push({ text:"Bearbeiten", tun:() => editorOeffnen(planId) });
+  aktionen.push({ text:"Duplizieren", tun:() => planDuplizieren(planId) });
   if(pos > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
   if(pos < gruppe.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => planSchieben(planId, 1) });
   aktionen.push({ text:"Löschen", stil:"gefahr", tun:() => planLoeschenById(planId) });
@@ -3031,12 +3088,15 @@ function planMenue(planId){
 function planSchieben(planId, richtung){
   const liste = sitzung.daten.plaene;
   const i = liste.findIndex(p => p.id === planId);
-  const sport = liste[i].sportart || "kraft";
-  // Mit dem NÄCHSTEN Plan derselben Sportart tauschen (Pläne anderer Sportarten
-  // dazwischen überspringen) — die Liste ist nach Sportart gruppiert, ein Tausch
-  // über Gruppengrenzen hinweg wäre unsichtbar.
   let j = i + richtung;
-  while(j >= 0 && j < liste.length && (liste[j].sportart || "kraft") !== sport) j += richtung;
+  // Ab Stufe 3 mit dem NÄCHSTEN Plan derselben Sportart tauschen (Pläne anderer
+  // Sportarten dazwischen überspringen) — die Liste ist nach Sportart gruppiert,
+  // ein Tausch über Gruppengrenzen hinweg wäre unsichtbar. Der Notizblock
+  // (Stufe 1/2) zeigt die flache Reihenfolge -> direkte Nachbarn tauschen.
+  if(stufe() > 2){
+    const sport = liste[i].sportart || "kraft";
+    while(j >= 0 && j < liste.length && (liste[j].sportart || "kraft") !== sport) j += richtung;
+  }
   if(j < 0 || j >= liste.length) return;
   [liste[i], liste[j]] = [liste[j], liste[i]];
   speichern();
@@ -3055,10 +3115,15 @@ function planLoeschenById(planId){
 
 /** Hängt an jede Plan-Karte die Langdruck-Erkennung. */
 function langdruckEinrichten(){
+  // v79: Ein Druck, der in einem Eingabefeld beginnt, ist Tippen/Textauswahl —
+  // dort KEIN Langdruck-Menü. Wichtig für die Notizblock-Karten, die seit v79
+  // das Menü tragen und voller Felder stecken.
+  const imFeld = ziel => !!(ziel && ziel.closest && ziel.closest("input,textarea,select"));
   document.querySelectorAll("[data-plan]").forEach(karte => {
     let timer = null, startY = 0;
     const abbrechen = () => { clearTimeout(timer); karte.classList.remove("gedrueckt"); };
     karte.addEventListener("touchstart", e => {
+      if(imFeld(e.target)) return;
       startY = e.touches[0].clientY;
       karte.classList.add("gedrueckt");
       timer = setTimeout(() => {
@@ -3072,8 +3137,12 @@ function langdruckEinrichten(){
     }, { passive:true });
     karte.addEventListener("touchend", abbrechen, { passive:true });
     karte.addEventListener("touchcancel", abbrechen, { passive:true });
-    // Maus/Desktop: Rechtsklick öffnet dasselbe Menü
-    karte.addEventListener("contextmenu", e => { e.preventDefault(); planMenue(karte.dataset.plan); });
+    // Maus/Desktop: Rechtsklick öffnet dasselbe Menü — außer im Feld
+    // (dort gehört das native Menü hin: Kopieren/Einfügen).
+    karte.addEventListener("contextmenu", e => {
+      if(imFeld(e.target)) return;
+      e.preventDefault(); planMenue(karte.dataset.plan);
+    });
   });
 }
 
@@ -3262,6 +3331,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.079", punkte:[
+    "Notizblock: Jede Zeile zählt jetzt als Übung — der Name allein reicht, Sätze und Wiederholungen kannst du per „Sätze 2 Wdh 20 …“ dazuschreiben. Das Feld wächst beim Schreiben mit, statt zu scrollen.",
+    "Stufe 2 zeigt neben den Wiederholungen jetzt auch die Sätze — mit Überschriften über den Spalten.",
+    "Der große „Abschnitt löschen“-Knopf ist weg: Lange auf einen Abschnitt drücken öffnet das Menü (Duplizieren, Verschieben, Löschen).",
+    "Heißt ein Abschnitt wie eine Sportart (z. B. „Laufen“), wird der Plan automatisch dieser Sportart zugeordnet. Und beim Plan-Erstellen stehen jetzt alle Sportarten zur Wahl, nicht nur Krafttraining."
+  ]},
   { stand:"0.078", punkte:[
     "Fehler behoben: Beim Tippen in ein Textfeld (z. B. im Notizblock) blieb ein Teil des Bildschirms schwarz, sobald die Tastatur aufging.",
     "Diese Liste hier ist aufgeräumt: ältere Einträge sind kurz zusammengefasst."
@@ -5991,14 +6066,14 @@ function editorZeichnen(){
   const fest = editorPlan.uebungen.length > 0;   // sind Übungen drin, ist die Sportart fix
 
   // Sportart-Knöpfe: Steht die Sportart schon (Übungen vorhanden), wird nur sie
-  // gezeigt — der Plan gehört zu genau EINER Sportart, kein Mischen. Sonst alle
-  // Profil-Sportarten zur Wahl; ohne Auswahl ergibt sie sich aus der ersten Übung.
-  const meine = (sitzung.daten.einrichtung.sportarten || ["kraft"]).slice();
-  if(hatSport && !meine.includes(editorPlan.sportart)) meine.push(editorPlan.sportart);
+  // gezeigt — der Plan gehört zu genau EINER Sportart, kein Mischen. Sonst
+  // stehen ALLE Sportarten zur Wahl (v79) — vorher nur die Profil-Sportarten,
+  // und wer die Sportarten-Seite (Stufe 5) nie gesehen hat, hatte im Profil nur
+  // Krafttraining: der Editor bot dann genau einen Knopf an.
   document.getElementById("plan-sportart").innerHTML = fest
     ? '<button class="gewaehlt" onclick="planSportartSetzen(\'' + editorPlan.sportart + '\')">' + text(sportart(editorPlan.sportart).name) + '</button>'
     : ((hatSport ? "" : '<div class="meta" style="margin-bottom:8px">Wähle unten eine Übung — die Sportart ergibt sich daraus. Oder tippe hier direkt eine an.</div>') +
-       SPORTARTEN.filter(s => meine.includes(s.id)).map(s =>
+       SPORTARTEN.map(s =>
          '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
          '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join(""));
 
