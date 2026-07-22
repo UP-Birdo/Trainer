@@ -7,7 +7,7 @@
 > **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
 > (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
 > UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
-> Stand: **Version 0.077 / APP_VERSION 77**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> Stand: **Version 0.078 / APP_VERSION 78**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
 > mehrere Nutzer-Blöcke (v54–v71, siehe Historie). v58–v71: **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
 > (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
@@ -15,7 +15,8 @@
 > (Mehrfachauswahl entfernt), **Equipment-Liste beim Plan-Start**, **Kraft nachtragen** (Equipment→Übung, Sätze optional),
 > **eigenes Zeit-Feld im Wizard**, restliche Emojis raus (nur Flamme bleibt) und **neues App-Icon** (goldene Figur auf Dunkel).
 > Danach: v72–v75 Nutzer-Fixes/Feinschliff, **v76 setzt SIMPELHEIT.md komplett um** (Stufen 1–5, Notizblock, „Getan"),
-> **v77 macht den Notizblock bidirektional** (Muster-Zeilen ↔ echte Übungen, siehe Historie).
+> **v77 macht den Notizblock bidirektional** (Muster-Zeilen ↔ echte Übungen), **v78 fixt den Tastatur-Schwarzbildschirm**
+> (`--app-h` misst nie bei offener Tastatur) und entrümpelt die NEUIGKEITEN (siehe Historie).
 
 ---
 
@@ -148,10 +149,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 71;                              // interne Ganzzahl — bei JEDEM Update +1
+const APP_VERSION = 78;                              // interne Ganzzahl — bei JEDEM Update +1
 const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v71"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v78"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -162,6 +163,7 @@ const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleite
 | Problem | Lösung |
 |---|---|
 | App lädt beim Antippen nicht neu (iOS weckt eingefrorene Seite) | `visibilitychange` → `index.html` mit `cache:no-store` holen, `APP_VERSION` vergleichen, `location.reload()` — **nur** in sicheren Ansichten (nie im Training) |
+| Tastatur öffnet sich → halber Bildschirm schwarz (v78) | iOS meldet beim Tastatur-Öffnen die geschrumpfte Resthöhe (`visualViewport`-Resize) UND schiebt die Seite zum Feld hoch — `--app-h` ließ den fixen Body zusammenfallen. `appHoeheSetzen()` misst **nie**, solange ein Eingabefeld fokussiert ist (`tastaturOffen()`); `focusout` + 400 ms misst nach |
 | Icon/Name ändern sich nie | iOS macht einen Schnappschuss. Home-Icon löschen + neu hinzufügen. Nur so. |
 | `speechSynthesis` stumm | Muss in einer echten Tippgeste freigeschaltet werden (`audioFreischalten()` mit stiller Utterance) |
 | Timer im Hintergrund gedrosselt/eingefroren | Töne **vorab auf dem Audio-Thread** planen (`osc.start(ctx.currentTime + n)`), Anzeige aus `Date.now()` rechnen, Wake Lock, App im Vordergrund lassen |
@@ -410,6 +412,22 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v78 — Tastatur-Fix (--app-h) + NEUIGKEITEN entrümpelt
+
+* **Bug (Nutzer-Screenshot): halber Bildschirm schwarz, sobald die Tastatur aufgeht** (aufgefallen im
+  Notizblock, betraf aber jedes Eingabefeld). Ursache: `appHoeheSetzen()` hängt u. a. am
+  `visualViewport`-Resize — beim Tastatur-Öffnen meldet iOS die auf den Restbereich geschrumpfte Höhe,
+  `--app-h` ließ den `position:fixed`-Body zusammenfallen, und weil iOS die Seite zusätzlich zum
+  fokussierten Feld hochschiebt, blieb darunter eine schwarze Fläche. **Fix:** `tastaturOffen()`
+  (aktives Element ist INPUT/TEXTAREA/SELECT) → `appHoeheSetzen()` misst dann NICHT; ein
+  `focusout`-Listener misst 400 ms nach dem Schließen nach (Einklapp-Animation abwarten; springt der
+  Fokus nur ins nächste Feld, greift die Wache erneut). Der v59-Kaltstart-Fix bleibt unberührt —
+  beim App-Start ist nichts fokussiert. Auch in Abschnitt 7 (iOS-Tabelle) eingetragen.
+* **NEUIGKEITEN neu geschrieben** (Nutzer-Ansage): nur noch wichtige, verständliche Punkte; Altes zu
+  groben Blöcken zusammengefasst (0.072–0.075 · 0.058–0.071 · 0.041–0.057 · Grundlagen bis 0.040).
+  Pflege-Regel bleibt: Neues oben ergänzen, interne Umbauten weglassen — und ALT-Einträge dürfen
+  weiter zusammengefasst werden, wenn die Liste zu lang wird.
 
 ### v77 — Notizblock ↔ Plan: Muster-Zeilen (Stufe 1 = Text-Editor derselben Daten)
 

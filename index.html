@@ -1162,9 +1162,21 @@ button.gewaehlt{background:var(--signal);color:#16181C}
    wir die echte sichtbare Höhe hier explizit und aktualisieren sie bei
    jedem Ereignis, das sie ändern könnte. Body hängt per CSS an --app-h.
    ============================================================ */
+/** Ist gerade ein Eingabefeld fokussiert? Dann ist die Bildschirmtastatur
+    (sehr wahrscheinlich) offen — und jede Höhenmessung wäre falsch. */
+function tastaturOffen(){
+  const a = document.activeElement;
+  return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT");
+}
 function appHoeheSetzen(){
   // innerHeight = volle sichtbare Höhe im Standalone-PWA; ruhiger als
   // visualViewport.height (das bei Tastatur/Zoom zappelt).
+  // v78: NICHT messen, solange die Tastatur offen ist. iOS meldet dann die auf
+  // den Restbereich geschrumpfte Höhe UND schiebt die Seite zum fokussierten
+  // Feld hoch — der Body fiele auf einen Bruchteil zusammen und unter dem
+  // Inhalt bliebe eine schwarze Fläche (Nutzer-Screenshot: Notizblock).
+  // Nachgemessen wird nach dem Schließen (focusout unten).
+  if(tastaturOffen()) return;
   var h = window.innerHeight;
   if(h) document.documentElement.style.setProperty("--app-h", h + "px");
 }
@@ -1175,6 +1187,10 @@ window.addEventListener("pageshow", appHoeheSetzen);   // Rückkehr aus dem Hint
 window.addEventListener("load", appHoeheSetzen);
 if(window.visualViewport) window.visualViewport.addEventListener("resize", appHoeheSetzen);
 setTimeout(appHoeheSetzen, 300);   // Nachzügler: Safe-Area rastet teils erst kurz nach Start ein
+// Tastatur zu -> jetzt nachholen, was oben übersprungen wurde. 400 ms warten,
+// bis die Einklapp-Animation durch ist. Springt der Fokus nur ins nächste
+// Feld, ist die Tastatur beim Nachmessen noch offen -> Wache greift erneut.
+document.addEventListener("focusout", () => setTimeout(appHoeheSetzen, 400));
 
 /* ============================================================
    #region Toast-Benachrichtigungen (Feedback nach Aktionen)
@@ -1601,7 +1617,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 77;
+const APP_VERSION = 78;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3246,102 +3262,38 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.078", punkte:[
+    "Fehler behoben: Beim Tippen in ein Textfeld (z. B. im Notizblock) blieb ein Teil des Bildschirms schwarz, sobald die Tastatur aufging.",
+    "Diese Liste hier ist aufgeräumt: ältere Einträge sind kurz zusammengefasst."
+  ]},
   { stand:"0.077", punkte:[
-    "Notizblock (Stufe 1) und Pläne (Stufe 5) zeigen jetzt dieselben Daten: Die Übungen eines Plans stehen im Notizblock als Text-Zeilen nach dem Muster „Sätze 2 Wdh 20 Liegestütze“ (Zeit-Übungen: „Sätze 3 Zeit 45 Plank“, Zeit in Sekunden).",
-    "Andersrum genauso: Schreibst du im Notizblock eine Zeile nach diesem Muster, wird sie eine echte Übung des Plans und erscheint auf den höheren Stufen im Editor. Alles andere bleibt einfache Notiz.",
-    "Zeile ändern passt die Übung an, Zeile löschen entfernt sie — Gewichte und Fortschritt bleiben erhalten, solange der Name gleich bleibt. Das Muster steht als Hinweis über dem Notizblock."
+    "Notizblock und Pläne zeigen dieselben Daten: Die Übungen eines Plans stehen im Notizblock als Zeilen wie „Sätze 2 Wdh 20 Liegestütze“ (Zeit-Übungen: „Sätze 3 Zeit 45 Plank“, Zeit in Sekunden).",
+    "Andersrum genauso: Schreibst du selbst eine Zeile nach diesem Muster, wird daraus eine echte Übung im Plan. Alles andere bleibt einfache Notiz.",
+    "Zeile ändern passt die Übung an, Zeile löschen entfernt sie — Gewichte und Fortschritt bleiben erhalten, solange der Name gleich bleibt."
   ]},
   { stand:"0.076", punkte:[
-    "Neu: „Einfachheit“ 1–5 — die App passt sich an, wie viel du sehen willst. Stufe 1/2 ist ein reiner Notizblock (Abschnitte, Freitext, optional Wiederholungen), ab Stufe 3 kommt echtes Training mit Sätzen und Timer, ab 4 die Auswertung, Stufe 5 ist der volle Umfang.",
-    "Beim Einrichten wird die Stufe gefragt; ändern jederzeit unter Mehr → Einfachheit. Umstellen ändert nie deine Daten — Runterstellen blendet nur aus, Hochstellen wieder ein.",
-    "Auf den einfachen Stufen kannst du mit „Getan“ schnell festhalten, was du gemacht hast."
+    "Neu: „Einfachheit“ 1–5 unter Mehr — vom reinen Notizblock (1) über Training mit Timer (3) und Statistik (4) bis zum vollen Umfang (5). Umstellen ändert nie deine Daten.",
+    "Auf den einfachen Stufen hältst du mit „Getan“ schnell fest, was du gemacht hast."
   ]},
-  { stand:"0.075", punkte:[
-    "Mehr → Hilfe aufgeräumt: „Version“ und „Neuigkeiten“ sind ein Knopf („Was ist neu?“) — er zeigt den Verlauf, die Versionsnummer steht darauf und oben auf der Seite."
-  ]},
-  { stand:"0.074", punkte:[
-    "Trainingsplanung: Eine Auswahl schaltet nicht mehr sofort weiter — du wählst in Ruhe und gehst dann mit „Weiter“. So lässt sich eine Antwort noch ändern.",
-    "Pläne-Tab aufgeräumt: Das „+“ öffnet jetzt ein schlankes Menü (Assistent · Eigener Plan · Training nachtragen) statt mehrerer Knöpfe."
-  ]},
-  { stand:"0.073", punkte:[
-    "Einträge korrigierbar: im vollen Verlauf (Statistik → „Ganzen Verlauf zeigen“) lässt sich jeder Eintrag mit × löschen — mit Rückgängig-Knopf, falls es ein Versehen war.",
-    "Spontan trainiert? Die „Heute“-Karte hat jetzt an planfreien Tagen Knöpfe für „Training eintragen“ und „Als Ruhetag markieren“ — kein Umweg mehr über andere Tabs.",
-    "Übungs-Fortschritt: neue Kurve in der Statistik — Übung wählen und den Bestwert je Trainingstag sehen (z. B. Bankdrücken über die Zeit, als geschätztes 1RM).",
-    "Trainingsnotiz: pro Training ein Freitext („schlecht geschlafen“, „Schulter zwickt“) — beim Bewerten und beim Nachtragen, sichtbar im Verlauf.",
-    "Plan-Karten haben jetzt einen sichtbaren „⋯“-Knopf für Bearbeiten/Duplizieren/Verschieben/Löschen (langes Drücken geht weiter)."
-  ]},
-  { stand:"0.072", punkte:[
-    "Statistik: das Monats-Volumen-Diagramm wird wieder gefüllt (es blieb ab ~3 Monaten Daten leer).",
-    "Stoppuhr: „Fertig“ mit sehr kurzer Zeit führt nicht mehr zu einem Hänger.",
-    "Pläne innerhalb einer Sportart lassen sich per ▲/▼ jetzt wirklich umsortieren.",
-    "Schwerpunkt „Oberkörper“ trainiert wieder Rücken und Arme (nicht nur Druck) und legt tatsächlich eine Übung drauf.",
-    "Datum rund um Mitternacht korrekt: neue Einträge landen zuverlässig am richtigen Tag.",
-    "Feinschliff bei Ziel-Einschätzung, Entlastung leichter Übungen und dem „alle 2 Wochen“-Rhythmus."
+  { stand:"0.072 – 0.075", punkte:[
+    "Einträge im Verlauf lassen sich löschen (mit Rückgängig), und zu jedem Training gibt es eine Notiz.",
+    "Neue Kurve „Übungs-Fortschritt“ in der Statistik — z. B. Bankdrücken über die Zeit.",
+    "Aufgeräumt: „+“-Menü im Pläne-Tab, Trainingsplanung ohne automatisches Weiterspringen, mehrere kleine Fehler behoben."
   ]},
   { stand:"0.058 – 0.071", punkte:[
-    "Neues App-Icon.",
-    "Heller Modus: umschaltbar unter Mehr → Darstellung. Dunkel bleibt Standard.",
-    "Aufgeräumte Navigation: vier Tabs (Heute · Pläne · Statistik · Mehr). Profil liegt jetzt unter „Mehr“, die Sportarten erreichst du über einen Knopf im Profil. Auf dem iPhone sitzt die Leiste ohne Hintergrund, der aktive Tab bekommt ein dezentes graues Feld.",
-    "Pläne zeigen immer alle Pläne nach Sportart (kein „heute/alle“-Umschalten mehr). Ein langer Druck auf einen Plan öffnet direkt Bearbeiten/Duplizieren/Löschen.",
-    "Beim Starten eines Plans steht oben, welches Equipment du brauchst.",
-    "Krafttraining nachtragen: unter „Training nachtragen“ geht jetzt auch Kraft — Equipment und Übung wählen, Sätze/Wdh/Gewicht optional. Ohne Sätze zählt es für Kalender und Serie, mit Sätzen fürs Volumen.",
-    "Im Trainings-Assistenten kannst du bei der Dauer jetzt auch eine eigene Zeit eintippen.",
-    "Schlichter: die letzten Symbole (Pause, Aufwärmen) sind raus — die Flamme der Trainings-Serie ist das einzige Emoji.",
-    "Ein seltener Ladefehler nach Updates (App hängt beim Start) ist behoben."
+    "Neues App-Icon und wählbarer heller Modus (Mehr → Darstellung).",
+    "Neue Navigation mit vier Tabs; Pläne nach Sportart gruppiert, langes Drücken öffnet das Plan-Menü.",
+    "Krafttraining lässt sich nachtragen (Equipment → Übung), vor dem Training steht das benötigte Equipment, mehrere iPhone-Fehler behoben."
   ]},
-  { stand:"0.054 – 0.057", punkte:[
-    "Schlichteres Aussehen: die bunten Symbole sind raus — nur die Flamme bleibt.",
-    "Pläne gehen jetzt von der Übung aus: Sportart-Feld leer lassen, eine Übung wählen (aus allen deinen Sportarten) — die Sportart ergibt sich von selbst. Gibt es die Übung in mehreren Sportarten, fragt die App kurz nach.",
-    "Ein Plan gehört fest zu EINER Sportart — kein Mischen mehr. Eigene Übung neu? Einmal die Sportart wählen, danach ist sie gemerkt.",
-    "Ausstattung jetzt je Sportart getrennt: jede Sportart hat ihren eigenen Austragungsort und ihr eigenes Equipment (zwei eigene Unterseiten auf der Sportart-Seite). Die Bibliothek zeigt nur, was zu deiner Ausstattung passt — nach Gerät gruppiert, Körpergewicht immer dabei.",
-    "Die untere Leiste ist kompakter; die ausgeklappte Sportart-Liste klappt beim Wechsel des Tabs wieder ein."
+  { stand:"0.041 – 0.057", punkte:[
+    "Eigene Übungen je Sportart; Ort und Equipment für jede Sportart getrennt einstellbar.",
+    "Kalender zum Antippen: Einzeltermine, Ruhetage und Wiederholung „alle 2 Wochen“.",
+    "Im Training zählen die wirklich geschafften Wiederholungen; schlichtere Optik — nur die Flamme bleibt."
   ]},
-  { stand:"0.045 – 0.053", punkte:[
-    "Kalender ist jetzt anklickbar: tippe einen Tag an, um einen Plan einmalig einzutragen (Einzeltermin), einen Ruhetag zu setzen oder zu sehen, was ansteht.",
-    "Pläne können sich „alle 2 Wochen“ wiederholen — im Editor unter „Wiederholung“ (erscheint, sobald feste Wochentage gewählt sind).",
-    "Fortschritt für ALLE Sportarten: Drills steigern sich über die Bewertung, und nach einer lockeren Ausdauer-Einheit hebt die App Dauer/Strecke auf Wunsch um ~7 % an.",
-    "Im Training trägst du jetzt die WIRKLICH geschafften Wiederholungen ein (+/- am Satz) — nicht mehr nur die geplanten.",
-    "Neue Sportart gewählt? Ein kurzer Wizard fragt Erfahrung, Tage, Dauer (und Strecke) ab und legt einen Starter-Plan an.",
-    "Pläne per langem Druck mehrfach auswählen und zusammen löschen; „Alle auswählen“ inklusive.",
-    "Übungs-Bibliothek zurück auf der Sportart-Seite; alle Sportarten frei abwählbar; Ziel-Datum kürzer (TT.MM.JJ); Texte nicht mehr versehentlich markierbar.",
-    "Die Navigationsleiste sitzt jetzt auf allen Seiten sauber unten; Version steht unter Mehr → Hilfe."
-  ]},
-  { stand:"0.041 – 0.044", punkte:[
-    "Eigene Übungen: „Eigene Übung“ fragt jetzt zuerst die Sportart und baut dann die Felder — danach steht sie im Profil unter ihrer Sportart und taucht im Auswahl-Dropdown wieder auf.",
-    "Profil aufgeräumt: die Ziele stehen jetzt über den Sportarten, und die Sportart-Liste lässt sich einklappen.",
-    "Ziele legst du direkt auf „Heute“ an und löschst sie dort — nicht mehr nur im Profil.",
-    "Pläne sind nach Sportart gruppiert.",
-    "Statistik: der Trainingslog zeigt eine kurze Vorschau, „Ganzen Verlauf zeigen“ öffnet alle Einträge mit Datum.",
-    "Neue Tab-Symbole, schlankere Kalender-Legende, Trainingsdauer frei wählbar (bis 24 h)."
-  ]},
-  { stand:"0.036 – 0.040", punkte:[
-    "Über 130 Übungen in der Datenbank — der Plan-Generator nutzt im Gym jetzt wirklich deine Maschinen, gemischt mit Freihantel.",
-    "Für jede Sportart sind Übungen/Drills hinterlegt, die du im Editor auswählen kannst.",
-    "„Übung hinzufügen“ ist ein geführtes Dropdown (Gerät bzw. Sportart → passende Übung) statt der alten Bibliothek."
-  ]},
-  { stand:"0.034 – 0.035", punkte:[
-    "Neuer Start-Bildschirm „Heute“: zeigt nur dein heutiges Training und wichtige Hinweise.",
-    "Deine Ziele stehen jetzt direkt auf dem Start — der Fortschritt bleibt im Blick.",
-    "Pläne haben einen eigenen Tab; die Plannamen sind kürzer (ohne Wochentag)."
-  ]},
-  { stand:"0.031 – 0.033", punkte:[
-    "Der Plan-Generator wählt Übungen passend zu deinen Geräten — Maschinen im Gym werden wirklich genutzt.",
-    "Ziele steuern den Plan automatisch mit: die App trainiert gezielt darauf hin.",
-    "Ein Gerät oder eine Sportart abzuwählen räumt sauber auf (mit Rückfrage)."
-  ]},
-  { stand:"0.029 – 0.030", punkte:[
-    "Ziele auch für Zeit und Gewicht, nicht nur für Wiederholungen.",
-    "Zeiteinheiten (Sekunden/Minuten) für Halte- und Ausdauerübungen."
-  ]},
-  { stand:"0.025 – 0.028", punkte:[
-    "Mehr Sportarten neben Krafttraining (Laufen, Radfahren, Schwimmen u. a.).",
-    "Kalender und Trainings-Serie („Flamme“) zeigen deine Regelmäßigkeit.",
-    "Vorschau vor dem Training mit geschätzter Dauer."
-  ]},
-  { stand:"Grundlagen (bis 0.024)", punkte:[
-    "Eigene Konten, Ende-zu-Ende verschlüsselt, mit Wiederherstellungscode.",
-    "Trainingspläne anlegen, sprachgeführtes Training, automatische Steigerung.",
-    "Statistik und Sicherung zum Export/Import — alles offline, ohne Server."
+  { stand:"Grundlagen (bis 0.040)", punkte:[
+    "Eigene Konten, komplett verschlüsselt, mit Wiederherstellungscode und Sicherung zum Export/Import — alles offline, ohne Server.",
+    "Trainingspläne (selbst gebaut oder vom Assistenten), sprachgeführtes Training mit Timer, automatische Steigerung.",
+    "Statistik mit Kalender, Volumen und Gewichtskurve; über 130 Übungen; mehrere Sportarten."
   ]}
 ];
 
