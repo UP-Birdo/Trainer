@@ -13,7 +13,7 @@
 <title>Trainer</title>
 <!-- Darstellung sofort setzen (vor dem ersten Malen), damit es im Hellmodus
      nicht kurz dunkel aufblitzt. Schlüssel = trainer.darstellung (siehe darstellungAnwenden). -->
-<script>try{if(localStorage.getItem("trainer.darstellung")==="hell")document.documentElement.classList.add("hell");}catch(e){}</script>
+<script>try{var d=localStorage.getItem("trainer.darstellung");if(d==="hell"||(d==="auto"&&matchMedia("(prefers-color-scheme: light)").matches))document.documentElement.classList.add("hell");}catch(e){}</script>
 <style>
 /* ============================================================
    Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
@@ -629,6 +629,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       </div>
     </div>
     <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
+    <!-- v80: Monats-Navigation — vorher war nur der aktuelle Monat erreichbar -->
+    <div class="zeile" style="margin-top:10px">
+      <button class="mini" onclick="kalenderBlaettern(-1)" aria-label="Voriger Monat">‹</button>
+      <span id="kalender-titel" class="meta" style="font-weight:700"></span>
+      <button class="mini" onclick="kalenderBlaettern(1)" aria-label="Nächster Monat">›</button>
+    </div>
     <div id="kalender" class="kalender"></div>
     <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
   </div>
@@ -657,12 +663,29 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="volumen-diagramm" class="abstand"></div>
   </div>
 
+  <!-- v80: Ausdauer-Pendant zum Volumen — km (bzw. Minuten) je Woche/Monat -->
+  <div class="karte" id="ausdauer-karte" hidden>
+    <div class="zeile"><h2 id="ausdauer-titel">Ausdauer</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-ausdauer')" aria-label="Info">i</button></div>
+    <div id="info-ausdauer" class="meta info-text" hidden>Summe je Woche (ab ~3 Monaten je Monat): Strecke, wo es eine gibt — sonst Minuten. Der gelbe Balken ist der laufende Zeitraum.</div>
+    <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
+    <div id="ausdauer-diagramm" class="abstand"></div>
+  </div>
+
   <div class="karte" id="fortschritt-karte" hidden>
     <div class="zeile"><h2>Übungs-Fortschritt</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-fortschritt')" aria-label="Info">i</button></div>
     <div id="info-fortschritt" class="meta info-text" hidden>Bestwert je Trainingstag. Mit Gewicht: geschätztes 1RM (Gewicht × (1 + Wdh ÷ 30)). Ohne Gewicht: die Wiederholungen. Halteübungen: die Sekunden.</div>
     <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
     <div id="fortschritt-diagramm" class="abstand"></div>
+  </div>
+
+  <!-- v80: Bestwerte — der beste protokollierte Satz je Übung -->
+  <div class="karte" id="bestwerte-karte" hidden>
+    <div class="zeile"><h2>Bestwerte</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-bestwerte')" aria-label="Info">i</button></div>
+    <div id="info-bestwerte" class="meta info-text" hidden>Der beste protokollierte Satz je Übung: mit Gewicht als Gewicht × Wiederholungen, ohne Gewicht die meisten Wiederholungen, bei Halteübungen die längste Zeit.</div>
+    <div id="bestwerte-liste" class="abstand"></div>
   </div>
 
   <div class="karte">
@@ -838,6 +861,22 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <!-- Ein Knopf statt zweier: „Was ist neu?“ zeigt den Versions-Verlauf, die
          aktuelle Version steht als Beschriftung darauf (siehe einstellungenOeffnen). -->
     <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="neuigkeitenOeffnen()">Was ist neu?</button></div>
+  </div>
+
+  <!-- v81: Feedback als GitHub-Issue — vorausgefüllt, abgeschickt wird auf GitHub -->
+  <div class="karte">
+    <div class="zeile"><h2>Feedback</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-feedback')" aria-label="Info">i</button></div>
+    <div id="info-feedback" class="meta info-text" hidden>Öffnet ein vorausgefülltes Issue in deinem GitHub-Repository — dort nur noch „Submit new issue“ antippen (einmalige GitHub-Anmeldung im Browser nötig). So sammeln sich alle Fehler und Wünsche als filterbare Liste auf GitHub. Version, Stufe und System hängt die App automatisch an.</div>
+    <label class="abstand" for="feedback-art">Art</label>
+    <select id="feedback-art">
+      <option value="bug">Bug (Fehler)</option>
+      <option value="enhancement">Wunsch (neue Funktion)</option>
+      <option value="question">Andere</option>
+    </select>
+    <label class="abstand" for="feedback-text">Beschreibung</label>
+    <textarea id="feedback-text" style="min-height:90px" placeholder="Was ist passiert bzw. was wünschst du dir?"></textarea>
+    <div class="knopfreihe"><button class="schmal" onclick="feedbackSenden()">Auf GitHub melden</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1054,6 +1093,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div id="uhr-zahl" class="uhr-zahl">–</div>
       <div id="uhr-label" class="uhr-label"></div>
       <div id="uhr-rekord" class="uhr-label pr" hidden>REKORD</div>
+      <!-- v80: „Letztes Mal: X" — der Kern-Mehrwert gegenüber dem Papier-Heft
+           (SIMPELHEIT.md Abschnitt 3). Gefüllt in schrittBetreten. -->
+      <div id="uhr-letztes" class="uhr-label"></div>
     </div>
   </div>
   <div id="danach" class="meta" style="text-align:center;margin-bottom:8px"></div>
@@ -1624,7 +1666,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 79;
+const APP_VERSION = 81;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2170,10 +2212,16 @@ function neueUebung(){
 }
 
 function beispielplan(){
-  return { id:neueId(), name:"Ganzkörper", uebungen:[
-    { id:neueId(), name:"Liegestütze", modus:"wdh",  saetze:3, wdh:10, wdhMin:8,  wdhMax:20, gewicht:0, gewichtSchritt:0, dauer:30, pause:60, notenHistorie:[] },
-    { id:neueId(), name:"Kniebeugen",  modus:"wdh",  saetze:3, wdh:15, wdhMin:10, wdhMax:25, gewicht:0, gewichtSchritt:0, dauer:30, pause:60, notenHistorie:[] },
-    { id:neueId(), name:"Plank",       modus:"zeit", saetze:3, wdh:0,  wdhMin:0,  wdhMax:0,  gewicht:0, gewichtSchritt:0, dauer:45, pause:60, notenHistorie:[] }
+  // v80: ALLE Plan-Felder mitgeben. Der Plan wird sofort gerendert —
+  // datenNachruesten läuft erst beim nächsten Login, und ein Plan ohne
+  // tage/sportart ließ planListeZeichnen/heuteKarteZeichnen hart abstürzen
+  // (p.tage.length auf undefined).
+  return { id:neueId(), name:"Ganzkörper", sportart:"kraft", typ:"kraft",
+    tage:[], wochenTakt:1, wochenAnker:0, einzelTermine:[],
+    reihenfolge:"klassisch", aufwaermen:false, dehnen:false, freitext:"", uebungen:[
+    { id:neueId(), name:"Liegestütze", geraet:"keine", modus:"wdh",  saetze:3, wdh:10, wdhMin:8,  wdhMax:20, gewicht:0, gewichtSchritt:0, dauer:30, zeitEinheit:"s", pause:60, notenHistorie:[] },
+    { id:neueId(), name:"Kniebeugen",  geraet:"keine", modus:"wdh",  saetze:3, wdh:15, wdhMin:10, wdhMax:25, gewicht:0, gewichtSchritt:0, dauer:30, zeitEinheit:"s", pause:60, notenHistorie:[] },
+    { id:neueId(), name:"Plank",       geraet:"keine", modus:"zeit", saetze:3, wdh:0,  wdhMin:0,  wdhMax:0,  gewicht:0, gewichtSchritt:0, dauer:45, zeitEinheit:"s", pause:60, notenHistorie:[] }
   ]};
 }
 
@@ -2763,6 +2811,10 @@ function zeige(id){
   document.body.classList.toggle("training-fest", id === "view-training");
   navAktualisieren(id);
   wasserzeichenZeichnen();
+  // v80: Es scrollt #inhalt, nicht das Window (seit dem v48-Flex-Umbau) —
+  // window.scrollTo allein ließ die alte Scroll-Position beim Tab-Wechsel stehen.
+  const inhalt = document.getElementById("inhalt");
+  if(inhalt) inhalt.scrollTop = 0;
   window.scrollTo(0,0);
   if((id === "view-start" || id === "view-plaene" || id === "view-login") && typeof updateAnwenden === "function")
     updateAnwenden();   // aufgeschobenes Update nachholen, sobald es gefahrlos ist
@@ -2809,6 +2861,7 @@ function planAmTag(plan, iso){
     (Sicherung) und die Ziele. Zeichnet dieselben Bausteine wie früher der
     Pläne-Tab, nur ohne die Plan-Liste — die hat jetzt ihren eigenen Tab. */
 function startOeffnen(){
+  trainingFortsetzenAnbieten();   // v80: unterbrochenes Training? Einmalig anbieten.
   // v76: Stufe 1/2 haben keinen „Heute"-Bildschirm (kein Training) — ihr
   // Zuhause ist der Notizblock. startOeffnen ist DIE zentrale „geh nach Hause"-
   // Funktion (Login, nach Training, nach Code …), deshalb wird hier geleitet.
@@ -2983,7 +3036,8 @@ function planListeZeichnen(){
         (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
         '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
-        (istAkt ? '<button class="breit" onclick="planErledigt(\'' + p.id + '\')">Erledigt</button>' : "") +
+        // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
+        '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + p.id + '\')">Erledigt</button>' +
         '<button class="schmal" onclick="planMenue(\'' + p.id + '\')" aria-label="Plan-Menü">⋯</button>' +
       '</div></div>';
   };
@@ -3107,9 +3161,16 @@ function planLoeschenById(planId){
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
   frage("Plan „" + plan.name + "“ wirklich löschen?", true, ja => {
     if(!ja) return;
+    const index = sitzung.daten.plaene.indexOf(plan);   // v80: Position für Rückgängig merken
     sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== planId);
     speichern();
     planListeZeichnen();
+    zeigenToast("Plan gelöscht", "info", () => {
+      sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
+      speichern();
+      planListeZeichnen();
+      zeigenToast("✓ Wiederhergestellt", "erfolg");
+    });
   });
 }
 
@@ -3120,6 +3181,11 @@ function langdruckEinrichten(){
   // das Menü tragen und voller Felder stecken.
   const imFeld = ziel => !!(ziel && ziel.closest && ziel.closest("input,textarea,select"));
   document.querySelectorAll("[data-plan]").forEach(karte => {
+    // v80: Jede Karte nur EINMAL anbinden — die Funktion läuft jetzt von
+    // mehreren Zeichnern (Pläne, Notizblock, Heute-Karte); ohne Wache bekämen
+    // unangetastete Karten bei jedem Aufruf einen weiteren Satz Listener.
+    if(karte.dataset.langdruck) return;
+    karte.dataset.langdruck = "1";
     let timer = null, startY = 0;
     const abbrechen = () => { clearTimeout(timer); karte.classList.remove("gedrueckt"); };
     karte.addEventListener("touchstart", e => {
@@ -3162,20 +3228,27 @@ function infoUmschalten(id){
    (theme-color) nachgezogen.
    ============================================================ */
 const DARSTELLUNG_SCHLUESSEL = "trainer.darstellung";
+/* v80: dritter Modus „auto" = der Systemeinstellung folgen. Dunkel bleibt der
+   Standard für Bestand und Neue (kein Eintrag = dunkel) — sonst würde die App
+   bei System-Hell-Nutzern ungefragt die Farbe wechseln. */
 function darstellungModus(){
-  try { return localStorage.getItem(DARSTELLUNG_SCHLUESSEL) === "hell" ? "hell" : "dunkel"; }
-  catch(e){ return "dunkel"; }
+  try {
+    const d = localStorage.getItem(DARSTELLUNG_SCHLUESSEL);
+    return d === "hell" || d === "auto" ? d : "dunkel";
+  } catch(e){ return "dunkel"; }
 }
 function darstellungAnwenden(){
-  const hell = darstellungModus() === "hell";
+  const modus = darstellungModus();
+  const hell = modus === "hell" ||
+    (modus === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches);
   document.documentElement.classList.toggle("hell", hell);
   const meta = document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content", hell ? "#F4F3EF" : "#16181C");
 }
 function darstellungSetzen(modus){
   try {
-    if(modus === "hell") localStorage.setItem(DARSTELLUNG_SCHLUESSEL, "hell");
-    else localStorage.removeItem(DARSTELLUNG_SCHLUESSEL);   // dunkel = Standard, kein Eintrag nötig
+    if(modus === "dunkel") localStorage.removeItem(DARSTELLUNG_SCHLUESSEL);   // Standard, kein Eintrag nötig
+    else localStorage.setItem(DARSTELLUNG_SCHLUESSEL, modus);
   } catch(e){ /* Speicher gesperrt */ }
   darstellungAnwenden();
   darstellungKarteZeichnen();
@@ -3183,11 +3256,18 @@ function darstellungSetzen(modus){
 function darstellungKarteZeichnen(){
   const modus = darstellungModus();
   document.getElementById("darstellung-wahl").innerHTML =
-    [["dunkel","Dunkel"],["hell","Hell"]].map(([w,n]) =>
+    [["dunkel","Dunkel"],["hell","Hell"],["auto","Automatisch"]].map(([w,n]) =>
       '<button class="' + (modus === w ? "gewaehlt" : "") +
       '" onclick="darstellungSetzen(\'' + w + '\')">' + n + '</button>').join("");
 }
 darstellungAnwenden();   // beim Start anwenden (Klasse setzt schon der head, hier folgt theme-color)
+// Systemwechsel (z. B. Sonnenuntergangs-Automatik) live nachziehen — nur im Auto-Modus relevant.
+try {
+  if(window.matchMedia)
+    matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+      if(darstellungModus() === "auto") darstellungAnwenden();
+    });
+} catch(e){ /* ältere WebKit-Versionen ohne addEventListener auf MediaQueryList */ }
 
 function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
@@ -3251,11 +3331,14 @@ function sportartenTabOeffnen(){
 
 function statistikOeffnen(){
   document.getElementById("gewicht-formular").hidden = true;
+  kalenderOffset = 0;   // v80: Statistik öffnet immer beim aktuellen Monat
   kennzahlenZeichnen();
   kalenderZeichnen();
   volumenZeichnen();
   gewichtStatistikZeichnen();
   fortschrittZeichnen();
+  ausdauerZeichnen();
+  bestwerteZeichnen();
   protokollZeichnen();
   zeige("view-statistik");
 }
@@ -3331,6 +3414,17 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.081", punkte:[
+    "Neu unter Mehr → Feedback: Fehler oder Wunsch auswählen, kurz beschreiben — die App öffnet ein fertig ausgefülltes GitHub-Issue, dort nur noch abschicken. So sammeln sich alle Meldungen als Liste in deinem Repository."
+  ]},
+  { stand:"0.080", punkte:[
+    "Im Training steht jetzt „Letztes Mal: …“ — was du bei der Übung zuletzt wirklich geschafft hast.",
+    "Wird die App mitten im Training beendet, bietet sie beim nächsten Öffnen an, genau dort weiterzumachen.",
+    "„Erledigt“ gibt es jetzt auch für Kraftpläne — ohne den Timer durchzuklicken (zählt für Kalender, Serie und Volumen).",
+    "Statistik: Kalender zum Blättern (auch vergangene Monate), neue Ausdauer-Kurve (km bzw. Minuten pro Woche), Bestwerte je Übung und eine Ziel-Linie im Übungs-Fortschritt.",
+    "Verlauf: Einträge lassen sich bearbeiten (Datum, Notiz); „Getan“-Notizen werden sauber angezeigt.",
+    "Außerdem: Darstellung „Automatisch“ (folgt dem System), Suchfeld beim Übung-Hinzufügen, Rückgängig nach Plan-Löschen, „Heute“ zeigt alle Pläne des Tages, und zwei Fehler behoben (Beispielplan, Scroll-Position beim Tab-Wechsel)."
+  ]},
   { stand:"0.079", punkte:[
     "Notizblock: Jede Zeile zählt jetzt als Übung — der Name allein reicht, Sätze und Wiederholungen kannst du per „Sätze 2 Wdh 20 …“ dazuschreiben. Das Feld wächst beim Schreiben mit, statt zu scrollen.",
     "Stufe 2 zeigt neben den Wiederholungen jetzt auch die Sätze — mit Überschriften über den Spalten.",
@@ -3371,6 +3465,54 @@ const NEUIGKEITEN = [
     "Statistik mit Kalender, Volumen und Gewichtskurve; über 130 Übungen; mehrere Sportarten."
   ]}
 ];
+
+/* ============================================================
+   #region Feedback (v81) — GitHub-Issue direkt aus der App
+   Kein Server, kein Token: Die App öffnet die „Neues Issue"-Seite des
+   eigenen Repos mit vorausgefülltem Titel, Text und Label — abgeschickt
+   wird auf GitHub selbst (ein Tipp). Vollautomatisch ginge nur mit einem
+   eingebetteten API-Token, und der wäre im ÖFFENTLICHEN Repo für jeden
+   lesbar — deshalb bewusst dieser Weg. Die Labels bug/enhancement/question
+   existieren in jedem GitHub-Repo von Haus aus; unbekannte ignoriert GitHub.
+   ============================================================ */
+const GITHUB_REPO = "";   // "benutzer/repo" — leer = automatisch aus der GitHub-Pages-Adresse
+
+/** Leitet "benutzer/repo" aus der Pages-Adresse ab (deinname.github.io/training/).
+    Klappt das nicht (lokaler Test, eigene Domain), greift GITHUB_REPO. */
+function githubRepoPfad(){
+  if(GITHUB_REPO) return GITHUB_REPO;
+  const host = location.hostname;
+  if(!host.endsWith(".github.io")) return null;
+  const nutzer = host.slice(0, -".github.io".length);
+  const segmente = location.pathname.split("/").filter(Boolean);
+  if(!nutzer || !segmente.length) return null;
+  return nutzer + "/" + segmente[0];
+}
+
+function feedbackSenden(){
+  const pfad = githubRepoPfad();
+  if(!pfad){
+    meldung("Das Repository ließ sich nicht aus der Adresse ableiten. Entweder die App über ihre GitHub-Pages-Adresse öffnen — oder im Code GITHUB_REPO auf „benutzer/repo“ setzen.");
+    return;
+  }
+  const art = document.getElementById("feedback-art").value;
+  const txt = (document.getElementById("feedback-text").value || "").trim();
+  if(!txt){ meldung("Bitte kurz beschreiben, worum es geht."); return; }
+  const artName = { bug:"Bug", enhancement:"Wunsch", question:"Andere" }[art] || "Feedback";
+  const titel = "[" + artName + "] " + txt.split("\n")[0].slice(0, 60);
+  // Kontext automatisch anhängen — beim Abarbeiten weiß man sonst nie,
+  // auf welchem Stand die Meldung entstand.
+  const body = txt + "\n\n---\nTrainer " + ANZEIGE_VERSION + " · Stufe " + stufe() + " · " + systemName();
+  const url = "https://github.com/" + pfad + "/issues/new" +
+    "?title=" + encodeURIComponent(titel) +
+    "&body=" + encodeURIComponent(body) +
+    "&labels=" + encodeURIComponent(art);
+  // window.open braucht die Klick-Geste; falls der Browser es blockt, direkt navigieren.
+  const fenster = window.open(url, "_blank");
+  if(!fenster) location.href = url;
+  else zeigenToast("GitHub geöffnet — dort „Submit new issue“ antippen", "info");
+  // Der Text bleibt bewusst stehen: Bricht man auf GitHub ab, ist nichts verloren.
+}
 
 /** Zeichnet den Versions-Verlauf im selben Stil wie „Gut zu wissen". */
 function neuigkeitenOeffnen(){
@@ -3523,6 +3665,16 @@ function tagFarben(farben, klasse, gefuellt){
            klasse: klasse + " mehrfach", kern:true };
 }
 
+/* v80: Monats-Blättern — vorher zeigte der Kalender stur den aktuellen Monat,
+   vergangene Monate waren unerreichbar. Offset in Monaten, 0 = heute. */
+let kalenderOffset = 0;
+const MONATSNAMEN = ["Januar","Februar","März","April","Mai","Juni",
+                     "Juli","August","September","Oktober","November","Dezember"];
+function kalenderBlaettern(richtung){
+  kalenderOffset += richtung;
+  kalenderZeichnen();
+}
+
 function kalenderZeichnen(){
   // ALLE Einträge je Tag — an einem Tag können mehrere Sportarten stehen
   const protoNachDatum = {};
@@ -3530,8 +3682,12 @@ function kalenderZeichnen(){
     (protoNachDatum[e.datum] = protoNachDatum[e.datum] || []).push(e);
   });
   const ruhetage = new Set(sitzung.daten.ruhetage);
-  const jetzt = new Date();
-  const jahr = jetzt.getFullYear(), monat = jetzt.getMonth();
+  const basis = new Date();
+  basis.setDate(1);                                   // erst auf den Monatsersten,
+  basis.setMonth(basis.getMonth() + kalenderOffset);  // sonst überspringt der 31. kurze Monate
+  const jahr = basis.getFullYear(), monat = basis.getMonth();
+  const titelEl = document.getElementById("kalender-titel");
+  if(titelEl) titelEl.textContent = MONATSNAMEN[monat] + " " + jahr;
   const heute = heuteAlsText();
   const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
   const wochentagErster = (new Date(jahr, monat, 1).getDay() + 6) % 7;   // 0 = Montag
@@ -3712,6 +3868,113 @@ function volumenZeichnen(){
     balken + '</svg>' + trend;
 }
 
+/* ============================================================
+   v80: Ausdauer-Statistik — das Pendant zum Kraft-Volumen.
+   Je Aktivitäts-Sportart die Summe pro Woche (ab ~3 Monaten pro Monat):
+   Strecke, wo die Sportart eine hat, sonst Minuten. Gleiches Achsen-
+   Schema wie volumenZeichnen — bewusst gespiegelt, nicht geteilt, damit
+   keine der beiden Kurven die andere beim Umbau mitreißt.
+   ============================================================ */
+let ausdauerSport = null;
+function ausdauerSetzen(id){ ausdauerSport = id; ausdauerZeichnen(); }
+
+function ausdauerZeichnen(){
+  const karte = document.getElementById("ausdauer-karte");
+  if(!karte) return;
+  const eintraege = sitzung.daten.protokoll.filter(e => e.typ === "aktivitaet");
+  const sportarten = [...new Set(eintraege.map(e => e.sportart))];
+  if(!sportarten.length){ karte.hidden = true; return; }
+  karte.hidden = false;
+  if(!ausdauerSport || !sportarten.includes(ausdauerSport)) ausdauerSport = sportarten[0];
+  document.getElementById("ausdauer-sport").innerHTML = sportarten.map(id =>
+    '<option value="' + id + '"' + (id === ausdauerSport ? " selected" : "") + '>' + text(sportartName(id)) + '</option>').join("");
+
+  const sp = sportart(ausdauerSport);
+  const mitStrecke = !!sp.strecke;
+  const daten = eintraege.filter(e => e.sportart === ausdauerSport);
+  const erstes = daten.map(e => e.datum).sort()[0];
+  const heute = heuteAlsText();
+  const proMonat = Math.floor(tagDifferenz(erstes, heute) / 7) + 1 > 12;
+  document.getElementById("ausdauer-titel").textContent = text(sportartName(ausdauerSport)) +
+    " — " + (mitStrecke ? sp.strecke.einheit : "Minuten") + (proMonat ? " pro Monat" : " pro Woche");
+
+  const summe = {};
+  daten.forEach(e => {
+    const k = proMonat ? e.datum.slice(0,7) : isoWoche(e.datum);
+    summe[k] = (summe[k] || 0) + (mitStrecke ? (e.strecke || 0) : (e.dauerMin || 0));
+  });
+
+  // Achse lückenlos vom ersten Eintrag bis heute (wie volumenZeichnen)
+  const achse = [];
+  if(proMonat){
+    let d = new Date(erstes.slice(0,7) + "-01T12:00:00");
+    const ende = new Date(heute.slice(0,7) + "-01T12:00:00");
+    while(d <= ende){
+      const k = d.toISOString().slice(0,7);
+      achse.push([k, k.slice(5,7) + "/" + k.slice(2,4)]);
+      d.setMonth(d.getMonth() + 1);
+    }
+  } else {
+    let d = erstes;
+    while(tagDifferenz(d, heute) >= 0){
+      const k = isoWoche(d);
+      if(!achse.some(x => x[0] === k)) achse.push([k, "KW" + k.slice(-2)]);
+      d = tageVerschieben(d, 7);
+    }
+    const kJetzt = isoWoche(heute);
+    if(!achse.some(x => x[0] === kJetzt)) achse.push([kJetzt, "KW" + kJetzt.slice(-2)]);
+  }
+  const gezeigt = achse.slice(-12);
+  const werte = gezeigt.map(([k]) => Math.round((summe[k] || 0) * 10) / 10);
+  const max = Math.max(...werte, 1);
+  const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / gezeigt.length;
+  let balken = "";
+  werte.forEach((v, i) => {
+    const h = (v / max) * (H - 2*rand - 16);
+    const x = rand + i * spalte + spalte * 0.15;
+    const istAktuell = i === werte.length - 1;
+    balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
+      '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
+      '" rx="2" fill="' + (istAktuell ? "var(--signal)" : "var(--rest)") + '"/>' +
+      (v > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
+      '" fill="var(--muted)" font-size="10" text-anchor="middle">' + zahlKurz(v) + '</text>' : '') +
+      '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
+      '" fill="var(--muted)" font-size="9" text-anchor="middle">' + gezeigt[i][1] + '</text>';
+  });
+  // Letzte Einheit als Klartext-Zeile — inkl. gerechneter Pace, wo möglich
+  const letzte = daten[daten.length - 1];
+  const letzteZeile = letzte
+    ? '<div class="meta" style="margin-top:6px">Zuletzt (' + datumKurz(letzte.datum) + '): ' +
+      text(aktivitaetText(letzte.sportart, letzte.strecke, (letzte.dauerMin || 0) * 60,
+                          letzte.dauerMin >= 60 ? "h" : "min") || (letzte.dauerMin || 0) + " min") + '</div>'
+    : "";
+  document.getElementById("ausdauer-diagramm").innerHTML =
+    '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Ausdauerverlauf">' +
+    balken + '</svg>' + letzteZeile;
+}
+
+/* v80: Bestwerte — der beste protokollierte Satz je Übung. Nutzt dieselbe
+   Wertlogik wie Rekord/Fortschritt: Gewicht × Wdh, sonst Wdh, bei Zeit die Dauer. */
+function bestwerteZeichnen(){
+  const karte = document.getElementById("bestwerte-karte");
+  if(!karte) return;
+  const best = {};   // Name -> { wert, txt }
+  sitzung.daten.protokoll.forEach(e => (e.saetze || []).forEach(s => {
+    if(!s.name) return;
+    let wert, txt;
+    if(s.modus === "zeit"){ wert = s.dauer || 0; txt = Math.round(wert) + " s"; }
+    else if((s.gewicht || 0) > 0){ wert = s.gewicht * (s.wdh || 0); txt = s.gewicht + " kg × " + (s.wdh || 0); }
+    else { wert = s.wdh || 0; txt = wert + " Wdh"; }
+    if(!best[s.name] || wert > best[s.name].wert) best[s.name] = { wert, txt };
+  }));
+  const namen = Object.keys(best).sort((a,b) => a.localeCompare(b, "de"));
+  if(!namen.length){ karte.hidden = true; return; }
+  karte.hidden = false;
+  document.getElementById("bestwerte-liste").innerHTML = namen.map(n =>
+    '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+    '<span>' + text(n) + '</span><span class="meta">' + text(best[n].txt) + '</span></div>').join("");
+}
+
 function gewichtFormularZeigen(){
   const f = document.getElementById("gewicht-formular");
   f.hidden = !f.hidden;
@@ -3837,20 +4100,38 @@ function fortschrittZeichnen(){
     return;
   }
 
+  /* v80: Ziel-Linie — nur wenn die Einheit der Kurve zur Ziel-Art passt:
+     Wdh-Ziel auf einer Wdh-Kurve, Zeit-Ziel auf einer Zeit-Kurve. Ein
+     Gewichts-Ziel passt NICHT auf die 1RM-Schätzkurve (andere Skala). */
+  let zielWert = null;
+  (sitzung.daten.ziele || []).forEach(z => {
+    if(normName(z.uebung) !== normName(fortschrittUebung)) return;
+    if(modusZeit && z.art === "zeit") zielWert = inSekunden(z.wert, z.einheit);
+    else if(!modusZeit && !gewichtGesehen && z.art === "wdh") zielWert = z.wert;
+  });
+
   const B = 560, H = 220, rand = 34;
-  const min = Math.min(...werte), max = Math.max(...werte);
+  const alleWerte = zielWert != null ? werte.concat(zielWert) : werte;
+  const min = Math.min(...alleWerte), max = Math.max(...alleWerte);
   const spanne = (max - min) || 1;
   const x = i => rand + i * (B - 2*rand) / (tage.length - 1);
   const y = v => H - rand - (v - min) / spanne * (H - 2*rand);
   const linie = werte.map((v,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
   const punkte = werte.map((v,i) =>
     '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+  const zielLinie = zielWert != null
+    ? '<line x1="' + rand + '" x2="' + (B - rand) + '" y1="' + y(zielWert).toFixed(1) + '" y2="' + y(zielWert).toFixed(1) +
+      '" stroke="var(--signal)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+      '<text x="' + (B - rand) + '" y="' + (y(zielWert) - 5).toFixed(1) +
+      '" fill="var(--signal)" font-size="11" text-anchor="end">Ziel ' + fmt(zielWert) + '</text>'
+    : "";
   const trend = werte[werte.length-1] - werte[0];
 
   diagramm.innerHTML =
     '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Fortschritt ' + text(fortschrittUebung) + '">' +
     '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + fmt(max) + '</text>' +
     '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + fmt(min) + '</text>' +
+    zielLinie +
     '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte +
     '</svg>' +
     '<div class="meta" style="margin-top:6px">' + tage.length + ' Trainingstage · zuletzt ' + fmt(werte[werte.length-1]) +
@@ -3879,16 +4160,29 @@ function gewichtInfoZeichnen(){
 }
 
 /** Ein Protokoll-Eintrag als Zeile (Datum · Plan · Dauer · Sätze). Wird in der
-    Statistik-Vorschau UND im vollen Verlauf genutzt. */
-function protokollEintragHtml(e, mitLoeschen){
+    Statistik-Vorschau UND im vollen Verlauf genutzt. v80: robust gegen Einträge
+    ohne Plan/Dauer (die „Getan"-Schnellnotizen der Stufe 1/2 haben nur Datum +
+    freitext — vorher stand da „undefined min · 0 Sätze" mit leerem Namen). */
+function protokollEintragHtml(e, mitAktionen){
+  const titel = e.plan || (e.freitext ? "Notiz" : "Training");
+  const teile = [e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4)];
+  if(e.typ === "aktivitaet"){
+    const a = aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min");
+    if(a) teile.push(a);
+  } else {
+    if(e.dauerMin > 0) teile.push(e.dauerMin + " min");
+    if(e.saetze.length) teile.push(e.saetze.length + (e.saetze.length === 1 ? " Satz" : " Sätze"));
+  }
   return '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
     '<div class="zeile"><div style="color:var(--chalk)"><span style="color:' + sportartFarbe(e.sportart) + '">■</span> ' +
-      text(e.plan) + (e.sonder ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
-      (mitLoeschen && e.id ? '<button class="schmal gefahr" onclick="eintragLoeschen(\'' + e.id + '\')" aria-label="Eintrag löschen">×</button>' : "") + '</div>' +
-    '<div>' + e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4) + " · " +
-      (e.typ === "aktivitaet"
-        ? aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min")
-        : e.dauerMin + " min · " + e.saetze.length + " Sätze") + '</div>' +
+      text(titel) + (e.sonder && e.plan ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
+      (mitAktionen && e.id
+        ? '<span style="flex:0 0 auto">' +
+          '<button class="schmal" onclick="eintragBearbeiten(\'' + e.id + '\')" aria-label="Eintrag bearbeiten">✎</button> ' +
+          '<button class="schmal gefahr" onclick="eintragLoeschen(\'' + e.id + '\')" aria-label="Eintrag löschen">×</button></span>'
+        : "") + '</div>' +
+    '<div>' + teile.join(" · ") + '</div>' +
+    (e.freitext ? '<div class="meta" style="margin-top:2px">' + text(e.freitext) + '</div>' : "") +
     (e.notiz ? '<div class="meta" style="font-style:italic;margin-top:2px">„' + text(e.notiz) + '“</div>' : "") +
     '</div>';
 }
@@ -3939,6 +4233,42 @@ function eintragLoeschen(id){
   });
 }
 
+/* v80: Eintrag bearbeiten — Datum und Notiz sind die häufigen Tippfehler.
+   Die Satz-Daten selbst bleiben unantastbar (dafür: löschen + neu eintragen). */
+function eingabeFrage(textInhalt, typ, startwert, dann){
+  const hintergrund = document.getElementById("dialog-hintergrund");
+  const ja = document.getElementById("dialog-ja");
+  const nein = document.getElementById("dialog-nein");
+  const eingabe = document.getElementById("dialog-eingabe");
+  document.getElementById("dialog-text").textContent = textInhalt;
+  eingabe.hidden = false; eingabe.type = typ; eingabe.value = startwert || "";
+  nein.hidden = false;
+  hintergrund.classList.add("offen");
+  // Typ nach Gebrauch IMMER auf password zurück — das Feld gehört passwortFrage.
+  ja.onclick   = () => { hintergrund.classList.remove("offen"); eingabe.hidden = true; const w = eingabe.value; eingabe.type = "password"; dann(w); };
+  nein.onclick = () => { hintergrund.classList.remove("offen"); eingabe.hidden = true; eingabe.type = "password"; };
+  eingabe.focus();
+}
+
+function eintragBearbeiten(id){
+  const e = sitzung.daten.protokoll.find(x => x.id === id);
+  if(!e) return;
+  aktionsMenue(datumKurz(e.datum) + " · " + (e.plan || e.freitext || "Eintrag"), [
+    { text:"Datum ändern", tun:() => eingabeFrage("Neues Datum:", "date", e.datum, wert => {
+        if(!wert) return;
+        if(wert > heuteAlsText()){ meldung("Ein Training kann nicht in der Zukunft liegen."); return; }
+        e.datum = wert;
+        sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+        speichern(); statistikAktualisieren(); verlaufOeffnen();
+        zeigenToast("✓ Datum geändert", "erfolg");
+      }) },
+    { text:"Notiz ändern", tun:() => eingabeFrage("Notiz zum Training:", "text", e.notiz || "", wert => {
+        e.notiz = (wert || "").trim();
+        speichern(); statistikAktualisieren(); verlaufOeffnen();
+      }) }
+  ]);
+}
+
 /** Zeichnet die Statistik-Bausteine neu, ohne die Ansicht zu wechseln — damit
     ein im Verlauf gelöschter Eintrag auch in Kalender/Volumen/Serie verschwindet. */
 function statistikAktualisieren(){
@@ -3947,6 +4277,8 @@ function statistikAktualisieren(){
   volumenZeichnen();
   gewichtStatistikZeichnen();
   fortschrittZeichnen();
+  ausdauerZeichnen();
+  bestwerteZeichnen();
   protokollZeichnen();
 }
 
@@ -6219,6 +6551,10 @@ function uebungPickerZeichnen(){
       '<button class="primaer schmal" onclick="pickerHinzu()">Hinzufügen</button>' +
       '<button class="schmal' + (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung</button>' +
     '</div>';
+  // v80: Suchfeld — „Alle Geräte" listet weit über 100 Übungen, das rohe
+  // Dropdown war auf dem iOS-Rad kaum bedienbar.
+  const suchfeld = '<input id="picker-suche" placeholder="Übung suchen …" autocomplete="off" ' +
+    'oninput="pickerUebungenZeichnen()" style="margin-bottom:8px">';
   if(editorPlan.typ === "kraft"){
     const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
     const optionen = '<option value="alle">Alle Geräte</option>' +
@@ -6226,14 +6562,14 @@ function uebungPickerZeichnen(){
       GERAETE.filter(g => meine.includes(g.id))
         .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("");
     ziel.innerHTML =
-      '<label class="abstand">Übung hinzufügen</label>' +
+      '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
       '<div class="raster">' +
         '<select id="picker-geraet" onchange="pickerUebungenZeichnen()">' + optionen + '</select>' +
         '<select id="picker-uebung"></select>' +
       '</div>' + knoepfe + eigenBauerHtml();
   } else {
     ziel.innerHTML =
-      '<label class="abstand">Übung hinzufügen</label>' +
+      '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
       '<select id="picker-uebung" style="width:100%"></select>' + knoepfe + eigenBauerHtml();
   }
   pickerUebungenZeichnen();
@@ -6245,6 +6581,8 @@ function pickerUebungenZeichnen(){
   const sel = document.getElementById("picker-uebung");
   if(!sel) return;
   const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
+  // v80: Suchfeld filtert die Auswahl (normalisiert, Teil-Treffer reichen).
+  const suche = normName((document.getElementById("picker-suche") || {}).value || "");
   let namen;
   if(!editorPlan.sportart){
     // v56: Plan noch ohne Sportart -> Übungen ALLER Profil-Sportarten anbieten.
@@ -6256,9 +6594,10 @@ function pickerUebungenZeichnen(){
       ((sitzung.daten.eigeneUebungen || {})[sp] || []).forEach(v => menge.add(v.name));
     });
     namen = [...menge].filter(n => !drin.has(n)).sort((a,b) => a.localeCompare(b, "de"));
+    if(suche) namen = namen.filter(n => normName(n).includes(suche));
     sel.innerHTML = namen.length
       ? namen.map(n => '<option value="' + text(n) + '">' + text(n) + '</option>').join("")
-      : '<option value="">— noch keine Übungen im Profil —</option>';
+      : '<option value="">— ' + (suche ? "nichts gefunden" : "noch keine Übungen im Profil") + ' —</option>';
     return;
   }
   if(editorPlan.typ === "kraft"){
@@ -6274,9 +6613,10 @@ function pickerUebungenZeichnen(){
   const eigene = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || [])
     .map(v => v.name).filter(n => !drin.has(n) && !namen.includes(n));
   namen = namen.concat(eigene);
+  if(suche) namen = namen.filter(n => normName(n).includes(suche));
   sel.innerHTML = namen.length
     ? namen.map(n => '<option>' + text(n) + '</option>').join("")
-    : '<option value="">— alle passenden schon im Plan —</option>';
+    : '<option value="">— ' + (suche ? "nichts gefunden" : "alle passenden schon im Plan") + ' —</option>';
 }
 
 /** Übernimmt die gewählte Übung in den Plan (baut sie je nach Typ auf). */
@@ -6412,10 +6752,19 @@ function planSichern(){
 function planLoeschen(){
   frage("Plan „" + (editorPlan.name || "Ohne Namen") + "“ wirklich löschen?", true, ja => {
     if(!ja) return;
+    // v80: das ORIGINAL sichern (editorPlan ist eine Kopie) — für Rückgängig.
+    const plan = sitzung.daten.plaene.find(p => p.id === editorPlan.id);
+    const index = sitzung.daten.plaene.indexOf(plan);
     sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== editorPlan.id);
     speichern();
     planListeZeichnen();
     zeige("view-plaene");
+    if(plan) zeigenToast("Plan gelöscht", "info", () => {
+      sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
+      speichern();
+      planListeZeichnen();
+      zeigenToast("✓ Wiederhergestellt", "erfolg");
+    });
   });
 }
 
@@ -6427,6 +6776,53 @@ function planLoeschen(){
    Jeder ausgeführte Satz wird mit Ist-Werten protokolliert.
    ============================================================ */
 let lauf = null;
+
+/* ============================================================
+   v80: Trainings-Wiederaufnahme. lauf lebte nur im RAM — killte iOS die
+   App bei Minute 40, war ALLES weg (das Protokoll entsteht erst am Ende).
+   Der Zwischenstand wandert deshalb bei jedem Schritt VERSCHLÜSSELT nach
+   localStorage (Klartext-Nutzdaten haben dort nichts verloren — es
+   verschlüsselt derselbe Datenschlüssel wie bei den Kontodaten). Nach der
+   Anmeldung bietet die App einmalig das Fortsetzen an; der laufende
+   Countdown-Schritt beginnt dabei von vorn (bewusst simpel).
+   ============================================================ */
+const TRAINING_MERKER = "trainer.trainingslauf";
+
+function trainingSichern(){
+  if(!lauf || !lauf.schritte || !lauf.schritte.length || !sitzung) return;
+  const stand = { plan: lauf.plan, schritte: lauf.schritte, index: lauf.index,
+                  saetze: lauf.saetze, startZeit: lauf.startZeit };
+  gcmVerschluesseln(sitzung.datenSchluessel, new TextEncoder().encode(JSON.stringify(stand)))
+    .then(paket => { try { localStorage.setItem(TRAINING_MERKER, JSON.stringify({ kontoId: sitzung.kontoId, paket })); } catch(e){} })
+    .catch(() => {});
+}
+function trainingMerkerLoeschen(){ try { localStorage.removeItem(TRAINING_MERKER); } catch(e){} }
+
+let trainingAngeboten = false;   // pro Sitzung nur EINMAL fragen — startOeffnen läuft oft
+
+async function trainingFortsetzenAnbieten(){
+  if(trainingAngeboten || !sitzung || lauf || stufe() < 3) return;
+  trainingAngeboten = true;
+  let roh = null;
+  try { roh = JSON.parse(localStorage.getItem(TRAINING_MERKER)); } catch(e){}
+  if(!roh || roh.kontoId !== sitzung.kontoId) return;
+  try {
+    const klartext = await gcmEntschluesseln(sitzung.datenSchluessel, roh.paket);
+    const stand = JSON.parse(new TextDecoder().decode(klartext));
+    if(!stand || !stand.plan || !Array.isArray(stand.schritte) || !stand.schritte.length){ trainingMerkerLoeschen(); return; }
+    frage("Ein Training wurde unterbrochen:\n„" + stand.plan.name + "“ — Schritt " +
+          Math.min(stand.index + 1, stand.schritte.length) + " von " + stand.schritte.length + ".\n\nFortsetzen?", true, ja => {
+      if(!ja){ trainingMerkerLoeschen(); return; }
+      audioFreischalten();          // der Dialog-Tipp ist eine echte Geste (iOS)
+      bildschirmWachhalten();
+      lauf = { plan: stand.plan, schritte: stand.schritte, index: stand.index,
+               saetze: stand.saetze || [], timerId: null, ende: 0, dauer: 0,
+               startZeit: stand.startZeit || Date.now() };
+      zeige("view-training");
+      schrittBetreten();
+    });
+  } catch(e){ trainingMerkerLoeschen(); }
+}
 
 /** Baut die Bonus-Schritte (Aufwärmen/Dehnen) als eigene Phasen. */
 function bonusSchritte(liste, typ){
@@ -6599,9 +6995,15 @@ function eintragGeraeteOptionen(){
 }
 function eintragKraftUebungen(){
   const g = document.getElementById("ein-geraet").value;
-  const liste = UEBUNGEN_DB.filter(u => u.geraet === g);
-  document.getElementById("ein-uebung").innerHTML = liste.length
-    ? liste.map(u => '<option value="' + text(u.name) + '">' + text(u.name) + '</option>').join("")
+  const namen = UEBUNGEN_DB.filter(u => u.geraet === g).map(u => u.name);
+  // v80: eigene Kraft-Übungen (Profil) fehlten im Nachtrag — sie haben kein
+  // Gerät und stehen deshalb unter „Körpergewicht" mit zur Wahl.
+  if(g === "keine")
+    ((sitzung.daten.eigeneUebungen || {}).kraft || []).forEach(v => {
+      if(!namen.includes(v.name)) namen.push(v.name);
+    });
+  document.getElementById("ein-uebung").innerHTML = namen.length
+    ? namen.map(n => '<option value="' + text(n) + '">' + text(n) + '</option>').join("")
     : '<option value="">– keine Übung für dieses Equipment –</option>';
   eintragenZeichnen();
 }
@@ -6787,6 +7189,37 @@ function planErledigt(planId){
   eintragenOeffnen(sitzung.daten.plaene.find(p => p.id === planId), 0);
 }
 
+/** v80: Kraftplan als erledigt eintragen — ohne den Timer durchzuklicken.
+    Protokolliert die SOLLWERTE des Plans (jede Übung mit allen Sätzen), färbt
+    Kalender + Serie und zählt ins Volumen. Geht NICHT durch die Bewertung —
+    die automatische Progression bleibt unberührt (wie „Kraft nachtragen", v70). */
+function kraftErledigt(planId){
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  if(!plan || !plan.uebungen.length){ meldung("Der Plan hat keine Übungen."); return; }
+  frage("„" + plan.name + "“ als heute erledigt eintragen?\n\nEs werden die Sollwerte protokolliert — ohne Bewertung, die automatische Anpassung läuft nur über ein echtes Training.", true, ja => {
+    if(!ja) return;
+    const heute = heuteAlsText();
+    const saetze = [];
+    plan.uebungen.forEach(u => {
+      for(let s = 1; s <= u.saetze; s++){
+        const eintrag = { uebungId:u.id, name:u.name, modus:u.modus, satz:s, note:null };
+        if(u.modus === "zeit") eintrag.dauer = u.dauer;
+        else { eintrag.wdh = u.wdh; eintrag.gewicht = u.gewicht; }
+        saetze.push(eintrag);
+      }
+    });
+    sitzung.daten.protokoll.push({
+      id: neueId(), datum: heute, plan: plan.name, planId: plan.id,
+      sportart: plan.sportart || "kraft", typ: "kraft", sonder: !planAmTag(plan, heute),
+      dauerMin: dauerSchaetzen(plan), notiz: "", saetze
+    });
+    sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+    speichern();
+    zeigenToast("✓ Als erledigt eingetragen", "erfolg");
+    startOeffnen();
+  });
+}
+
 /** Zirkel an — erneutes Antippen mischt neu (jeder Aufruf würfelt frisch). */
 function vorschauMischen(){
   vorschauPlan.reihenfolge = "zirkel";
@@ -6876,6 +7309,7 @@ function schrittBetreten(){
   pauseK.textContent = "Pause";
   pauseK.classList.remove("gewaehlt");
   if(lauf.index >= lauf.schritte.length){ trainingBeenden(); return; }
+  trainingSichern();   // v80: Zwischenstand je Schritt — überlebt einen App-Abbruch
 
   const s = lauf.schritte[lauf.index];
   const laeuftUhr = s.typ !== "satz-wdh";
@@ -6889,6 +7323,7 @@ function schrittBetreten(){
     document.getElementById("uebungsname").textContent = s.name;
     document.getElementById("strichliste").innerHTML = "";
     document.getElementById("uhr-rekord").hidden = true;
+    document.getElementById("uhr-letztes").textContent = "";   // Bonus-Phasen haben keine Historie
     gesamtBalkenZeichnen(0);
     const ph = document.getElementById("phase");
     ph.textContent = (istWarm ? "Aufwärmen · " : "Dehnen · ") + s.nummer + " von " + s.gesamt;
@@ -6919,6 +7354,9 @@ function schrittBetreten(){
   gesamtBalkenZeichnen(0);
 
   rekordPruefen(s);
+  // v80: „Letztes Mal: X" bei den Übungs-Schritten — in der Pause wäre es
+  // irreführend (der Pause-Schritt trägt den Index der VORIGEN Übung).
+  document.getElementById("uhr-letztes").textContent = s.typ === "pause" ? "" : letztesMalText(u);
 
   if(s.typ === "satz-wdh"){
     phase.textContent = "Satz " + s.satz + " von " + u.saetze;
@@ -7101,6 +7539,7 @@ function trainingAbbrechen(){
   frage("Training abbrechen? Es wird nichts angepasst und nichts protokolliert.", true, ja => {
     if(!ja) return;
     aufraeumen();
+    trainingMerkerLoeschen();   // v80: abgebrochen = kein Wiederaufnahme-Angebot
     startOeffnen();
   });
 }
@@ -7111,6 +7550,34 @@ function aufraeumen(){
   if("speechSynthesis" in window) speechSynthesis.cancel();
   bildschirmFreigeben();
   lauf = null;
+}
+
+/* v80: „Letztes Mal: X" — was wurde bei dieser Übung zuletzt WIRKLICH
+   geschafft? Die Daten liegen längst im Protokoll (Ist-Werte seit E2);
+   gesucht wird rückwärts (neuester Eintrag zuerst), über die stabile
+   uebungId mit Namens-Rückfall (kopierte Übungen haben eigene IDs). */
+function letztesMal(u){
+  for(let i = sitzung.daten.protokoll.length - 1; i >= 0; i--){
+    const saetze = (sitzung.daten.protokoll[i].saetze || []).filter(s =>
+      s.uebungId === u.id || normName(s.name || "") === normName(u.name));
+    if(saetze.length) return { datum: sitzung.daten.protokoll[i].datum, saetze };
+  }
+  return null;
+}
+
+/** Kompakte Zeile fürs Training: „Letztes Mal (12.07.): 12 / 11 / 10 Wdh · 20 kg" */
+function letztesMalText(u){
+  const lm = letztesMal(u);
+  if(!lm) return "";
+  let kern;
+  if(u.modus === "zeit" || lm.saetze[0].modus === "zeit"){
+    kern = lm.saetze.map(x => Math.round(x.dauer || 0)).join(" / ") + " s";
+  } else {
+    kern = lm.saetze.map(x => x.wdh || 0).join(" / ") + " Wdh";
+    const kg = Math.max(...lm.saetze.map(x => x.gewicht || 0));
+    if(kg > 0) kern += " · " + kg + " kg";
+  }
+  return "Letztes Mal (" + datumKurz(lm.datum) + "): " + kern;
 }
 
 /** Bester bisheriger Wert einer Übung aus dem Protokoll (ohne den laufenden Lauf). */
@@ -7198,31 +7665,42 @@ function ruhetagHeute(){
     im Pläne-Tab doppelt die Karte nicht mehr), bleibt aber als klare Signatur. */
 function heuteKarteZeichnen(){
   const ziel = document.getElementById("heute-karte");
+  const heute = heuteAlsText();
   const wochentag = heutigerWochentag();
   const name = WOCHENTAGE[wochentag];
-  // tag statt Name: Der Plan darf jetzt heißen, wie er will.
-  const plan = sitzung.daten.plaene.find(p => planAmTag(p, heuteAlsText()));
-  const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heuteAlsText());
+  // v80: ALLE Pläne von heute zeigen — vorher nur der erste Treffer (.find):
+  // wer Kraft UND Laufen am selben Tag geplant hatte, sah den zweiten nie.
+  const plaeneHeute = sitzung.daten.plaene.filter(p => planAmTag(p, heute));
+  const schonTrainiert = sitzung.daten.protokoll.some(e => e.datum === heute);
 
-  if(plan){
-    ziel.innerHTML = '<div class="heute" data-plan="' + plan.id + '" style="border-color:' + sportartFarbe(plan.sportart) + '">' +
-      '<div class="heute-label" style="color:' + sportartFarbe(plan.sportart) + '">Heute · ' + name +
-        ' · ' + text(sportartName(plan.sportart)) + (schonTrainiert ? " · erledigt ✓" : "") + '</div>' +
-      '<h2>' + text(plan.name) + '</h2>' +
-      '<div class="meta">' +
-        (plan.typ === "aktivitaet"
-          ? aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit)
-          : plan.uebungen.length + ' Übungen · ' +
-            plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
-            (plan.aufwaermen ? ' · Aufwärmen' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
-      '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
-        (plan.typ === "aktivitaet" ? (schonTrainiert ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
-                                   : (schonTrainiert ? "Nochmal trainieren" : "Training starten")) + '</button>' +
-        (plan.typ === "aktivitaet" ? '<button class="breit" onclick="planErledigt(\'' + plan.id + '\')">Erledigt</button>' : "") +
-        '<button class="schmal" onclick="planMenue(\'' + plan.id + '\')" aria-label="Plan-Menü">⋯</button></div>' +
-      '<div class="meta" style="margin-top:8px">⋯ oder lange drücken: Bearbeiten, Verschieben, Löschen.</div>' +
-      '</div>';
-    return plan.id;
+  if(plaeneHeute.length){
+    ziel.innerHTML = plaeneHeute.map(plan => {
+      // „erledigt" PRO Plan (über die stabile planId), nicht pauschal pro Tag.
+      const erledigt = sitzung.daten.protokoll.some(e =>
+        e.datum === heute && (e.planId ? e.planId === plan.id : e.plan === plan.name));
+      const istAkt = plan.typ === "aktivitaet";
+      return '<div class="heute" data-plan="' + plan.id + '" style="border-color:' + sportartFarbe(plan.sportart) + '">' +
+        '<div class="heute-label" style="color:' + sportartFarbe(plan.sportart) + '">Heute · ' + name +
+          ' · ' + text(sportartName(plan.sportart)) + (erledigt ? " · erledigt ✓" : "") + '</div>' +
+        '<h2>' + text(plan.name) + '</h2>' +
+        '<div class="meta">' +
+          (istAkt
+            ? aktivitaetText(plan.sportart, plan.strecke, plan.dauer, plan.zeitEinheit)
+            : plan.uebungen.length + ' Übungen · ' +
+              plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
+              (plan.aufwaermen ? ' · Aufwärmen' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
+        '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
+          (istAkt ? (erledigt ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
+                  : (erledigt ? "Nochmal trainieren" : "Training starten")) + '</button>' +
+          // v80: „Erledigt" gibt es jetzt auch für Kraftpläne (Sollwerte werden
+          // protokolliert, ohne Bewertung) — vorher nur für Aktivitäten.
+          '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + plan.id + '\')">Erledigt</button>' +
+          '<button class="schmal" onclick="planMenue(\'' + plan.id + '\')" aria-label="Plan-Menü">⋯</button></div>' +
+        '</div>';
+    }).join("");
+    // Langdruck neu anbinden: innerHTML hat die alten Karten samt Listenern ersetzt.
+    langdruckEinrichten();
+    return plaeneHeute[0].id;
   } else if(schonTrainiert){
     ziel.innerHTML = '<div class="heute"><div class="heute-label">Heute · ' + name + '</div>' +
       '<h2>Erledigt ✓</h2><div class="meta">Gut gemacht — die Serie läuft.</div>' +
@@ -7280,6 +7758,7 @@ function trainingBeenden(){
   };
   sitzung.daten.protokoll.push(eintrag);
   speichern();
+  trainingMerkerLoeschen();   // v80: der Lauf ist im Protokoll — Zwischenstand weg
 
   // Ansage NACH dem Eintragen, damit die Serie das heutige Training mitzählt.
   const serie = trainingsSerie();

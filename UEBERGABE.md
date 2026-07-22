@@ -7,7 +7,7 @@
 > **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
 > (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
 > UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
-> Stand: **Version 0.079 / APP_VERSION 79**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> Stand: **Version 0.081 / APP_VERSION 81**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
 > mehrere Nutzer-Blöcke (v54–v71, siehe Historie). v58–v71: **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
 > (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
@@ -18,7 +18,10 @@
 > **v77 macht den Notizblock bidirektional** (Muster-Zeilen ↔ echte Übungen), **v78 fixt den Tastatur-Schwarzbildschirm**
 > (`--app-h` misst nie bei offener Tastatur) und entrümpelt die NEUIGKEITEN, **v79 baut den Notizblock aus**
 > (jede Zeile = Übung, Sätze-Spalte auf Stufe 2, Langdruck-Menü statt Löschen-Knopf, Sportart aus der
-> Überschrift, Editor bietet ALLE Sportarten — siehe Historie).
+> Überschrift, Editor bietet ALLE Sportarten), **v80 = großer Fix-und-Feature-Durchgang** („Letztes Mal"
+> im Training, Trainings-Wiederaufnahme, Kraft-Erledigt, Ausdauer-Statistik, Kalender-Blättern,
+> Bestwerte, Ziel-Linie, 4 Fehler behoben), **v81 = Feedback → GitHub-Issue** (Mehr → Feedback,
+> vorausgefüllt, ohne Token — siehe Historie).
 
 ---
 
@@ -151,10 +154,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 79;                              // interne Ganzzahl — bei JEDEM Update +1
+const APP_VERSION = 81;                              // interne Ganzzahl — bei JEDEM Update +1
 const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v79"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v81"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -414,6 +417,77 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v81 — Feedback → GitHub-Issue (Mehr → Feedback)
+
+**Nutzer-Wunsch:** In der App Bug/Wunsch/Andere auswählen, beschreiben, und auf GitHub sammelt sich
+eine Liste der Meldungen.
+
+* **Mechanik: GitHubs vorausfüllbare Issue-URL** (`…/issues/new?title=&body=&labels=`) — kein Server,
+  kein Token. Abgeschickt wird auf GitHub selbst (ein Tipp, einmalige GitHub-Anmeldung im Browser).
+  **Vollautomatisch ist BEWUSST nicht drin:** dafür bräuchte es einen API-Token in der App, und der wäre
+  im öffentlichen Repo für jeden lesbar. Nicht erneut vorschlagen.
+* **Repo-Ableitung:** `githubRepoPfad()` liest `benutzer/repo` aus der Pages-Adresse
+  (`deinname.github.io/training/` → `deinname/training`); die Konstante `GITHUB_REPO` („benutzer/repo")
+  überschreibt das für Sonderfälle. Nicht ableitbar (lokaler Test) → Meldung statt kaputter URL.
+* **Labels = GitHub-Standard** (`bug`/`enhancement`/`question`, existieren in jedem Repo; unbekannte
+  ignoriert GitHub still). Titel = „[Bug] <erste Zeile, 60 Zeichen>", Body = Beschreibung +
+  automatischer Kontextzeile (Version · Stufe · System).
+* `window.open` in der Klick-Geste, Rückfall `location.href` falls geblockt. Das Textfeld wird NICHT
+  geleert — bricht man auf GitHub ab, ist nichts verloren.
+* Getestet (9 Fälle): Ableitung, Override, lokal → Meldung, URL-Bau (Titel/Body/Label), leerer Text.
+
+### v80 — Großer Fix-und-Feature-Durchgang (aus der Claude-Analyse „was fehlt?")
+
+**Vier Fehler behoben:**
+* **Beispielplan crashte ab Stufe 3:** `beispielplan()` lieferte einen Plan ohne `tage`/`sportart`/`typ` —
+  `planListeZeichnen`/`heuteKarteZeichnen` griffen sofort auf `p.tage.length` zu (TypeError bis zum
+  nächsten Login). Jetzt liefert er ALLE Felder. **Lehre:** Pläne, die zur Laufzeit entstehen, müssen
+  vollständig sein — `datenNachruesten` läuft erst wieder beim Login.
+* **„Getan"-Einträge im Verlauf:** zeigten „undefined min · 0 Sätze" mit leerem Namen, `freitext` wurde nie
+  gerendert. `protokollEintragHtml` ist jetzt robust (Titel-Rückfall „Notiz", Teile-Liste statt fester
+  Schablone, freitext sichtbar).
+* **Scroll-Position klebte beim Tab-Wechsel:** `zeige()` machte nur `window.scrollTo` — seit v48 scrollt
+  aber `#inhalt`. Jetzt wird `#inhalt.scrollTop = 0` gesetzt.
+* **Heute-Karte zeigte nur den ERSTEN Plan des Tages** (`.find`) — jetzt alle (`.filter` + eine Karte je
+  Plan, „erledigt ✓" pro Plan über die planId). Dabei entdeckt: die Heute-Karte verlor ihre
+  Langdruck-Listener bei jedem Neuzeichnen → `langdruckEinrichten()` läuft jetzt auch dort, mit
+  **Einmal-Anbindungs-Wache** (`dataset.langdruck`), sonst stapeln sich Listener auf unveränderten Karten.
+
+**Neue Features:**
+* **„Letztes Mal: X" im Training** (`letztesMal`/`letztesMalText`, Element `#uhr-letztes`) — das in
+  SIMPELHEIT.md versprochene Kern-Feature („besser als das Heft"). Sucht rückwärts im Protokoll über
+  `uebungId` mit Namens-Rückfall; leer in Pausen/Bonus-Phasen.
+* **Trainings-Wiederaufnahme:** `lauf` (Plan, Schritte, Index, Sätze) wandert bei jedem Schritt
+  VERSCHLÜSSELT nach localStorage (`TRAINING_MERKER`, verschlüsselt mit dem Datenschlüssel der Sitzung —
+  Klartext-Nutzdaten-Regel bleibt gewahrt). Nach der Anmeldung bietet `trainingFortsetzenAnbieten()`
+  EINMALIG das Fortsetzen an (Flag `trainingAngeboten`); Countdown-Schritte starten dabei von vorn.
+  Gelöscht wird der Merker bei Beenden UND Abbrechen.
+* **`kraftErledigt(planId)`:** Kraftplan als erledigt eintragen (Sollwerte als Sätze, `dauerSchaetzen` als
+  Dauer, keine Bewertung → Progression unberührt). „Erledigt"-Knopf jetzt bei BEIDEN Plan-Typen
+  (Liste + Heute-Karte).
+* **Ausdauer-Statistik** (`ausdauerZeichnen`, Karte `#ausdauer-karte`): je Aktivitäts-Sportart Strecke
+  (sonst Minuten) pro Woche/Monat — Achsen-Schema bewusst von `volumenZeichnen` GESPIEGELT, nicht geteilt.
+* **Kalender blättern** (`kalenderOffset`, `kalenderBlaettern`, `MONATSNAMEN`, Titel `#kalender-titel`);
+  `basis.setDate(1)` VOR `setMonth` — sonst überspringt der 31. kurze Monate. Statistik öffnet bei Offset 0.
+* **Bestwerte-Karte** (`bestwerteZeichnen`): bester Satz je Übung (Gewicht×Wdh / Wdh / Sekunden).
+* **Ziel-Linie im Übungs-Fortschritt:** gestrichelt bei passender Einheit (Wdh-Ziel auf Wdh-Kurve,
+  Zeit-Ziel auf Zeit-Kurve; Gewichts-Ziel passt NICHT auf die 1RM-Schätzkurve — andere Skala).
+* **Verlauf: Einträge bearbeiten** (Datum/Notiz) über `eintragBearbeiten` + generisches `eingabeFrage`
+  (Dialog-Feld wechselt den Typ und stellt ihn danach auf password ZURÜCK — das Feld gehört passwortFrage).
+* **Kleinigkeiten:** Darstellung „Automatisch" (`prefers-color-scheme`, Dunkel bleibt Default — kein
+  ungefragter Farbwechsel für Bestand), Suchfeld im Übungs-Picker (`#picker-suche`, filtert normalisiert),
+  Undo nach Plan-Löschen (Liste + Editor, Position bleibt erhalten), eigene Kraft-Übungen im Nachtrag
+  (unter „Körpergewicht").
+
+**Bewusst NICHT gebaut (Stand der Entscheidung):** Ist-Wdh → Progression (ändert die einzige
+Progressionsquelle — braucht eine Nutzer-Entscheidung über die Regel), Übungs-Beschreibungstexte
+(eigener Content-Durchgang), `zieleZeichnen`-Zusammenführung (intern), A/B/C-Namen bleiben (gleichnamige
+Pläne wären in Listen/Menüs nicht unterscheidbar).
+
+Getestet (Code.exe als Node): 18 Fälle — v79-Regressionen, Beispielplan-Felder, „Letztes Mal"
+(letzter Eintrag gewinnt, Zeit-Variante, leer ohne Historie), kraftErledigt (Soll-Sätze, Gewicht,
+sonder/planId), Verlauf-HTML ohne „undefined" + freitext sichtbar. `node --check` grün.
 
 ### v79 — Notizblock-Ausbau (Nutzer-Runde nach v78)
 
