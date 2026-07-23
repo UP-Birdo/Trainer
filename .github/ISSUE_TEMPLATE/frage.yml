@@ -1,0 +1,11 @@
+name: Frage
+description: Etwas an der App oder am Code ist unklar
+title: "[Frage] "
+labels: ["question"]
+body:
+    - type: textarea
+      id: frage
+      attributes:
+          label: Deine Frage
+      validations:
+          required: true
