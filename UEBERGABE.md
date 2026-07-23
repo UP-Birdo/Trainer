@@ -1,13 +1,15 @@
 # Trainer — Projektübergabe
 
 > **An das nächste Chat-Fenster:** Dieses Dokument enthält alles, was du über das Projekt wissen musst.
-> Es gehört zusammen mit den sechs Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
-> als Paket hochgeladen (Tooling zusätzlich: `icons.py` + das Master-Icon `Trainer-Icon-1024.png`).
+> Es gehört zusammen mit den sechs Deploy-Dateien (`index.html`, `sw.js`, `manifest.json`, `icon-180/192/512.png`)
+> als Paket hochgeladen. Tooling zusätzlich: `icons.py`, das Master-Icon `Trainer-Icon-1024.png` und der
+> **Test-Ordner `tests/`** (Regressionskette — siehe Abschnitt 11, wird nicht deployt).
 >
-> **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Dieses Begleit-Dokument setzt neue, übergeordnete Leitplanken
-> (u. a. die „Simpelheits-Skala" 1–5) und ist ein **Vorwärts-Auftrag**, der die App umbaut. Erst diese
-> UEBERGABE (Ist-Zustand), dann `SIMPELHEIT.md` (wohin es geht). Die bestehenden Leitplanken bleiben gültig.
-> Stand: **Version 0.081 / APP_VERSION 81**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
+> **⚠ Zusätzlich lesen: `SIMPELHEIT.md`.** Das Begleit-Dokument beschreibt die „Simpelheits-Skala" 1–5.
+> Sein Bau-Auftrag ist seit **v76 UMGESETZT** und seither erweitert (v77 Muster-Zeilen, v79 „jede Zeile =
+> Übung") — es bleibt als **Konzept-Referenz verbindlich**, v. a. die goldene Regel „Stufe = Ansicht,
+> nicht Format". Die bestehenden Leitplanken bleiben gültig.
+> Stand: **Version 0.082 / APP_VERSION 82**. Roadmap bis „General Training" (0.050) vollständig umgesetzt; danach
 > mehrere Nutzer-Blöcke (v54–v71, siehe Historie). v58–v71: **Navigation neu** (vier Tabs, Profil unter „Mehr",
 > Sportarten als Knopf im Profil, auf dem iPhone graues Aktiv-Pill ohne Leisten-Hintergrund), **heller Modus**
 > (Mehr → Darstellung, Dunkel bleibt Standard), **iOS-Layout-Fix** (Body-Höhe per JS), **Update-Schleifen-Fix**
@@ -21,7 +23,8 @@
 > Überschrift, Editor bietet ALLE Sportarten), **v80 = großer Fix-und-Feature-Durchgang** („Letztes Mal"
 > im Training, Trainings-Wiederaufnahme, Kraft-Erledigt, Ausdauer-Statistik, Kalender-Blättern,
 > Bestwerte, Ziel-Linie, 4 Fehler behoben), **v81 = Feedback → GitHub-Issue** (Mehr → Feedback,
-> vorausgefüllt, ohne Token — siehe Historie).
+> vorausgefüllt, ohne Token), **v82 = Fehlerfänger + Willkommens-Seite** (Crash-Melden via Issue,
+> Erste-Start-Seite „was diese App anders macht", „Gut zu wissen" rundum aktualisiert — siehe Historie).
 
 ---
 
@@ -51,7 +54,7 @@ GitHub-Weboberfläche (Upload → Commit).
 |---|---|
 | Repo | GitHub, öffentlich, Datei `index.html` im Root |
 | Hosting | GitHub Pages (`Settings → Pages → Deploy from a branch → main → / (root)`) |
-| URL | `https://DEINNAME.github.io/training/` |
+| URL | `https://up-birdo.github.io/Trainer/` (Repo `UP-Birdo/Trainer`, Nutzer-Angabe 07/2026) |
 | Update | Dateien im Repo überschreiben → Commit → App aktualisiert sich **selbst** (siehe Auto-Update) |
 
 **Ablauf bei jeder Änderung:** `APP_VERSION` in `index.html` UND `VERSION` in `sw.js` hochzählen,
@@ -63,13 +66,19 @@ beide Dateien liefern, Nutzer committet.
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Die komplette App (HTML + CSS + JS, ~318 kB) |
+| `index.html` | Die komplette App (HTML + CSS + JS, ~352 kB Stand v82) |
 | `sw.js` | Service Worker: `index.html` Netz-zuerst, Rest Cache-zuerst |
 | `manifest.json` | PWA-Manifest (Name „Trainer", standalone, portrait) |
 | `icon-192/512.png` | Manifest-Icons |
 | `icon-180.png` | iOS `apple-touch-icon` |
 | `Trainer-Icon-1024.png` | Master-Icon (Quelle für die drei Größen; nur Tooling, nicht deployt) |
 | `icons.py` | Erzeugt die drei Icon-Größen aus dem Master (nur Tooling) |
+| `tests/` | Regressionskette (test79–82 + extract.js + LIESMICH.md; läuft lokal UND als GitHub Action, s. Abschnitt 11) |
+| `README.md` | ÖFFENTLICHE Visitenkarte des GitHub-Repos (deutsch, für Besucher) — **nicht** die Claude-Anleitung, das ist diese Datei hier |
+| `CHANGELOG.md` | Versions-Liste fürs Repo, gespiegelt aus `NEUIGKEITEN` — bei jedem Release oben ergänzen |
+| `LICENSE` | MIT (Nutzer-Entscheidung, v82-Nachgang) |
+| `.github/` | Issue-Formulare (fehler/wunsch/frage.yml, Labels passend zum v81-Feedback-Knopf; `config.yml` hält `blank_issues_enabled:true` — PFLICHT, sonst brechen die vorausgefüllten Issue-Links der App) + `workflows/tests.yml` (CI: extract + --check + test79–82 bei jedem Push) |
+| `GITHUB-EINRICHTUNG.md` | Klick-Anleitung für den Nutzer (About-Box, Topics, Release, Social Preview …); enthält Platzhalter-Hinweise |
 
 Das Icon zeigt seit v71 eine **goldene Athleten-Figur (T-Pose) auf dunklem Verlauf** (aus dem Claude-Design;
 davor v58-Historie: erst vier gelbe Striche, dann v62/63 eine blaue Figur). `icons.py` liest das Master-PNG
@@ -120,7 +129,10 @@ tresor = { version:3, konten:[ { id, benutzer, huellePasswort:{salz,huelle}, hue
 daten = {
   profil:      { groesse, geburtsjahr, geschlecht },
   gewichte:    [ { datum:"JJJJ-MM-TT", kg } ],          // ein Wert pro Tag, neuester gewinnt
-  protokoll:   [ { datum, plan, planId, sportart, typ, sonder, dauerMin, strecke, zeitEinheit,   // planId (v35) = stabile Zuordnung; plan(Name) nur Anzeige/Altdaten-Rückfall
+  protokoll:   [ { id,                                   // v72: stabile ID (Löschen/Bearbeiten im Verlauf)
+                   datum, plan, planId, sportart, typ, sonder, dauerMin, strecke, zeitEinheit,   // planId (v35) = stabile Zuordnung; plan(Name) nur Anzeige/Altdaten-Rückfall
+                   notiz,                                 // v72: Freitext-Notiz je Training
+                   freitext,                              // v76: „Getan"-Schnellnotiz der Stufe 1/2
                    saetze:[ { uebungId, name, modus, satz, wdh, gewicht, dauer, note } ] } ],
   ruhetage:    [ "JJJJ-MM-TT" ],                         // manuell markiert
   ziele:       [ { id, uebung, art:"wdh"|"gewicht"|"zeit", wert, einheit, datum, wdh } ],  // wdh = Altfeld, liegt tot da
@@ -130,10 +142,12 @@ daten = {
                    // uebungen[] gibt es bei BEIDEN Typen (Topspins im Tischtennis-Plan)
                    quelle:"assistent"|undefined, reihenfolge:"klassisch"|"zirkel",
                    aufwaermen:bool, dehnen:bool,
+                   freitext:"",                       // v76/77: Stufe-1-Restzeilen (seit v79 fast immer leer — jede Zeile wird Übung)
                    uebungen:[ { id, name, geraet, modus:"wdh"|"zeit", zeitEinheit:"s"|"min"|"h", saetze, wdh, wdhMin, wdhMax,
                                 gewicht, gewichtSchritt, dauer, pause, notenHistorie:[] } ] } ],
   eigeneUebungen: { sportId:[ { name, modus, saetze, wdh|dauer } ] },   // C2/C3 (v44): selbst gebaute Übungen je Sportart
-  einrichtung: { sportarten:["kraft"], erfahrung, ziel, wochentage:[], dauer, fokus, bonus:[],
+  einrichtung: { simpelheit:1..5,                     // v76: Sicht-Stufe (Default 5 bei Bestand; SIMPELHEIT.md)
+                 sportarten:["kraft"], erfahrung, ziel, wochentage:[], dauer, fokus, bonus:[],
                  geraeteKonfig:{ sportId:{ ort, geraete:[], geraeteProOrt:{} } },  // v55: Ausstattung JE Sportart getrennt (Zugriff über Accessor geraeteKonfig(id))
                  ort, geraete:[], geraeteProOrt:{},   // v55: globale Felder = Altlast — datenNachruesten migriert sie EINMAL nach geraeteKonfig.kraft, danach ungelesen (bleiben liegen: Feld-Vertrag)
                  // C1 (v52): je Aktivitäts-Sportart tage_<id>:[1..7], dauer_<id>:s, strecke_<id>:zahl
@@ -141,6 +155,19 @@ daten = {
   sicherung:   { zeit, version }
 }
 ```
+
+### Geräte-Speicher (v82 vollständig — NICHT im Konto, wandert nie mit)
+
+| Schlüssel | Ort | Inhalt |
+|---|---|---|
+| `trainingsapp.v3` | localStorage | der Tresor (verschlüsselte Konten) |
+| `trainingsapp.gesehen` | localStorage | zuletzt gesehene APP_VERSION (Update-Banner) |
+| `trainer-anmeldung` | IndexedDB | „Angemeldet bleiben"-Merker (rohe DK-Bytes, 7 Tage) |
+| `trainer.system` | localStorage | Hand-Umschalter iPhone/Android (nur Texte) |
+| `trainer.darstellung` | localStorage | `hell` / `auto` / fehlt = dunkel (v80) |
+| `trainer.willkommen` | localStorage | Willkommens-Seite schon gesehen (v82) |
+| `trainer.trainingslauf` | localStorage | unterbrochenes Training — **verschlüsselt** mit dem Datenschlüssel (v80) |
+| `trainer.updateReload` | sessionStorage | Schleifen-Schutz des Auto-Updates (v64) |
 
 ### Aufwärtskompatibilität — verbindlicher Vertrag
 
@@ -154,10 +181,10 @@ daten = {
 ## 6. Versionierung
 
 ```js
-const APP_VERSION = 81;                              // interne Ganzzahl — bei JEDEM Update +1
+const APP_VERSION = 82;                              // interne Ganzzahl — bei JEDEM Update +1
 const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleitet, kann nie auseinanderlaufen
 ```
-* `sw.js`: `const VERSION = "v81"` mitziehen (Cache-Wechsel).
+* `sw.js`: `const VERSION = "v82"` mitziehen (Cache-Wechsel).
 * Der Nutzer ruft aus, wann **1.0** kommt → dann Formel durch festen String ersetzen.
 * Auto-Update liest per Regex `const APP_VERSION = (\d+);` aus der Datei — **muss genau einmal vorkommen**.
 
@@ -184,16 +211,16 @@ const ANZEIGE_VERSION = (APP_VERSION/1000).toFixed(3);  // "0.057" — abgeleite
 
 ---
 
-## 8. Funktionsumfang (Stand 0.022)
+## 8. Funktionsumfang (Basis-Stand — Neueres in der Kurzliste unten + Historie ab v58)
 
 **Konten:** Anmeldung, Registrierung (mit Größe/Geburtsjahr/Geschlecht/Startgewicht), Wiederherstellungscode
 (einmalig angezeigt), Passwort-Reset per Code, Passwort ändern, Code erneuern, „Angemeldet bleiben" (7 Tage),
 verschlüsselte Sicherung (Export via Teilen-Menü / Import), Sicherungs-Banner (nie / >7 Tage / nach Update).
 
-**Navigation:** Bottom-Bar mit 4 Einträgen — **Pläne · Statistik · Profil · Mehr**. Ausgeblendet im
-Training, Vorschau, Wizard, Login, Code-Bildschirm. Unterseiten behalten die Bar und markieren ihren
-Bereich: Editor + Bibliothek → Pläne, **Sportart-Seite → Profil** (v30), Gut zu wissen → Mehr.
-Reiter und Seitentitel heißen gleich (**Mehr**) — vorher landete man über „Mehr“ auf „Einstellungen“.
+**Navigation (Stand v82, STUFENABHÄNGIG via `navTabsFuerStufe`):** Stufe 1/2 = KEINE Leiste („⋯ Mehr"
+im Notizblock-Kopf), Stufe 3 = **Heute · Pläne · Mehr**, Stufe 4/5 = zusätzlich **Statistik**. Profil +
+Sportarten liegen unter „Mehr" (Stufe 5). Ausgeblendet in Training, Vorschau, Wizard, Login, Code und
+Willkommens-Seite. Unterseiten markieren ihren Bereich (Editor → Pläne, Verlauf → Statistik usw.).
 
 **Pläne (Tab 1):** Heute-Karte (Plan des Wochentags + großer Start / „Ruhetag 🌙“) — **auch sie ist
 langdrückbar** (`data-plan`, v30). Darunter die Liste: tagfreie Pläne und weitere Pläne von heute.
@@ -241,6 +268,16 @@ Krafttraining dort Ort + 32 Geräte, Auswahl **pro Ort getrennt**, „neue Gerä
 Feinheiten hinter Klappe, ▲▼, Entfernen), Übung hinzufügen → **Bibliothek**.
 
 **Bibliothek:** 83 Übungen, Suche, Kategorie-Filter, „Nur mit meinen Geräten", Freitext-Option.
+*(Historisch — seit v40 ersetzt durch den Editor-Picker, seit v80 mit Suchfeld.)*
+
+**Seit 0.072 dazugekommen (Kurzliste — Details in der Historie v72–v82):**
+Simpelheits-Stufen 1–5 mit Notizblock (**jede Zeile = Übung**, Muster „Sätze 2 Wdh 20 …"),
+„Getan"-Schnellnotiz, **Willkommens-Seite** beim ersten Start, **„Letztes Mal"** im Training,
+**Trainings-Wiederaufnahme** nach App-Abbruch, **„Erledigt"** auch für Kraftpläne, Verlauf
+löschen/bearbeiten mit Undo, Übungs-Fortschritts-Kurve mit **Ziel-Linie**, **Ausdauer-Statistik**,
+**Bestwerte**, Kalender-**Blättern**, Darstellung Hell/Dunkel/**Auto**, Picker-**Suche**,
+**Feedback → GitHub-Issue**, **Fehlerfänger** mit GitHub-Meldung, Sportart aus der
+Abschnitts-Überschrift, Editor bietet ALLE Sportarten.
 
 ---
 
@@ -417,6 +454,46 @@ Körpergewicht. Die Rotation über die Tage (`benutzt[kategorie]`) bleibt: keine
 
 **Jedes Gerät hat mindestens eine Übung** — von `pruefung`/`raum.js` abgesichert. Neues Gerät ohne
 Übung = Karteileiche im Profil.
+
+### v82-Nachgang — Öffentliches Repo-Paket (KEIN App-Update, kein Versions-Bump)
+
+Nutzer-Wunsch: das GitHub-Repo für Außenstehende attraktiv machen. `index.html`/`sw.js` unverändert.
+
+* **Neue Dateien** (siehe Tabelle in Abschnitt 3): `README.md` (öffentliche Visitenkarte, deutsch),
+  `CHANGELOG.md` (Spiegel von `NEUIGKEITEN`, bei jedem Release pflegen), `LICENSE` (**MIT — explizite
+  Nutzer-Entscheidung**), `.github/ISSUE_TEMPLATE/` (fehler/wunsch/frage.yml + `config.yml` mit
+  `blank_issues_enabled:true` — Pflicht, sonst brechen die vorausgefüllten Issue-Links aus v81/v82),
+  `.github/workflows/tests.yml` (CI: komplette `tests/`-Kette bei jedem Push, echtes Node auf ubuntu),
+  `GITHUB-EINRICHTUNG.md` (Klick-Anleitung: Upload, About-Box, Topics, Social Preview, Labels,
+  Release, Screenshots).
+* **GitHub-Adresse (Nutzer-Angabe 07/2026):** Benutzer `UP-Birdo`, Repo `Trainer` →
+  `https://up-birdo.github.io/Trainer/`. In `README.md` eingetragen; LICENSE-Copyright hat der
+  Nutzer selbst auf „JKB" gesetzt (so lassen). `GITHUB_REPO` in der App bleibt bewusst leer —
+  die Laufzeit-Ableitung aus der Pages-Adresse genügt.
+* README ist bewusst DEUTSCH (Zielgruppe = deutschsprachige Nutzer der App), obwohl Dev-Konvention
+  sonst englische READMEs will — hier ist es öffentliche Nutzer-Kommunikation, keine Doku.
+
+### v82 — Fehlerfänger, Willkommens-Seite, „Gut zu wissen" aktualisiert
+
+* **Fehlerfänger** (`fehlerBehandeln`, `window.onerror` + `unhandledrejection`): Fehler werden EHRLICH
+  gezeigt (Dialog „Da ist etwas schiefgelaufen … Daten unberührt") statt stumm zu verschwinden, und auf
+  Wunsch als GitHub-Issue gemeldet (v81-Mechanik via neuem geteilten Helfer `githubIssueUrl`) — mit
+  Stacktrace (1500 Zeichen), aktiver Ansicht, Version, Stufe, System. **Schutzmechanik:** jeder
+  Fehlertext nur EINMAL pro Sitzung (`fehlerSchonGezeigt`), Dialog per `setTimeout(0)` aufgeschoben
+  (Start-Fehler: Konstanten evtl. noch in TDZ), alles doppelt in try/catch — der Fänger darf nie selbst
+  werfen. Das ist Crash-Reporting ohne Server (bewusst kein Sentry & Co. — wäre ein Fremd-Server).
+* **Willkommens-Seite** (`view-willkommen`, CSS `.wk-*`): erscheint NUR beim allerersten Start (Geräte-
+  Merker `trainer.willkommen` in localStorage, VOR der Anmeldung — deshalb kein Konto-Bezug) und zeigt
+  groß die Alleinstellungsmerkmale: E2E-Verschlüsselung, keine Werbung/Abo/Tracking, offline, Daten
+  gehören dir, Einfachheits-Stufen. Eine gelbe Hauptaktion („Los geht's" → `willkommenWeiter()` →
+  `autoAnmelden()`). **Bestand sieht sie nach dem Update EINMAL** (Merker existiert noch nicht) — gewollt.
+* **„Gut zu wissen" rundum aktualisiert:** neue Abschnitte „Was diese App anders macht" (zuerst),
+  „Einfachheit (Stufe 1–5)" und „Feedback & Fehler"; Training/Statistik/Pläne auf v80/81-Stand
+  („Letztes Mal", Wiederaufnahme, Erledigt, Blättern, Ausdauer, Bestwerte, bearbeiten). Die VERALTETE
+  Aussage „andere Sportarten … noch ohne Funktion" ist raus (auch aus `#info-sportarten`) — Drills
+  steigern über die Bewertung, Ausdauer über die 20-%-Regel.
+* Getestet (10 Fälle): Dialog + Issue-URL (Stack/Kontext/Label/Titel), Dedupe pro Sitzung, fehlender
+  Stack, kaputte Eingaben werfen nie; dazu alle v80/v81-Regressionen grün.
 
 ### v81 — Feedback → GitHub-Issue (Mehr → Feedback)
 
@@ -1189,7 +1266,14 @@ Langes statisches Dehnen auf kalte Muskeln senkt Kraft/Leistung um 5–10 % → 
 ## 11. Arbeitsweise mit dem Nutzer
 
 * **Zweite und dritte Prüfung** ist Pflicht — Korrektheit hat oberste Priorität.
-* **Vor dem Ausliefern testen.** Die Testkette liegt bei (`dom.js` + `flow.js` + `migr.js` + `pruefung.py` + `css.py`):
+* **Vor dem Ausliefern testen.** Die AKTUELLE Kette liegt im Ordner **`tests/`** (test79–82 + `extract.js`,
+  Anleitung in `tests/LIESMICH.md`). Prinzip: die ECHTEN Funktionen werden per `grabFn()` aus der
+  `index.html` extrahiert — nie kopiert, Kopien driften. **Auf dem Entwicklungsrechner ist KEIN Node
+  installiert** — VS Codes Electron springt ein:
+  `$env:ELECTRON_RUN_AS_NODE = "1"; & "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe" tests\test82.js index.html`
+  Erwartung: „N ok, 0 Fehler", Exit 0 — für ALLE Testdateien, plus `--check` auf den extrahierten
+  Script-Block. Die historische Kette unten (`dom.js` + `flow.js` + `migr.js` + `pruefung.py` + `css.py`)
+  stammt aus früheren Chat-Sitzungen und liegt NICHT mehr vor — ihre Prüf-Ideen bleiben als Referenz:
   1. `node --check` auf den `<script>`-Block
   2. `pruefung.py` — onclick-Ziele, IDs, CSS-Klassen ohne Regel, verwaiste Funktionen
   3. `css.py` — **Kaskade rechnerisch**: schlägt eine spätere Regel die Umfärbung?
@@ -1237,17 +1321,30 @@ Reihenfolge der Grenzen, wenn es eng wird: **1.** localStorage-Quote (→ auf In
 pro Schreibvorgang — bei 3 MB einige Millisekunden, also unkritisch, aber der Grund, warum die
 Base64-Grenze oben überhaupt gefährlich war.
 
-## 12. Offene Ideen (nicht umgesetzt)
+## 12. Offene Ideen (Stand v82)
 
-* **Modi `strecke` / `runden` / `grad`** — ohne sie sind Nicht-Kraft-Pläne auf `wdh`/`zeit` beschränkt
-* Progression und Volumen für Nicht-Kraft-Sportarten (braucht eigene Recherche)
-* Meilenstein-Flammen (7/30 Tage andere Farbe)
-* Plate Calculator (erst relevant, wenn mit Langhantel trainiert wird)
-* Notizfeld pro Training
+* **Ist-Wdh → Progression** (Backlog #4): Ist-Werte werden seit E2 geloggt, die Steigerung hängt aber
+  weiter allein an der Note 1–5. **Braucht eine Nutzer-Entscheidung über die Regel** (Vorschlag liegt vor:
+  weniger geschafft als geplant wirkt wie Note 4–5). Nicht ungefragt umbauen.
+* **Übungs-Beschreibungen** (2–3 selbst geschriebene Sätze je Übung, ~170 Stück) — eigener
+  Content-Durchgang, kein Code-Schritt.
+* ~~CI (GitHub Actions)~~ — **ERLEDIGT (v82-Nachgang):** Nutzer hat entschieden, dass die Tests ins
+  öffentliche Repo dürfen; `.github/workflows/tests.yml` fährt die komplette Kette bei jedem Push.
+* **Systemschriftgröße (Dynamic Type)** — px→rem/`-apple-system-body`, flächiger CSS-Umbau mit Layout-Risiko.
+* **Modi `strecke` / `runden` / `grad`** — ohne sie sind Nicht-Kraft-Pläne auf `wdh`/`zeit` beschränkt.
+* Kleineres: Meilenstein-Flammen (7/30 Tage), Plate Calculator, Undo für die Geräte-Abwahl,
+  `zieleZeichnen`/`zieleStartZeichnen` zusammenführen (Backlog #2). (GitHub-Issue-Templates: erledigt
+  im v82-Nachgang, liegen unter `.github/ISSUE_TEMPLATE/`.)
+* **A/B/C-Plannamen bleiben BEWUSST** (Backlog #1 verworfen): drei Pläne namens „Ganzkörper" wären in
+  Listen und Menüs nicht unterscheidbar.
+* Erledigt aus der alten Liste: Notizfeld pro Training (v72), Ausdauer-Statistik (v80).
 
 **Bewusst abgelehnt** (nicht erneut vorschlagen): Cloud-Sync/Server (zerstört Zero-Knowledge, schafft
 Angriffsfläche), Social/Community-Feed, Abzeichen-Sammlung, Übungsdatenbank mit Bildern/Videos
-(Urheberrecht + Pflegeaufwand), Apple Health (aus dem Web unerreichbar), geplante Hintergrund-Pushes (iOS).
+(Urheberrecht + Pflegeaufwand), Apple Health (aus dem Web unerreichbar), geplante Hintergrund-Pushes (iOS),
+**API-Token in der App** (v81 — im öffentlichen Repo für jeden lesbar; deshalb öffnet Feedback nur die
+vorausgefüllte Issue-Seite), **fremde Crash-/Analytics-Dienste** (v82 — wären ein Fremd-Server, der
+Fehlerfänger meldet stattdessen per GitHub-Issue).
 
 ---
 
@@ -1433,7 +1530,14 @@ dann **C4**, dann **E2**, zuletzt **D** (Kalender) als eigener großer Meilenste
 
 ## 14. Wie du nach dem Umzug startest
 
-1. Alle 8 Dateien (6 App-Dateien + `UEBERGABE.md` + `SIMPELHEIT.md`) ins neue Chatfenster hochladen.
+1. Den kompletten Projektordner mitgeben: 6 Deploy-Dateien, `UEBERGABE.md`, `SIMPELHEIT.md`,
+   Tooling (`icons.py`, `Trainer-Icon-1024.png`), den Test-Ordner **`tests/`** und das
+   Repo-Außenpaket (`README.md`, `CHANGELOG.md`, `LICENSE`, `.github/`, `GITHUB-EINRICHTUNG.md`).
 2. Diesen Satz mitschicken: *„Das ist mein Trainer-Projekt, lies UEBERGABE.md **und SIMPELHEIT.md** — wir machen dort weiter."*
-3. Der nächste Claude liest **beide** Dokumente (erst UEBERGABE = Ist-Zustand, dann SIMPELHEIT = Auftrag),
-   kann `index.html` direkt bearbeiten und weiterbauen.
+3. Der nächste Claude liest **beide** Dokumente (erst UEBERGABE = Ist-Zustand, dann SIMPELHEIT =
+   Konzept-Referenz; ihr Bau-Auftrag ist seit v76 umgesetzt), kann `index.html` direkt bearbeiten
+   und weiterbauen. **Vor dem Ausliefern:** `tests/` laufen lassen (Anleitung in `tests/LIESMICH.md` —
+   ohne Node über VS Codes `Code.exe` mit `ELECTRON_RUN_AS_NODE=1`), `APP_VERSION` + `sw.js` +1,
+   Historie hier ergänzen, `NEUIGKEITEN` pflegen — **und `CHANGELOG.md` oben um die neue Version
+   ergänzen** (gleicher Text wie `NEUIGKEITEN`; der Nutzer legt daraus auf GitHub den Release an,
+   Anleitung Schritt 6 in `GITHUB-EINRICHTUNG.md`).

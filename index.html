@@ -174,6 +174,22 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   @keyframes puls{50%{opacity:.45}}
 }
 
+/* v82: Willkommens-Seite (nur beim allerersten Start) — groß und ruhig:
+   was diese App von den üblichen unterscheidet. */
+#view-willkommen.aktiv{display:flex;flex-direction:column;height:100%;min-height:0;
+  padding:28px 20px calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+.wk-kopf{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:10px 0 4px}
+.wk-kopf span{color:var(--signal)}
+.wk-satz{font-size:17px;color:var(--muted);line-height:1.55;margin-bottom:20px}
+.wk-satz strong{color:var(--chalk)}
+.wk-liste{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.wk-punkt{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);
+  border-left:4px solid var(--signal);border-radius:8px;padding:14px;box-shadow:var(--shadow-sm)}
+.wk-punkt .haken{color:var(--signal);font-weight:800;font-size:18px;flex:0 0 auto;line-height:1.3}
+.wk-punkt strong{display:block;font-size:16px;margin-bottom:3px}
+.wk-punkt .wk-text{font-size:13px;color:var(--muted);line-height:1.55}
+.wk-fuss{margin-top:16px;flex-shrink:0}
+
 /* Bewertung */
 .note{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .note button{flex:1 1 auto;min-width:60px;padding:12px 8px;font-family:var(--mono);background:var(--panel-2);
@@ -451,6 +467,31 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <div id="inhalt"><!-- v48: scrollender Inhaltsbereich; die Nav-Leiste liegt als
      Flex-Geschwister DARUNTER (nicht mehr position:fixed) — behebt, dass die
      Leiste auf nicht-scrollenden Seiten (Heute/Pläne/Profil) hochkroch. -->
+
+<!-- ============================================================
+     Ansicht: Willkommen (v82) — NUR beim allerersten Start.
+     Zeigt groß, was diese App von den üblichen unterscheidet, bevor
+     irgendein Formular kommt. Danach nie wieder (Geräte-Merker).
+     ============================================================ -->
+<section id="view-willkommen" class="view">
+  <h1>Willkommen</h1>
+  <div class="wk-kopf">Trai<span>ner</span></div>
+  <div class="wk-satz"><strong>Dein Training. Deine Daten. Sonst niemand.</strong><br>
+    Diese App macht vieles anders als die aus dem App Store:</div>
+  <div class="wk-liste">
+    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Ende-zu-Ende verschlüsselt</strong>
+      <div class="wk-text">Deine Daten liegen nur auf diesem Gerät, geschützt mit echter Verschlüsselung. Es gibt keinen Server, der gehackt werden könnte.</div></div></div>
+    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Keine Werbung. Kein Abo. Kein Tracking.</strong>
+      <div class="wk-text">Nichts wird gemessen, verkauft oder beworben. Du bist der Nutzer — nicht das Produkt.</div></div></div>
+    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Funktioniert komplett offline</strong>
+      <div class="wk-text">Im Keller-Gym ohne Empfang genauso wie im Flugzeug — die App braucht kein Internet.</div></div></div>
+    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Deine Daten gehören dir</strong>
+      <div class="wk-text">Verschlüsselte Sicherung zum Mitnehmen — Umzug aufs neue Handy in einer Minute. Plus Wiederherstellungscode, falls du das Passwort vergisst.</div></div></div>
+    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Passt sich dir an</strong>
+      <div class="wk-text">Vom simplen Notizblock bis zum vollen Trainings-System mit Timer, Ansagen und automatischer Steigerung — du wählst die Stufe.</div></div></div>
+  </div>
+  <div class="wk-fuss"><button class="primaer breit" onclick="willkommenWeiter()">Los geht’s</button></div>
+</section>
 
 <!-- ============================================================
      Ansicht: Anmeldung
@@ -778,7 +819,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" onclick="profilOeffnen()">‹ Zurück</button>
     <h1>Sportarten</h1>
     <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info" style="margin-left:auto">i</button></div>
-  <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatische Pläne, Progression und Volumen gibt es bisher nur für Krafttraining</strong> — die anderen kannst du als Plan anlegen, starten und protokollieren; sie färben Kalender und Flamme, werden aber nicht automatisch gesteigert.</div>
+  <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatisch generierte Pläne gibt es nur für Krafttraining</strong> — die anderen Sportarten haben eigene Pläne mit Stoppuhr und Drills: Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel bzw. auf Nachfrage, und die Statistik zeigt km pro Woche.</div>
   <div class="karte"><div id="sportarten-liste" class="abstand"></div></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -1274,6 +1315,48 @@ function zeigenToast(text, art="info", undo=null){
 }
 
 /* ============================================================
+   #region Fehlerfänger (v82) — Crash-Reporting ohne Server
+   Professionelle Apps melden Abstürze automatisch an einen Dienst
+   (Sentry & Co.). Ohne Server heißt das hier: Fehler EHRLICH zeigen
+   statt stumm einzufrieren, und per Knopf als vorausgefülltes
+   GitHub-Issue melden (Stacktrace + Version + Ansicht, v81-Mechanik).
+   Jeder Fehlertext nur EINMAL pro Sitzung — sonst öffnet ein Fehler
+   in einer Zeichenschleife den Dialog im Kreis.
+   ============================================================ */
+const fehlerSchonGezeigt = new Set();
+
+function fehlerBehandeln(nachricht, stack){
+  try {
+    const kern = String(nachricht || "Unbekannter Fehler").slice(0, 200);
+    if(fehlerSchonGezeigt.has(kern)) return;
+    fehlerSchonGezeigt.add(kern);
+    // Verzögert zeigen: Fällt der Fehler mitten in den Start, sind Dialog-
+    // Elemente und Konstanten sonst unter Umständen noch nicht bereit.
+    setTimeout(() => {
+      try {
+        const ansicht = (document.querySelector(".view.aktiv") || {}).id || "?";
+        const body = "Was ist passiert? (bitte kurz ergänzen)\n\n---\nFehler: " + kern +
+          "\n\n```\n" + String(stack || "kein Stacktrace").slice(0, 1500) + "\n```\n" +
+          "Ansicht: " + ansicht + "\nTrainer " + ANZEIGE_VERSION + " · Stufe " + stufe() + " · " + systemName();
+        frage("Da ist etwas schiefgelaufen:\n„" + kern + "“\n\nDie App läuft weiter — deine gespeicherten Daten sind davon unberührt. Fehler auf GitHub melden?", true, ja => {
+          if(!ja) return;
+          const url = githubIssueUrl("bug", "[Fehler] " + kern.slice(0, 60), body);
+          if(!url){ meldung("Repository nicht ermittelbar — bitte den Fehlertext über Mehr → Feedback melden."); return; }
+          const fenster = window.open(url, "_blank");
+          if(!fenster) location.href = url;
+        });
+      } catch(e){ /* der Fehlerfänger selbst darf NIE einen Fehler werfen */ }
+    }, 0);
+  } catch(e){ /* niemals rekursiv scheitern */ }
+}
+
+window.addEventListener("error", e => fehlerBehandeln(e.message, e.error && e.error.stack));
+window.addEventListener("unhandledrejection", e => {
+  const grund = e.reason || {};
+  fehlerBehandeln(grund.message || String(grund), grund.stack);
+});
+
+/* ============================================================
    SICHERHEITSARCHITEKTUR (bitte lesen, bevor hier etwas geändert wird)
 
    Pro Konto existiert ein zufälliger 256-Bit-DATENSCHLÜSSEL.
@@ -1666,7 +1749,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 81;
+const APP_VERSION = 82;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3350,6 +3433,20 @@ function wissenOeffnen(){
     '<div class="karte"><h2>' + titel + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
     zeilen.map(z => '• ' + z).join("<br>") + '</div></div>';
   document.getElementById("wissen-inhalt").innerHTML =
+    abschnitt("Was diese App anders macht", [
+      "<strong style='color:var(--chalk)'>Ende-zu-Ende verschlüsselt.</strong> Deine Daten liegen nur auf diesem Gerät — es gibt keinen Server, der gehackt werden könnte.",
+      "<strong style='color:var(--chalk)'>Keine Werbung, kein Abo, kein Tracking.</strong> Nichts wird gemessen oder verkauft — du bist der Nutzer, nicht das Produkt.",
+      "<strong style='color:var(--chalk)'>Komplett offline.</strong> Im Keller-Gym ohne Empfang genauso wie im Flugzeug.",
+      "<strong style='color:var(--chalk)'>Deine Daten gehören dir.</strong> Verschlüsselte Sicherung zum Mitnehmen, Wiederherstellungscode fürs vergessene Passwort.",
+      "<strong style='color:var(--chalk)'>Passt sich dir an.</strong> Einfachheits-Stufe 1 (Notizblock) bis 5 (Vollausbau) — jederzeit umschaltbar, nie mit Datenverlust."
+    ]) +
+    abschnitt("Einfachheit (Stufe 1–5)", [
+      "Stufe 1 ist ein Notizblock: <strong style='color:var(--chalk)'>jede Zeile ist eine Übung</strong> — der Name allein reicht.",
+      "<strong style='color:var(--chalk)'>Muster:</strong> „Sätze 2 Wdh 20 Liegestütze“ (oder „Sätze 3 Zeit 45 Plank“) setzt Sätze und Werte gleich mit — die Zeilen SIND die Übungen des Plans, auch auf Stufe 5.",
+      "„Getan“ hält auf den einfachen Stufen schnell fest, was du gemacht hast.",
+      "Stufe 2 ergänzt Felder für Sätze und Wiederholungen, Stufe 3 echtes Training mit Timer, Stufe 4 die Statistik, Stufe 5 alles (Assistent, Sportarten, Ziele).",
+      "Umstellen unter Mehr → Einfachheit — ändert nie deine Daten: Runterstellen blendet nur aus, Hochstellen wieder ein."
+    ]) +
     abschnitt("Daten & Sicherheit", [
       "<strong style='color:var(--chalk)'>App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen verschlüsselt auf diesem Gerät.",
       "Deine Daten verlassen das Handy nie — es gibt keinen Server.",
@@ -3378,9 +3475,11 @@ function wissenOeffnen(){
       "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos."
     ]) +
     abschnitt("Training", [
+      "<strong style='color:var(--chalk)'>„Letztes Mal“</strong> unter der Uhr zeigt, was du bei der Übung zuletzt wirklich geschafft hast — das kann kein Papier-Heft.",
+      "Wird die App mitten im Training beendet, bietet sie beim nächsten Öffnen an, <strong style='color:var(--chalk)'>genau dort weiterzumachen</strong>.",
+      "<strong style='color:var(--chalk)'>„Erledigt“</strong> trägt einen Plan ohne Timer ein — mit seinen Sollwerten, ohne die automatische Anpassung anzufassen.",
       "<strong style='color:var(--chalk)'>Bildschirm bleibt an</strong> (Wake Lock) — die App muss im Vordergrund bleiben, sonst friert " + systemText("iOS", "Android", "das System") + " sie ein.",
       "Spotify zuerst starten, dann die App öffnen. Ansagen kommen über die Musik.",
-      "Der Piepton wird vorab auf dem Audio-Thread geplant und kommt auch bei gedrosseltem Browser pünktlich.",
       "<strong style='color:var(--chalk)'>Rekord</strong> erscheint, wenn ein Satz alles bisherige übertrifft.",
       "<strong style='color:var(--chalk)'>Zirkel:</strong> Runde für Runde je ein Satz pro Übung, Reihenfolge pro Runde neu gemischt.",
       "Abbrechen verwirft das Training komplett — nichts wird protokolliert oder angepasst."
@@ -3393,17 +3492,23 @@ function wissenOeffnen(){
     ]) +
     abschnitt("Statistik", [
       "<strong style='color:var(--chalk)'>Volumen</strong> = Wdh × Gewicht. Körpergewichtsübungen zählen Wdh × 1, Zeit-Übungen Sekunden ÷ 10.",
-      "Die Kurve zoomt automatisch heraus: bis 12 Wochen Wochenbalken, danach Monatsbalken.",
-      "Gelbe Punkte in der Gewichtskurve = an dem Tag wurde trainiert.",
-      "Ziele rechnen mit ~1 Wdh Fortschritt pro Einheit und den Plänen, in denen die Übung vorkommt."
+      "Die Kurven zoomen automatisch heraus: bis 12 Wochen Wochenbalken, danach Monatsbalken.",
+      "<strong style='color:var(--chalk)'>Ausdauer:</strong> km (bzw. Minuten) pro Woche je Sportart — mit gerechneter Pace. <strong style='color:var(--chalk)'>Bestwerte:</strong> der beste Satz je Übung.",
+      "Der Kalender lässt sich <strong style='color:var(--chalk)'>blättern</strong> (‹ ›); Tage antippen für Einzeltermine und Ruhetage.",
+      "Ziele zeichnen eine Ziel-Linie in die Fortschritts-Kurve; die Einschätzung rechnet mit ~1 Wdh Fortschritt pro Einheit.",
+      "Im Verlauf lässt sich jeder Eintrag <strong style='color:var(--chalk)'>bearbeiten</strong> (Datum, Notiz) und löschen — mit Rückgängig."
     ]) +
-    abschnitt("Pläne & Geräte", [
-      "Plan-Karte <strong style='color:var(--chalk)'>lange gedrückt halten</strong> → Bearbeiten, Duplizieren, Verschieben, Löschen.",
+    abschnitt("Pläne & Sportarten", [
+      "Plan-Karte <strong style='color:var(--chalk)'>lange gedrückt halten</strong> → Bearbeiten, Duplizieren, Verschieben, Löschen (mit Rückgängig).",
+      "Beim Plan-Erstellen stehen <strong style='color:var(--chalk)'>alle Sportarten</strong> zur Wahl. Heißt ein Abschnitt wie eine Sportart („Laufen“), wird er ihr automatisch zugeordnet.",
+      "<strong style='color:var(--chalk)'>Automatisch generierte Pläne</strong> gibt es für Krafttraining (Trainingsplanung). Andere Sportarten haben eigene Pläne mit Stoppuhr und Drills — Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel mit Entlastungswoche.",
       "Die Trainingsplanung baut Pläne aus deinen Antworten — selbst gebaute Pläne bleiben dabei immer erhalten.",
       "Startgewichte sind bewusst vorsichtig: zu leicht korrigiert die Progression in 2–3 Trainings, zu schwer der Orthopäde.",
-      "Im Profil unter „Ort“ merkt sich die App die Geräte <strong style='color:var(--chalk)'>pro Ort</strong> getrennt. Gebaut wird immer nur mit den Geräten des Orts, der gerade gewählt ist.",
-      "Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein.",
-      "<strong style='color:var(--chalk)'>Sportarten:</strong> mehrfach wählbar, Pläne gibt es bisher nur für Krafttraining. Die übrigen sind gemerkt, aber noch ohne Funktion."
+      "Geräte merkt sich die App <strong style='color:var(--chalk)'>pro Ort und pro Sportart</strong> getrennt. Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein."
+    ]) +
+    abschnitt("Feedback & Fehler", [
+      "Mehr → <strong style='color:var(--chalk)'>Feedback:</strong> Bug oder Wunsch beschreiben — die App öffnet ein fertig ausgefülltes GitHub-Issue, dort nur noch abschicken.",
+      "Geht etwas schief, zeigt die App den Fehler ehrlich an und bietet an, ihn direkt auf GitHub zu melden — samt technischer Details."
     ]);
   zeige("view-wissen");
 }
@@ -3414,6 +3519,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.082", punkte:[
+    "Neue Willkommens-Seite beim allerersten Öffnen: Sie zeigt groß, was diese App von anderen unterscheidet — Verschlüsselung, keine Werbung, kein Tracking, komplett offline, deine Daten gehören dir.",
+    "Geht etwas schief, bleibt die App nicht mehr stumm: Der Fehler wird ehrlich angezeigt und lässt sich mit einem Tipp als GitHub-Meldung übergeben — samt technischer Details.",
+    "„Gut zu wissen“ komplett auf den neuesten Stand gebracht: Was die App anders macht, die Einfachheits-Stufen mit dem Notizblock-Muster und alle neuen Funktionen."
+  ]},
   { stand:"0.081", punkte:[
     "Neu unter Mehr → Feedback: Fehler oder Wunsch auswählen, kurz beschreiben — die App öffnet ein fertig ausgefülltes GitHub-Issue, dort nur noch abschicken. So sammeln sich alle Meldungen als Liste in deinem Repository."
   ]},
@@ -3489,12 +3599,18 @@ function githubRepoPfad(){
   return nutzer + "/" + segmente[0];
 }
 
-function feedbackSenden(){
+/** Baut die vorausgefüllte „Neues Issue"-URL — oder null, wenn kein Repo
+    ermittelbar ist. v82: geteilt zwischen Feedback-Karte und Fehlerfänger. */
+function githubIssueUrl(label, titel, body){
   const pfad = githubRepoPfad();
-  if(!pfad){
-    meldung("Das Repository ließ sich nicht aus der Adresse ableiten. Entweder die App über ihre GitHub-Pages-Adresse öffnen — oder im Code GITHUB_REPO auf „benutzer/repo“ setzen.");
-    return;
-  }
+  if(!pfad) return null;
+  return "https://github.com/" + pfad + "/issues/new" +
+    "?title=" + encodeURIComponent(titel) +
+    "&body=" + encodeURIComponent(body) +
+    "&labels=" + encodeURIComponent(label);
+}
+
+function feedbackSenden(){
   const art = document.getElementById("feedback-art").value;
   const txt = (document.getElementById("feedback-text").value || "").trim();
   if(!txt){ meldung("Bitte kurz beschreiben, worum es geht."); return; }
@@ -3503,10 +3619,11 @@ function feedbackSenden(){
   // Kontext automatisch anhängen — beim Abarbeiten weiß man sonst nie,
   // auf welchem Stand die Meldung entstand.
   const body = txt + "\n\n---\nTrainer " + ANZEIGE_VERSION + " · Stufe " + stufe() + " · " + systemName();
-  const url = "https://github.com/" + pfad + "/issues/new" +
-    "?title=" + encodeURIComponent(titel) +
-    "&body=" + encodeURIComponent(body) +
-    "&labels=" + encodeURIComponent(art);
+  const url = githubIssueUrl(art, titel, body);
+  if(!url){
+    meldung("Das Repository ließ sich nicht aus der Adresse ableiten. Entweder die App über ihre GitHub-Pages-Adresse öffnen — oder im Code GITHUB_REPO auf „benutzer/repo“ setzen.");
+    return;
+  }
   // window.open braucht die Klick-Geste; falls der Browser es blockt, direkt navigieren.
   const fenster = window.open(url, "_blank");
   if(!fenster) location.href = url;
@@ -7895,7 +8012,18 @@ document.addEventListener("visibilitychange", () => {
    ============================================================ */
 wasserzeichenZeichnen();
 systemTexteAnwenden();   // Texte auf iPhone/Android einstellen, bevor irgendetwas sichtbar wird
-autoAnmelden();   // versucht "Angemeldet bleiben", fällt sonst auf den Anmeldebildschirm zurück
+
+/* v82: Beim ALLERERSTEN Start zeigt die App, was sie anders macht — danach nie
+   wieder. Geräte-Merker (localStorage), kein Konto-Bezug: die Seite kommt VOR
+   jeder Anmeldung. Ist der Speicher gesperrt, wird sie übersprungen. */
+function willkommenWeiter(){
+  try { localStorage.setItem("trainer.willkommen", "1"); } catch(e){}
+  autoAnmelden();
+}
+let willkommenGesehen = true;
+try { willkommenGesehen = !!localStorage.getItem("trainer.willkommen"); } catch(e){}
+if(!willkommenGesehen) zeige("view-willkommen");
+else autoAnmelden();   // versucht "Angemeldet bleiben", fällt sonst auf den Anmeldebildschirm zurück
 
 // Service Worker registrieren: macht die App offline-fähig.
 // Relativer Pfad, damit es auch unter /training/ auf GitHub Pages klappt.

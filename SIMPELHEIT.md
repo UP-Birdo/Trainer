@@ -1,12 +1,18 @@
 # Simpelheit — Konzept & Änderungsauftrag
 
-> **An den nächsten Chat:** Dieses Dokument **ergänzt `UEBERGABE.md`** und setzt neue, übergeordnete
+> **STATUS (v82): UMGESETZT.** Der Bau-Auftrag aus Abschnitt 6 ist seit **v76** komplett gebaut und
+> seither vom Nutzer erweitert: **v77** Muster-Zeilen („Sätze 2 Wdh 20 Liegestütze" ↔ echte Übungen),
+> **v79** „jede nicht-leere Zeile ist eine Übung" (siehe Anmerkungen in Abschnitt 5). Dieses Dokument
+> ist damit **kein offener Auftrag mehr, sondern die verbindliche Konzept-Referenz** — besonders die
+> goldene Regel aus Abschnitt 2 gilt unverändert für alle künftigen Umbauten.
+>
+> **An den nächsten Chat:** Dieses Dokument **ergänzt `UEBERGABE.md`** und setzt übergeordnete
 > Leitplanken. Lies **beide**, bevor du etwas anfasst — erst die UEBERGABE (Ist-Zustand), dann dieses
-> Dokument (wohin es geht). Bei Widerspruch gewinnen für das **Simpelheit-Feature** die Regeln hier;
+> Dokument (Konzept). Bei Widerspruch gewinnen für das **Simpelheit-Feature** die Regeln hier;
 > alle bestehenden Leitplanken (eine Datei, offline, verschlüsselt, additiver Datenvertrag, eine gelbe
 > Hauptaktion, Testkette) bleiben unangetastet.
 >
-> **Der ganze Auftrag in einem Satz:** Ein Datenmodell, fünf Ansichten. Die Simpelheits-Stufe blendet
+> **Das ganze Konzept in einem Satz:** Ein Datenmodell, fünf Ansichten. Die Simpelheits-Stufe blendet
 > nur ein und aus — sie **konvertiert nie**.
 
 ---
