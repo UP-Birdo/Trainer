@@ -11,9 +11,11 @@
    ============================================================ */
 "use strict";
 
-const VERSION = "v82";
+const VERSION = "v83";
 const CACHE = "trainingsapp-" + VERSION;
-const DATEIEN = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png"];
+const DATEIEN = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png",
+                 "muskeln/figur-vorne.png", "muskeln/figur-hinten.png",
+                 "muskeln/muskel-front.png", "muskeln/muskel-back.png"];
 
 self.addEventListener("install", ereignis => {
   ereignis.waitUntil(

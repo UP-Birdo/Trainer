@@ -449,6 +449,15 @@ body:not(.nav-an) #nav{display:none}
   padding:20px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
 #dialog p{margin:0 0 16px;line-height:1.6;white-space:pre-line}
 
+/* Muskelkarte (Bonus ab Stufe 4, aus der Statistik) */
+.muskel-tabs{gap:8px;margin-bottom:12px}
+.muskel-tab{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.muskel-tab.muskel-an{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:600}
+.muskel-figur{position:relative;max-width:320px;margin:4px auto 0;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.muskel-figur img{display:block;width:100%;height:auto;pointer-events:none}
+.muskel-figur canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.muskel-hit{position:absolute;inset:0;cursor:pointer}
+
 /* ============================================================
    AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
 
@@ -732,6 +741,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Trainings</h2>
     <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
+
+  <div class="karte">
+    <div class="zeile"><h2>Muskelkarte</h2></div>
+    <div class="meta abstand">Körper antippen und sehen, welche Übungen welche Muskeln treffen.</div>
+    <div class="knopfreihe"><button class="schmal breit" onclick="muskelnOeffnen()">Muskelkarte öffnen</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1135,7 +1150,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div id="uhr-label" class="uhr-label"></div>
       <div id="uhr-rekord" class="uhr-label pr" hidden>REKORD</div>
       <!-- v80: „Letztes Mal: X" — der Kern-Mehrwert gegenüber dem Papier-Heft
-           (SIMPELHEIT.md Abschnitt 3). Gefüllt in schrittBetreten. -->
+           (docs/ARCHITECTURE.md, Simpelheits-Skala). Gefüllt in schrittBetreten. -->
       <div id="uhr-letztes" class="uhr-label"></div>
     </div>
   </div>
@@ -1187,6 +1202,25 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Trainings-Verlauf</h1>
     <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
+</section>
+
+<section id="view-muskeln" class="view">
+  <div class="kopf"><h1>Muskelkarte</h1>
+    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+  <div class="karte">
+    <div class="muskel-tabs zeile">
+      <button id="muskel-tab-front" class="muskel-tab muskel-an" onclick="muskelAnsicht('front')">Vorne</button>
+      <button id="muskel-tab-back" class="muskel-tab" onclick="muskelAnsicht('back')">Hinten</button>
+    </div>
+    <div class="muskel-figur">
+      <img id="muskel-img" alt="Muskelfigur" draggable="false">
+      <canvas id="muskel-canvas"></canvas>
+      <div class="muskel-hit" onclick="muskelTippen(event)"></div>
+    </div>
+    <div id="muskel-status" class="meta" style="text-align:center;margin-top:8px"></div>
+  </div>
+  <div id="muskel-auswahl"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 
@@ -1749,7 +1783,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 82;
+const APP_VERSION = 83;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1792,7 +1826,7 @@ function datenNachruesten(daten){
     };
   }
   // v76 (Simpelheit): Die Stufe 1–5 steuert NUR, wie viel Oberfläche sichtbar ist —
-  // sie ist kein zweites Datenformat (siehe SIMPELHEIT.md, goldene Regel). Bestandskonten
+  // sie ist kein zweites Datenformat (siehe docs/ARCHITECTURE.md, goldene Regel). Bestandskonten
   // benutzen heute die volle App; sie auf Stufe 1 zu werfen, würde ihre Oberfläche
   // verstecken. Also Default 5. Neue Konten werden im Ersteinrichten gefragt und
   // überschreiben den Default sofort. Idempotent (zweiter Lauf lässt den Wert stehen).
@@ -2437,7 +2471,7 @@ function progressionAnwenden(uebung, note){
    #region Ansichten
    ============================================================ */
 /* ============================================================
-   #region Simpelheit — Stufe & Sicht-Filter (v76, SIMPELHEIT.md)
+   #region Simpelheit — Stufe & Sicht-Filter (v76, docs/ARCHITECTURE.md)
    Die goldene Regel: die Stufe 1–5 ist NUR eine Sicht, kein zweites
    Datenformat. Sie steuert ausschließlich, WIE VIEL vom (einen) Modell
    angezeigt und abgefragt wird. Senken löscht nie Daten, Heben erfindet
@@ -2461,7 +2495,7 @@ const VIEW_MIN_STUFE = {
   "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
-  "view-statistik": 4, "view-verlauf": 4,
+  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -3519,6 +3553,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.083", punkte:[
+    "Neu in der Statistik: eine Muskelkarte. Tippe eine Muskelgruppe am Körper an — vorne oder hinten — und sieh sofort die passenden Beispiel-Übungen. Ab Einfachheits-Stufe 4."
+  ]},
   { stand:"0.082", punkte:[
     "Neue Willkommens-Seite beim allerersten Öffnen: Sie zeigt groß, was diese App von anderen unterscheidet — Verschlüsselung, keine Werbung, kein Tracking, komplett offline, deine Daten gehören dir.",
     "Geht etwas schief, bleibt die App nicht mehr stumm: Der Fehler wird ehrlich angezeigt und lässt sich mit einem Tipp als GitHub-Meldung übergeben — samt technischer Details.",
@@ -4325,6 +4362,142 @@ function verlaufOeffnen(){
     p.length ? p.map(e => protokollEintragHtml(e, true)).join("") : '<div class="meta">Noch kein Training.</div>';
   zeige("view-verlauf");
 }
+
+/* #region Muskelkarte (Bonus ab Stufe 4, aus der Statistik erreichbar).
+   Vanilla-Nachbau der Claude-Muskelkarte. Figuren + Index-Karten liegen in
+   muskeln/. In der Index-Karte trägt jeder Pixel im ROT-Kanal die Muskel-Nummer
+   (1..19 = Position in MUSKEL_ORDER, 0 = kein Muskel). So genügen 2 Bilder je
+   Ansicht statt 24 Einzelmasken. Nichts hiervon wandert ins Konto (reine Anzeige). */
+const MUSKEL_ORDER = ["neck","trapezius","deltoid","infraspinatus","latissimus","lowerback","pectoral","serratus","biceps","triceps","forearm","abs","obliques","glutes","adductors","quadriceps","hamstrings","tibialis","calves"];
+const MUSKEL_INFO = {
+  neck:{name:"Kopfwender (Hals)",latin:"M. sternocleidomastoideus",region:"Hals",ex:["Nacken-Isometrie","Nackenrotation","Shrugs"]},
+  trapezius:{name:"Kapuzenmuskel (Trapez)",latin:"M. trapezius",region:"Schultern",ex:["Shrugs","Rudern","Face Pulls"]},
+  deltoid:{name:"Schultermuskel",latin:"M. deltoideus",region:"Schultern",ex:["Schulterdrücken","Seitheben","Frontheben"]},
+  infraspinatus:{name:"Untergrätenmuskel",latin:"M. infraspinatus / teres",region:"Rücken",ex:["Außenrotation","Face Pulls","Reverse Flys"]},
+  latissimus:{name:"Breiter Rückenmuskel",latin:"M. latissimus dorsi",region:"Rücken",ex:["Klimmzüge","Latzug","Rudern"]},
+  lowerback:{name:"Unterer Rücken (Strecker)",latin:"M. erector spinae",region:"Rücken",ex:["Kreuzheben","Hyperextensions","Good Mornings"]},
+  pectoral:{name:"Großer Brustmuskel",latin:"M. pectoralis major",region:"Brust",ex:["Bankdrücken","Liegestütze","Butterfly"]},
+  serratus:{name:"Sägemuskel",latin:"M. serratus anterior",region:"Brust",ex:["Überzüge (Pullover)","Liegestütz plus","Kabel-Punch"]},
+  biceps:{name:"Bizeps / Oberarm",latin:"M. biceps brachii & brachialis",region:"Arme",ex:["Bizeps-Curls","Hammer-Curls","Klimmzüge (Untergriff)"]},
+  triceps:{name:"Trizeps",latin:"M. triceps brachii",region:"Arme",ex:["Dips","French Press","Enge Liegestütze"]},
+  forearm:{name:"Unterarmmuskulatur",latin:"M. brachioradialis u. a.",region:"Arme",ex:["Handgelenk-Curls","Farmer’s Walk","Reverse Curls"]},
+  abs:{name:"Gerader Bauchmuskel",latin:"M. rectus abdominis",region:"Bauch",ex:["Crunches","Plank","Beinheben"]},
+  obliques:{name:"Seitliche Bauchmuskeln",latin:"M. obliquus externus abdominis",region:"Bauch",ex:["Russian Twists","Side Plank","Seitl. Crunches"]},
+  glutes:{name:"Gesäßmuskel",latin:"M. gluteus maximus",region:"Gesäß",ex:["Hip Thrusts","Kniebeugen","Ausfallschritte"]},
+  adductors:{name:"Adduktoren (Innenschenkel)",latin:"Mm. adductores",region:"Beine",ex:["Adduktoren-Maschine","Sumo-Kniebeugen","Seitl. Ausfallschritte"]},
+  quadriceps:{name:"Vorderer Oberschenkel",latin:"M. quadriceps femoris",region:"Beine",ex:["Kniebeugen","Beinpresse","Ausfallschritte"]},
+  hamstrings:{name:"Beinbeuger (hinten)",latin:"Mm. ischiocrurales",region:"Beine",ex:["Beinbeuger-Maschine","Rum. Kreuzheben","Good Mornings"]},
+  tibialis:{name:"Schienbeinmuskel",latin:"M. tibialis anterior",region:"Beine",ex:["Zehenheben","Fersengang","Reverse Wadenheben"]},
+  calves:{name:"Wadenmuskel",latin:"M. gastrocnemius / soleus",region:"Beine",ex:["Wadenheben stehend","Wadenheben sitzend","Sprünge"]}
+};
+const MUSKEL_VIEWS = {
+  front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086 },
+  back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786 }
+};
+let muskelStatus = { ansicht:"front", gewaehlt:[] };
+const muskelDaten = {};   // je Ansicht { hit:Uint8Array, pixel:{gid:Int32Array} } — einmal geladen
+
+/** Signalgelb als [r,g,b] aus dem aktuellen Theme (hell/dunkel) lesen. */
+function muskelSignalRgb(){
+  const s = (getComputedStyle(document.documentElement).getPropertyValue("--signal").trim() || "#F4C74E").replace("#","");
+  return [parseInt(s.substr(0,2),16), parseInt(s.substr(2,2),16), parseInt(s.substr(4,2),16)];
+}
+
+/** Index-Karte einer Ansicht einmalig laden → Treffer-Array + Pixel-Listen. */
+function muskelKarteLaden(v){
+  return new Promise(res => {
+    if(muskelDaten[v]){ res(); return; }
+    const meta = MUSKEL_VIEWS[v], im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas"); c.width = meta.w; c.height = meta.h;
+      const cx = c.getContext("2d", { willReadFrequently:true }); cx.drawImage(im, 0, 0);
+      let data;
+      try { data = cx.getImageData(0, 0, meta.w, meta.h).data; }
+      catch(e){ muskelDaten[v] = { hit:null, pixel:{} }; res(); return; }
+      const n = meta.w * meta.h, hit = new Uint8Array(n), roh = {};
+      for(let i=0;i<n;i++){ const id = data[i*4]; hit[i] = id; if(id){ (roh[id] || (roh[id] = [])).push(i); } }
+      const pixel = {}; for(const k in roh) pixel[k] = Int32Array.from(roh[k]);
+      muskelDaten[v] = { hit, pixel }; res();
+    };
+    im.onerror = () => { muskelDaten[v] = { hit:null, pixel:{} }; res(); };
+    im.src = meta.karte;
+  });
+}
+
+/** Öffnet die Muskelkarte (leere Auswahl, aktuelle Ansicht). */
+function muskelnOeffnen(){
+  if(!viewErlaubt("view-muskeln")) return;
+  muskelStatus.gewaehlt = [];
+  muskelAnsicht(muskelStatus.ansicht || "front");
+  zeige("view-muskeln");
+}
+
+/** Ansicht wechseln (vorne/hinten): Figur + Canvas setzen, Karte laden, malen. */
+function muskelAnsicht(v){
+  muskelStatus.ansicht = v;
+  document.getElementById("muskel-tab-front").classList.toggle("muskel-an", v === "front");
+  document.getElementById("muskel-tab-back").classList.toggle("muskel-an", v === "back");
+  const meta = MUSKEL_VIEWS[v];
+  const cv = document.getElementById("muskel-canvas"); cv.width = meta.w; cv.height = meta.h;
+  document.getElementById("muskel-img").src = meta.img;
+  muskelKarteLaden(v).then(muskelMalen);
+  muskelAuswahlZeichnen(); muskelStatusText();
+}
+
+/** Ausgewählte Muskeln der aktuellen Ansicht auf dem Canvas einfärben. */
+function muskelMalen(){
+  const d = muskelDaten[muskelStatus.ansicht];
+  const cv = document.getElementById("muskel-canvas"); if(!cv) return;
+  const cx = cv.getContext("2d"); cx.clearRect(0, 0, cv.width, cv.height);
+  if(!d || !d.hit) return;
+  const [r,g,b] = muskelSignalRgb();
+  const bild = cx.createImageData(cv.width, cv.height), px = bild.data;
+  for(const key of muskelStatus.gewaehlt){
+    const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
+    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=165; }
+  }
+  cx.putImageData(bild, 0, 0);
+}
+
+/** Muskel an der Tipp-Position finden (Bildschirm → Karten-Koordinaten). */
+function muskelTreffer(e){
+  const d = muskelDaten[muskelStatus.ansicht]; if(!d || !d.hit) return null;
+  const meta = MUSKEL_VIEWS[muskelStatus.ansicht], box = e.currentTarget.getBoundingClientRect();
+  if(!box.width || !box.height) return null;
+  const x = Math.floor((e.clientX - box.left) / box.width * meta.w);
+  const y = Math.floor((e.clientY - box.top) / box.height * meta.h);
+  if(x < 0 || y < 0 || x >= meta.w || y >= meta.h) return null;
+  const id = d.hit[y * meta.w + x];
+  return id ? MUSKEL_ORDER[id - 1] : null;
+}
+
+/** Tipp auf die Figur: Muskel an/abwählen. */
+function muskelTippen(e){
+  const key = muskelTreffer(e); if(!key) return;
+  const i = muskelStatus.gewaehlt.indexOf(key);
+  if(i >= 0) muskelStatus.gewaehlt.splice(i, 1); else muskelStatus.gewaehlt.push(key);
+  muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
+}
+
+/** Karten mit Name/Latein/Region + Beispiel-Übungen je gewähltem Muskel. */
+function muskelAuswahlZeichnen(){
+  const ziel = document.getElementById("muskel-auswahl");
+  ziel.innerHTML = muskelStatus.gewaehlt.map(key => {
+    const m = MUSKEL_INFO[key];
+    return '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
+      '<span class="meta">' + text(m.region) + '</span></div>' +
+      '<div class="meta" style="font-style:italic;margin-bottom:6px">' + text(m.latin) + '</div>' +
+      m.ex.map(x => '<div class="meta">→ ' + text(x) + '</div>').join("") + '</div>';
+  }).join("");
+}
+
+function muskelStatusText(){
+  const n = muskelStatus.gewaehlt.length;
+  document.getElementById("muskel-status").textContent =
+    n ? (n === 1 ? "1 Muskel gewählt — nochmal tippen hebt auf" : n + " Muskeln gewählt")
+      : "Tippe eine Muskelgruppe an.";
+}
+/* #endregion Muskelkarte */
 
 /** Einen einzelnen Protokoll-Eintrag löschen — mit Rückfrage und Undo.
     Für Tippfehler beim Nachtragen: „was trainiert wurde, wurde trainiert“ gilt
@@ -7748,7 +7921,7 @@ function navGehe(bereich){
 /** Bar nur dort zeigen, wo Navigation Sinn hat — nie im Training/Wizard/Login. */
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
-                     "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik",
+                     "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-muskeln":"nav-statistik",
                      "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
