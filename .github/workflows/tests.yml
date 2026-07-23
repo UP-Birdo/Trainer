@@ -1,0 +1,32 @@
+# Läuft bei jedem Hochladen automatisch auf GitHubs Servern (dort gibt es
+# echtes Node): Syntax-Check + komplette Regressionskette aus tests/.
+# Ergebnis: grünes Häkchen am Commit und das Badge oben im README.
+name: Tests
+
+on:
+    push:
+    workflow_dispatch:
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Code holen
+              uses: actions/checkout@v4
+
+            - name: Node einrichten
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Syntax-Check (Script-Block aus index.html)
+              run: |
+                  node tests/extract.js index.html /tmp/trainer_check.js
+                  node --check /tmp/trainer_check.js
+
+            - name: Regressionstests
+              run: |
+                  node tests/test79.js index.html
+                  node tests/test80.js index.html
+                  node tests/test81.js index.html
+                  node tests/test82.js index.html
