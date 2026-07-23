@@ -1,0 +1,3 @@
+# WICHTIG: Die App (Feedback-Knopf, Fehlerfänger) öffnet vorausgefüllte
+# "leere" Issues per Direktlink — das muss erlaubt bleiben:
+blank_issues_enabled: true
