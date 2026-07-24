@@ -457,6 +457,14 @@ body:not(.nav-an) #nav{display:none}
 .muskel-figur img{display:block;width:100%;height:auto;pointer-events:none}
 .muskel-figur canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .muskel-hit{position:absolute;inset:0;cursor:pointer}
+/* Kleine Fokus-Muskel-Figur (v84): gleiche Technik wie die große Karte, nur
+   klein — neben dem Dropdown (Picker) bzw. je Übung in der Vorschau. */
+.mini-figur{position:relative;width:50px;flex:0 0 auto}
+.mini-figur img{display:block;width:100%;height:auto;opacity:.85;-webkit-user-select:none;user-select:none}
+.mini-figur canvas{position:absolute;inset:0;width:100%;height:100%}
+.picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
+.picker-muskel:empty{display:none}
+.vs-zeile .mini-figur{width:34px;margin-left:auto}
 
 /* ============================================================
    AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
@@ -1783,7 +1791,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 83;
+const APP_VERSION = 84;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3553,6 +3561,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.084", punkte:[
+    "Die Muskelkarte kommt jetzt direkt zur Übung: Beim Zusammenstellen eines Plans zeigt eine kleine Figur neben der ausgewählten Übung, welche Muskelgruppe sie vor allem trifft — und in der Trainings-Vorschau steht sie an jeder Übung. Eigene Übungen ohne Zuordnung bleiben einfach ohne Figur."
+  ]},
   { stand:"0.083", punkte:[
     "Neu in der Statistik: eine Muskelkarte. Tippe eine Muskelgruppe am Körper an — vorne oder hinten — und sieh sofort die passenden Beispiel-Übungen. Ab Einfachheits-Stufe 4."
   ]},
@@ -4444,19 +4455,38 @@ function muskelAnsicht(v){
   muskelAuswahlZeichnen(); muskelStatusText();
 }
 
-/** Ausgewählte Muskeln der aktuellen Ansicht auf dem Canvas einfärben. */
-function muskelMalen(){
-  const d = muskelDaten[muskelStatus.ansicht];
-  const cv = document.getElementById("muskel-canvas"); if(!cv) return;
-  const cx = cv.getContext("2d"); cx.clearRect(0, 0, cv.width, cv.height);
-  if(!d || !d.hit) return;
+/** Färbt die gegebenen Muskeln einer Ansicht auf einem Canvas-Kontext (Signalgelb).
+    Gemeinsame Basis der großen Karte (muskelMalen) und der kleinen Fokus-Figur
+    (miniMuskelFigur) — EINE Mal-Routine, damit beide nie auseinanderlaufen. */
+function muskelnAufCanvas(cx, ansicht, muskeln, alpha){
+  cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
+  const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
   const [r,g,b] = muskelSignalRgb();
-  const bild = cx.createImageData(cv.width, cv.height), px = bild.data;
-  for(const key of muskelStatus.gewaehlt){
+  const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
+  for(const key of muskeln){
     const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
-    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=165; }
+    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=alpha; }
   }
   cx.putImageData(bild, 0, 0);
+}
+
+/** Ausgewählte Muskeln der aktuellen Ansicht auf dem großen Canvas einfärben. */
+function muskelMalen(){
+  const cv = document.getElementById("muskel-canvas"); if(!cv) return;
+  muskelnAufCanvas(cv.getContext("2d"), muskelStatus.ansicht, muskelStatus.gewaehlt, 165);
+}
+
+/** Kleine Fokus-Muskel-Figur in ein .mini-figur-Element zeichnen: Figur-PNG +
+    Canvas-Overlay, gefärbt wie die große Karte. Die Index-Karte wird bei Bedarf
+    einmalig geladen (danach aus muskelDaten). */
+function miniMuskelFigur(ziel, ansicht, muskeln){
+  const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
+  ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
+    '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
+  const cv = ziel.querySelector("canvas");
+  muskelKarteLaden(ansicht).then(() => {
+    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln, 205);
+  });
 }
 
 /** Muskel an der Tipp-Position finden (Bildschirm → Karten-Koordinaten). */
@@ -4915,6 +4945,30 @@ const UEBUNGSPOOL = {
   rumpf:  UEBUNGEN_DB.filter(u => u.kat === "rumpf"),
   cardio: UEBUNGEN_DB.filter(u => u.kat === "cardio")
 };
+
+/* Fokus-Muskeln je Übungs-Kategorie (v84) — grobe Zuordnung Übung→Muskel für die
+   kleine Muskel-Figur an der Übung. Bewusst KATEGORIE-genau (nicht je Übung): der
+   ehrliche erste Schritt des offenen „Übungs-Syncs" zur v83-Muskelkarte; feiner
+   (Tabelle je Übung) käme später. Jede Kategorie zeigt die Ansicht (vorne/hinten)
+   mit ihrer Hauptregion. muskeln[] = Schlüssel aus MUSKEL_ORDER; leer = ohne klaren
+   Einzel-Fokus (Cardio = Ganzkörper, dann nur Text statt Figur). */
+const KAT_MUSKELN = {
+  beine:  { ansicht:"front", muskeln:["quadriceps","adductors","tibialis","calves"], label:"Beine" },
+  druck:  { ansicht:"front", muskeln:["pectoral","deltoid"],                          label:"Brust & Schultern" },
+  zug:    { ansicht:"back",  muskeln:["latissimus","trapezius","infraspinatus"],      label:"Rücken" },
+  rumpf:  { ansicht:"front", muskeln:["abs","obliques"],                              label:"Rumpf" },
+  cardio: { ansicht:"front", muskeln:[],                                              label:"Ganzkörper (Ausdauer)" }
+};
+
+/** Fokus-Muskeln einer Übung über ihren Namen (exakt, dann normalisiert) →
+    UEBUNGEN_DB → Kategorie. Freitext-/Drill-Übung ohne DB-Eintrag → null (dann
+    nichts zeigen — die Zuordnung wäre geraten, das wäre unehrlich). */
+function uebungMuskeln(name){
+  if(!name) return null;
+  let t = UEBUNGEN_DB.find(u => u.name === name);
+  if(!t){ const n = normName(name); t = UEBUNGEN_DB.find(u => normName(u.name) === n); }
+  return t ? (KAT_MUSKELN[t.kat] || null) : null;
+}
 
 /* ============================================================
    Sportart-Übungen (v39) — Drills & Athletik JE SPORTART
@@ -6855,12 +6909,13 @@ function uebungPickerZeichnen(){
       '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
       '<div class="raster">' +
         '<select id="picker-geraet" onchange="pickerUebungenZeichnen()">' + optionen + '</select>' +
-        '<select id="picker-uebung"></select>' +
-      '</div>' + knoepfe + eigenBauerHtml();
+        '<select id="picker-uebung" onchange="pickerMuskelZeichnen()"></select>' +
+      '</div><div id="picker-muskel" class="picker-muskel"></div>' + knoepfe + eigenBauerHtml();
   } else {
     ziel.innerHTML =
       '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
-      '<select id="picker-uebung" style="width:100%"></select>' + knoepfe + eigenBauerHtml();
+      '<select id="picker-uebung" style="width:100%" onchange="pickerMuskelZeichnen()"></select>' +
+      '<div id="picker-muskel" class="picker-muskel"></div>' + knoepfe + eigenBauerHtml();
   }
   pickerUebungenZeichnen();
 }
@@ -6888,6 +6943,7 @@ function pickerUebungenZeichnen(){
     sel.innerHTML = namen.length
       ? namen.map(n => '<option value="' + text(n) + '">' + text(n) + '</option>').join("")
       : '<option value="">— ' + (suche ? "nichts gefunden" : "noch keine Übungen im Profil") + ' —</option>';
+    pickerMuskelZeichnen();
     return;
   }
   if(editorPlan.typ === "kraft"){
@@ -6907,6 +6963,21 @@ function pickerUebungenZeichnen(){
   sel.innerHTML = namen.length
     ? namen.map(n => '<option>' + text(n) + '</option>').join("")
     : '<option value="">— ' + (suche ? "nichts gefunden" : "alle passenden schon im Plan") + ' —</option>';
+  pickerMuskelZeichnen();
+}
+
+/** Zeigt die Fokus-Muskel-Figur der aktuell im Dropdown gewählten Übung (v84) —
+    Vorschau beim Zusammenstellen. Freitext/Drill ohne DB-Treffer: nichts.
+    Cardio: nur Text (kein einzelner Muskel-Fokus). */
+function pickerMuskelZeichnen(){
+  const ziel = document.getElementById("picker-muskel"); if(!ziel) return;
+  const sel = document.getElementById("picker-uebung");
+  const info = uebungMuskeln(sel && sel.value);
+  if(!info){ ziel.innerHTML = ""; return; }
+  const hinweis = '<span class="meta">Trifft vor allem: <strong style="color:var(--chalk)">' + text(info.label) + '</strong></span>';
+  if(!info.muskeln.length){ ziel.innerHTML = hinweis; return; }
+  ziel.innerHTML = '<div class="mini-figur"></div>' + hinweis;
+  miniMuskelFigur(ziel.querySelector(".mini-figur"), info.ansicht, info.muskeln);
 }
 
 /** Übernimmt die gewählte Übung in den Plan (baut sie je nach Typ auf). */
@@ -7549,12 +7620,13 @@ function vorschauZeichnen(){
   }
 
   let nummer = 0;
+  const mfGesehen = new Set();   // v84: Fokus-Figur nur beim ERSTEN Satz je Übung, nicht je Zeile
   document.getElementById("vorschau-liste").innerHTML = ablaufErzeugen(p).map(schritt => {
     // Pausen sind keine eigenen Punkte, sondern die Zeile dazwischen
     if(schritt.typ === "pause") return '<div class="vs-pause">' + schritt.sekunden + ' s Pause</div>';
     if(schritt.typ === "bereit") return "";       // gehört zum Satz, kein eigener Punkt
     nummer++;
-    let titel, unter;
+    let titel, unter, figur = "";
     if(schritt.typ === "aufwaermen" || schritt.typ === "dehnen"){
       titel = schritt.name;
       unter = (schritt.typ === "aufwaermen" ? "Aufwärmen" : "Dehnen") + " · " + schritt.sekunden + " s";
@@ -7563,10 +7635,19 @@ function vorschauZeichnen(){
       titel = u.name;
       unter = "Satz " + schritt.satz + "/" + u.saetze + " · " +
               (u.modus === "zeit" ? zeitKurz(u.dauer, u.zeitEinheit) : u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : ""));
+      // v84: kleine Fokus-Muskel-Figur (nur mit klarem Fokus, nur beim ersten Satz).
+      const info = uebungMuskeln(u.name);
+      if(info && info.muskeln.length && !mfGesehen.has(schritt.uebungIndex)){
+        mfGesehen.add(schritt.uebungIndex);
+        figur = '<div class="mini-figur" data-mf-ansicht="' + info.ansicht + '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>';
+      }
     }
     return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +
-           '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span></div>';
+           '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span>' + figur + '</div>';
   }).join("");
+  // v84: Figuren nachträglich zeichnen (Canvas + async Bild-/Kartenladung).
+  document.querySelectorAll("#vorschau-liste .mini-figur[data-mf-ansicht]").forEach(el =>
+    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
 }
 
 /** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */

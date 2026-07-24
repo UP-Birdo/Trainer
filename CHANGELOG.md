@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.084
+
+- Die Muskelkarte kommt jetzt direkt zur Übung: Beim Zusammenstellen eines Plans
+  zeigt eine kleine Figur neben der ausgewählten Übung, welche Muskelgruppe sie
+  vor allem trifft — und in der Trainings-Vorschau steht sie an jeder Übung.
+  Eigene Übungen ohne Zuordnung bleiben einfach ohne Figur.
+
+## 0.083
+
+- Neu in der Statistik: eine Muskelkarte. Tippe eine Muskelgruppe am Körper an —
+  vorne oder hinten — und sieh sofort die passenden Beispiel-Übungen. Ab
+  Einfachheits-Stufe 4.
+
 ## 0.082
 
 - Neue Willkommens-Seite beim allerersten Öffnen: Sie zeigt groß, was diese App

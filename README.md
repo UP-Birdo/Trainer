@@ -36,14 +36,14 @@ ohne Konto bei irgendeinem Anbieter.
 Android: Link in Chrome öffnen → Menü → „App installieren".
 Computer: einfach im Browser benutzen.
 
-<!-- Screenshots: Bilder nach docs/bilder/ hochladen, dann diese beiden
-     Kommentar-Zeilen (die mit den spitzen Klammern) löschen.
+<!-- Screenshots: Bilder nach bilder/ (im Wurzelverzeichnis) hochladen, dann
+     diese beiden Kommentar-Zeilen (die mit den spitzen Klammern) löschen.
 
 ## Screenshots
 
 | Start | Training | Statistik |
 |---|---|---|
-| ![Start](docs/bilder/start.png) | ![Training](docs/bilder/training.png) | ![Statistik](docs/bilder/statistik.png) |
+| ![Start](bilder/start.png) | ![Training](bilder/training.png) | ![Statistik](bilder/statistik.png) |
 
 -->
 

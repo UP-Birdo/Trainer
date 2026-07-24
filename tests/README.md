@@ -11,6 +11,8 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test80.js` | v80: Beispielplan-Felder, „Letztes Mal", kraftErledigt, Verlauf-Robustheit + v79-Regressionen |
 | `test81.js` | GitHub-Issue: Repo-Ableitung aus der Pages-Adresse, URL-Bau, Fehlerfälle |
 | `test82.js` | Fehlerfänger: Dialog, Dedupe pro Sitzung, Stacktrace im Issue, wirft selbst nie |
+| `test83.js` | Muskelkarte: Datenintegrität (19 Muskeln), Treffer-Logik, An/Aus-Toggle |
+| `test84.js` | Fokus-Muskel je Übung: `KAT_MUSKELN`-Integrität, `uebungMuskeln()` (Treffer, Normalisierung, Freitext→null) |
 
 ## Ausführen
 
@@ -25,6 +27,8 @@ VS Codes Electron springt ein):
     & $code tests\test80.js index.html
     & $code tests\test81.js index.html
     & $code tests\test82.js index.html
+    & $code tests\test83.js index.html
+    & $code tests\test84.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
@@ -40,6 +44,6 @@ Dafür muss dieser `tests/`-Ordner mit im Repository liegen.
   ÜBERHOLT und bewusst nicht enthalten — seine gültigen Fälle stecken in
   `test80.js`.
 - Die historische Kette aus früheren Chat-Sitzungen (`dom.js`, `flow.js`,
-  `migr.js`, `pruefung.py`, `css.py` — siehe `docs/UEBERGABE.md` Abschnitt 11) liegt
+  `migr.js`, `pruefung.py`, `css.py` — siehe `docs/ARCHITECTURE.md`, Abschnitt „11. Arbeitsweise") liegt
   nicht (mehr) vor. Neue Tests nach demselben Muster hier ergänzen:
   Funktionen per `grabFn()` aus der index.html extrahieren, nie kopieren.
