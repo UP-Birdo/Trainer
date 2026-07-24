@@ -1,0 +1,87 @@
+/* v86-Test: feine Uebung->Muskel-Zuordnung + Trainings-Heatmap.
+   Extrahiert die ECHTEN Daten/Funktionen aus index.html (nie kopieren). */
+"use strict";
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[2], "utf8");
+
+function grabFn(name){
+  const i = src.indexOf("function " + name + "(");
+  if(i < 0) throw new Error("Funktion nicht gefunden: " + name);
+  let tiefe = 0;
+  for(let k = src.indexOf("{", i); k < src.length; k++){
+    if(src[k] === "{") tiefe++;
+    else if(src[k] === "}"){ tiefe--; if(tiefe === 0) return src.slice(i, k + 1); }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
+function grabConst(name){
+  const i = src.indexOf("const " + name + " =");
+  if(i < 0) throw new Error("const nicht gefunden: " + name);
+  let s = i; while(src[s] !== "{" && src[s] !== "[") s++;
+  const auf = src[s], zu = auf === "{" ? "}" : "]";
+  let tiefe = 0;
+  for(let k = s; k < src.length; k++){
+    if(src[k] === auf) tiefe++;
+    else if(src[k] === zu){ tiefe--; if(tiefe === 0) return src.slice(i, k + 1) + ";"; }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
+
+const code = [
+  grabConst("MUSKEL_ORDER"), grabConst("MUSKEL_INFO"), grabConst("MUSKEL_SEITE"),
+  grabConst("KAT_MUSKELN"), grabConst("UEBUNGEN_DB"), grabConst("UEBUNG_MUSKELN"),
+  grabFn("normName"), grabFn("uebungMuskeln"),
+  grabFn("tagDifferenz"), grabFn("muskelHeatLevel"), grabFn("trainierteMuskeln"),
+  "module.exports = { MUSKEL_ORDER, MUSKEL_SEITE, UEBUNGEN_DB, UEBUNG_MUSKELN," +
+  " uebungMuskeln, tagDifferenz, muskelHeatLevel, trainierteMuskeln };"
+].join("\n");
+
+const modul = { exports: {} };
+new Function("module", "exports", code)(modul, modul.exports);
+const T = modul.exports;
+
+let ok = 0, fehler = 0;
+function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
+
+/* 1) Vollstaendigkeit + Integritaet der feinen Zuordnung */
+pruefe("Jede DB-Uebung hat eine feine Zuordnung",
+  T.UEBUNGEN_DB.every(u => Array.isArray(T.UEBUNG_MUSKELN[u.name]) && T.UEBUNG_MUSKELN[u.name].length > 0));
+pruefe("Alle Muskel-Schluessel gueltig",
+  Object.values(T.UEBUNG_MUSKELN).every(arr => arr.every(m => T.MUSKEL_ORDER.indexOf(m) >= 0)));
+pruefe("Keine Zuordnungs-Leiche (Name nicht in DB)",
+  Object.keys(T.UEBUNG_MUSKELN).every(n => T.UEBUNGEN_DB.some(u => u.name === n)));
+pruefe("MUSKEL_SEITE deckt alle 19 Muskeln (front/back)",
+  T.MUSKEL_ORDER.every(m => ["front","back"].indexOf(T.MUSKEL_SEITE[m]) >= 0));
+
+/* 2) uebungMuskeln: Muskeln + Ansichtswahl (Primaer-Muskel entscheidet) */
+const km = T.uebungMuskeln("Kniebeugen");
+pruefe("Kniebeugen -> Quadriceps+Glutes, vorne",
+  km.muskeln.indexOf("quadriceps") >= 0 && km.muskeln.indexOf("glutes") >= 0 && km.ansicht === "front");
+pruefe("LH-Bankdruecken -> Brust, vorne",
+  T.uebungMuskeln("LH-Bankdrücken").muskeln.indexOf("pectoral") >= 0 && T.uebungMuskeln("LH-Bankdrücken").ansicht === "front");
+pruefe("Klimmzuege -> Latissimus, hinten",
+  T.uebungMuskeln("Klimmzüge").muskeln.indexOf("latissimus") >= 0 && T.uebungMuskeln("Klimmzüge").ansicht === "back");
+pruefe("Rum. Kreuzheben -> Hamstrings, hinten",
+  T.uebungMuskeln("Rumän. Kreuzheben").muskeln.indexOf("hamstrings") >= 0 && T.uebungMuskeln("Rumän. Kreuzheben").ansicht === "back");
+pruefe("Normalisiert (Kleinschreibung)", T.uebungMuskeln("kniebeugen") && T.uebungMuskeln("kniebeugen").muskeln.indexOf("quadriceps") >= 0);
+pruefe("Unbekannt -> null", T.uebungMuskeln("Voellig Erfundene Uebung XYZ") === null);
+
+/* 3) muskelHeatLevel-Grenzen */
+pruefe("Level 0/1/2/3",
+  T.muskelHeatLevel(0) === 0 && T.muskelHeatLevel(1) === 1 && T.muskelHeatLevel(2) === 1 &&
+  T.muskelHeatLevel(3) === 2 && T.muskelHeatLevel(5) === 2 && T.muskelHeatLevel(6) === 3 && T.muskelHeatLevel(99) === 3);
+
+/* 4) trainierteMuskeln: Aggregation + Zeitfenster + Freitext ignoriert */
+const heute = "2026-07-24";
+const prot = [
+  { datum:"2026-07-24", saetze:[{name:"Kniebeugen"},{name:"Kniebeugen"},{name:"Kniebeugen"}] },
+  { datum:"2026-07-16", saetze:[{name:"Kniebeugen"}] },              // 8 Tage her -> raus (Fenster 7)
+  { datum:"2026-07-23", saetze:[{name:"Irgendein Freitext"}] }       // keine DB-Uebung -> ignoriert
+];
+const z = T.trainierteMuskeln(prot, heute, 7);
+pruefe("3 Saetze Kniebeugen -> quadriceps=3, glutes=3", z.quadriceps === 3 && z.glutes === 3);
+pruefe("Ausserhalb 7-Tage-Fenster zaehlt nicht", z.quadriceps === 3);   // die 8-Tage-Einheit wuerde 4 machen
+pruefe("Freitext ohne DB-Treffer ignoriert", Object.keys(z).every(k => ["quadriceps","glutes"].indexOf(k) >= 0));
+
+console.log(ok + " ok, " + fehler + " Fehler");
+process.exit(fehler ? 1 : 0);

@@ -1229,6 +1229,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Muskelkarte</h1>
     <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
   <div class="karte">
+    <div class="muskel-tabs zeile" style="margin-bottom:10px">
+      <button id="muskel-modus-info" class="muskel-tab muskel-an" onclick="muskelModus('erkunden')">Erkunden</button>
+      <button id="muskel-modus-heat" class="muskel-tab" onclick="muskelModus('trainiert')">Zuletzt trainiert</button>
+    </div>
     <div class="muskel-tabs zeile">
       <button id="muskel-tab-front" class="muskel-tab muskel-an" onclick="muskelAnsicht('front')">Vorne</button>
       <button id="muskel-tab-back" class="muskel-tab" onclick="muskelAnsicht('back')">Hinten</button>
@@ -1239,6 +1243,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div class="muskel-hit" onclick="muskelTippen(event)"></div>
     </div>
     <div id="muskel-status" class="meta" style="text-align:center;margin-top:8px"></div>
+    <div id="muskel-legende" hidden></div>
   </div>
   <div id="muskel-auswahl"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1804,7 +1809,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 85;
+const APP_VERSION = 86;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3619,6 +3624,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.086", punkte:[
+    "Die kleine Muskel-Figur an der Übung ist jetzt genauer: Sie zeigt die tatsächlich beanspruchten Muskeln statt nur der groben Kategorie — beim Zusammenstellen eines Plans und in der Trainings-Vorschau.",
+    "Neu in der Muskelkarte: der Modus „Zuletzt trainiert“. Der Körper färbt sich danach, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast (leicht / mittel / viel), mit Legende. Tippe einen Muskel an und du siehst, mit welchen Übungen. Ab Einfachheits-Stufe 4."
+  ]},
   { stand:"0.085", punkte:[
     "Meilenstein-Flammen: Deine Trainings-Serie feiert jetzt die Marken 7, 30 und 100 — in der Statistik siehst du die erreichte Marke und wie viele Trainings noch bis zur nächsten fehlen, und nach dem Training gibt es bei einem Meilenstein einen extra Glückwunsch.",
     "Neuer Scheibenrechner unter „Mehr“: Zielgewicht eintippen, Stange wählen (20/15/10 kg) — die App zeigt dir sofort, welche Hantelscheiben du je Seite auflegst."
@@ -4496,14 +4505,16 @@ const MUSKEL_VIEWS = {
   front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086 },
   back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786 }
 };
-let muskelStatus = { ansicht:"front", gewaehlt:[] };
+let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"erkunden" };   // modus: erkunden | trainiert (v86)
 const muskelDaten = {};   // je Ansicht { hit:Uint8Array, pixel:{gid:Int32Array} } — einmal geladen
 
-/** Signalgelb als [r,g,b] aus dem aktuellen Theme (hell/dunkel) lesen. */
-function muskelSignalRgb(){
-  const s = (getComputedStyle(document.documentElement).getPropertyValue("--signal").trim() || "#F4C74E").replace("#","");
+/** Eine CSS-Farbvariable (#rrggbb) als [r,g,b] aus dem aktuellen Theme lesen. */
+function themeRgb(name, fallback){
+  const s = (getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback).replace("#","");
   return [parseInt(s.substr(0,2),16), parseInt(s.substr(2,2),16), parseInt(s.substr(4,2),16)];
 }
+/** Signalgelb als [r,g,b] (für die Muskel-Einfärbung). */
+function muskelSignalRgb(){ return themeRgb("--signal", "F4C74E"); }
 
 /** Index-Karte einer Ansicht einmalig laden → Treffer-Array + Pixel-Listen. */
 function muskelKarteLaden(v){
@@ -4526,15 +4537,35 @@ function muskelKarteLaden(v){
   });
 }
 
-/** Öffnet die Muskelkarte (leere Auswahl, aktuelle Ansicht). */
+/** Öffnet die Muskelkarte (leere Auswahl, aktueller Modus + Ansicht). */
 function muskelnOeffnen(){
   if(!viewErlaubt("view-muskeln")) return;
   muskelStatus.gewaehlt = [];
+  muskelModusAnwenden();
   muskelAnsicht(muskelStatus.ansicht || "front");
   zeige("view-muskeln");
 }
 
-/** Ansicht wechseln (vorne/hinten): Figur + Canvas setzen, Karte laden, malen. */
+/** Modus wechseln: „erkunden" (Muskel → Beispiel-Übungen) oder „trainiert"
+    (Heatmap aus dem eigenen Protokoll). */
+function muskelModus(m){
+  muskelStatus.modus = m;
+  muskelStatus.gewaehlt = [];
+  muskelModusAnwenden();
+  muskelAnsicht(muskelStatus.ansicht);
+}
+/** Modus-Schalter + Legende auf den aktuellen Modus einstellen. */
+function muskelModusAnwenden(){
+  const m = muskelStatus.modus || "erkunden";
+  const bi = document.getElementById("muskel-modus-info"), bh = document.getElementById("muskel-modus-heat");
+  if(bi) bi.classList.toggle("muskel-an", m === "erkunden");
+  if(bh) bh.classList.toggle("muskel-an", m === "trainiert");
+  const leg = document.getElementById("muskel-legende");
+  if(leg){ leg.hidden = (m !== "trainiert"); if(m === "trainiert") muskelLegendeZeichnen(); }
+}
+
+/** Ansicht wechseln (vorne/hinten): Figur + Canvas setzen, Karte laden, je nach
+    Modus die Auswahl- oder die Heatmap-Färbung zeichnen. */
 function muskelAnsicht(v){
   muskelStatus.ansicht = v;
   document.getElementById("muskel-tab-front").classList.toggle("muskel-an", v === "front");
@@ -4542,7 +4573,7 @@ function muskelAnsicht(v){
   const meta = MUSKEL_VIEWS[v];
   const cv = document.getElementById("muskel-canvas"); cv.width = meta.w; cv.height = meta.h;
   document.getElementById("muskel-img").src = meta.img;
-  muskelKarteLaden(v).then(muskelMalen);
+  muskelKarteLaden(v).then(() => { if(muskelStatus.modus === "trainiert") muskelHeatmapZeichnen(); else muskelMalen(); });
   muskelAuswahlZeichnen(); muskelStatusText();
 }
 
@@ -4580,6 +4611,88 @@ function miniMuskelFigur(ziel, ansicht, muskeln){
   });
 }
 
+/* #region Trainings-Heatmap (v86): welche Muskeln zuletzt trainiert wurden.
+   Aggregiert das Protokoll über die letzten MUSKEL_HEAT_TAGE Tage (ein Satz = ein
+   Punkt je primärem Muskel der Übung), stuft in leicht/mittel/viel und färbt die
+   Figur entsprechend. Reine Anzeige aus dem Protokoll — nichts wandert ins Konto. */
+const MUSKEL_HEAT_TAGE = 7;
+
+/** Zählt je Muskel, wie oft er in den letzten `tage` Tagen trainiert wurde (ein
+    Satz = ein Punkt je primärem Muskel). Pure Funktion (testbar). */
+function trainierteMuskeln(protokoll, heute, tage){
+  const zaehler = {};
+  for(const e of (protokoll || [])){
+    if(!e.datum) continue;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > tage) continue;
+    for(const s of (e.saetze || [])){
+      const info = uebungMuskeln(s.name);
+      if(!info || !info.muskeln) continue;
+      for(const m of info.muskeln){ zaehler[m] = (zaehler[m] || 0) + 1; }
+    }
+  }
+  return zaehler;
+}
+
+/** Trainings-Häufigkeit → Stufe 0 (nichts) / 1 leicht / 2 mittel / 3 viel. */
+function muskelHeatLevel(anzahl){
+  if(anzahl <= 0) return 0;
+  if(anzahl <= 2) return 1;
+  if(anzahl <= 5) return 2;
+  return 3;
+}
+
+/** Färbt die Figur nach Trainings-Stufe: leicht/mittel = Signalgelb (zunehmend
+    kräftiger), viel = Warnrot. Nutzt dieselben Index-Karten wie die große Karte. */
+function muskelHeatmapAufCanvas(cx, ansicht, zaehler){
+  cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
+  const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
+  const gelb = themeRgb("--signal", "F4C74E"), rot = themeRgb("--warn", "C8553D");
+  const stufe = { 1:[gelb[0],gelb[1],gelb[2],95], 2:[gelb[0],gelb[1],gelb[2],180], 3:[rot[0],rot[1],rot[2],195] };
+  const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
+  for(const key in zaehler){
+    const lvl = muskelHeatLevel(zaehler[key]); if(!lvl) continue;
+    const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
+    const f = stufe[lvl];
+    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=f[0]; px[p+1]=f[1]; px[p+2]=f[2]; px[p+3]=f[3]; }
+  }
+  cx.putImageData(bild, 0, 0);
+}
+
+/** Heatmap der aktuellen Ansicht aus dem echten Protokoll zeichnen. */
+function muskelHeatmapZeichnen(){
+  const cv = document.getElementById("muskel-canvas"); if(!cv) return;
+  const z = trainierteMuskeln(sitzung.daten.protokoll, heuteAlsText(), MUSKEL_HEAT_TAGE);
+  muskelHeatmapAufCanvas(cv.getContext("2d"), muskelStatus.ansicht, z);
+}
+
+/** Übungen der letzten MUSKEL_HEAT_TAGE Tage, die diesen Muskel trainiert haben
+    (neueste zuerst) — je Eintrag { tage, namen[] }. */
+function muskelTrainingDetail(key){
+  const heute = heuteAlsText(), treffer = [];
+  for(const e of sitzung.daten.protokoll){
+    if(!e.datum) continue;
+    const d = tagDifferenz(e.datum, heute); if(d < 0 || d > MUSKEL_HEAT_TAGE) continue;
+    const namen = [];
+    for(const s of (e.saetze || [])){
+      const info = uebungMuskeln(s.name);
+      if(info && info.muskeln && info.muskeln.includes(key) && !namen.includes(s.name)) namen.push(s.name);
+    }
+    if(namen.length) treffer.push({ tage:d, namen });
+  }
+  return treffer.sort((a, b) => a.tage - b.tage);
+}
+
+/** Legende: Farbstufen der Heatmap erklären. */
+function muskelLegendeZeichnen(){
+  const el = document.getElementById("muskel-legende"); if(!el) return;
+  const punkt = (bg, op, txt) => '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px">' +
+    '<span style="width:12px;height:12px;border-radius:3px;background:' + bg + ';opacity:' + op + '"></span>' + txt + '</span>';
+  el.innerHTML = '<div class="meta" style="margin-top:10px;text-align:center">Letzte ' + MUSKEL_HEAT_TAGE + ' Tage · ' +
+    punkt("var(--signal)", 0.45, "leicht") + punkt("var(--signal)", 1, "mittel") + punkt("var(--warn)", 1, "viel") + '</div>';
+}
+/* #endregion Trainings-Heatmap */
+
 /** Muskel an der Tipp-Position finden (Bildschirm → Karten-Koordinaten). */
 function muskelTreffer(e){
   const d = muskelDaten[muskelStatus.ansicht]; if(!d || !d.hit) return null;
@@ -4592,17 +4705,37 @@ function muskelTreffer(e){
   return id ? MUSKEL_ORDER[id - 1] : null;
 }
 
-/** Tipp auf die Figur: Muskel an/abwählen. */
+/** Tipp auf die Figur: im Erkunden-Modus Muskel an/abwählen, im Heatmap-Modus
+    den getippten Muskel fokussieren (zeigt unten die eigenen Übungen). */
 function muskelTippen(e){
   const key = muskelTreffer(e); if(!key) return;
+  if(muskelStatus.modus === "trainiert"){
+    muskelStatus.gewaehlt = [key];
+    muskelAuswahlZeichnen(); muskelStatusText();
+    return;
+  }
   const i = muskelStatus.gewaehlt.indexOf(key);
   if(i >= 0) muskelStatus.gewaehlt.splice(i, 1); else muskelStatus.gewaehlt.push(key);
   muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
 }
 
-/** Karten mit Name/Latein/Region + Beispiel-Übungen je gewähltem Muskel. */
+/** Detail-Karten je gewähltem Muskel — je nach Modus: Beispiel-Übungen (erkunden)
+    oder die eigenen Übungen der letzten Tage (trainiert). */
 function muskelAuswahlZeichnen(){
   const ziel = document.getElementById("muskel-auswahl");
+  if(muskelStatus.modus === "trainiert"){
+    ziel.innerHTML = muskelStatus.gewaehlt.map(key => {
+      const m = MUSKEL_INFO[key], eh = muskelTrainingDetail(key);
+      const kopf = '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
+        '<span class="meta">' + text(m.region) + '</span></div>';
+      if(!eh.length) return kopf + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
+      return kopf + eh.map(g => {
+        const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
+        return '<div class="meta">' + wann + ": " + text(g.namen.join(", ")) + '</div>';
+      }).join("") + '</div>';
+    }).join("");
+    return;
+  }
   ziel.innerHTML = muskelStatus.gewaehlt.map(key => {
     const m = MUSKEL_INFO[key];
     return '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
@@ -4613,10 +4746,16 @@ function muskelAuswahlZeichnen(){
 }
 
 function muskelStatusText(){
+  const el = document.getElementById("muskel-status");
+  if(muskelStatus.modus === "trainiert"){
+    el.textContent = muskelStatus.gewaehlt.length
+      ? "Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage."
+      : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.";
+    return;
+  }
   const n = muskelStatus.gewaehlt.length;
-  document.getElementById("muskel-status").textContent =
-    n ? (n === 1 ? "1 Muskel gewählt — nochmal tippen hebt auf" : n + " Muskeln gewählt")
-      : "Tippe eine Muskelgruppe an.";
+  el.textContent = n ? (n === 1 ? "1 Muskel gewählt — nochmal tippen hebt auf" : n + " Muskeln gewählt")
+    : "Tippe eine Muskelgruppe an.";
 }
 /* #endregion Muskelkarte */
 
@@ -5054,11 +5193,105 @@ const KAT_MUSKELN = {
 /** Fokus-Muskeln einer Übung über ihren Namen (exakt, dann normalisiert) →
     UEBUNGEN_DB → Kategorie. Freitext-/Drill-Übung ohne DB-Eintrag → null (dann
     nichts zeigen — die Zuordnung wäre geraten, das wäre unehrlich). */
+/* Feine Zuordnung Übung → primäre Muskeln (v86, Nutzer-Wunsch „recherchiere,
+   welche Übung welche Muskelgruppen"). Schlüssel = Name aus UEBUNGEN_DB, Werte =
+   Schlüssel aus MUSKEL_ORDER. Bewusst nur die PRIMÄR beanspruchten Muskeln
+   (Standard-Trainingslehre) — sekundäre kämen später. Ergänzt (nicht ersetzt)
+   die grobe KAT_MUSKELN: Übungen ohne feinen Eintrag fallen auf die Kategorie
+   zurück. Reine Anzeige — nichts wandert ins Konto. */
+const UEBUNG_MUSKELN = {
+  // -- Beine --
+  "Kniebeugen":["quadriceps","glutes"], "Ausfallschritte":["quadriceps","glutes"],
+  "Glute Bridge":["glutes","hamstrings"], "Wadenheben":["calves"], "Wandsitzen":["quadriceps"],
+  "Einbeinige Kniebeuge":["quadriceps","glutes"], "Step-ups":["quadriceps","glutes"],
+  "Bulgarische Kniebeuge":["quadriceps","glutes"], "Box Jumps":["quadriceps","glutes"],
+  "Goblet Squats":["quadriceps","glutes"], "KH-Ausfallschritte":["quadriceps","glutes"],
+  "KH-Wadenheben":["calves"], "KH-Kreuzheben":["hamstrings","glutes","lowerback"],
+  "Kettlebell-Swings":["glutes","hamstrings"], "Kettlebell-Goblet-Squat":["quadriceps","glutes"],
+  "LH-Kniebeugen":["quadriceps","glutes"], "Rumän. Kreuzheben":["hamstrings","glutes"],
+  "LH-Kreuzheben":["hamstrings","glutes","lowerback"], "LH-Hip-Thrust":["glutes","hamstrings"],
+  "Smith-Kniebeugen":["quadriceps","glutes"], "Beinpresse":["quadriceps","glutes"],
+  "Beinbeuger":["hamstrings"], "Beinstrecker":["quadriceps"], "Wadenheben Maschine":["calves"],
+  "Adduktoren":["adductors"], "Abduktoren":["glutes"], "Rack-Kniebeugen":["quadriceps","glutes"],
+  "Band-Kniebeugen":["quadriceps","glutes"], "Schlingen-Kniebeuge":["quadriceps","glutes"],
+  "Einbeinige Beinpresse":["quadriceps","glutes"], "Wadenpresse (Beinpresse)":["calves"],
+  "Sitzendes Wadenheben":["calves"], "Sitzender Beinbeuger":["hamstrings"],
+  "Frontkniebeugen im Rack":["quadriceps","glutes"], "LH-Frontkniebeugen":["quadriceps","glutes"],
+  "LH-Good-Mornings":["hamstrings","lowerback","glutes"], "Kettlebell-Ausfallschritte":["quadriceps","glutes"],
+  "Wall Balls":["quadriceps","glutes"], "Kniebeugen mit Weste":["quadriceps","glutes"],
+  "Bank-Step-ups":["quadriceps","glutes"],
+  // -- Drücken --
+  "Liegestütze":["pectoral","triceps"], "Pike Push-ups":["deltoid","triceps"],
+  "Enge Liegestütze":["triceps","pectoral"], "Stuhl-Dips":["triceps"], "Dips am Barren":["triceps","pectoral"],
+  "Erhöhte Liegestütze":["pectoral","triceps"], "KH-Bankdrücken":["pectoral","triceps"],
+  "KH-Schulterdrücken":["deltoid","triceps"], "KH-Seitheben":["deltoid"], "KH-Trizepsdrücken":["triceps"],
+  "Schrägbankdrücken KH":["pectoral","deltoid"], "LH-Bankdrücken":["pectoral","triceps"],
+  "LH-Schulterdrücken":["deltoid","triceps"], "Kettlebell-Drücken":["deltoid","triceps"],
+  "Brustpresse":["pectoral","triceps"], "Butterfly":["pectoral"],
+  "Schulterpresse Maschine":["deltoid","triceps"], "Trizeps am Kabel":["triceps"],
+  "Smith-Bankdrücken":["pectoral","triceps"], "Liegestütze mit Weste":["pectoral","triceps"],
+  "Parallettes-Liegestütze":["pectoral","triceps"], "Parallettes-Dips":["triceps","pectoral"],
+  "Band-Schulterdrücken":["deltoid","triceps"], "Schlingen-Liegestütze":["pectoral","triceps"],
+  "Schräge Brustpresse":["pectoral","deltoid"], "Enge Brustpresse":["pectoral","triceps"],
+  "Einarmige Schulterpresse":["deltoid","triceps"], "Kabel-Crossover":["pectoral"],
+  "Kabel-Seitheben":["deltoid"], "Smith-Schulterdrücken":["deltoid","triceps"],
+  "KH-Fliegende":["pectoral"], "Trizeps-Dips an der Bank":["triceps"], "Negativ-Dips":["triceps","pectoral"],
+  // -- Ziehen --
+  "Superman":["lowerback","glutes"], "Tisch-Rudern":["latissimus","biceps"],
+  "Klimmzüge":["latissimus","biceps"], "Negativ-Klimmzüge":["latissimus","biceps"],
+  "Hängendes Beinheben":["abs"], "Band-Rudern":["latissimus","biceps"], "Band-Bizeps-Curls":["biceps"],
+  "Band-Face-Pulls":["deltoid","trapezius"], "KH-Rudern":["latissimus","biceps"],
+  "KH-Bizeps-Curls":["biceps"], "KH-Reverse-Flys":["deltoid","trapezius"], "KH-Shrugs":["trapezius"],
+  "LH-Rudern":["latissimus","biceps"], "LH-Bizeps-Curls":["biceps"], "Latzug":["latissimus","biceps"],
+  "Kabel-Rudern":["latissimus","biceps"], "Face-Pulls am Kabel":["deltoid","trapezius"],
+  "Rudermaschine":["latissimus","biceps"], "Schlingen-Rudern":["latissimus","biceps"],
+  "Kettlebell-Rudern":["latissimus","biceps"], "Scott-Curls":["biceps"],
+  "Klimmzüge mit Weste":["latissimus","biceps"], "Crosstrainer":["quadriceps","glutes"],
+  "Enges Rudern Maschine":["latissimus","biceps"], "Breites Rudern Maschine":["latissimus","biceps"],
+  "Rack Pulls":["lowerback","trapezius","latissimus"], "Reverse Butterfly":["deltoid","trapezius"],
+  "Bizeps-Curls am Kabel":["biceps"], "Scott-Curls Kurzhantel":["biceps"], "Smith-Rudern":["latissimus","biceps"],
+  "Renegade Rows":["latissimus","biceps"],
+  // -- Rumpf --
+  "Plank":["abs"], "Seitstütz":["obliques"], "Crunches":["abs"], "Beinheben an der Matte":["abs"],
+  "Hüftheben":["glutes","abs"], "Vierfüßler-Diagonale":["lowerback","glutes"], "Bauchmaschine":["abs"],
+  "Rückenstrecker":["lowerback"], "L-Sit an Parallettes":["abs"], "Beinheben liegend":["abs"],
+  "Bergsteiger":["abs"], "Russian Twist":["obliques"], "Hollow Hold":["abs"], "Käfer (Dead Bug)":["abs"],
+  "Bauchroller":["abs"], "Medizinball-Twist":["obliques"], "Kabel-Crunches":["abs"], "Schlingen-Plank":["abs"],
+  "Rotations-Bauchmaschine":["obliques"], "Reverse Hyperextension":["glutes","lowerback","hamstrings"],
+  "Seitbeuge an der Bank":["obliques"], "Medizinball-Slams":["abs","obliques"],
+  "Türkischer Aufsteher":["abs","deltoid"],
+  // -- Cardio --
+  "Seilspringen":["calves"], "Burpees":["quadriceps","pectoral"], "Hampelmänner":["deltoid","calves"],
+  "High Knees":["quadriceps","calves"], "Laufband / Ergometer":["quadriceps","calves"],
+  "Double Unders":["calves"], "Crosstrainer-Intervalle":["quadriceps","glutes"],
+  "Intervall-Läufe":["quadriceps","hamstrings","calves"]
+};
+
+/* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl
+   der Ansicht der kleinen Fokus-Figur). Die große Muskelkarte färbt beide Seiten. */
+const MUSKEL_SEITE = {
+  neck:"front", trapezius:"back", deltoid:"front", infraspinatus:"back", latissimus:"back",
+  lowerback:"back", pectoral:"front", serratus:"front", biceps:"front", triceps:"back",
+  forearm:"front", abs:"front", obliques:"front", glutes:"back", adductors:"front",
+  quadriceps:"front", hamstrings:"back", tibialis:"front", calves:"back"
+};
+
+/** Fokus-Muskeln einer Übung: erst die feine Tabelle (echte Muskeln + beste
+    Ansicht + Regions-Label), sonst die grobe Kategorie (KAT_MUSKELN); Freitext-
+    /Drill-Übung ohne DB-Eintrag → null (dann nichts zeigen). */
 function uebungMuskeln(name){
   if(!name) return null;
   let t = UEBUNGEN_DB.find(u => u.name === name);
   if(!t){ const n = normName(name); t = UEBUNGEN_DB.find(u => normName(u.name) === n); }
-  return t ? (KAT_MUSKELN[t.kat] || null) : null;
+  if(!t) return null;
+  const fein = UEBUNG_MUSKELN[t.name];
+  if(fein && fein.length){
+    // Ansicht = Seite des PRIMÄR-Muskels (erster Eintrag), damit z. B. Klimmzüge
+    // (Latissimus) die Rückseite zeigen, nicht die Vorderseite (Bizeps).
+    const regionen = [...new Set(fein.map(m => (MUSKEL_INFO[m] || {}).region).filter(Boolean))];
+    return { ansicht: MUSKEL_SEITE[fein[0]] === "back" ? "back" : "front", muskeln: fein, label: regionen.join(", ") };
+  }
+  return KAT_MUSKELN[t.kat] || null;
 }
 
 /* ============================================================

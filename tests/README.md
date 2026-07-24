@@ -12,8 +12,9 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test81.js` | GitHub-Issue: Repo-Ableitung aus der Pages-Adresse, URL-Bau, Fehlerfälle |
 | `test82.js` | Fehlerfänger: Dialog, Dedupe pro Sitzung, Stacktrace im Issue, wirft selbst nie |
 | `test83.js` | Muskelkarte: Datenintegrität (19 Muskeln), Treffer-Logik, An/Aus-Toggle |
-| `test84.js` | Fokus-Muskel je Übung: `KAT_MUSKELN`-Integrität, `uebungMuskeln()` (Treffer, Normalisierung, Freitext→null) |
+| `test84.js` | Grobe Fallback-Zuordnung `KAT_MUSKELN` (Kategorie→Muskeln, jede DB-Kategorie abgedeckt) — feines `uebungMuskeln()` prüft test86 |
 | `test85.js` | Meilenstein-Flammen (`serienMeilenstein`, Marken 7/30/100) + Scheibenrechner (`scheibenRechnen`, Zerlegung/Rest/Grenzen) |
+| `test86.js` | Feine Übung→Muskel-Zuordnung (`UEBUNG_MUSKELN` vollständig/gültig, `uebungMuskeln`-Ansicht) + Heatmap (`muskelHeatLevel`, `trainierteMuskeln`-Fenster) |
 
 ## Ausführen
 
@@ -31,6 +32,7 @@ VS Codes Electron springt ein):
     & $code tests\test83.js index.html
     & $code tests\test84.js index.html
     & $code tests\test85.js index.html
+    & $code tests\test86.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

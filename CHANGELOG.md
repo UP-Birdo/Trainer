@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.086
+
+- Die kleine Muskel-Figur an der Übung ist genauer geworden: Sie zeigt die
+  tatsächlich beanspruchten Muskeln statt nur der groben Kategorie (beim
+  Zusammenstellen eines Plans und in der Trainings-Vorschau).
+- Neu in der Muskelkarte: der Modus „Zuletzt trainiert". Der Körper färbt sich
+  danach, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast
+  (leicht / mittel / viel), mit Legende; ein Muskel-Tipp zeigt die Übungen dazu.
+
 ## 0.085
 
 - Meilenstein-Flammen: Die Trainings-Serie feiert die Marken 7, 30 und 100 — die
