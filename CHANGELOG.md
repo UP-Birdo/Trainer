@@ -3,6 +3,12 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.087
+
+- Ruhigeres, aufgeräumtes Erscheinungsbild: die kleinen Häkchen und Melde-Symbole
+  sind überall raus — nur die Serien-Flamme 🔥 bleibt. Bedien-Knöpfe (Löschen,
+  Verschieben, Blättern) behalten ihr Zeichen.
+
 ## 0.086
 
 - Die kleine Muskel-Figur an der Übung ist genauer geworden: Sie zeigt die

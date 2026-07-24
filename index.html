@@ -498,15 +498,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="wk-satz"><strong>Dein Training. Deine Daten. Sonst niemand.</strong><br>
     Diese App macht vieles anders als die aus dem App Store:</div>
   <div class="wk-liste">
-    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Ende-zu-Ende verschlüsselt</strong>
+    <div class="wk-punkt"><div><strong>Ende-zu-Ende verschlüsselt</strong>
       <div class="wk-text">Deine Daten liegen nur auf diesem Gerät, geschützt mit echter Verschlüsselung. Es gibt keinen Server, der gehackt werden könnte.</div></div></div>
-    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Keine Werbung. Kein Abo. Kein Tracking.</strong>
+    <div class="wk-punkt"><div><strong>Keine Werbung. Kein Abo. Kein Tracking.</strong>
       <div class="wk-text">Nichts wird gemessen, verkauft oder beworben. Du bist der Nutzer — nicht das Produkt.</div></div></div>
-    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Funktioniert komplett offline</strong>
+    <div class="wk-punkt"><div><strong>Funktioniert komplett offline</strong>
       <div class="wk-text">Im Keller-Gym ohne Empfang genauso wie im Flugzeug — die App braucht kein Internet.</div></div></div>
-    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Deine Daten gehören dir</strong>
+    <div class="wk-punkt"><div><strong>Deine Daten gehören dir</strong>
       <div class="wk-text">Verschlüsselte Sicherung zum Mitnehmen — Umzug aufs neue Handy in einer Minute. Plus Wiederherstellungscode, falls du das Passwort vergisst.</div></div></div>
-    <div class="wk-punkt"><span class="haken">✓</span><div><strong>Passt sich dir an</strong>
+    <div class="wk-punkt"><div><strong>Passt sich dir an</strong>
       <div class="wk-text">Vom simplen Notizblock bis zum vollen Trainings-System mit Timer, Ansagen und automatischer Steigerung — du wählst die Stufe.</div></div></div>
   </div>
   <div class="wk-fuss"><button class="primaer breit" onclick="willkommenWeiter()">Los geht’s</button></div>
@@ -1350,11 +1350,7 @@ function zeigenToast(text, art="info", undo=null){
   const toast = document.createElement("div");
   toast.className = "toast " + (art || "info");
   
-  let icon = "ℹ️";
-  if(art === "erfolg") icon = "✓";
-  if(art === "fehler") icon = "✕";
-  
-  let html = `<span class="toast-icon">${icon}</span><span>${text}</span>`;
+  let html = `<span>${text}</span>`;
   if(undo){
     html += `<button class="toast-undo" onclick="this.parentElement.ondone && this.parentElement.ondone()">Rückgängig</button>`;
   }
@@ -1809,7 +1805,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 86;
+const APP_VERSION = 87;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2151,7 +2147,7 @@ function sicherungErledigt(){
   sitzung.daten.sicherung = { zeit: Date.now(), version: APP_VERSION };
   speichern();
   sicherungBannerZeichnen();
-  zeigenToast("✓ Sicherung erstellt", "erfolg");
+  zeigenToast("Sicherung erstellt", "erfolg");
 }
 
 /** Öffnet auf dem iPhone das Teilen-Menü ("In Dateien sichern" -> Ordner wählen).
@@ -3230,8 +3226,8 @@ function planNeuMenue(){
   if(stufe() <= 2){ abschnittAnlegen(); return; }
   const eintraege = [];
   if(stufe() >= 5) eintraege.push({ text:"🧭 Plan mit Assistent", tun: einrichtungOeffnen });
-  eintraege.push({ text:"✎ Eigenen Plan erstellen", tun: planAnlegen });
-  eintraege.push({ text:"✓ Training nachtragen", tun:() => eintragenOeffnen(null, 0) });
+  eintraege.push({ text:"Eigenen Plan erstellen", tun: planAnlegen });
+  eintraege.push({ text:"Training nachtragen", tun:() => eintragenOeffnen(null, 0) });
   aktionsMenue("Neu anlegen", eintraege);
 }
 
@@ -3312,7 +3308,7 @@ function planLoeschenById(planId){
       sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
       speichern();
       planListeZeichnen();
-      zeigenToast("✓ Wiederhergestellt", "erfolg");
+      zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
 }
@@ -3624,6 +3620,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.087", punkte:[
+    "Ruhigeres, aufgeräumtes Erscheinungsbild: die kleinen Häkchen und Melde-Symbole sind überall raus — nur die Serien-Flamme 🔥 bleibt. Bedien-Knöpfe (Löschen, Verschieben, Blättern) behalten ihr Zeichen."
+  ]},
   { stand:"0.086", punkte:[
     "Die kleine Muskel-Figur an der Übung ist jetzt genauer: Sie zeigt die tatsächlich beanspruchten Muskeln statt nur der groben Kategorie — beim Zusammenstellen eines Plans und in der Trainings-Vorschau.",
     "Neu in der Muskelkarte: der Modus „Zuletzt trainiert“. Der Körper färbt sich danach, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast (leicht / mittel / viel), mit Legende. Tippe einen Muskel an und du siehst, mit welchen Übungen. Ab Einfachheits-Stufe 4."
@@ -3782,7 +3781,7 @@ function profilSpeichern(){
     if(alt !== kg) hinweis = " + Gewicht aktualisiert";
   }
   speichern();
-  zeigenToast("✓ Profil gespeichert" + hinweis, "erfolg");
+  zeigenToast("Profil gespeichert" + hinweis, "erfolg");
 }
 
 function heuteAlsText(){
@@ -4028,7 +4027,7 @@ function tagOeffnen(datum){
   if(sitzung.daten.plaene.length)
     aktionen.push({ text:"Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
   sitzung.daten.plaene.filter(p => (p.einzelTermine || []).includes(datum)).forEach(p =>
-    aktionen.push({ text:"✕ Einzeltermin entfernen: " + p.name, tun:() => {
+    aktionen.push({ text:"Einzeltermin entfernen: " + p.name, tun:() => {
       p.einzelTermine.splice(p.einzelTermine.indexOf(datum), 1); speichern(); kalenderZeichnen();
     }}));
   aktionen.push({ text: istRuhe ? "Ruhetag entfernen" : "Als Ruhetag markieren",
@@ -4778,7 +4777,7 @@ function eintragLoeschen(id){
       speichern();
       statistikAktualisieren();
       verlaufOeffnen();
-      zeigenToast("✓ Wiederhergestellt", "erfolg");
+      zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
 }
@@ -4810,7 +4809,7 @@ function eintragBearbeiten(id){
         e.datum = wert;
         sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
         speichern(); statistikAktualisieren(); verlaufOeffnen();
-        zeigenToast("✓ Datum geändert", "erfolg");
+        zeigenToast("Datum geändert", "erfolg");
       }) },
     { text:"Notiz ändern", tun:() => eingabeFrage("Notiz zum Training:", "text", e.notiz || "", wert => {
         e.notiz = (wert || "").trim();
@@ -6128,7 +6127,7 @@ function zielEintragen(){
   document.getElementById("ziel-formular").hidden = true;
   document.getElementById("ziel-wert").value = "";
   zieleZeichnen();
-  zeigenToast("✓ Ziel hinzugefügt", "erfolg");
+  zeigenToast("Ziel hinzugefügt", "erfolg");
 }
 
 function zielLoeschen(id){
@@ -6142,7 +6141,7 @@ function zielLoeschen(id){
       sitzung.daten.ziele.push(geloescht);
       speichern();
       zieleZeichnen();
-      zeigenToast("✓ Wiederhergestellt", "erfolg");
+      zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
 }
@@ -6317,7 +6316,7 @@ function zieleZeichnen(){
             sitzung.daten.plaene.map(p => {
               const drin = p.uebungen.some(u => u.name.toLowerCase() === z.uebung.toLowerCase());   // exakt wie zielInPlan — Teilstring würde z. B. "Curl" gegen "Bizeps Curl" fälschlich als drin melden
               return drin
-                ? '<button disabled>✓ ' + text(p.name) + '</button>'
+                ? '<button disabled>' + text(p.name) + '</button>'
                 : '<button onclick="zielInPlan(\'' + z.id + '\',\'' + p.id + '\')">' + text(p.name) + '</button>';
             }).join("") + '</div></div>';
         }
@@ -7430,7 +7429,7 @@ function planSichern(){
   if(index >= 0) plaene[index] = editorPlan; else plaene.push(editorPlan);
   speichern();
   planListeZeichnen();
-  zeigenToast("✓ Plan gespeichert", "erfolg");
+  zeigenToast("Plan gespeichert", "erfolg");
   zeige("view-plaene");
 }
 
@@ -7448,7 +7447,7 @@ function planLoeschen(){
       sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
       speichern();
       planListeZeichnen();
-      zeigenToast("✓ Wiederhergestellt", "erfolg");
+      zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
 }
@@ -7900,7 +7899,7 @@ function kraftErledigt(planId){
     });
     sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
     speichern();
-    zeigenToast("✓ Als erledigt eingetragen", "erfolg");
+    zeigenToast("Als erledigt eingetragen", "erfolg");
     startOeffnen();
   });
 }
@@ -8376,7 +8375,7 @@ function heuteKarteZeichnen(){
       const istAkt = plan.typ === "aktivitaet";
       return '<div class="heute" data-plan="' + plan.id + '" style="border-color:' + sportartFarbe(plan.sportart) + '">' +
         '<div class="heute-label" style="color:' + sportartFarbe(plan.sportart) + '">Heute · ' + name +
-          ' · ' + text(sportartName(plan.sportart)) + (erledigt ? " · erledigt ✓" : "") + '</div>' +
+          ' · ' + text(sportartName(plan.sportart)) + (erledigt ? " · erledigt" : "") + '</div>' +
         '<h2>' + text(plan.name) + '</h2>' +
         '<div class="meta">' +
           (istAkt
@@ -8398,7 +8397,7 @@ function heuteKarteZeichnen(){
     return plaeneHeute[0].id;
   } else if(schonTrainiert){
     ziel.innerHTML = '<div class="heute"><div class="heute-label">Heute · ' + name + '</div>' +
-      '<h2>Erledigt ✓</h2><div class="meta">Gut gemacht — die Serie läuft.</div>' +
+      '<h2>Erledigt</h2><div class="meta">Gut gemacht — die Serie läuft.</div>' +
       '<div class="knopfreihe"><button class="breit" onclick="heuteTrainingEintragen()">Weiteres Training eintragen</button></div></div>';
   } else if(sitzung.daten.plaene.length === 0){
     // Noch gar kein Plan: Der Start muss den Weg zeigen. Ohne diesen Zweig
@@ -8417,7 +8416,7 @@ function heuteKarteZeichnen(){
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
-      '<h2>' + (istRuhe ? "Ruhetag ✓" : "Ruhetag") + '</h2>' +
+      '<h2>Ruhetag</h2>' +
       '<div class="meta">' + (istRuhe ? "Als Ruhetag markiert." : "Kein Plan für heute — trainiert trotzdem?") + '</div>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="heuteTrainingEintragen()">Training eintragen</button>' +
       '<button class="breit" onclick="ruhetagHeute()">' + (istRuhe ? "Ruhetag entfernen" : "Als Ruhetag markieren") + '</button></div></div>';
