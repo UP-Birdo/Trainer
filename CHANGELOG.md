@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.085
+
+- Meilenstein-Flammen: Die Trainings-Serie feiert die Marken 7, 30 und 100 — die
+  Statistik zeigt die erreichte Marke und wie viele Trainings bis zur nächsten
+  fehlen, nach dem Training gibt es bei einem Meilenstein einen extra Glückwunsch.
+- Neuer Scheibenrechner unter „Mehr": Zielgewicht eintippen, Stange wählen
+  (20/15/10 kg) — die App zeigt sofort die Hantelscheiben je Seite.
+
 ## 0.084
 
 - Die Muskelkarte kommt jetzt direkt zur Übung: Beim Zusammenstellen eines Plans

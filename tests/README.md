@@ -13,6 +13,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test82.js` | Fehlerfänger: Dialog, Dedupe pro Sitzung, Stacktrace im Issue, wirft selbst nie |
 | `test83.js` | Muskelkarte: Datenintegrität (19 Muskeln), Treffer-Logik, An/Aus-Toggle |
 | `test84.js` | Fokus-Muskel je Übung: `KAT_MUSKELN`-Integrität, `uebungMuskeln()` (Treffer, Normalisierung, Freitext→null) |
+| `test85.js` | Meilenstein-Flammen (`serienMeilenstein`, Marken 7/30/100) + Scheibenrechner (`scheibenRechnen`, Zerlegung/Rest/Grenzen) |
 
 ## Ausführen
 
@@ -29,6 +30,7 @@ VS Codes Electron springt ein):
     & $code tests\test82.js index.html
     & $code tests\test83.js index.html
     & $code tests\test84.js index.html
+    & $code tests\test85.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

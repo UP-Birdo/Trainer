@@ -465,6 +465,8 @@ body:not(.nav-an) #nav{display:none}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
 .picker-muskel:empty{display:none}
 .vs-zeile .mini-figur{width:34px;margin-left:auto}
+/* Meilenstein-Abzeichen der Trainings-Serie (v85) */
+.meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px}
 
 /* ============================================================
    AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
@@ -684,6 +686,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div>
         <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
         <div class="kennzahl-label">Trainings-Serie</div>
+        <div id="serie-meilenstein" style="margin-top:4px"></div>
       </div>
     </div>
     <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
@@ -878,6 +881,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Audio</h2>
     <div class="knopfreihe"><button class="schmal" onclick="tonTesten()">Ton &amp; Ansage testen</button></div>
+  </div>
+
+  <div class="karte" id="mehr-werkzeuge-karte">
+    <h2>Scheibenrechner</h2>
+    <div class="meta abstand">Welche Hantelscheiben du je Seite auflegst, um ein Zielgewicht zu erreichen.</div>
+    <div><label for="scheibe-ziel">Zielgewicht (kg)</label>
+      <input id="scheibe-ziel" type="number" inputmode="decimal" step="2.5" placeholder="z. B. 60" oninput="scheibenAnzeigen()"></div>
+    <div class="wahl-gruppe abstand"><label>Stange</label></div>
+    <div id="scheibe-stange" class="wahl-raster"></div>
+    <div id="scheibe-ergebnis" class="meta" style="margin-top:10px"></div>
   </div>
 
   <div class="karte">
@@ -1791,7 +1804,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 84;
+const APP_VERSION = 85;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3394,11 +3407,56 @@ try {
     });
 } catch(e){ /* ältere WebKit-Versionen ohne addEventListener auf MediaQueryList */ }
 
+/* #region Scheibenrechner (Mehr → Werkzeuge, ab Stufe 3). Welche Hantelscheiben
+   je Seite für ein Zielgewicht. Reines Werkzeug — nichts wandert ins Konto. */
+const SCHEIBEN = [25, 20, 15, 10, 5, 2.5, 1.25];   // kg, je Seite verfügbar
+let scheibeStange = 20;                             // gewählte Stange (kg)
+
+/** Greedy von der größten Scheibe. rest = was sich je Seite mit diesen Scheiben
+    nicht genau legen lässt; machbar=false, wenn das Ziel unter der Stange liegt. */
+function scheibenRechnen(ziel, stange, scheiben){
+  const proSeite = (ziel - stange) / 2;
+  if(!(ziel > 0) || proSeite < 0) return { proSeite: [], rest: null, machbar: false };
+  let rest = Math.round(proSeite * 100) / 100;
+  const liste = [];
+  for(const s of [...scheiben].sort((a, b) => b - a)){
+    const anzahl = Math.floor((rest + 1e-9) / s);
+    if(anzahl > 0){ liste.push({ scheibe: s, anzahl }); rest = Math.round((rest - anzahl * s) * 100) / 100; }
+  }
+  return { proSeite: liste, rest, machbar: true };
+}
+
+function scheibenStangeZeichnen(){
+  const el = document.getElementById("scheibe-stange"); if(!el) return;
+  el.innerHTML = [20, 15, 10].map(s =>
+    '<button class="' + (scheibeStange === s ? "gewaehlt" : "") +
+    '" onclick="scheibenStangeSetzen(' + s + ')">' + s + ' kg</button>').join("");
+}
+function scheibenStangeSetzen(s){ scheibeStange = s; scheibenStangeZeichnen(); scheibenAnzeigen(); }
+
+/** Liest Zielgewicht + gewählte Stange und zeigt die Scheiben je Seite an. */
+function scheibenAnzeigen(){
+  const el = document.getElementById("scheibe-ergebnis"); if(!el) return;
+  const feld = document.getElementById("scheibe-ziel");
+  const ziel = parseFloat(feld ? feld.value : "") || 0;
+  if(!ziel){ el.innerHTML = ""; return; }
+  const r = scheibenRechnen(ziel, scheibeStange, SCHEIBEN);
+  if(!r.machbar){ el.innerHTML = "Das Ziel muss über der Stange (" + scheibeStange + " kg) liegen."; return; }
+  if(!r.proSeite.length){ el.innerHTML = "Nur die Stange (" + scheibeStange + " kg) — keine Scheiben nötig."; return; }
+  const teile = r.proSeite.map(p => p.anzahl + " × " + p.scheibe).join("   +   ");
+  el.innerHTML = '<strong style="color:var(--chalk)">Je Seite:</strong> ' + text(teile) +
+    (r.rest > 0 ? '<br><span style="color:var(--warn)">Rest ' + r.rest + ' kg — mit diesen Scheiben nicht genau erreichbar.</span>' : "");
+}
+/* #endregion Scheibenrechner */
+
 function einstellungenOeffnen(){
   document.getElementById("pw-formular").hidden = true;
   systemKarteZeichnen();
   darstellungKarteZeichnen();
   simpelheitKarteZeichnen();
+  // v85: Scheibenrechner ist ein Kraft-Werkzeug — erst ab Stufe 3 (echtes Training).
+  document.getElementById("mehr-werkzeuge-karte").hidden = stufe() < 3;
+  scheibenStangeZeichnen(); scheibenAnzeigen();
   // v76: Profil (mit Zielen + Sportart-System) ist ein Stufe-5-Feature.
   document.getElementById("mehr-profil-karte").hidden = stufe() < 5;
   // v76: Stufe 1/2 haben keine Nav-Leiste — Rückweg aus „Mehr" per Knopf.
@@ -3561,6 +3619,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.085", punkte:[
+    "Meilenstein-Flammen: Deine Trainings-Serie feiert jetzt die Marken 7, 30 und 100 — in der Statistik siehst du die erreichte Marke und wie viele Trainings noch bis zur nächsten fehlen, und nach dem Training gibt es bei einem Meilenstein einen extra Glückwunsch.",
+    "Neuer Scheibenrechner unter „Mehr“: Zielgewicht eintippen, Stange wählen (20/15/10 kg) — die App zeigt dir sofort, welche Hantelscheiben du je Seite auflegst."
+  ]},
   { stand:"0.084", punkte:[
     "Die Muskelkarte kommt jetzt direkt zur Übung: Beim Zusammenstellen eines Plans zeigt eine kleine Figur neben der ausgewählten Übung, welche Muskelgruppe sie vor allem trifft — und in der Trainings-Vorschau steht sie an jeder Übung. Eigene Übungen ohne Zuordnung bleiben einfach ohne Figur."
   ]},
@@ -3767,6 +3829,33 @@ function trainingsSerie(){
   return serie;
 }
 
+/* Meilenstein-Flammen (Nutzer-Wunsch, klein & klar): Serien-Marken zum Feiern.
+   erreicht = höchste erreichte Marke (0 = noch keine); naechster = nächste Marke
+   (null = alle erreicht). Reine Anzeige — die Serie selbst zählt unverändert. */
+const SERIEN_MEILENSTEINE = [7, 30, 100];
+function serienMeilenstein(n){
+  let erreicht = 0, naechster = null;
+  for(const m of SERIEN_MEILENSTEINE){
+    if(n >= m){ erreicht = m; } else { naechster = m; break; }
+  }
+  return { erreicht, naechster };
+}
+
+/** Meilenstein-Zeile unter der großen Flamme in der Statistik. */
+function meilensteinZeileZeichnen(n){
+  const el = document.getElementById("serie-meilenstein"); if(!el) return;
+  const ms = serienMeilenstein(n);
+  if(ms.erreicht){
+    el.innerHTML = '<span class="meilenstein">🔥 ' + ms.erreicht + 'er-Serie</span>' +
+      (ms.naechster ? '<span class="meta"> · noch ' + (ms.naechster - n) + ' bis ' + ms.naechster + '</span>'
+                    : '<span class="meta"> · stärkste Marke erreicht</span>');
+  } else if(n > 0){
+    el.innerHTML = '<span class="meta">Noch ' + (ms.naechster - n) + ' bis zur ersten Meilenstein-Flamme (' + ms.naechster + ')</span>';
+  } else {
+    el.innerHTML = "";
+  }
+}
+
 /** Flamme in der Kopfzeile der Plan-Übersicht (nur sichtbar, wenn Serie läuft). */
 function flammeZeichnen(){
   const n = trainingsSerie();
@@ -3788,7 +3877,9 @@ function kennzahlenZeichnen(){
   }
 
   const monat = heute.slice(0,7);
-  document.getElementById("tag-streak-zahl").textContent = "🔥 " + trainingsSerie();
+  const serie = trainingsSerie();
+  document.getElementById("tag-streak-zahl").textContent = "🔥 " + serie;
+  meilensteinZeileZeichnen(serie);
   document.getElementById("statistik-klein").textContent =
     streak + (streak === 1 ? " Woche" : " Wochen") + " in Folge · " +
     protokoll.length + " Trainings gesamt · " +
@@ -8133,7 +8224,9 @@ function trainingBeenden(){
 
   // Ansage NACH dem Eintragen, damit die Serie das heutige Training mitzählt.
   const serie = trainingsSerie();
-  sprich("Training beendet. Gut gemacht." + (serie >= 2 ? " Serie: " + serie + "." : ""));
+  const meilenstein = SERIEN_MEILENSTEINE.includes(serie);
+  sprich("Training beendet. Gut gemacht." +
+    (meilenstein ? " Meilenstein: " + serie + " Trainings in Serie!" : (serie >= 2 ? " Serie: " + serie + "." : "")));
 
   bewertungOeffnen(plan, eintrag);
 }
@@ -8187,13 +8280,14 @@ function bewertungAnwenden(){
   speichern();
 
   const serie = trainingsSerie();
+  const meilenstein = SERIEN_MEILENSTEINE.includes(serie);
   const zielKarte = zielBericht.length
     ? '<div class="karte"><div class="meta" style="border-left:3px solid var(--signal);padding-left:8px;line-height:1.5">' +
       zielBericht.map(z => text(z)).join("<br>") + '</div></div>'
     : "";
   document.getElementById("ergebnis-liste").innerHTML = zielKarte +
-    '<div class="karte zeile"><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
-    '<span class="meta">' + (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "Der Anfang ist gemacht.") + '</span></div>' +
+    '<div class="karte zeile"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
+    '<span class="meta">' + (meilenstein ? "Meilenstein erreicht!" : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "Der Anfang ist gemacht.")) + '</span></div>' +
     zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
