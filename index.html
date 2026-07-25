@@ -437,6 +437,8 @@ body:not(.nav-an) #nav{display:none}
 /* v110: Statistik-Akkordeon — eingeschaltete Statistik als antippbare Überschrift. */
 .stat-kopf{cursor:pointer;user-select:none;-webkit-user-select:none}
 .stat-pfeil{margin-left:8px}
+/* v112: ganze Statistik-Karte antippbar (Muskelkarte / Kalender) statt eigener Knöpfe. */
+.stat-tap{cursor:pointer}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
@@ -738,21 +740,21 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-statistik" class="view">
   <div class="kopf"><h1>Statistik</h1></div>
   <!-- v93: „Der Mensch" ganz oben — welche Muskeln du zuletzt (7 Tage) trainiert hast -->
-  <div class="karte">
+  <!-- v112: ein Tipp auf die ganze Karte öffnet die Muskelkarte (Knopf entfällt). -->
+  <div class="karte stat-tap" onclick="muskelnOeffnen()">
     <div class="zeile"><h2>Zuletzt trainiert</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-koerper')" aria-label="Info">i</button></div>
+      <button class="info-knopf" onclick="event.stopPropagation(); infoUmschalten('info-koerper')" aria-label="Info">i</button></div>
     <div id="info-koerper" class="meta info-text" hidden>Die Figur zeigt, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast — leicht, mittel, viel. Antippen öffnet die volle Muskelkarte.</div>
-    <div class="koerper-vorschau" onclick="muskelnOeffnen()">
+    <div class="koerper-vorschau">
       <div class="mini-figur" id="koerper-front"></div>
       <div class="mini-figur" id="koerper-back"></div>
     </div>
     <div id="koerper-legende" class="meta" style="text-align:center"></div>
     <div id="koerper-hinweis" class="meta" style="text-align:center;margin-top:6px"></div>
-    <div class="knopfreihe"><button class="schmal breit" onclick="muskelnOeffnen()">Muskelkarte öffnen</button></div>
   </div>
 
-  <!-- Serie + 7-Tage-Vorschau; der volle Monatskalender liegt unter „Kalender öffnen" (v93) -->
-  <div class="karte">
+  <!-- Serie + 7-Tage-Vorschau; v112: ein Tipp auf die Karte öffnet den vollen Kalender (Knopf entfällt) -->
+  <div class="karte stat-tap" onclick="kalenderOeffnen()">
     <div class="zeile">
       <div>
         <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
@@ -760,11 +762,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         <div id="serie-meilenstein" style="margin-top:4px"></div>
       </div>
       <!-- v104: die Kennzahlen-Zeile (Wochen in Folge, Trainings gesamt …) liegt hinter dem „i" -->
-      <button class="info-knopf" onclick="infoUmschalten('statistik-klein')" aria-label="Details">i</button>
+      <button class="info-knopf" onclick="event.stopPropagation(); infoUmschalten('statistik-klein')" aria-label="Details">i</button>
     </div>
     <div id="statistik-klein" class="meta info-text" style="margin-top:8px" hidden></div>
     <div id="wochen-vorschau" style="margin-top:12px"></div>
-    <div class="knopfreihe" style="margin-top:10px"><button class="schmal breit" onclick="kalenderOeffnen()">Kalender öffnen</button></div>
   </div>
 
   <!-- v110: Statistik-Akkordeon. Jede eingeschaltete Statistik ist eingeklappt
@@ -889,8 +890,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe"><button class="schmal" onclick="profilSpeichern()">Profil speichern</button></div>
   </div>
 
-  <!-- v107: die volle Ziele-Verwaltung liegt in der eigenen Ansicht view-ziele -->
-  <div class="karte">
+  <!-- v107: die volle Ziele-Verwaltung liegt in der eigenen Ansicht view-ziele.
+       v111: erscheint erst, wenn es eine Plan-Übung gibt (oder schon Ziele). -->
+  <div class="karte" id="profil-ziele-karte" hidden>
     <h2>Ziele</h2>
     <div class="knopfreihe"><button class="primaer schmal" onclick="zieleOeffnen()">Ziele verwalten</button></div>
   </div>
@@ -2079,7 +2081,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 110;
+const APP_VERSION = 112;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3791,6 +3793,8 @@ function profilOeffnen(){
   document.getElementById("profil-gewicht").value = letztes ? letztes.kg : "";
   document.getElementById("profil-geburtsjahr").value = d.profil.geburtsjahr || "";
   document.getElementById("profil-geschlecht").value = d.profil.geschlecht || "m";
+  // v111: die Ziele-Karte nur zeigen, wenn es eine Plan-Übung gibt (oder Ziele bestehen).
+  document.getElementById("profil-ziele-karte").hidden = !zieleVerfuegbar();
   zeige("view-profil");   // v107: Ziele liegen in view-ziele (Knopf „Ziele verwalten")
 }
 
@@ -4000,6 +4004,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.112", punkte:[
+    "In der Statistik brauchst du keine extra Knöpfe mehr: Ein Tipp auf die obere Figur-Karte (Zuletzt trainiert) öffnet direkt die volle Muskelkarte, und ein Tipp auf die Serie-Karte mit der 7-Tage-Vorschau öffnet den Kalender. Einen einzelnen Tag in der Vorschau tippst du weiterhin gezielt an, um ihn zu öffnen."
+  ]},
+  { stand:"0.111", punkte:[
+    "Ziele richten sich jetzt konsequent nach deinen Plänen: Als Ziel wählbar sind nur Übungen, die gerade in einem Plan stehen. Und solange du noch gar keinen Plan mit einer Übung hast, taucht der Ziele-Bereich (im Profil und auf Heute) gar nicht erst auf — er erscheint automatisch, sobald du deinen ersten Plan angelegt hast. Bereits gesetzte Ziele bleiben natürlich immer erreichbar."
+  ]},
   { stand:"0.110", punkte:[
     "Die Statistik ist noch aufgeräumter: Jede Statistik, die du in Darstellung eingeschaltet hast (Körpergewicht, Volumen, Ausdauer, Fortschritt, Bestwerte, Trainings), steht jetzt zunächst nur als Überschrift da — wie in der Übungs-Bibliothek. Tippst du sie an, klappt sie auf und zeigt ihre Kurve oder Liste. So siehst du auf einen Blick, was da ist, und öffnest gezielt nur, was dich interessiert. Die kleinen Info-Texte sind aus der Statistik verschwunden."
   ]},
@@ -4520,7 +4530,8 @@ function wochenVorschauZeichnen(){
     const wt = WT[new Date(datum + "T12:00:00").getDay()];
     html += '<div class="wspalte"><span class="wt">' + wt + '</span>' +
             '<div class="' + klasse + '"' + z.stil +
-            ' onclick="tagOeffnen(\'' + datum + '\')">' + inhalt + z.punkt + '</div></div>';
+            // v112: die Karte öffnet den Kalender; ein einzelner Tag darf nicht mit-bubbeln.
+            ' onclick="event.stopPropagation(); tagOeffnen(\'' + datum + '\')">' + inhalt + z.punkt + '</div></div>';
   }
   ziel.innerHTML = '<div class="wochenkette">' + html + '</div>';
 }
@@ -6826,6 +6837,14 @@ function planUebungen(){
     }
   }));
   return [...nachName.values()].sort((a,b) => a.name.localeCompare(b.name));
+}
+
+/* v111: Die Ziele-Funktion erscheint erst, wenn es etwas gibt, worauf man
+   hintrainieren kann — eine Übung/Aktivität in einem Plan — ODER bereits Ziele
+   bestehen (sonst wären gesetzte Ziele nicht mehr erreichbar). Dieselbe Regel
+   spiegelt `zieleStartZeichnen` (Heute-Karte) inline. */
+function zieleVerfuegbar(){
+  return planUebungen().length > 0 || (sitzung.daten.ziele || []).length > 0;
 }
 
 /** Welche Ziel-Arten gibt diese Übung her? Fixe Einheiten, keine Fantasie:

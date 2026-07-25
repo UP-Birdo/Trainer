@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.112
+
+- In der Statistik brauchst du keine extra Knöpfe mehr: Ein Tipp auf die obere
+  Figur-Karte („Zuletzt trainiert") öffnet direkt die volle Muskelkarte, und ein
+  Tipp auf die Serie-Karte mit der 7-Tage-Vorschau öffnet den Kalender. Einen
+  einzelnen Tag in der Vorschau tippst du weiterhin gezielt an, um ihn zu öffnen.
+
+## 0.111
+
+- Ziele richten sich jetzt konsequent nach deinen Plänen: Als Ziel wählbar sind
+  nur Übungen, die gerade in einem Plan stehen. Und solange du noch gar keinen
+  Plan mit einer Übung hast, taucht der Ziele-Bereich (im Profil und auf Heute)
+  gar nicht erst auf — er erscheint automatisch, sobald du deinen ersten Plan
+  angelegt hast. Bereits gesetzte Ziele bleiben natürlich immer erreichbar.
+
 ## 0.110
 
 - Die Statistik ist noch aufgeräumter: Jede Statistik, die du in „Darstellung"
