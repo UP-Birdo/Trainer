@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.094
+
+- Die Körper-Figur in der Statistik ist feiner: Statt drei festen Stufen färbt
+  sie sich jetzt stufenlos — je öfter du einen Muskel trainierst, desto kräftiger,
+  wie ein Markierstift, der mehrmals über dieselbe Stelle geht. Vorne und hinten
+  stehen jetzt gleich hoch, und die Legende ist schlicht in einer Reihe.
+
 ## 0.093
 
 - Die Statistik ist neu geordnet und schlichter: Ganz oben zeigt jetzt eine

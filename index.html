@@ -232,10 +232,13 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 
 /* v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten,
    gefärbt nach den zuletzt trainierten Muskeln. Antippen = volle Muskelkarte. */
-.koerper-vorschau{display:flex;justify-content:center;gap:22px;align-items:flex-start;
+/* v94: beide Figuren auf GLEICHE Höhe (statt gleicher Breite) — vorne/hinten
+   haben verschiedene Seitenverhältnisse, gleiche Breite ließ sie unterschiedlich
+   hoch wirken. Höhe fix, Breite folgt dem Bild. */
+.koerper-vorschau{display:flex;justify-content:center;gap:22px;align-items:center;
   margin:8px 0 6px;cursor:pointer}
-.koerper-vorschau .mini-figur{width:104px}
-.koerper-vorschau .mini-figur img{opacity:1}
+.koerper-vorschau .mini-figur{width:auto;height:190px}
+.koerper-vorschau .mini-figur img{width:auto;height:100%;opacity:1}
 
 /* v93: 7-Tage-Vorschau — die letzten sieben Tage als farbige Kette, gleiche
    Färbung wie der volle Kalender (dieselben .tag-Klassen). */
@@ -1861,7 +1864,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 93;
+const APP_VERSION = 94;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3698,6 +3701,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.094", punkte:[
+    "Die Körper-Figur in der Statistik ist feiner: Statt drei festen Stufen färbt sie sich jetzt stufenlos — je öfter du einen Muskel trainierst, desto kräftiger, wie ein Markierstift, der mehrmals über dieselbe Stelle geht. Vorne und hinten stehen jetzt gleich hoch, und die Legende ist schlicht in einer Reihe."
+  ]},
   { stand:"0.093", punkte:[
     "Die Statistik ist neu geordnet und schlichter: Ganz oben zeigt jetzt eine Körper-Figur, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast — leicht, mittel, viel; ein Tipp öffnet die volle Muskelkarte. Darunter siehst du die letzten 7 Tage als kurze farbige Vorschau. Der volle Monatskalender wohnt jetzt aufgeräumt hinter dem Knopf Kalender öffnen."
   ]},
@@ -4786,27 +4792,30 @@ function trainierteMuskeln(protokoll, heute, tage){
   return zaehler;
 }
 
-/** Trainings-Häufigkeit → Stufe 0 (nichts) / 1 leicht / 2 mittel / 3 viel. */
-function muskelHeatLevel(anzahl){
+/* v94: Stufenlose Einfärbung statt fester Stufen. Bei 0 Trainings durchsichtig,
+   dann mit jedem Training kräftiger — aber mit abnehmendem Zuwachs, wie ein
+   Markierstift, der dieselbe Stelle mehrfach überfährt (sättigt). EIN Farbton
+   (Signalgelb); die Deckkraft trägt die Information. Die grell-rote Übertrainings-
+   Warnung ist bewusst ein eigener, späterer Schritt (siehe ROADMAP). */
+const HEAT_MAX_ALPHA = 235;
+/** Trainings-Häufigkeit → Deckkraft 0–235 (stetig, sättigend). Pure/testbar. */
+function heatAlpha(anzahl){
   if(anzahl <= 0) return 0;
-  if(anzahl <= 2) return 1;
-  if(anzahl <= 5) return 2;
-  return 3;
+  const p = 0.30;                                    // Deckkraft-Zuwachs je Training
+  return Math.round(HEAT_MAX_ALPHA * (1 - Math.pow(1 - p, anzahl)));
 }
 
-/** Färbt die Figur nach Trainings-Stufe: leicht/mittel = Signalgelb (zunehmend
-    kräftiger), viel = Warnrot. Nutzt dieselben Index-Karten wie die große Karte. */
+/** Färbt die Figur nach Trainings-Häufigkeit (stufenlos, Signalgelb). Nutzt
+    dieselben Index-Karten wie die große Karte. */
 function muskelHeatmapAufCanvas(cx, ansicht, zaehler){
   cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
   const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
-  const gelb = themeRgb("--signal", "F4C74E"), rot = themeRgb("--warn", "C8553D");
-  const stufe = { 1:[gelb[0],gelb[1],gelb[2],95], 2:[gelb[0],gelb[1],gelb[2],180], 3:[rot[0],rot[1],rot[2],195] };
+  const [r,g,b] = muskelSignalRgb();
   const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
   for(const key in zaehler){
-    const lvl = muskelHeatLevel(zaehler[key]); if(!lvl) continue;
+    const a = heatAlpha(zaehler[key]); if(!a) continue;
     const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
-    const f = stufe[lvl];
-    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=f[0]; px[p+1]=f[1]; px[p+2]=f[2]; px[p+3]=f[3]; }
+    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
   }
   cx.putImageData(bild, 0, 0);
 }
@@ -4836,13 +4845,15 @@ function muskelTrainingDetail(key){
 }
 
 /** Legende: Farbstufen der Heatmap erklären. */
-/** Gemeinsame Heatmap-Legende (leicht/mittel/viel) — für die volle Muskelkarte
-    UND „den Menschen" in der Statistik (v93), damit beide dieselbe Skala zeigen. */
+/** Gemeinsame Heatmap-Legende — für die volle Muskelkarte UND „den Menschen" in
+    der Statistik, damit beide dieselbe Skala zeigen. v94: schlicht in EINER Reihe,
+    ein Verlaufsbalken „wenig → viel" (passend zur stufenlosen Einfärbung), ohne
+    Zeitfenster-Text. */
 function heatLegendeHtml(){
-  const punkt = (bg, op, txt) => '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px">' +
-    '<span style="width:12px;height:12px;border-radius:3px;background:' + bg + ';opacity:' + op + '"></span>' + txt + '</span>';
-  return 'Letzte ' + MUSKEL_HEAT_TAGE + ' Tage · ' +
-    punkt("var(--signal)", 0.45, "leicht") + punkt("var(--signal)", 1, "mittel") + punkt("var(--warn)", 1, "viel");
+  return '<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center;white-space:nowrap">' +
+    '<span>wenig</span>' +
+    '<span style="width:72px;height:10px;border-radius:5px;background:linear-gradient(90deg,transparent,var(--signal))"></span>' +
+    '<span>viel</span></span>';
 }
 function muskelLegendeZeichnen(){
   const el = document.getElementById("muskel-legende"); if(!el) return;

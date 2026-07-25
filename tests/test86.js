@@ -27,13 +27,18 @@ function grabConst(name){
   throw new Error("Klammern unausgeglichen: " + name);
 }
 
+// HEAT_MAX_ALPHA ist ein Skalar (kein Objekt/Array, also nicht via grabConst) —
+// Wert direkt aus der Quelle lesen, damit er nicht driftet, dann vor heatAlpha setzen.
+const heatMax = (src.match(/HEAT_MAX_ALPHA\s*=\s*(\d+)/) || [])[1] || "235";
+
 const code = [
   grabConst("MUSKEL_ORDER"), grabConst("MUSKEL_INFO"), grabConst("MUSKEL_SEITE"),
   grabConst("KAT_MUSKELN"), grabConst("UEBUNGEN_DB"), grabConst("UEBUNG_MUSKELN"),
   grabFn("normName"), grabFn("uebungMuskeln"),
-  grabFn("tagDifferenz"), grabFn("muskelHeatLevel"), grabFn("trainierteMuskeln"),
+  grabFn("tagDifferenz"), grabFn("trainierteMuskeln"),
+  "const HEAT_MAX_ALPHA = " + heatMax + ";", grabFn("heatAlpha"),
   "module.exports = { MUSKEL_ORDER, MUSKEL_SEITE, UEBUNGEN_DB, UEBUNG_MUSKELN," +
-  " uebungMuskeln, tagDifferenz, muskelHeatLevel, trainierteMuskeln };"
+  " uebungMuskeln, tagDifferenz, heatAlpha, trainierteMuskeln };"
 ].join("\n");
 
 const modul = { exports: {} };
@@ -66,10 +71,13 @@ pruefe("Rum. Kreuzheben -> Hamstrings, hinten",
 pruefe("Normalisiert (Kleinschreibung)", T.uebungMuskeln("kniebeugen") && T.uebungMuskeln("kniebeugen").muskeln.indexOf("quadriceps") >= 0);
 pruefe("Unbekannt -> null", T.uebungMuskeln("Voellig Erfundene Uebung XYZ") === null);
 
-/* 3) muskelHeatLevel-Grenzen */
-pruefe("Level 0/1/2/3",
-  T.muskelHeatLevel(0) === 0 && T.muskelHeatLevel(1) === 1 && T.muskelHeatLevel(2) === 1 &&
-  T.muskelHeatLevel(3) === 2 && T.muskelHeatLevel(5) === 2 && T.muskelHeatLevel(6) === 3 && T.muskelHeatLevel(99) === 3);
+/* 3) heatAlpha: stufenlose, sättigende Deckkraft (v94) */
+pruefe("heatAlpha: 0 -> transparent", T.heatAlpha(0) === 0);
+pruefe("heatAlpha: ab 1 sichtbar und steigend",
+  T.heatAlpha(1) > 0 && T.heatAlpha(1) < T.heatAlpha(2) && T.heatAlpha(2) < T.heatAlpha(3));
+pruefe("heatAlpha: sättigt (Zuwachs nimmt ab)",
+  (T.heatAlpha(2) - T.heatAlpha(1)) > (T.heatAlpha(4) - T.heatAlpha(3)));
+pruefe("heatAlpha: Deckel ~235, nie darüber", T.heatAlpha(99) <= 235 && T.heatAlpha(99) >= 230);
 
 /* 4) trainierteMuskeln: Aggregation + Zeitfenster + Freitext ignoriert */
 const heute = "2026-07-24";
