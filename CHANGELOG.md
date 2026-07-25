@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.102
+
+- Die Seite „Mehr" ist aufgeräumt: Statt einer langen Liste gibt es jetzt
+  Untermenüs — Darstellung & Bedienung, Werkzeuge, Konto & Sicherheit sowie
+  Hilfe & Feedback. Einfachheit und Profil bleiben oben griffbereit. Alle
+  Funktionen sind gleich, nur besser sortiert.
+
 ## 0.101
 
 - Beim Zusammenstellen eines Plans (über Andere Sportart ein neues Gerät

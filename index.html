@@ -85,6 +85,9 @@ button.breit{width:100%}
 button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
   background:var(--panel-2);border:2px solid var(--line);transition:var(--transition)}
 button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /* 44px = Mindestgröße für Tippziele */
+/* v102: Menü-Zeile in „Mehr" — Beschriftung links, Chevron rechts (Untermenü). */
+.einst-zeile{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;margin-bottom:10px}
+.einst-zeile:last-child{margin-bottom:0}
 /* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
    einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
    weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
@@ -906,21 +909,39 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe"><button class="schmal" onclick="simpelheitFrageOeffnen(false)">Einfachheit ändern</button></div>
   </div>
 
-  <div class="karte" id="mehr-profil-karte">
-    <h2>Profil</h2>
-    <div class="knopfreihe"><button class="primaer schmal" onclick="profilOeffnen()">Profil verwalten</button></div>
+  <!-- v102: „Mehr" in Untermenüs gruppiert (iOS-Settings-Muster) — alle Karten
+       bleiben, nur in eigene Ansichten sortiert. Einfachheit bleibt oben. -->
+  <div class="karte">
+    <button class="breit einst-zeile" id="mehr-profil-zeile" onclick="profilOeffnen()"><span>Profil</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" onclick="einstDarstellungOeffnen()"><span>Darstellung &amp; Bedienung</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" id="mehr-werkzeuge-zeile" onclick="einstWerkzeugeOeffnen()"><span>Werkzeuge</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" onclick="einstKontoOeffnen()"><span>Konto &amp; Sicherheit</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" onclick="einstHilfeOeffnen()"><span>Hilfe &amp; Feedback</span><span class="meta">›</span></button>
   </div>
 
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
+     Untermenüs von „Mehr" (v102) — je eine eigene Ansicht.
+     ============================================================ -->
+<section id="view-einst-darstellung" class="view">
+  <div class="kopf"><h1>Darstellung &amp; Bedienung</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
   <div class="karte">
     <h2>Darstellung</h2>
     <div id="darstellung-wahl" class="wahl-raster abstand"></div>
   </div>
-
   <div class="karte">
     <h2>Audio</h2>
     <div class="knopfreihe"><button class="schmal" onclick="tonTesten()">Ton &amp; Ansage testen</button></div>
   </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
 
+<section id="view-einst-werkzeuge" class="view">
+  <div class="kopf"><h1>Werkzeuge</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
   <div class="karte" id="mehr-werkzeuge-karte">
     <h2>Scheibenrechner</h2>
     <div class="meta abstand">Welche Hantelscheiben du je Seite auflegst, um ein Zielgewicht zu erreichen.</div>
@@ -930,19 +951,22 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="scheibe-stange" class="wahl-raster"></div>
     <div id="scheibe-ergebnis" class="meta" style="margin-top:10px"></div>
   </div>
-
   <div class="karte" id="mehr-bibliothek-karte">
     <h2>Übungs-Bibliothek</h2>
     <div class="meta abstand">Alle Übungen zum Nachschlagen: Gerät, Muskeln und ein kurzer Tipp.</div>
     <div class="knopfreihe"><button class="schmal" onclick="bibliothekOeffnen()">Bibliothek öffnen</button></div>
   </div>
-
   <div class="karte" id="mehr-papierkorb-karte">
     <h2>Papierkorb</h2>
     <div class="meta abstand" id="papierkorb-mehr-info">Zuletzt gelöschte Pläne und Verlaufs-Einträge — hier wiederherstellbar.</div>
     <div class="knopfreihe"><button class="schmal" onclick="papierkorbOeffnen()">Papierkorb öffnen</button></div>
   </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
 
+<section id="view-einst-konto" class="view">
+  <div class="kopf"><h1>Konto &amp; Sicherheit</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
   <div class="karte">
     <div class="zeile"><h2>Gerät</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-system')" aria-label="Info">i</button></div>
@@ -951,7 +975,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="meta" id="system-hinweis" style="margin-top:10px"></div>
     <div id="system-install"></div>
   </div>
-
   <div class="karte">
     <h2>Sicherheit</h2>
     <div id="pw-formular" class="abstand" hidden>
@@ -966,14 +989,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button class="schmal" onclick="codeErneuern()">Neuer Wiederherstellungscode</button>
     </div>
   </div>
-
   <div class="karte">
     <div class="zeile"><h2>Sicherung</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-sicherung')" aria-label="Info">i</button></div>
     <div id="info-sicherung" class="meta info-text" hidden>Die Sicherungsdatei ist verschlüsselt und darf bedenkenlos in der Cloud liegen. <span id="text-ersetzen"></span> Wiederherstellen: Anmeldebildschirm → „Sicherung importieren“, dann Passwort oder Wiederherstellungscode.</div>
     <div class="knopfreihe"><button class="schmal" onclick="sicherungTeilen()">Sicherung exportieren</button></div>
   </div>
-
   <div class="karte">
     <h2>Konto</h2>
     <div class="knopfreihe">
@@ -981,15 +1002,19 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button class="gefahr" onclick="kontoLoeschen()">Konto löschen</button>
     </div>
   </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
 
+<section id="view-einst-hilfe" class="view">
+  <div class="kopf"><h1>Hilfe &amp; Feedback</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
   <div class="karte">
     <h2>Hilfe</h2>
     <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">Gut zu wissen &amp; Regelwerk</button></div>
     <!-- Ein Knopf statt zweier: „Was ist neu?“ zeigt den Versions-Verlauf, die
-         aktuelle Version steht als Beschriftung darauf (siehe einstellungenOeffnen). -->
+         aktuelle Version steht als Beschriftung darauf (siehe einstHilfeOeffnen). -->
     <div class="knopfreihe abstand"><button class="schmal" id="version-knopf" onclick="neuigkeitenOeffnen()">Was ist neu?</button></div>
   </div>
-
   <!-- v81: Feedback als GitHub-Issue — vorausgefüllt, abgeschickt wird auf GitHub -->
   <div class="karte">
     <div class="zeile"><h2>Feedback</h2>
@@ -1005,7 +1030,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <textarea id="feedback-text" style="min-height:90px" placeholder="Was ist passiert bzw. was wünschst du dir?"></textarea>
     <div class="knopfreihe"><button class="schmal" onclick="feedbackSenden()">Auf GitHub melden</button></div>
   </div>
-
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -1996,7 +2020,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 101;
+const APP_VERSION = 102;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2443,7 +2467,7 @@ function systemSetzen(wert){
     else localStorage.setItem(SYSTEM_SCHLUESSEL, wert);
   } catch(e){ /* Speicher gesperrt — dann bleibt es bei der Erkennung */ }
   systemTexteAnwenden();
-  if(document.getElementById("view-einstellungen").classList.contains("aktiv")) systemKarteZeichnen();
+  if(document.getElementById("view-einst-konto").classList.contains("aktiv")) systemKarteZeichnen();   // v102: System-Karte lebt im Konto-Untermenü
 }
 
 /** Kurzwahl für systemabhängige Textbausteine. */
@@ -2711,6 +2735,7 @@ const VIEW_MIN_STUFE = {
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
   "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
+  "view-einst-werkzeuge": 3,                         // Untermenü „Werkzeuge" (v102)
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
@@ -3650,29 +3675,45 @@ function scheibenAnzeigen(){
 }
 /* #endregion Scheibenrechner */
 
+/* v102: „Mehr" ist jetzt ein Menü aus Untermenü-Zeilen (die Karten leben in
+   eigenen Ansichten). Hier nur noch: Einfachheit zeichnen, die stufenabhängigen
+   Zeilen (Profil ≥5, Werkzeuge ≥3) ein-/ausblenden, Rückweg auf Stufe 1/2. Die
+   Renderer der Karten laufen beim Öffnen des jeweiligen Untermenüs. */
 function einstellungenOeffnen(){
-  document.getElementById("pw-formular").hidden = true;
-  systemKarteZeichnen();
-  darstellungKarteZeichnen();
   simpelheitKarteZeichnen();
-  // v85: Scheibenrechner ist ein Kraft-Werkzeug — erst ab Stufe 3 (echtes Training).
-  document.getElementById("mehr-werkzeuge-karte").hidden = stufe() < 3;
+  document.getElementById("mehr-profil-zeile").hidden = stufe() < 5;
+  document.getElementById("mehr-werkzeuge-zeile").hidden = stufe() < 3;
+  document.getElementById("mehr-zurueck").hidden = stufe() > 2;
+  zeige("view-einstellungen");
+}
+
+/** Untermenü „Darstellung & Bedienung" (Darstellung + Audio). */
+function einstDarstellungOeffnen(){
+  darstellungKarteZeichnen();
+  zeige("view-einst-darstellung");
+}
+/** Untermenü „Werkzeuge" (Scheibenrechner + Bibliothek + Papierkorb), ab Stufe 3. */
+function einstWerkzeugeOeffnen(){
+  if(!viewErlaubt("view-einst-werkzeuge")) return;
   scheibenStangeZeichnen(); scheibenAnzeigen();
-  document.getElementById("mehr-bibliothek-karte").hidden = stufe() < 3;
-  // v96: Papierkorb ab Stufe 3 (dort gibt es echtes Löschen von Plänen/Einträgen).
-  document.getElementById("mehr-papierkorb-karte").hidden = stufe() < 3;
   const pkAnz = (sitzung.daten.papierkorb || []).length;
   const pkInfo = document.getElementById("papierkorb-mehr-info");
   if(pkInfo) pkInfo.textContent = pkAnz
     ? pkAnz + (pkAnz === 1 ? " Eintrag" : " Einträge") + " im Papierkorb — hier wiederherstellbar."
     : "Zuletzt gelöschte Pläne und Verlaufs-Einträge — hier wiederherstellbar.";
-  // v76: Profil (mit Zielen + Sportart-System) ist ein Stufe-5-Feature.
-  document.getElementById("mehr-profil-karte").hidden = stufe() < 5;
-  // v76: Stufe 1/2 haben keine Nav-Leiste — Rückweg aus „Mehr" per Knopf.
-  document.getElementById("mehr-zurueck").hidden = stufe() > 2;
+  zeige("view-einst-werkzeuge");
+}
+/** Untermenü „Konto & Sicherheit" (Gerät + Sicherheit + Sicherung + Konto). */
+function einstKontoOeffnen(){
+  document.getElementById("pw-formular").hidden = true;
+  systemKarteZeichnen();
+  zeige("view-einst-konto");
+}
+/** Untermenü „Hilfe & Feedback" (Gut zu wissen + Was ist neu + Feedback). */
+function einstHilfeOeffnen(){
   const vk = document.getElementById("version-knopf");
   if(vk) vk.textContent = "Was ist neu?  ·  Version " + ANZEIGE_VERSION;
-  zeige("view-einstellungen");
+  zeige("view-einst-hilfe");
 }
 
 function systemKarteZeichnen(){
@@ -3849,6 +3890,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.102", punkte:[
+    "Die Seite Mehr ist aufgeräumt: Statt einer langen Liste gibt es jetzt Untermenüs — Darstellung & Bedienung, Werkzeuge, Konto & Sicherheit sowie Hilfe & Feedback. Einfachheit und Profil bleiben oben griffbereit. Alle Funktionen sind gleich, nur besser sortiert."
+  ]},
   { stand:"0.101", punkte:[
     "Beim Zusammenstellen eines Plans (über Andere Sportart ein neues Gerät hinzugefügt) taucht der Vorschlag, neue Geräte automatisch in die Pläne einzubauen, nicht mehr auf — dort baust du die Übung ja gerade selbst. Im Profil bleibt der Vorschlag wie gehabt."
   ]},
@@ -8961,6 +9005,8 @@ function navAktualisieren(id){
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
+                     "view-einst-darstellung":"nav-einst", "view-einst-werkzeuge":"nav-einst",
+                     "view-einst-konto":"nav-einst", "view-einst-hilfe":"nav-einst",
                      "view-bibliothek":"nav-einst", "view-papierkorb":"nav-einst",
                      "view-editor":"nav-plaene" };
   // v76: Stufenabhängige Leiste. Welche Tabs überhaupt sichtbar sind, bestimmt
