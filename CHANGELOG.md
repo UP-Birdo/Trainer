@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.104
+
+- Ein paar Aufräum-Kleinigkeiten: Die Serien-Kennzahlen (Wochen in Folge und so)
+  sind in der Statistik hinter einem „i" eingeklappt, und der Gelbe-Punkte-Hinweis
+  unter der Gewichtskurve ist weg. Auf den Plan-Karten teilen sich Start und
+  Erledigt jetzt die Breite (das Menü öffnest du mit langem Druck). Und ein Plan
+  ohne Namen heißt automatisch wie seine Sportart.
+
 ## 0.103
 
 - Ruhetage sind jetzt schlauer: Du darfst so viele setzen, wie du willst — ab dem

@@ -740,8 +740,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         <div class="kennzahl-label">Trainings-Serie</div>
         <div id="serie-meilenstein" style="margin-top:4px"></div>
       </div>
+      <!-- v104: die Kennzahlen-Zeile (Wochen in Folge, Trainings gesamt …) liegt hinter dem „i" -->
+      <button class="info-knopf" onclick="infoUmschalten('statistik-klein')" aria-label="Details">i</button>
     </div>
-    <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
+    <div id="statistik-klein" class="meta info-text" style="margin-top:8px" hidden></div>
     <div id="wochen-vorschau" style="margin-top:12px"></div>
     <div class="knopfreihe" style="margin-top:10px"><button class="schmal breit" onclick="kalenderOeffnen()">Kalender öffnen</button></div>
   </div>
@@ -2020,7 +2022,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 103;
+const APP_VERSION = 104;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3401,8 +3403,8 @@ function planListeZeichnen(){
       '<div class="knopfreihe">' +
         '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
         // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
+        // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; Start/Erledigt teilen sich die Breite.
         '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + p.id + '\')">Erledigt</button>' +
-        '<button class="schmal" onclick="planMenue(\'' + p.id + '\')" aria-label="Plan-Menü">⋯</button>' +
       '</div></div>';
   };
 
@@ -3892,6 +3894,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.104", punkte:[
+    "Ein paar Aufräum-Kleinigkeiten: Die Serien-Kennzahlen (Wochen in Folge und so) sind in der Statistik hinter einem i eingeklappt, und der Gelbe-Punkte-Hinweis unter der Gewichtskurve ist weg. Auf den Plan-Karten teilen sich Start und Erledigt jetzt die Breite (das Menü öffnest du mit langem Druck). Und ein Plan ohne Namen heißt automatisch wie seine Sportart."
+  ]},
   { stand:"0.103", punkte:[
     "Ruhetage sind jetzt schlauer: Du darfst so viele setzen, wie du willst — ab dem dritten am Stück sagt dir die App aber ehrlich, wann deine Flamme erlischt. Und Tage, an denen du gar nicht trainiert hast, trägt die App beim nächsten Öffnen automatisch als Ruhetag im Kalender ein und fasst kurz zusammen, was seit deinem letzten Besuch passiert ist."
   ]},
@@ -4741,8 +4746,7 @@ function gewichtStatistikZeichnen(){
       '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' kg</text>' +
       '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + min.toFixed(1) + ' kg</text>' +
       '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte +
-      '</svg>' +
-      '<div class="meta" style="margin-top:6px">Gelbe Punkte = an dem Tag wurde trainiert.</div>';
+      '</svg>';   // v104: „Gelbe Punkte …"-Erklärtext entfernt (unnötig, blähte auf)
   } else {
     diagramm.innerHTML = '<div class="meta">Ab zwei Einträgen erscheint hier der Verlauf.</div>';
   }
@@ -8126,7 +8130,10 @@ function uebungSchieben(i, richtung){
 }
 
 function editorSpeichern(){
-  editorPlan.name = document.getElementById("plan-name").value.trim() || "Ohne Namen";
+  // v104: Ohne eingegebenen Namen den Namen der gewählten Sportart nehmen
+  // (statt „Ohne Namen"); nur wenn gar keine Sportart feststeht, der alte Rückfall.
+  const eingegeben = document.getElementById("plan-name").value.trim();
+  editorPlan.name = eingegeben || (editorPlan.sportart ? sportartName(editorPlan.sportart) : "Ohne Namen");
   const istAktivitaet = editorPlan.typ === "aktivitaet";
   if(istAktivitaet){
     editorPlan.dauer = begrenzen(Math.round(editorPlan.dauer), 60, MAX_DAUER_S);
@@ -9134,8 +9141,7 @@ function heuteKarteZeichnen(){
                   : (erledigt ? "Nochmal trainieren" : "Training starten")) + '</button>' +
           // v80: „Erledigt" gibt es jetzt auch für Kraftpläne (Sollwerte werden
           // protokolliert, ohne Bewertung) — vorher nur für Aktivitäten.
-          '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + plan.id + '\')">Erledigt</button>' +
-          '<button class="schmal" onclick="planMenue(\'' + plan.id + '\')" aria-label="Plan-Menü">⋯</button></div>' +
+          '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + plan.id + '\')">Erledigt</button></div>' +   // v104: ⋯ weg (langer Druck öffnet das Menü)
         '</div>';
     }).join("");
     // Langdruck neu anbinden: innerHTML hat die alten Karten samt Listenern ersetzt.
