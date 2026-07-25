@@ -1996,7 +1996,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 99;
+const APP_VERSION = 100;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3848,6 +3848,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.100", punkte:[
+    "Beim Einrichten einer Sportart kannst du bei der eigenen Zeit jetzt zwischen Minuten, Stunden und Sekunden wählen — vorher waren es immer Minuten. Und die Dauer-Auswahl steht in einem sauberen Raster (kein schiefes letztes Feld mehr); Zwischenwerte gehen weiter über die eigene Zeit."
+  ]},
   { stand:"0.099", punkte:[
     "Die Sportart-Seite ist aufgeräumt: Der überflüssige Kopftext (Zählbar …) und der Hinweis bei aktiver Sportart sind weg. In der Übungs-Übersicht tippst du jetzt erst ein Gerät an und siehst dann dessen Übungen — statt gleich der ganzen Liste. Das kleine Zeit unter Übungen ist ebenfalls raus."
   ]},
@@ -6039,11 +6042,14 @@ const WIZARD_FRAGEN = [
     frage:"Wie lange dauert eine Einheit " + s.name + "?",
     hilfe:"Ein Richtwert für die Planung — beim Eintragen zählt, wie lange es wirklich war. Oder gib unten deine eigene Zeit ein.",
     nurWenn: e => (e.sportarten || []).includes(s.id),
-    optionen: [[1800,"30 min"],[3600,"1 Std"],[5400,"1,5 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
+    // v100: 4 statt 5 Presets -> sauberes 2×2-Raster (5 gaben eine schiefe letzte Reihe).
+    // Zwischenwerte (z. B. 1,5 Std) gehen weiter über „Eigene Zeit".
+    optionen: [[1800,"30 min"],[3600,"1 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
 ]));
 
 let wzSchritt = 0;
 let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
+let wzZeitEinheit = "min";   // v100: gewählte Einheit für „Eigene Zeit" im Wizard (min/Std./Sek.)
 
 function einrichtungOeffnen(){
   const alt = sitzung.daten.einrichtung || {};
@@ -6164,31 +6170,42 @@ function wzBonus(wert){
   wzZeichnen();
 }
 
-/** Custom-Zeitfeld unter den Dauer-Presets. Zeigt die aktuellen Minuten,
-    wenn der Wert keinem Preset entspricht — dann ist das Feld „gewählt". */
+/** Custom-Zeitfeld unter den Dauer-Presets. Zeigt den aktuellen Wert in der
+    gewählten Einheit (min/Std./Sek.), wenn er keinem Preset entspricht — dann ist
+    das Feld „gewählt". v100: Einheit wählbar (vorher fest Minuten). */
 function wzZeitCustomHtml(f){
   const presets = f.optionen.map(o => String(o[0]));
   const wert = einrichtung[f.id];
   const eigen = wert && !presets.includes(String(wert));
+  const e = zeitEinheit(wzZeitEinheit);
+  const einheitWahl = ZEITEINHEITEN.map(z =>
+    '<option value="' + z.id + '"' + (z.id === wzZeitEinheit ? " selected" : "") + '>' + z.name + '</option>').join("");
   return '<div class="wz-zeit-custom' + (eigen ? " gewaehlt" : "") + '">' +
     '<label for="wz-zeit-feld">Eigene Zeit</label>' +
     '<div class="wz-zeit-eingabe">' +
-      '<input id="wz-zeit-feld" type="number" inputmode="numeric" min="5" max="600" step="5" ' +
-        'placeholder="z. B. 40" value="' + (eigen ? Math.round(Number(wert) / 60) : "") + '" ' +
+      '<input id="wz-zeit-feld" type="number" inputmode="decimal" min="1" step="' + e.schritt + '" ' +
+        'placeholder="z. B. 40" value="' + (eigen ? inEinheit(wert, wzZeitEinheit) : "") + '" ' +
         'oninput="wzZeitCustom(\'' + f.id + '\', this.value)">' +
-      '<span>Minuten</span>' +
+      '<select aria-label="Einheit" onchange="wzZeitEinheitSetzen(\'' + f.id + '\', this.value)">' + einheitWahl + '</select>' +
     '</div></div>';
 }
 
-/** Eigene Minuten -> Sekunden. Kein Auto-Weiter (man tippt noch); nur die
-    Umfärbung wird aktualisiert, ohne das Feld neu zu bauen (Fokus bleibt). */
-function wzZeitCustom(id, minutenText){
-  const m = parseInt(minutenText, 10);
-  if(!m || m < 1) return;
-  einrichtung[id] = m * 60;   // Sekunden als Zahl (nicht String) — konsistent mit aktivitaetsFelderVorbereiten
+/** Eigener Wert (in der gewählten Einheit) -> Sekunden. Kein Auto-Weiter (man tippt
+    noch); nur die Umfärbung wird aktualisiert, ohne das Feld neu zu bauen (Fokus bleibt). */
+function wzZeitCustom(id, wertText){
+  const w = parseFloat(wertText);
+  if(!w || w <= 0) return;
+  einrichtung[id] = begrenzen(inSekunden(w, wzZeitEinheit), 5, MAX_DAUER_S);   // Sekunden als Zahl
   document.querySelectorAll("#wz-buehne .wz-opt").forEach(b => b.classList.remove("gewaehlt"));
   const cust = document.querySelector("#wz-buehne .wz-zeit-custom");
   if(cust) cust.classList.add("gewaehlt");
+}
+
+/** Einheit umgestellt: neu zeichnen — der bisherige Wert erscheint in der neuen
+    Einheit (die Dauer selbst bleibt gleich). */
+function wzZeitEinheitSetzen(id, einheitId){
+  wzZeitEinheit = einheitId;
+  wzZeichnen();
 }
 
 function wzZurueck(){

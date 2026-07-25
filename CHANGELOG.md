@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.100
+
+- Beim Einrichten einer Sportart kannst du bei der eigenen Zeit jetzt zwischen
+  Minuten, Stunden und Sekunden wählen — vorher waren es immer Minuten. Und die
+  Dauer-Auswahl steht in einem sauberen Raster (kein schiefes letztes Feld mehr);
+  Zwischenwerte gehen weiter über die eigene Zeit.
+
 ## 0.099
 
 - Die Sportart-Seite ist aufgeräumt: Der überflüssige Kopftext (Zählbar …) und
