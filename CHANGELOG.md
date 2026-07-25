@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.095
+
+- Drei kleine Verbesserungen: Nach einem Training steht neben der Serie kein
+  Füll-Satz mehr. Der Beispiel-Plan (ein Kraft-Ganzkörper) wird nur noch
+  angeboten, wenn du auch Kraft betreibst — sonst kamen Kraft-Übungen, obwohl du
+  eine andere Sportart machst. Und die Farb-Legende im Kalender ist jetzt hinter
+  einem „i" eingeklappt, damit der Kalender ruhiger wirkt.
+
 ## 0.094
 
 - Die Körper-Figur in der Statistik ist feiner: Statt drei festen Stufen färbt

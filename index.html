@@ -1269,7 +1269,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button class="mini" onclick="kalenderBlaettern(1)" aria-label="Nächster Monat">›</button>
     </div>
     <div id="kalender" class="kalender"></div>
-    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
+    <!-- v95: Legende ist Zusatz-Info — hinter einem „i", damit der Kalender ruhig bleibt -->
+    <div class="zeile" style="justify-content:flex-end;margin-top:8px">
+      <button class="info-knopf" onclick="infoUmschalten('kalender-legende')" aria-label="Legende zeigen">i</button>
+    </div>
+    <div id="kalender-legende" class="meta" style="margin-top:8px" hidden></div>
   </div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -1864,7 +1868,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 94;
+const APP_VERSION = 95;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3199,11 +3203,15 @@ function planListeZeichnen(){
   const plaene = sitzung.daten.plaene;
   if(plaene.length === 0){
     // Der Assistent ist Stufe 5; darunter nur „Eigenen Plan" + Beispiel.
+    // v95: Der Beispielplan ist ein Kraft-Ganzkörper — nur anbieten, wenn der
+    // Nutzer Kraft betreibt, sonst kamen Kraft-Übungen trotz anderer Sportart.
+    const machtKraft = (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes("kraft");
     ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
       '<div class="knopfreihe">' +
       (stufe() >= 5 ? '<button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' : '') +
       '<button class="' + (stufe() >= 5 ? "" : "primaer ") + 'schmal" onclick="planAnlegen()">Eigenen Plan</button>' +
-      '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button></div></div>';
+      (machtKraft ? '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button>' : '') +
+      '</div></div>';
     return;
   }
 
@@ -3701,6 +3709,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.095", punkte:[
+    "Drei kleine Verbesserungen: Nach einem Training steht neben der Serie kein Füll-Satz mehr. Der Beispiel-Plan (ein Kraft-Ganzkörper) wird nur noch angeboten, wenn du auch Kraft betreibst — sonst kamen Kraft-Übungen, obwohl du eine andere Sportart machst. Und die Farb-Legende im Kalender ist jetzt hinter einem i eingeklappt, damit der Kalender ruhiger wirkt."
+  ]},
   { stand:"0.094", punkte:[
     "Die Körper-Figur in der Statistik ist feiner: Statt drei festen Stufen färbt sie sich jetzt stufenlos — je öfter du einen Muskel trainierst, desto kräftiger, wie ein Markierstift, der mehrmals über dieselbe Stelle geht. Vorne und hinten stehen jetzt gleich hoch, und die Legende ist schlicht in einer Reihe."
   ]},
@@ -8944,9 +8955,14 @@ function bewertungAnwenden(){
     ? '<div class="karte"><div class="meta" style="border-left:3px solid var(--signal);padding-left:8px;line-height:1.5">' +
       zielBericht.map(z => text(z)).join("<br>") + '</div></div>'
     : "";
+  // v95: kein Füll-Untertitel mehr bei „1 Training in Serie" — „Der Anfang ist
+  // gemacht" ist weg, die Serie-Zeile füllt dann die ganze Karte. Informative
+  // Untertitel (Meilenstein / Ruhetags-Toleranz) bleiben.
+  const serienUntertitel = meilenstein ? "Meilenstein erreicht!"
+    : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "");
   document.getElementById("ergebnis-liste").innerHTML = zielKarte +
-    '<div class="karte zeile"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
-    '<span class="meta">' + (meilenstein ? "Meilenstein erreicht!" : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "Der Anfang ist gemacht.")) + '</span></div>' +
+    '<div class="karte' + (serienUntertitel ? " zeile" : "") + '"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
+    (serienUntertitel ? '<span class="meta">' + serienUntertitel + '</span>' : '') + '</div>' +
     zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
