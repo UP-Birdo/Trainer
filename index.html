@@ -426,13 +426,17 @@ body:not(.nav-an) #nav{display:none}
   color:var(--chalk);font-weight:600;box-shadow:var(--shadow-md);animation:toastIn 0.3s ease-out;
   display:flex;align-items:center;gap:12px;font-size:14px;pointer-events:auto;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
-.toast.erfolg{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal)}
-.toast.fehler{border-color:var(--warn);background:rgba(215,92,71,0.08);color:var(--warn)}
-.toast.info{border-color:var(--rest);background:rgba(59,146,232,0.08);color:var(--rest)}
+/* v96: farbige Toasts NICHT mehr durchscheinend (vorher rgba .08 — man las den
+   Text/Knopf darunter durch). Hintergrund bleibt das deckende Panel der Basis,
+   nur Rand + Text tragen die Farbe. */
+.toast.erfolg{border-color:var(--signal);color:var(--signal)}
+.toast.fehler{border-color:var(--warn);color:var(--warn)}
+.toast.info{border-color:var(--rest);color:var(--rest)}
 .toast-icon{font-size:18px;flex:0 0 auto}
-.toast-undo{margin-left:auto;padding:4px 8px;font-size:12px;cursor:pointer;background:transparent;
-  border:none;color:inherit;text-decoration:underline;font-weight:700;transition:var(--transition);
-  flex:0 0 auto}
+/* v96: „Rückgängig" als klar tippbarer Knopf (vorher nur unterstrichener Text). */
+.toast-undo{margin-left:auto;padding:7px 12px;font-size:13px;cursor:pointer;background:var(--panel-2);
+  border:1px solid currentColor;border-radius:6px;color:inherit;font-weight:700;
+  transition:var(--transition);flex:0 0 auto;white-space:nowrap}
 .toast-undo:active{opacity:0.7}
 @keyframes toastIn{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-16px);}}
@@ -926,6 +930,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe"><button class="schmal" onclick="bibliothekOeffnen()">Bibliothek öffnen</button></div>
   </div>
 
+  <div class="karte" id="mehr-papierkorb-karte">
+    <h2>Papierkorb</h2>
+    <div class="meta abstand" id="papierkorb-mehr-info">Zuletzt gelöschte Pläne und Verlaufs-Einträge — hier wiederherstellbar.</div>
+    <div class="knopfreihe"><button class="schmal" onclick="papierkorbOeffnen()">Papierkorb öffnen</button></div>
+  </div>
+
   <div class="karte">
     <div class="zeile"><h2>Gerät</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-system')" aria-label="Info">i</button></div>
@@ -1312,6 +1322,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
+<!-- ============================================================
+     Ansicht: Papierkorb (v96 — zuletzt gelöschte Dinge wiederherstellen)
+     ============================================================ -->
+<section id="view-papierkorb" class="view">
+  <div class="kopf"><h1>Papierkorb</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+  <div id="papierkorb-liste"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
 
 
 <!-- ============================================================
@@ -1412,26 +1432,114 @@ function zeigenToast(text, art="info", undo=null){
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
   toast.className = "toast " + (art || "info");
-  
-  let html = `<span>${text}</span>`;
-  if(undo){
-    html += `<button class="toast-undo" onclick="this.parentElement.ondone && this.parentElement.ondone()">Rückgängig</button>`;
-  }
-  toast.innerHTML = html;
-  
-  if(undo){
-    toast.ondone = undo;
-  }
-  
-  container.appendChild(toast);
-  
-  // Auto-remove nach 3.5 Sekunden (oder 5 Sekunden wenn Undo-Button)
-  const delay = undo ? 5000 : 3500;
-  setTimeout(() => {
+  const span = document.createElement("span");
+  span.textContent = text;                 // v96: textContent statt innerHTML — nie HTML aus Namen
+  toast.appendChild(span);
+
+  const entfernen = () => {
     toast.style.animation = "toastOut 0.3s ease-out";
     setTimeout(() => toast.remove(), 300);
-  }, delay);
+  };
+
+  if(undo){
+    const knopf = document.createElement("button");
+    knopf.className = "toast-undo";
+    knopf.textContent = "Rückgängig";
+    // v96: Undo räumt den Toast gleich weg (sonst blieb er bis zum Timeout stehen).
+    knopf.onclick = () => { entfernen(); undo(); };
+    toast.appendChild(knopf);
+  }
+
+  container.appendChild(toast);
+  // v96: Undo-Toast steht länger (8 s statt 5), damit man den Knopf sicher trifft.
+  setTimeout(entfernen, undo ? 8000 : 3500);
 }
+
+/* ============================================================
+   #region Papierkorb (v96) — zuletzt gelöschte Dinge (Pläne, Verlaufs-Einträge)
+   landen mit Zeitstempel im Papierkorb (unter „Mehr") und lassen sich dort
+   wiederherstellen. Der Sofort-„Rückgängig"-Toast bleibt der schnelle Weg; wer
+   ihn verpasst, findet die Sache hier. Die Ablage ist zusätzlich, sie ändert an
+   den bestehenden Undo-Wegen nichts (der Undo nimmt seinen Eintrag wieder raus).
+   ============================================================ */
+const PAPIERKORB_MAX = 30;   // nur die letzten N — sonst wächst der Datensatz unbegrenzt
+
+/** Lokaler Zeitstempel "TT.MM.JJJJ HH:MM" (anzeigefertig). */
+function jetztStempel(){
+  const d = new Date(), z = n => String(n).padStart(2, "0");
+  return z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes());
+}
+
+/** Legt eine Kopie des gelöschten Objekts in den Papierkorb und liefert die
+    Eintrags-id zurück — der Sofort-Undo entfernt den Eintrag darüber wieder. */
+function inPapierkorb(typ, name, obj){
+  const korb = sitzung.daten.papierkorb || (sitzung.daten.papierkorb = []);
+  const id = neueId();
+  korb.push({ id, typ, name: name || "", geloeschtAm: jetztStempel(), daten: JSON.parse(JSON.stringify(obj)) });
+  if(korb.length > PAPIERKORB_MAX) korb.splice(0, korb.length - PAPIERKORB_MAX);
+  return id;
+}
+/** Einen Papierkorb-Eintrag still entfernen (nach Sofort-Undo). Null ist ok. */
+function papierkorbEntfernen(id){
+  const korb = sitzung.daten.papierkorb; if(!korb) return;
+  const i = korb.findIndex(x => x.id === id);
+  if(i >= 0) korb.splice(i, 1);
+}
+
+function papierkorbOeffnen(){
+  if(!viewErlaubt("view-papierkorb")) return;
+  papierkorbZeichnen();
+  zeige("view-papierkorb");
+}
+function papierkorbZeichnen(){
+  const ziel = document.getElementById("papierkorb-liste"); if(!ziel) return;
+  const korb = (sitzung.daten.papierkorb || []).slice().reverse();   // neueste zuerst
+  if(korb.length === 0){
+    ziel.innerHTML = '<div class="leer">Der Papierkorb ist leer.<br><br>' +
+      'Gelöschte Pläne und Verlaufs-Einträge landen hier und lassen sich wiederherstellen.</div>';
+    return;
+  }
+  const typName = t => t === "plan" ? "Plan" : t === "eintrag" ? "Verlaufs-Eintrag" : "Element";
+  ziel.innerHTML = korb.map(x =>
+    '<div class="karte">' +
+      '<div class="meta" style="margin-bottom:4px">' + typName(x.typ) + ' · gelöscht ' + text(x.geloeschtAm || "") + '</div>' +
+      '<h2>' + text(x.name || "—") + '</h2>' +
+      '<div class="knopfreihe">' +
+        '<button class="primaer schmal" onclick="papierkorbWiederherstellen(\'' + x.id + '\')">Wiederherstellen</button>' +
+        '<button class="schmal gefahr" onclick="papierkorbEndgueltig(\'' + x.id + '\')">Endgültig löschen</button>' +
+      '</div></div>').join("");
+}
+
+/** Einen Eintrag aus dem Papierkorb zurück in die App holen. Der Doppel-Schutz
+    (id schon vorhanden?) verhindert Dubletten, falls schon per Sofort-Undo zurück. */
+function papierkorbWiederherstellen(id){
+  const korb = sitzung.daten.papierkorb || [];
+  const i = korb.findIndex(x => x.id === id); if(i < 0) return;
+  const x = korb[i];
+  if(x.typ === "plan"){
+    if(!sitzung.daten.plaene.some(p => p.id === x.daten.id)) sitzung.daten.plaene.push(x.daten);
+  } else if(x.typ === "eintrag"){
+    if(!sitzung.daten.protokoll.some(e => e.id === x.daten.id)){
+      sitzung.daten.protokoll.push(x.daten);
+      sitzung.daten.protokoll.sort((a, b) => a.datum.localeCompare(b.datum));
+    }
+  }
+  korb.splice(i, 1);
+  speichern();
+  statistikAktualisieren();
+  papierkorbZeichnen();
+  zeigenToast("Wiederhergestellt", "erfolg");
+}
+/** Einen Eintrag endgültig aus dem Papierkorb werfen (mit Rückfrage). */
+function papierkorbEndgueltig(id){
+  frage("Diesen Eintrag endgültig aus dem Papierkorb entfernen?", true, ja => {
+    if(!ja) return;
+    papierkorbEntfernen(id);
+    speichern();
+    papierkorbZeichnen();
+  });
+}
+/* #endregion Papierkorb */
 
 /* ============================================================
    #region Fehlerfänger (v82) — Crash-Reporting ohne Server
@@ -1868,7 +1976,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 95;
+const APP_VERSION = 96;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -1878,6 +1986,7 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
+  if(!Array.isArray(daten.papierkorb)) daten.papierkorb = []; // v96: zuletzt gelöschte Dinge, wiederherstellbar
   // v44 (C3): selbst gebaute Übungen, je Sportart. { sportId: [{name,modus,saetze,wdh|dauer}] }
   if(!daten.eigeneUebungen || typeof daten.eigeneUebungen !== "object") daten.eigeneUebungen = {};
   // Einrichtung gab es früher erst nach dem Wizard. Sie ist jetzt immer da —
@@ -2581,6 +2690,7 @@ const VIEW_MIN_STUFE = {
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
+  "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
@@ -3370,10 +3480,12 @@ function planLoeschenById(planId){
     if(!ja) return;
     const index = sitzung.daten.plaene.indexOf(plan);   // v80: Position für Rückgängig merken
     sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== planId);
+    const korbId = inPapierkorb("plan", plan.name, plan);   // v96: auch in den Papierkorb
     speichern();
     planListeZeichnen();
     zeigenToast("Plan gelöscht", "info", () => {
       sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
+      papierkorbEntfernen(korbId);   // sofort zurück -> raus aus dem Papierkorb
       speichern();
       planListeZeichnen();
       zeigenToast("Wiederhergestellt", "erfolg");
@@ -3527,6 +3639,13 @@ function einstellungenOeffnen(){
   document.getElementById("mehr-werkzeuge-karte").hidden = stufe() < 3;
   scheibenStangeZeichnen(); scheibenAnzeigen();
   document.getElementById("mehr-bibliothek-karte").hidden = stufe() < 3;
+  // v96: Papierkorb ab Stufe 3 (dort gibt es echtes Löschen von Plänen/Einträgen).
+  document.getElementById("mehr-papierkorb-karte").hidden = stufe() < 3;
+  const pkAnz = (sitzung.daten.papierkorb || []).length;
+  const pkInfo = document.getElementById("papierkorb-mehr-info");
+  if(pkInfo) pkInfo.textContent = pkAnz
+    ? pkAnz + (pkAnz === 1 ? " Eintrag" : " Einträge") + " im Papierkorb — hier wiederherstellbar."
+    : "Zuletzt gelöschte Pläne und Verlaufs-Einträge — hier wiederherstellbar.";
   // v76: Profil (mit Zielen + Sportart-System) ist ein Stufe-5-Feature.
   document.getElementById("mehr-profil-karte").hidden = stufe() < 5;
   // v76: Stufe 1/2 haben keine Nav-Leiste — Rückweg aus „Mehr" per Knopf.
@@ -3709,6 +3828,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.096", punkte:[
+    "Nichts geht mehr verloren: Neben dem sofortigen Rückgängig direkt nach dem Löschen gibt es jetzt einen Papierkorb unter Mehr — dort stehen die zuletzt gelöschten Pläne und Verlaufs-Einträge mit Zeitstempel und lassen sich wiederherstellen.",
+    "Die kurze Rückgängig-Meldung ist jetzt deckend statt durchscheinend, steht länger und hat einen richtigen Knopf — so triffst du sie sicher."
+  ]},
   { stand:"0.095", punkte:[
     "Drei kleine Verbesserungen: Nach einem Training steht neben der Serie kein Füll-Satz mehr. Der Beispiel-Plan (ein Kraft-Ganzkörper) wird nur noch angeboten, wenn du auch Kraft betreibst — sonst kamen Kraft-Übungen, obwohl du eine andere Sportart machst. Und die Farb-Legende im Kalender ist jetzt hinter einem i eingeklappt, damit der Kalender ruhiger wirkt."
   ]},
@@ -4965,12 +5088,14 @@ function eintragLoeschen(id){
   frage("Diesen Eintrag löschen?\n" + datumKurz(e.datum) + " · " + e.plan, true, ja => {
     if(!ja) return;
     sitzung.daten.protokoll.splice(idx, 1);
+    const korbId = inPapierkorb("eintrag", datumKurz(e.datum) + " · " + (e.plan || "Training"), e);   // v96
     speichern();
     statistikAktualisieren();
     verlaufOeffnen();
     zeigenToast("Eintrag gelöscht", "info", () => {
       sitzung.daten.protokoll.push(e);
       sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+      papierkorbEntfernen(korbId);   // sofort zurück -> raus aus dem Papierkorb
       speichern();
       statistikAktualisieren();
       verlaufOeffnen();
@@ -7876,11 +8001,13 @@ function planLoeschen(){
     const plan = sitzung.daten.plaene.find(p => p.id === editorPlan.id);
     const index = sitzung.daten.plaene.indexOf(plan);
     sitzung.daten.plaene = sitzung.daten.plaene.filter(p => p.id !== editorPlan.id);
+    const korbId = plan ? inPapierkorb("plan", plan.name, plan) : null;   // v96: auch in den Papierkorb
     speichern();
     planListeZeichnen();
     zeige("view-plaene");
     if(plan) zeigenToast("Plan gelöscht", "info", () => {
       sitzung.daten.plaene.splice(Math.min(index, sitzung.daten.plaene.length), 0, plan);
+      papierkorbEntfernen(korbId);   // sofort zurück -> raus aus dem Papierkorb
       speichern();
       planListeZeichnen();
       zeigenToast("Wiederhergestellt", "erfolg");
@@ -8767,7 +8894,7 @@ function navAktualisieren(id){
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
-                     "view-bibliothek":"nav-einst",
+                     "view-bibliothek":"nav-einst", "view-papierkorb":"nav-einst",
                      "view-editor":"nav-plaene" };
   // v76: Stufenabhängige Leiste. Welche Tabs überhaupt sichtbar sind, bestimmt
   // die Stufe (navTabsFuerStufe) — Stufe 1/2 = gar keine Leiste, Stufe 3 ohne

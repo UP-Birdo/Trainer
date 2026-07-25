@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.096
+
+- Nichts geht mehr verloren: Neben dem sofortigen Rückgängig direkt nach dem
+  Löschen gibt es jetzt einen Papierkorb unter Mehr — dort stehen die zuletzt
+  gelöschten Pläne und Verlaufs-Einträge mit Zeitstempel und lassen sich
+  wiederherstellen.
+- Die kurze Rückgängig-Meldung ist jetzt deckend statt durchscheinend, steht
+  länger und hat einen richtigen Knopf — so triffst du sie sicher.
+
 ## 0.095
 
 - Drei kleine Verbesserungen: Nach einem Training steht neben der Serie kein
