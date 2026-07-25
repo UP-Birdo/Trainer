@@ -26,6 +26,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test114.js` | Statistik-Kacheln im Raster: sechs Statistiken in `.stat-raster` (auto-fit), Akkordeon (`statToggle`/`stat-inhalt`/`stat-kopf`) restlos entfernt, jede STAT_OPTIONEN-id hat ihre Karte, Info-Texte draußen |
 | `test115.js` | Nicht-Kraft Etappe 1: generische Messgröße `massText` (Beweglichkeit in Grad nur bei Sportart mit `mass` + Wert) + Verdrahtung (Yoga-Config, `ein-mass`, `aktivitaetAblegen`-Messwert, Protokoll-Anzeige) |
 | `test116.js` | Statistik-Kacheln entschlacken: kleine `.stat-karte h2` + `rund klein` im CSS, Körpergewicht mit kleinem „+" und antippbarer Kurve (→ Details), separater Details-Knopf entfernt |
+| `test117.js` | Nicht-Kraft Etappe 2: `massText` mit Ordinalskala (Kletter-Grad als String, ohne Einheit) + numerische Regression + Verdrahtung (Klettern-Skala, `ein-mass-select`, `massFeldAufbauen`/`massEingabe`, truthy-Guard) |
 
 ## Ausführen
 
@@ -55,6 +56,7 @@ VS Codes Electron springt ein):
     & $code tests\test114.js index.html
     & $code tests\test115.js index.html
     & $code tests\test116.js index.html
+    & $code tests\test117.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

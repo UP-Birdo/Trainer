@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.117
+
+- Nächster Schritt bei den Nicht-Kraft-Sportarten: Klettern kann jetzt neben der
+  Zeit auch den Schwierigkeitsgrad festhalten. Beim Eintragen wählst du den Grad
+  aus einer Skala (französische Sportkletter-Grade von 3 bis 8c), und er erscheint
+  im Verlauf. Falls du lieber eine andere Grad-Skala nutzt, sag Bescheid — die
+  lässt sich leicht austauschen.
+
 ## 0.116
 
 - Der Statistik-Tab ist aufgeräumter: Die Überschriften der Kacheln sind jetzt

@@ -1222,8 +1222,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
       </div>
       <div id="ein-strecke-feld" class="abstand"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
-      <!-- v115: generische Messgröße (z. B. Beweglichkeit in Grad), nur wo die Sportart eine `mass` hat -->
-      <div id="ein-mass-feld" class="abstand" hidden><label for="ein-mass" id="ein-mass-label">Messwert</label><input id="ein-mass" type="number" inputmode="decimal" step="1"></div>
+      <!-- v115/v117: generische Messgröße — Zahlenfeld (Beweglichkeit) ODER Auswahl (Kletter-Grad),
+           nur wo die Sportart eine `mass` hat -->
+      <div id="ein-mass-feld" class="abstand" hidden><label for="ein-mass" id="ein-mass-label">Messwert</label>
+        <input id="ein-mass" type="number" inputmode="decimal" step="1">
+        <select id="ein-mass-select" hidden></select></div>
     </div>
 
     <!-- Kraft-Felder: Equipment -> Übung -> optional Sätze (v70) -->
@@ -2072,7 +2075,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 116;
+const APP_VERSION = 117;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3995,6 +3998,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.117", punkte:[
+    "Nächster Schritt bei den Nicht-Kraft-Sportarten: Klettern kann jetzt neben der Zeit auch den Schwierigkeitsgrad festhalten. Beim Eintragen wählst du den Grad aus einer Skala (französische Sportkletter-Grade von 3 bis 8c), und er erscheint im Verlauf. Falls du lieber eine andere Grad-Skala nutzt, sag Bescheid — die lässt sich leicht austauschen."
+  ]},
   { stand:"0.116", punkte:[
     "Der Statistik-Tab ist aufgeräumter: Die Überschriften der Kacheln sind jetzt klein und dezent statt groß und fett, damit die Diagramme im Vordergrund stehen. Beim Körpergewicht sitzt das Plus zum Eintragen klein oben rechts, und ein Tipp auf die Gewichtskurve öffnet direkt die Einträge und Details (BMI, Größe) — der extra Knopf entfällt."
   ]},
@@ -5569,7 +5575,11 @@ const SPORTARTEN = [
     strecke:{ einheit:"m", schritt:100, start:1000 },paceJe:500, einheiten:"Meter · Zeit · Split (min/500 m)" },
 
   // Ohne sinnvolles Mass: Hier gibt es ehrlich nur die Trainingszeit.
-  { id:"klettern",    name:"Klettern",            farbe:"#C8553D", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"klettern",    name:"Klettern",            farbe:"#C8553D", planTyp:"aktivitaet",
+    // v117 (Nicht-Kraft, Etappe 2): Schwierigkeit als Ordinalskala (franz. Sportkletter-
+    // Grade) statt Zahl — `skala` statt `einheit`/`schritt`. Gewählte Standard-Skala; bei
+    // Bedarf leicht austauschbar (UIAA, Bouldern …).
+    mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a" }, einheiten:"Zeit · Schwierigkeit" },
   { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", einheiten:"Zeit" },
@@ -5614,8 +5624,11 @@ function tempoText(sportartId, strecke, sekunden){
     Aufrufer (Plan-Karten, Wizard) unangetastet bleiben. */
 function massText(sportartId, messwert){
   const sp = sportart(sportartId);
-  if(!sp.mass || !(messwert > 0)) return "";
-  return sp.mass.label + " " + zahlKurz(messwert) + sp.mass.einheit;
+  if(!sp.mass) return "";
+  // v117: Ordinalskala (Kletter-Grad) trägt den Wert als String ohne Einheit;
+  // numerische Messgröße (Beweglichkeit) wie gehabt Zahl + Einheit.
+  if(sp.mass.skala) return messwert ? sp.mass.label + " " + messwert : "";
+  return messwert > 0 ? sp.mass.label + " " + zahlKurz(messwert) + sp.mass.einheit : "";
 }
 
 /** Fertige Zeile für Protokoll und Karten: "5,2 km · 32 min · 6:09 min/km" */
@@ -8708,14 +8721,46 @@ function eintragenOeffnen(plan, sekunden){
   const dauerS = sekunden || (plan ? plan.dauer : 1800);
   document.getElementById("ein-dauer").value = inEinheit(dauerS, einheit);
   document.getElementById("ein-strecke").value = plan && plan.strecke ? plan.strecke : "";
-  document.getElementById("ein-mass").value = plan && plan.messwert ? plan.messwert : "";   // v115
   eintragenZeichnen();
+  massVorbelegen(plan && plan.messwert != null ? plan.messwert : "");   // v115/v117: erst nach Aufbau (Skala-Optionen stehen)
   zeige("view-eintragen");
 }
 
 function ersteAktivitaetsSportart(){
   const meine = (sitzung.daten.einrichtung.sportarten || []).filter(id => planTypFuer(id) === "aktivitaet");
   return meine[0] || "laufen";
+}
+
+/* v115/v117: Die generische Messgröße in der Erfassungs-Maske. Zwei Arten:
+   numerisch (Beweglichkeit -> Zahlenfeld) und Skala (Kletter-Grad -> Auswahl).
+   massFeldAufbauen schaltet das richtige Feld frei, massEingabe liest den Wert,
+   massVorbelegen setzt einen Startwert (aus Plan bzw. leer). */
+function massFeldAufbauen(sp){
+  document.getElementById("ein-mass-feld").hidden = !sp.mass;
+  if(!sp.mass) return;
+  document.getElementById("ein-mass-label").textContent =
+    sp.mass.label + (sp.mass.einheit ? " (" + sp.mass.einheit + ")" : "");
+  const istSkala = !!sp.mass.skala;
+  document.getElementById("ein-mass").hidden = istSkala;
+  const sel = document.getElementById("ein-mass-select");
+  sel.hidden = !istSkala;
+  if(istSkala){
+    const vorher = sel.value;   // Auswahl über Re-Renders halten
+    sel.innerHTML = '<option value="">—</option>' +
+      sp.mass.skala.map(g => '<option value="' + text(g) + '">' + text(g) + '</option>').join("");
+    sel.value = sp.mass.skala.includes(vorher) ? vorher : "";
+  }
+}
+function massEingabe(sp){
+  if(!sp.mass) return 0;
+  if(sp.mass.skala) return document.getElementById("ein-mass-select").value;
+  return parseFloat(String(document.getElementById("ein-mass").value).replace(",", ".")) || 0;
+}
+function massVorbelegen(wert){
+  const sp = sportart(document.getElementById("ein-sport").value);
+  if(!sp.mass) return;
+  if(sp.mass.skala) document.getElementById("ein-mass-select").value = sp.mass.skala.includes(wert) ? wert : "";
+  else document.getElementById("ein-mass").value = (wert > 0 ? wert : "");
 }
 
 function eintragenZeichnen(){
@@ -8729,12 +8774,11 @@ function eintragenZeichnen(){
   document.getElementById("ein-dauer-label").textContent = "Dauer (" + zeitEinheit(einheit).kurz + ")";
   document.getElementById("ein-strecke-feld").hidden = !sp.strecke;
   if(sp.strecke) document.getElementById("ein-strecke-label").textContent = "Strecke (" + sp.strecke.einheit + ")";
-  document.getElementById("ein-mass-feld").hidden = !sp.mass;   // v115: generische Messgröße
-  if(sp.mass) document.getElementById("ein-mass-label").textContent = sp.mass.label + " (" + sp.mass.einheit + ")";
+  massFeldAufbauen(sp);   // v115/v117: Zahlenfeld ODER Skala-Auswahl freischalten
 
   const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
   const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
-  const messwert = sp.mass ? (parseFloat(String(document.getElementById("ein-mass").value).replace(",", ".")) || 0) : 0;   // v115
+  const messwert = massEingabe(sp);   // v115/v117: Zahl (Beweglichkeit) oder Skala-Grad (Klettern)
   const zeile = [aktivitaetText(sport, strecke, dauerS, einheit), massText(sport, messwert)].filter(Boolean).join(" · ");
   document.getElementById("ein-vorschau").textContent = zeile ? "Wird eingetragen: " + zeile : "";
 }
@@ -8747,7 +8791,7 @@ function aktivitaetSpeichern(){
   const datum = document.getElementById("ein-datum").value;
   const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
   const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
-  const messwert = sp.mass ? (parseFloat(String(document.getElementById("ein-mass").value).replace(",", ".")) || 0) : 0;   // v115
+  const messwert = massEingabe(sp);   // v115/v117: Zahl (Beweglichkeit) oder Skala-Grad (Klettern)
 
   if(!datum){ meldung("Bitte ein Datum angeben."); return; }
   if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen — geplant wird über den Plan und seine Wochentage."); return; }
@@ -8775,9 +8819,10 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
     notiz: notizFeld ? (notizFeld.value || "").trim() : "",
     strecke, zeitEinheit: einheit, saetze: []
   };
-  // v115: generische Messgröße (Beweglichkeit u. a.) nur setzen, wo die Sportart eine hat
-  // und ein Wert vorliegt — additiv und sparsam (alte/andere Einträge tragen kein Feld).
-  if(sportart(sport).mass && messwert > 0) neu.messwert = messwert;
+  // v115/v117: generische Messgröße (Beweglichkeit-Zahl ODER Kletter-Grad-String) nur
+  // setzen, wo die Sportart eine `mass` hat und ein Wert vorliegt — additiv und sparsam
+  // (alte/andere Einträge tragen kein Feld). Truthy deckt Zahl > 0 UND nicht-leeren Grad ab.
+  if(sportart(sport).mass && messwert) neu.messwert = messwert;
   sitzung.daten.protokoll.push(neu);
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
   const eintrag = sitzung.daten.protokoll[sitzung.daten.protokoll.length - 1];
