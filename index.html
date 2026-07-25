@@ -893,6 +893,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="scheibe-ergebnis" class="meta" style="margin-top:10px"></div>
   </div>
 
+  <div class="karte" id="mehr-bibliothek-karte">
+    <h2>Übungs-Bibliothek</h2>
+    <div class="meta abstand">Alle Übungen zum Nachschlagen: Gerät, Muskeln und ein kurzer Tipp.</div>
+    <div class="knopfreihe"><button class="schmal" onclick="bibliothekOeffnen()">Bibliothek öffnen</button></div>
+  </div>
+
   <div class="karte">
     <div class="zeile"><h2>Gerät</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-system')" aria-label="Info">i</button></div>
@@ -1246,6 +1252,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="muskel-legende" hidden></div>
   </div>
   <div id="muskel-auswahl"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<section id="view-bibliothek" class="view">
+  <div class="kopf"><h1>Übungs-Bibliothek</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+  <input id="bib-suche" placeholder="Übung suchen …" autocomplete="off" oninput="bibKartenZeichnen()" style="margin-bottom:8px">
+  <div id="bib-filter" class="muskel-tabs zeile" style="flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+  <div id="bib-status" class="meta abstand"></div>
+  <div id="bib-liste"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
@@ -1805,7 +1821,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 88;
+const APP_VERSION = 89;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2517,6 +2533,7 @@ const VIEW_MIN_STUFE = {
   "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
+  "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
@@ -3458,6 +3475,7 @@ function einstellungenOeffnen(){
   // v85: Scheibenrechner ist ein Kraft-Werkzeug — erst ab Stufe 3 (echtes Training).
   document.getElementById("mehr-werkzeuge-karte").hidden = stufe() < 3;
   scheibenStangeZeichnen(); scheibenAnzeigen();
+  document.getElementById("mehr-bibliothek-karte").hidden = stufe() < 3;
   // v76: Profil (mit Zielen + Sportart-System) ist ein Stufe-5-Feature.
   document.getElementById("mehr-profil-karte").hidden = stufe() < 5;
   // v76: Stufe 1/2 haben keine Nav-Leiste — Rückweg aus „Mehr" per Knopf.
@@ -3620,6 +3638,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.089", punkte:[
+    "Neu: eine Übungs-Bibliothek unter Mehr. Blättere durch alle Übungen, filtere nach Kategorie oder such per Textfeld — tippe eine Übung an und du siehst das benötigte Gerät, die beanspruchten Muskeln (mit Figur) und einen kurzen Ausführungs-Tipp."
+  ]},
   { stand:"0.088", punkte:[
     "Ein Gerät im Profil abgewählt und es hingen Übungen dran? Das lässt sich jetzt mit einem Tipp auf Rückgängig sofort zurückholen — kein versehentlich leerer Plan mehr.",
     "Letztes übrig gebliebenes Symbol beim Plan-Anlegen entfernt — die Oberfläche ist jetzt durchgehend ruhig (nur die Serien-Flamme 🔥 bleibt)."
@@ -5270,6 +5291,153 @@ const UEBUNG_MUSKELN = {
   "Intervall-Läufe":["quadriceps","hamstrings","calves"]
 };
 
+/* Kurze Info/Ausführungs-Tipp je Übung (v89, für die Karteikarten-Bibliothek).
+   Schlüssel = Name aus UEBUNGEN_DB. Ein knapper Kernhinweis je Übung — die
+   ausführlichen Beschreibungen (2–3 Sätze) sind ein eigener späterer Content-
+   Durchgang. Reine Anzeige. */
+const UEBUNG_INFO = {
+  // -- Beine --
+  "Kniebeugen":"Füße schulterbreit, Knie in Zehenrichtung, tief bis mindestens parallel, Rücken neutral.",
+  "Ausfallschritte":"Großer Schritt, hinteres Knie tief, vorderes Knie über dem Fuß, Oberkörper aufrecht.",
+  "Glute Bridge":"Becken hoch, Gesäß oben fest anspannen, den Rücken nicht überstrecken.",
+  "Wadenheben":"Voller Umfang: ganz hoch auf die Zehen, oben kurz halten, langsam ab.",
+  "Wandsitzen":"Rücken an die Wand, Oberschenkel waagerecht, ruhig halten.",
+  "Einbeinige Kniebeuge":"Standbein stabil, Knie in Zehenrichtung, kontrolliert absenken.",
+  "Step-ups":"Ganzen Fuß auf die Box, über die Ferse hochdrücken, nicht abspringen.",
+  "Bulgarische Kniebeuge":"Hinterer Fuß erhöht, vorderes Knie tief, Rumpf aufrecht.",
+  "Box Jumps":"Explosiv hoch, weich mit gebeugten Knien landen, sicher stehen.",
+  "Goblet Squats":"Hantel vor der Brust, Ellbogen innen, tief und aufrecht.",
+  "KH-Ausfallschritte":"Hanteln locker seitlich, sauberer Schritt, Rumpf stabil.",
+  "KH-Wadenheben":"Hanteln seitlich, voller Wadenumfang, oben kurz halten.",
+  "KH-Kreuzheben":"Rücken gerade, Hüfte nach hinten, Hanteln nah am Bein.",
+  "Kettlebell-Swings":"Kraft aus der Hüfte (nicht den Armen), Rücken neutral, bis Brusthöhe schwingen.",
+  "Kettlebell-Goblet-Squat":"Kettlebell an der Brust, tief, Ellbogen innen.",
+  "LH-Kniebeugen":"Stange auf dem oberen Rücken, tief, Knie und Zehen gleiche Richtung.",
+  "Rumän. Kreuzheben":"Hüfte nach hinten, leichte Kniebeugung, Dehnung hinten spüren, Rücken gerade.",
+  "LH-Kreuzheben":"Stange nah am Schienbein, Rücken neutral, mit Hüfte und Beinen hochdrücken.",
+  "LH-Hip-Thrust":"Schulter auf der Bank, Stange über der Hüfte, oben Gesäß fest anspannen.",
+  "Smith-Kniebeugen":"Geführte Stange, trotzdem tief und kontrolliert, Knie in Zehenrichtung.",
+  "Beinpresse":"Füße schulterbreit, nicht ganz durchstrecken, kontrolliert absenken.",
+  "Beinbeuger":"Ferse zum Gesäß ziehen, oben kurz halten, langsam zurück.",
+  "Beinstrecker":"Bein voll strecken, oben kurz halten, kein Schwung.",
+  "Wadenheben Maschine":"Voller Umfang, oben und unten je kurz halten.",
+  "Adduktoren":"Beine langsam zusammenführen, kontrolliert öffnen.",
+  "Abduktoren":"Beine gegen den Widerstand nach außen, oben kurz halten.",
+  "Rack-Kniebeugen":"Aus dem Rack, tief, Rücken neutral, sicher ablegen.",
+  "Band-Kniebeugen":"Band unter den Füßen, tief, Spannung halten.",
+  "Schlingen-Kniebeuge":"Schlaufen zur Balance halten, tief, Rumpf stabil.",
+  "Einbeinige Beinpresse":"Ein Bein, mittiger Druck, nicht ganz durchstrecken.",
+  "Wadenpresse (Beinpresse)":"Nur die Fußballen auf der Platte, voller Wadenumfang.",
+  "Sitzendes Wadenheben":"Zielt auf den tiefen Wadenmuskel — voller Umfang, langsam.",
+  "Sitzender Beinbeuger":"Fersen nach unten/hinten, oben kurz halten.",
+  "Frontkniebeugen im Rack":"Stange vorn auf den Schultern, Ellbogen hoch, aufrechter Rumpf.",
+  "LH-Frontkniebeugen":"Stange vorn, Ellbogen hoch, tief und aufrecht.",
+  "LH-Good-Mornings":"Leichte Stange, Hüfte nach hinten, Rücken gerade, Dehnung hinten.",
+  "Kettlebell-Ausfallschritte":"Kettlebell stabil, sauberer Schritt, hinteres Knie tief.",
+  "Wall Balls":"Tiefe Kniebeuge, aus den Beinen den Ball hoch werfen, abfedern und fangen.",
+  "Kniebeugen mit Weste":"Zusatzgewicht nah am Körper, Technik wie ohne Weste.",
+  "Bank-Step-ups":"Ganzen Fuß auf die Bank, über die Ferse hoch.",
+  // -- Drücken --
+  "Liegestütze":"Körper gerade wie ein Brett, Ellbogen etwa 45 Grad, Brust bis knapp über den Boden.",
+  "Pike Push-ups":"Hüfte hoch (umgekehrtes V), Kopf Richtung Boden — drückt die Schultern.",
+  "Enge Liegestütze":"Hände eng, Ellbogen nah am Körper — mehr Trizeps.",
+  "Stuhl-Dips":"Hände auf der Kante, Ellbogen nach hinten, tief absenken.",
+  "Dips am Barren":"Leicht vorgelehnt, kontrolliert tief, nicht in die Schulter fallen.",
+  "Erhöhte Liegestütze":"Hände erhöht = leichter; Körper bleibt gerade.",
+  "KH-Bankdrücken":"Hanteln über der Brust, kontrolliert tief, unten kurz halten.",
+  "KH-Schulterdrücken":"Von Schulterhöhe nach oben, Rumpf fest, kein Hohlkreuz.",
+  "KH-Seitheben":"Arme leicht gebeugt seitlich bis Schulterhöhe, langsam ab.",
+  "KH-Trizepsdrücken":"Oberarm fest, nur der Unterarm bewegt sich.",
+  "Schrägbankdrücken KH":"Schräge Bank ~30-45 Grad, betont die obere Brust.",
+  "LH-Bankdrücken":"Schulterblätter zusammen, Stange zur Brust, gerade hochdrücken.",
+  "LH-Schulterdrücken":"Stange von der Brust nach oben, Rumpf fest, kein Hohlkreuz.",
+  "Kettlebell-Drücken":"Kettlebell im Griff stabil, gerade nach oben drücken.",
+  "Brustpresse":"Griffe auf Brusthöhe, gleichmäßig drücken, nicht ganz durchstrecken.",
+  "Butterfly":"Ellbogen leicht gebeugt, Brust zusammenführen, kontrolliert öffnen.",
+  "Schulterpresse Maschine":"Rücken an die Lehne, gerade nach oben, nicht einrasten.",
+  "Trizeps am Kabel":"Ellbogen fest am Körper, nur der Unterarm streckt.",
+  "Smith-Bankdrücken":"Geführte Stange zur Brust, kontrolliert, Schulterblätter fest.",
+  "Liegestütze mit Weste":"Zusatzgewicht, Technik wie normale Liegestütze.",
+  "Parallettes-Liegestütze":"Größerer Bewegungsumfang, tief zwischen die Griffe.",
+  "Parallettes-Dips":"Aufrechter Rumpf, tief, kontrolliert.",
+  "Band-Schulterdrücken":"Band unter den Füßen, gerade nach oben, Spannung halten.",
+  "Schlingen-Liegestütze":"Griffe instabil — Rumpf besonders fest, langsam.",
+  "Schräge Brustpresse":"Betont die obere Brust, gleichmäßig drücken.",
+  "Enge Brustpresse":"Griffe enger — mehr Trizeps-Anteil.",
+  "Einarmige Schulterpresse":"Einseitig, Rumpf gegen die Rotation fest.",
+  "Kabel-Crossover":"Leichte Vorlage, Hände vor der Brust zusammenführen.",
+  "Kabel-Seitheben":"Zug seitlich bis Schulterhöhe, Arm leicht gebeugt.",
+  "Smith-Schulterdrücken":"Geführt nach oben, Rumpf fest, nicht einrasten.",
+  "KH-Fliegende":"Ellbogen leicht gebeugt, Brust dehnen, kontrolliert zusammenführen.",
+  "Trizeps-Dips an der Bank":"Hände auf der Bank, Ellbogen nach hinten, tief.",
+  "Negativ-Dips":"Nur die langsame Absenkphase — kontrolliert 3-5 Sekunden.",
+  // -- Ziehen --
+  "Superman":"Arme und Beine gleichzeitig heben, kurz halten, Nacken lang.",
+  "Tisch-Rudern":"Unter einem stabilen Tisch, Körper gerade, Brust zur Kante ziehen.",
+  "Klimmzüge":"Voller Umfang: gestreckt starten, Kinn über die Stange, kontrolliert ab.",
+  "Negativ-Klimmzüge":"Oben starten, nur langsam herablassen (3-5 Sekunden).",
+  "Hängendes Beinheben":"An der Stange hängen, Beine kontrolliert heben, nicht schwingen.",
+  "Band-Rudern":"Ellbogen nah am Körper zurückziehen, Schulterblätter zusammen.",
+  "Band-Bizeps-Curls":"Ellbogen fest, nur der Unterarm, Spannung halten.",
+  "Band-Face-Pulls":"Band auf Gesichtshöhe zu den Ohren ziehen, Schultern zurück.",
+  "KH-Rudern":"Rücken gerade, Hantel zur Hüfte ziehen, Schulterblatt zusammen.",
+  "KH-Bizeps-Curls":"Ellbogen fest am Körper, ohne Schwung hochcurlen.",
+  "KH-Reverse-Flys":"Vorgebeugt, Arme seitlich heben — hintere Schulter.",
+  "KH-Shrugs":"Schultern gerade nach oben ziehen, oben kurz halten.",
+  "LH-Rudern":"Vorgebeugt, Rücken gerade, Stange zum Bauch.",
+  "LH-Bizeps-Curls":"Ellbogen fest, Stange ohne Schwung hoch.",
+  "Latzug":"Stange zur oberen Brust, Schulterblätter nach unten/hinten.",
+  "Kabel-Rudern":"Aufrecht sitzen, Griff zum Bauch, Brust raus.",
+  "Face-Pulls am Kabel":"Seil auf Gesichtshöhe zu den Ohren, Schultern zurück.",
+  "Rudermaschine":"Brust an das Polster, Griffe zurückziehen, Schulterblätter zusammen.",
+  "Schlingen-Rudern":"Körper gerade, Brust zu den Griffen ziehen, Rumpf fest.",
+  "Kettlebell-Rudern":"Rücken gerade, Kettlebell zur Hüfte, kontrolliert ab.",
+  "Scott-Curls":"Oberarme auf dem Pult, voller Umfang, kein Schwung.",
+  "Klimmzüge mit Weste":"Zusatzgewicht, saubere volle Klimmzüge.",
+  "Crosstrainer":"Gleichmäßiges Tempo, ganzer Körper, aufrechte Haltung.",
+  "Enges Rudern Maschine":"Enger Griff, Griffe zum Bauch, Schulterblätter zusammen.",
+  "Breites Rudern Maschine":"Breiter Griff, betont den oberen Rücken.",
+  "Rack Pulls":"Stange aus Kniehöhe, Rücken neutral, mit der Hüfte strecken.",
+  "Reverse Butterfly":"Arme nach hinten öffnen — hintere Schulter, kontrolliert.",
+  "Bizeps-Curls am Kabel":"Ellbogen fest, gleichmäßiger Zug, oben kurz halten.",
+  "Scott-Curls Kurzhantel":"Oberarm aufs Pult, einseitig sauber curlen.",
+  "Smith-Rudern":"Geführte Stange zum Bauch, Rücken gerade.",
+  "Renegade Rows":"Liegestützposition, abwechselnd Hantel ziehen, Hüfte ruhig.",
+  // -- Rumpf --
+  "Plank":"Körper gerade wie ein Brett, Bauch und Gesäß anspannen, nicht durchhängen.",
+  "Seitstütz":"Seitlich stützen, Hüfte oben, gerade Linie halten.",
+  "Crunches":"Nur die Schulterblätter heben, Bauch anspannen, Nacken locker.",
+  "Beinheben an der Matte":"Beine gestreckt heben und senken, unterer Rücken bleibt am Boden.",
+  "Hüftheben":"Becken heben, Gesäß fest, kontrolliert ab.",
+  "Vierfüßler-Diagonale":"Gegenüberliegenden Arm und Bein strecken, Rumpf ruhig.",
+  "Bauchmaschine":"Oberkörper einrollen, Bauch anspannen, kontrolliert zurück.",
+  "Rückenstrecker":"Oberkörper bis zur geraden Linie heben, nicht überstrecken.",
+  "L-Sit an Parallettes":"Gestützt, Beine waagerecht halten, Bauch fest.",
+  "Beinheben liegend":"Rücken flach am Boden, Beine langsam senken.",
+  "Bergsteiger":"Knie zügig zur Brust, Hüfte tief, Rumpf stabil.",
+  "Russian Twist":"Aufrecht sitzen, Oberkörper kontrolliert zur Seite drehen.",
+  "Hollow Hold":"Unterer Rücken am Boden, Arme und Beine leicht angehoben halten.",
+  "Käfer (Dead Bug)":"Gegenüberliegenden Arm und Bein senken, Rücken bleibt flach.",
+  "Bauchroller":"Aus den Knien vorrollen, Rücken gerade, kontrolliert zurück.",
+  "Medizinball-Twist":"Ball seitlich zum Boden, Rumpf dreht, Beine ruhig.",
+  "Kabel-Crunches":"Am Seil einrollen, aus dem Bauch (nicht den Armen).",
+  "Schlingen-Plank":"Füße in den Schlaufen, Rumpf besonders fest halten.",
+  "Rotations-Bauchmaschine":"Kontrolliert drehen — die seitlichen Bauchmuskeln.",
+  "Reverse Hyperextension":"Beine aus der Hüfte heben — Gesäß und unterer Rücken.",
+  "Seitbeuge an der Bank":"Seitlich senken und heben — seitliche Rumpfmuskeln.",
+  "Medizinball-Slams":"Ball kraftvoll auf den Boden werfen, ganzer Rumpf.",
+  "Türkischer Aufsteher":"Langsam Schritt für Schritt aufstehen, Gewicht immer oben stabil.",
+  // -- Cardio --
+  "Seilspringen":"Aus den Handgelenken, kleine Sprünge, weiche Landung.",
+  "Burpees":"Kniebeuge, Liegestütz, Strecksprung — flüssig und zügig.",
+  "Hampelmänner":"Arme und Beine gleichzeitig auf und zu, gleichmäßiger Rhythmus.",
+  "High Knees":"Knie hoch zur Hüfte, auf den Fußballen, zügiges Tempo.",
+  "Laufband / Ergometer":"Gleichmäßiges Tempo, aufrechte Haltung, ruhig atmen.",
+  "Double Unders":"Seil zweimal pro Sprung — höher springen, schnelle Handgelenke.",
+  "Crosstrainer-Intervalle":"Intervalle: hart und locker im Wechsel, sauberer Rundlauf.",
+  "Intervall-Läufe":"Wechsel aus schnellen und lockeren Abschnitten."
+};
+
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl
    der Ansicht der kleinen Fokus-Figur). Die große Muskelkarte färbt beide Seiten. */
 const MUSKEL_SEITE = {
@@ -6547,6 +6715,72 @@ function bibliothekHtml(sportId){
       '</div>' : "") + '</div>';
 }
 function bibUmschalten(sportId){ bibOffen[sportId] = !bibOffen[sportId]; sportartSeiteZeichnen(); }
+
+/* #region Übungs-Bibliothek (v89) — alle DB-Übungen als Karteikarten (Akkordeon).
+   Aus „Mehr" erreichbar (ab Stufe 3). Antippen klappt eine Karte auf: Gerät,
+   Muskeln (Mini-Figur + Namen) und ein kurzer Ausführungs-Tipp. Nur die OFFENE
+   Karte rendert eine Figur — deshalb flott bei ~99 Übungen. Reine Anzeige. */
+const BIB_KATS = [["alle","Alle"],["beine","Beine"],["druck","Drücken"],["zug","Ziehen"],["rumpf","Rumpf"],["cardio","Cardio"]];
+const BIB_KAT_NAME = { beine:"Beine", druck:"Drücken", zug:"Ziehen", rumpf:"Rumpf", cardio:"Cardio" };
+let bibZustand = { kat:"alle", offen:null };
+
+/** Filtert die Übungen nach Kategorie + Suchtext (pure, testbar). */
+function bibFilter(uebungen, kat, suche){
+  const s = normName(suche || "");
+  return uebungen.filter(u => (kat === "alle" || u.kat === kat) && (!s || normName(u.name).includes(s)));
+}
+
+function bibliothekOeffnen(){
+  bibZustand.offen = null;
+  bibFilterZeichnen();
+  bibKartenZeichnen();
+  zeige("view-bibliothek");
+}
+
+function bibFilterZeichnen(){
+  document.getElementById("bib-filter").innerHTML = BIB_KATS.map(([k,n]) =>
+    '<button class="muskel-tab' + (bibZustand.kat === k ? " muskel-an" : "") +
+    '" onclick="bibKat(\'' + k + '\')">' + n + '</button>').join("");
+}
+function bibKat(k){ bibZustand.kat = k; bibZustand.offen = null; bibFilterZeichnen(); bibKartenZeichnen(); }
+function bibToggle(name){ bibZustand.offen = (bibZustand.offen === name ? null : name); bibKartenZeichnen(); }
+
+/** Eine Karteikarte: zugeklappt Name/Kategorie/Gerät/Muskelregion; aufgeklappt
+    zusätzlich Mini-Figur, Muskelnamen und der Ausführungs-Tipp. */
+function bibKarteHtml(u){
+  const info = uebungMuskeln(u.name);
+  const geraet = (u.geraet && u.geraet !== "keine") ? geraetName(u.geraet) : "Körpergewicht";
+  const modus = u.modus === "zeit" ? "Zeit" : "Wdh";
+  const region = info && info.label ? info.label : "";
+  const nameJs = u.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  const kopf = '<div class="zeile" style="cursor:pointer" onclick="bibToggle(\'' + nameJs + '\')">' +
+      '<h2 style="margin:0">' + text(u.name) + '</h2>' +
+      '<span class="meta">' + text(BIB_KAT_NAME[u.kat] || u.kat) + '</span></div>' +
+    '<div class="meta">' + text(geraet) + ' · ' + modus + (region ? ' · ' + text(region) : "") + '</div>';
+  if(bibZustand.offen !== u.name) return '<div class="karte">' + kopf + '</div>';
+  const figur = (info && info.muskeln && info.muskeln.length)
+    ? '<div class="mini-figur" data-mf-ansicht="' + info.ansicht + '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' : "";
+  const muskelNamen = (info && info.muskeln) ? info.muskeln.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
+  const tip = UEBUNG_INFO[u.name] || "";
+  return '<div class="karte">' + kopf +
+    '<div class="zeile abstand" style="align-items:flex-start;gap:12px">' + figur +
+      '<div>' +
+        (muskelNamen ? '<div class="meta"><strong style="color:var(--chalk)">Muskeln:</strong> ' + text(muskelNamen) + '</div>' : "") +
+        (tip ? '<div class="meta" style="margin-top:6px">' + text(tip) + '</div>' : "") +
+      '</div>' +
+    '</div></div>';
+}
+
+function bibKartenZeichnen(){
+  const suche = (document.getElementById("bib-suche") || {}).value || "";
+  const liste = bibFilter(UEBUNGEN_DB, bibZustand.kat, suche);
+  document.getElementById("bib-status").textContent = liste.length + (liste.length === 1 ? " Übung" : " Übungen");
+  document.getElementById("bib-liste").innerHTML = liste.map(bibKarteHtml).join("");
+  // Figur der OFFENEN Karte nachzeichnen (Canvas + async Bild-/Kartenladung).
+  document.querySelectorAll("#bib-liste .mini-figur[data-mf-ansicht]").forEach(el =>
+    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
+}
+/* #endregion Übungs-Bibliothek */
 
 /** Karte mit den eigenen Übungen einer Sportart (leer, wenn keine). */
 function eigeneUebungenHtml(sportId){
@@ -8346,6 +8580,7 @@ function navAktualisieren(id){
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
                      "view-einstellungen":"nav-einst", "view-wissen":"nav-einst", "view-neuigkeiten":"nav-einst",
+                     "view-bibliothek":"nav-einst",
                      "view-editor":"nav-plaene" };
   // v76: Stufenabhängige Leiste. Welche Tabs überhaupt sichtbar sind, bestimmt
   // die Stufe (navTabsFuerStufe) — Stufe 1/2 = gar keine Leiste, Stufe 3 ohne

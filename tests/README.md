@@ -15,6 +15,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test84.js` | Grobe Fallback-Zuordnung `KAT_MUSKELN` (Kategorie→Muskeln, jede DB-Kategorie abgedeckt) — feines `uebungMuskeln()` prüft test86 |
 | `test85.js` | Meilenstein-Flammen (`serienMeilenstein`, Marken 7/30/100) + Scheibenrechner (`scheibenRechnen`, Zerlegung/Rest/Grenzen) |
 | `test86.js` | Feine Übung→Muskel-Zuordnung (`UEBUNG_MUSKELN` vollständig/gültig, `uebungMuskeln`-Ansicht) + Heatmap (`muskelHeatLevel`, `trainierteMuskeln`-Fenster) |
+| `test89.js` | Übungs-Bibliothek: `UEBUNG_INFO`-Vollständigkeit (Tipp je Übung, keine Leiche) + `bibFilter` (Kategorie/Suche) |
 
 ## Ausführen
 
@@ -33,6 +34,7 @@ VS Codes Electron springt ein):
     & $code tests\test84.js index.html
     & $code tests\test85.js index.html
     & $code tests\test86.js index.html
+    & $code tests\test89.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

@@ -3,6 +3,12 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.089
+
+- Neu: eine Übungs-Bibliothek (unter Mehr). Blättere durch alle Übungen, filtere
+  nach Kategorie oder suche; tippe eine Übung an für das benötigte Gerät, die
+  beanspruchten Muskeln (mit Figur) und einen kurzen Ausführungs-Tipp.
+
 ## 0.088
 
 - Ein Gerät im Profil abgewählt und es hingen Übungen dran? Das lässt sich jetzt
