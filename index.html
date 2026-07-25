@@ -2020,7 +2020,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 102;
+const APP_VERSION = 103;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2031,6 +2031,7 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
   if(!Array.isArray(daten.papierkorb)) daten.papierkorb = []; // v96: zuletzt gelöschte Dinge, wiederherstellbar
+  if(typeof daten.letzterBesuch !== "string") daten.letzterBesuch = ""; // v103: für automatische Ruhetage
   // v44 (C3): selbst gebaute Übungen, je Sportart. { sportId: [{name,modus,saetze,wdh|dauer}] }
   if(!daten.eigeneUebungen || typeof daten.eigeneUebungen !== "object") daten.eigeneUebungen = {};
   // Einrichtung gab es früher erst nach dem Wizard. Sie ist jetzt immer da —
@@ -3223,6 +3224,7 @@ function startOeffnen(){
   // v76: Stufe 1/2 haben keinen „Heute"-Bildschirm (kein Training) — ihr
   // Zuhause ist der Notizblock. startOeffnen ist DIE zentrale „geh nach Hause"-
   // Funktion (Login, nach Training, nach Code …), deshalb wird hier geleitet.
+  autoRuhetageEintragen();   // v103: Auto-Ruhetage + Meldung (einmal pro Sitzung)
   if(stufe() <= 2){ planListeZeichnen(); zeige("view-plaene"); return; }
   sicherungBannerZeichnen();
   flammeZeichnen();
@@ -3890,6 +3892,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.103", punkte:[
+    "Ruhetage sind jetzt schlauer: Du darfst so viele setzen, wie du willst — ab dem dritten am Stück sagt dir die App aber ehrlich, wann deine Flamme erlischt. Und Tage, an denen du gar nicht trainiert hast, trägt die App beim nächsten Öffnen automatisch als Ruhetag im Kalender ein und fasst kurz zusammen, was seit deinem letzten Besuch passiert ist."
+  ]},
   { stand:"0.102", punkte:[
     "Die Seite Mehr ist aufgeräumt: Statt einer langen Liste gibt es jetzt Untermenüs — Darstellung & Bedienung, Werkzeuge, Konto & Sicherheit sowie Hilfe & Feedback. Einfachheit und Profil bleiben oben griffbereit. Alle Funktionen sind gleich, nur besser sortiert."
   ]},
@@ -4154,6 +4159,31 @@ function trainingsSerie(){
   return serie;
 }
 
+/* v103: Grenzdatum der Flamme = letzter Trainingstag + MAX_LUECKE + 1 — der Tag,
+   an dem die Serie ohne weiteres Training reißt (bzw. gerissen ist). Pure/testbar. */
+function flammeGrenzdatum(protokoll){
+  const tage = [...new Set((protokoll || []).map(e => e.datum))].sort();
+  if(!tage.length) return null;
+  return tageVerschieben(tage[tage.length - 1], MAX_LUECKE + 1);
+}
+/** Zukünftiges Erlöschen-Datum, NUR solange die Flamme noch lebt (sonst null). */
+function flammeErlischtAm(){
+  const g = flammeGrenzdatum(sitzung.daten.protokoll);
+  return (g && g > heuteAlsText()) ? g : null;
+}
+/** Vergangenes Erloschen-Datum, NUR wenn die Flamme schon aus ist (sonst null). */
+function flammeErloschenAm(){
+  const g = flammeGrenzdatum(sitzung.daten.protokoll);
+  return (g && g <= heuteAlsText()) ? g : null;
+}
+/** Länge des zusammenhängenden Ruhetag-Blocks, der `datum` enthält. Pure/testbar. */
+function ruhetagRunLen(datum, ruheSet){
+  let len = 1;
+  for(let c = tageVerschieben(datum, -1); ruheSet.has(c); c = tageVerschieben(c, -1)) len++;
+  for(let c = tageVerschieben(datum, 1);  ruheSet.has(c); c = tageVerschieben(c, 1))  len++;
+  return len;
+}
+
 /* Meilenstein-Flammen (Nutzer-Wunsch, klein & klar): Serien-Marken zum Feiern.
    erreicht = höchste erreichte Marke (0 = noch keine); naechster = nächste Marke
    (null = alle erreicht). Reine Anzeige — die Serie selbst zählt unverändert. */
@@ -4369,9 +4399,47 @@ function wochenVorschauZeichnen(){
 function ruhetagUmschalten(datum){
   const liste = sitzung.daten.ruhetage;
   const pos = liste.indexOf(datum);
+  const zugefuegt = pos < 0;
   if(pos >= 0) liste.splice(pos, 1); else liste.push(datum);
   speichern();
   kalenderZeichnen();
+  // v103 (Variante B): nicht blockieren, aber warnen, wenn 3 Ruhetage am Stück
+  // zusammenkommen — dann reißt die Serie. Datum, wenn die Flamme noch lebt.
+  if(zugefuegt && ruhetagRunLen(datum, new Set(liste)) >= 3){
+    const erlischt = flammeErlischtAm();
+    meldung("Drei Ruhetage am Stück: Ohne ein Training dazwischen reißt deine Serie." +
+      (erlischt ? "\n\nDeine Flamme erlischt am " + datumKurz(erlischt) + "." : ""));
+  }
+}
+
+let autoRuheGeprueft = false;   // v103: nur einmal pro Sitzung
+/** v103: Beim Öffnen einmal prüfen — Tage seit dem letzten Besuch OHNE Training
+    werden automatisch als Ruhetag im Kalender vermerkt; danach eine kurze Meldung
+    (inkl. ob die Flamme in der Zwischenzeit erloschen ist). Ohne manuelles Zutun. */
+function autoRuhetageEintragen(){
+  if(autoRuheGeprueft || !sitzung) return;
+  autoRuheGeprueft = true;
+  const d = sitzung.daten;
+  const heute = heuteAlsText();
+  const vorher = d.letzterBesuch;
+  d.letzterBesuch = heute;
+  // Stufe 1/2 (kein Kalender/Training) oder kein/heutiger Vorbesuch: nur merken.
+  if(stufe() < 3 || !vorher || vorher >= heute){ speichern(); return; }
+  const trainiert = new Set(d.protokoll.map(e => e.datum));
+  const ruhe = new Set(d.ruhetage);
+  const neu = [];
+  for(let c = tageVerschieben(vorher, 1); c < heute; c = tageVerschieben(c, 1)){
+    if(!trainiert.has(c) && !ruhe.has(c)){ d.ruhetage.push(c); neu.push(c); }
+  }
+  speichern();
+  if(!neu.length) return;
+  kalenderZeichnen();
+  let text = "Seit deinem letzten Besuch (" + datumKurz(vorher) + ") habe ich " + neu.length +
+    (neu.length === 1 ? " Ruhetag" : " Ruhetage") + " im Kalender vermerkt (" +
+    datumKurz(neu[0]) + (neu.length > 1 ? " bis " + datumKurz(neu[neu.length - 1]) : "") + ").";
+  const erloschen = flammeErloschenAm();
+  if(erloschen && erloschen > vorher) text += "\n\nDeine Flamme ist am " + datumKurz(erloschen) + " erloschen.";
+  meldung(text);
 }
 
 /** D1: Tag-Fenster im Kalender. Zeigt, was an dem Tag geplant/erledigt ist,

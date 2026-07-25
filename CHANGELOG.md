@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.103
+
+- Ruhetage sind jetzt schlauer: Du darfst so viele setzen, wie du willst — ab dem
+  dritten am Stück sagt dir die App aber ehrlich, wann deine Flamme erlischt. Und
+  Tage, an denen du gar nicht trainiert hast, trägt die App beim nächsten Öffnen
+  automatisch als Ruhetag im Kalender ein und fasst kurz zusammen, was seit deinem
+  letzten Besuch passiert ist.
+
 ## 0.102
 
 - Die Seite „Mehr" ist aufgeräumt: Statt einer langen Liste gibt es jetzt
