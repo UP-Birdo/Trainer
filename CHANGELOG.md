@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.093
+
+- Die Statistik ist neu geordnet und schlichter: Ganz oben zeigt jetzt eine
+  Körper-Figur, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast
+  — leicht, mittel, viel; ein Tipp öffnet die volle Muskelkarte. Darunter siehst
+  du die letzten 7 Tage als kurze farbige Vorschau. Der volle Monatskalender
+  wohnt jetzt aufgeräumt hinter dem Knopf „Kalender öffnen".
+
 ## 0.092
 
 - Der Plan-Editor ist aufgeräumter: Übungen erscheinen erst, wenn du ins

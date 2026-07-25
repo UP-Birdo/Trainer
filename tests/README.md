@@ -16,6 +16,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test85.js` | Meilenstein-Flammen (`serienMeilenstein`, Marken 7/30/100) + Scheibenrechner (`scheibenRechnen`, Zerlegung/Rest/Grenzen) |
 | `test86.js` | Feine Übung→Muskel-Zuordnung (`UEBUNG_MUSKELN` vollständig/gültig, `uebungMuskeln`-Ansicht) + Heatmap (`muskelHeatLevel`, `trainierteMuskeln`-Fenster) |
 | `test89.js` | Übungs-Bibliothek: `UEBUNG_INFO`-Vollständigkeit (Tipp je Übung, keine Leiche) + `bibFilter` (Kategorie/Suche) |
+| `test93.js` | Statistik-Neuordnung: geteilte Tag-Logik `tagStatus` (Rolle eines Tages, Reihenfolge Training→Ruhe→Vergangenheit→Plan) + `tagZellenStil` (Färbung/Kern/Sonderpunkt) — eine Quelle für Kalender und 7-Tage-Vorschau |
 
 ## Ausführen
 
@@ -35,6 +36,7 @@ VS Codes Electron springt ein):
     & $code tests\test85.js index.html
     & $code tests\test86.js index.html
     & $code tests\test89.js index.html
+    & $code tests\test93.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

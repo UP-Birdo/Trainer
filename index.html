@@ -230,6 +230,21 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .sonderpunkt{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
   width:5px;height:5px;border-radius:50%;background:var(--signal);opacity:.7}
 
+/* v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten,
+   gefärbt nach den zuletzt trainierten Muskeln. Antippen = volle Muskelkarte. */
+.koerper-vorschau{display:flex;justify-content:center;gap:22px;align-items:flex-start;
+  margin:8px 0 6px;cursor:pointer}
+.koerper-vorschau .mini-figur{width:104px}
+.koerper-vorschau .mini-figur img{opacity:1}
+
+/* v93: 7-Tage-Vorschau — die letzten sieben Tage als farbige Kette, gleiche
+   Färbung wie der volle Kalender (dieselben .tag-Klassen). */
+.wochenkette{display:flex;gap:4px;width:100%}
+.wochenkette .wspalte{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.wochenkette .wspalte .wt{font-family:var(--mono);font-size:10px;color:var(--muted);
+  text-align:center;font-weight:600}
+.wochenkette .tag{width:100%}
+
 /* Wasserzeichen: statisch GANZ UNTEN am Ende einer Ansicht (kein Overlay). */
 .wasserzeichen{margin-top:32px;text-align:center;font-family:var(--mono);font-size:9px;
   letter-spacing:.1em;color:var(--chalk);opacity:.14;user-select:none;-webkit-user-select:none}
@@ -682,10 +697,26 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <!-- ============================================================
-     Ansicht: Statistik (Serie, Kalender, Volumen, Körpergewicht)
+     Ansicht: Statistik (Muskel-Figur, Serie + 7-Tage-Vorschau, Volumen,
+     Körpergewicht). Der volle Monatskalender ist ausgelagert: view-kalender.
      ============================================================ -->
 <section id="view-statistik" class="view">
   <div class="kopf"><h1>Statistik</h1></div>
+  <!-- v93: „Der Mensch" ganz oben — welche Muskeln du zuletzt (7 Tage) trainiert hast -->
+  <div class="karte">
+    <div class="zeile"><h2>Zuletzt trainiert</h2>
+      <button class="info-knopf" onclick="infoUmschalten('info-koerper')" aria-label="Info">i</button></div>
+    <div id="info-koerper" class="meta info-text" hidden>Die Figur zeigt, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast — leicht, mittel, viel. Antippen öffnet die volle Muskelkarte.</div>
+    <div class="koerper-vorschau" onclick="muskelnOeffnen()">
+      <div class="mini-figur" id="koerper-front"></div>
+      <div class="mini-figur" id="koerper-back"></div>
+    </div>
+    <div id="koerper-legende" class="meta" style="text-align:center"></div>
+    <div id="koerper-hinweis" class="meta" style="text-align:center;margin-top:6px"></div>
+    <div class="knopfreihe"><button class="schmal breit" onclick="muskelnOeffnen()">Muskelkarte öffnen</button></div>
+  </div>
+
+  <!-- Serie + 7-Tage-Vorschau; der volle Monatskalender liegt unter „Kalender öffnen" (v93) -->
   <div class="karte">
     <div class="zeile">
       <div>
@@ -695,14 +726,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       </div>
     </div>
     <div id="statistik-klein" class="meta" style="margin-top:8px"></div>
-    <!-- v80: Monats-Navigation — vorher war nur der aktuelle Monat erreichbar -->
-    <div class="zeile" style="margin-top:10px">
-      <button class="mini" onclick="kalenderBlaettern(-1)" aria-label="Voriger Monat">‹</button>
-      <span id="kalender-titel" class="meta" style="font-weight:700"></span>
-      <button class="mini" onclick="kalenderBlaettern(1)" aria-label="Nächster Monat">›</button>
-    </div>
-    <div id="kalender" class="kalender"></div>
-    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
+    <div id="wochen-vorschau" style="margin-top:12px"></div>
+    <div class="knopfreihe" style="margin-top:10px"><button class="schmal breit" onclick="kalenderOeffnen()">Kalender öffnen</button></div>
   </div>
 
   <div class="karte">
@@ -757,12 +782,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Trainings</h2>
     <div id="protokoll-liste" class="meta abstand">–</div>
-  </div>
-
-  <div class="karte">
-    <div class="zeile"><h2>Muskelkarte</h2></div>
-    <div class="meta abstand">Körper antippen und sehen, welche Übungen welche Muskeln treffen.</div>
-    <div class="knopfreihe"><button class="schmal breit" onclick="muskelnOeffnen()">Muskelkarte öffnen</button></div>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1231,6 +1250,25 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Trainings-Verlauf</h1>
     <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Kalender (voller Monat — v93 aus der Statistik ausgelagert)
+     ============================================================ -->
+<section id="view-kalender" class="view">
+  <div class="kopf"><h1>Kalender</h1>
+    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+  <div class="karte">
+    <!-- v80: Monats-Navigation — vorher war nur der aktuelle Monat erreichbar -->
+    <div class="zeile" style="margin-top:2px">
+      <button class="mini" onclick="kalenderBlaettern(-1)" aria-label="Voriger Monat">‹</button>
+      <span id="kalender-titel" class="meta" style="font-weight:700"></span>
+      <button class="mini" onclick="kalenderBlaettern(1)" aria-label="Nächster Monat">›</button>
+    </div>
+    <div id="kalender" class="kalender"></div>
+    <div id="kalender-legende" class="meta" style="margin-top:8px"></div>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <section id="view-muskeln" class="view">
@@ -1823,7 +1861,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 92;
+const APP_VERSION = 93;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2536,7 +2574,7 @@ const VIEW_MIN_STUFE = {
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
-  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4,
+  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -3546,9 +3584,9 @@ function sportartenTabZurueck(){
 
 function statistikOeffnen(){
   document.getElementById("gewicht-formular").hidden = true;
-  kalenderOffset = 0;   // v80: Statistik öffnet immer beim aktuellen Monat
   kennzahlenZeichnen();
-  kalenderZeichnen();
+  koerperVorschauZeichnen();   // v93: „Der Mensch" ganz oben (7-Tage-Heatmap)
+  wochenVorschauZeichnen();    // v93: 7-Tage-Kalender-Vorschau statt vollem Monat
   volumenZeichnen();
   gewichtStatistikZeichnen();
   fortschrittZeichnen();
@@ -3556,6 +3594,15 @@ function statistikOeffnen(){
   bestwerteZeichnen();
   protokollZeichnen();
   zeige("view-statistik");
+}
+
+/** Vollen Monatskalender öffnen — seit v93 ein eigenes Untermenü, damit die
+    Statistik oben mit „dem Menschen" und der 7-Tage-Vorschau schlicht bleibt. */
+function kalenderOeffnen(){
+  if(!viewErlaubt("view-kalender")) return;
+  kalenderOffset = 0;   // v80: immer beim aktuellen Monat öffnen
+  kalenderZeichnen();
+  zeige("view-kalender");
 }
 
 /* Gut zu wissen: das Regelwerk der App an einem Ort — Doku, die beim
@@ -3651,6 +3698,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.093", punkte:[
+    "Die Statistik ist neu geordnet und schlichter: Ganz oben zeigt jetzt eine Körper-Figur, welche Muskeln du in den letzten 7 Tagen wie oft trainiert hast — leicht, mittel, viel; ein Tipp öffnet die volle Muskelkarte. Darunter siehst du die letzten 7 Tage als kurze farbige Vorschau. Der volle Monatskalender wohnt jetzt aufgeräumt hinter dem Knopf Kalender öffnen."
+  ]},
   { stand:"0.092", punkte:[
     "Der Plan-Editor ist aufgeräumter: Die Übungen erscheinen erst, wenn du ins Suchfeld tippst — nicht mehr eine lange Liste auf einmal. Duplizieren und Löschen sind ins ⋯-Menü oben gewandert, unten stehen nur noch Plan speichern und Abbrechen. Und der Erklärtext bei der Sportart ist weg."
   ]},
@@ -3976,6 +4026,42 @@ function tagFarben(farben, klasse, gefuellt){
            klasse: klasse + " mehrfach", kern:true };
 }
 
+/* v93: Reiner Tag-Status — welche Rolle ein Datum spielt. EINE Quelle für den
+   vollen Monatskalender UND die neue 7-Tage-Vorschau, damit beide nie
+   auseinanderlaufen. Vergangenheit/Heute zeigen die Realität (Training →
+   Sportart-Farben, sonst manueller/automatischer Ruhetag); die Planung
+   (Wochentakt/Einzeltermine) nur bei `mitPlan` für Heute/Zukunft.
+   Reihenfolge: Training schlägt Ruhetag schlägt Vergangenheit schlägt Planung. */
+function tagStatus(datum, heute, protoNachDatum, ruhetage, plaene, mitPlan){
+  const trainings = protoNachDatum[datum] || [];
+  if(trainings.length > 0){
+    return { art:"trainiert", farben:[...new Set(trainings.map(e => e.sportart))],
+             sonder: trainings.some(e => e.sonder) };
+  }
+  if(ruhetage.has(datum)) return { art:"ruhe", farben:[], sonder:false };
+  if(datum < heute)       return { art:"autoruhe", farben:[], sonder:false };
+  if(mitPlan){
+    const geplant = (plaene || []).filter(p => planAmTag(p, datum));
+    if(geplant.length){
+      return { art:"geplant", farben:[...new Set(geplant.map(p => p.sportart))],
+               sonder: geplant.some(p => (p.einzelTermine || []).includes(datum)) };
+    }
+  }
+  return { art:"leer", farben:[], sonder:false };
+}
+
+/** Tag-Status → Zellen-Darstellung (Klasse, Inline-Stil, Kern-Flag, Sonderpunkt).
+    Färbt Trainings/Planung über tagFarben — dieselbe Mal-Logik wie zuvor inline. */
+function tagZellenStil(st){
+  if(st.art === "trainiert" || st.art === "geplant"){
+    const f = tagFarben(st.farben.map(sportartFarbe), "tag " + st.art, st.art === "trainiert");
+    return { klasse:f.klasse, stil: f.stil ? ' style="' + f.stil + '"' : "", kern:f.kern,
+             punkt: st.sonder ? '<span class="sonderpunkt"></span>' : "" };
+  }
+  const extra = st.art === "ruhe" ? " ruhe" : st.art === "autoruhe" ? " autoruhe" : "";
+  return { klasse:"tag" + extra, stil:"", kern:false, punkt:"" };
+}
+
 /* v80: Monats-Blättern — vorher zeigte der Kalender stur den aktuellen Monat,
    vergangene Monate waren unerreichbar. Offset in Monaten, 0 = heute. */
 let kalenderOffset = 0;
@@ -4010,35 +4096,14 @@ function kalenderZeichnen(){
   for(let i = 0; i < wochentagErster; i++) html += '<div class="tag leer2"></div>';
   for(let tag = 1; tag <= tageImMonat; tag++){
     const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
-    const trainings = protoNachDatum[datum] || [];
-    let klasse = "tag", stil = "", punkt = "", kern = false;
-    const klick = ' onclick="tagOeffnen(\'' + datum + '\')"';   // D1: jeder Tag antippbar
-
-    if(trainings.length > 0){
-      // Realität schlägt Planung: der Tag zeigt, was wirklich gemacht wurde.
-      const farben = [...new Set(trainings.map(e => e.sportart))];
-      farben.forEach(f => benutzteSportarten.add(f));
-      const f = tagFarben(farben.map(sportartFarbe), "tag trainiert", true);
-      klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
-      if(trainings.some(e => e.sonder)) punkt = '<span class="sonderpunkt"></span>';
-    } else if(ruhetage.has(datum)){
-      klasse += " ruhe";                                        // manuell markiert
-    } else if(datum < heute){
-      klasse += " autoruhe";                                    // Vergangenheit ohne Training
-    } else {
-      // Heute/Zukunft: was ist für DIESES Datum geplant (Wochentakt + Einzeltermine)?
-      const geplant = sitzung.daten.plaene.filter(p => planAmTag(p, datum));
-      if(geplant.length){
-        const farben = [...new Set(geplant.map(p => p.sportart))];
-        farben.forEach(f => benutzteSportarten.add(f));
-        const f = tagFarben(farben.map(sportartFarbe), "tag geplant", false);
-        klasse = f.klasse; stil = ' style="' + f.stil + '"'; kern = f.kern;
-        if(geplant.some(p => (p.einzelTermine || []).includes(datum))) punkt = '<span class="sonderpunkt"></span>';
-      }
-    }
-    if(datum === heute) klasse += " heute";
-    const inhalt = kern ? '<span class="kern">' + tag + '</span>' : tag;
-    html += '<div class="' + klasse + '"' + stil + klick + '>' + inhalt + punkt + '</div>';
+    // Realität schlägt Planung — die Entscheidung trifft tagStatus (v93, geteilt).
+    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, sitzung.daten.plaene, true);
+    st.farben.forEach(f => benutzteSportarten.add(f));
+    const z = tagZellenStil(st);
+    let klasse = z.klasse; if(datum === heute) klasse += " heute";
+    const inhalt = z.kern ? '<span class="kern">' + tag + '</span>' : tag;
+    html += '<div class="' + klasse + '"' + z.stil +
+            ' onclick="tagOeffnen(\'' + datum + '\')">' + inhalt + z.punkt + '</div>';   // D1: jeder Tag antippbar
   }
   document.getElementById("kalender").innerHTML = html;
 
@@ -4050,6 +4115,35 @@ function kalenderZeichnen(){
   document.getElementById("kalender-legende").innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + teile.join("") +
     '<span><span style="color:var(--rest)">■</span> Ruhetag</span></div>';
+}
+
+/** v93: 7-Tage-Vorschau in der Statistik — die letzten sieben Tage (heute ganz
+    rechts) als farbige Kette, gefärbt wie der volle Kalender (dieselbe
+    tagStatus/tagFarben-Logik, mitPlan=false: nur Realität, keine Planung).
+    Antippen öffnet den Tag; „Kalender öffnen" führt in den vollen Monat. */
+function wochenVorschauZeichnen(){
+  const ziel = document.getElementById("wochen-vorschau"); if(!ziel) return;
+  const protoNachDatum = {};
+  sitzung.daten.protokoll.forEach(e => {
+    (protoNachDatum[e.datum] = protoNachDatum[e.datum] || []).push(e);
+  });
+  const ruhetage = new Set(sitzung.daten.ruhetage);
+  const heute = heuteAlsText();
+  const WT = ["So","Mo","Di","Mi","Do","Fr","Sa"];   // getDay(): 0 = Sonntag
+  let html = "";
+  for(let i = 6; i >= 0; i--){
+    const datum = tageVerschieben(heute, -i);
+    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, null, false);
+    const z = tagZellenStil(st);
+    let klasse = z.klasse; if(datum === heute) klasse += " heute";
+    const tag = Number(datum.slice(8,10));
+    const inhalt = z.kern ? '<span class="kern">' + tag + '</span>' : tag;
+    const wt = WT[new Date(datum + "T12:00:00").getDay()];
+    html += '<div class="wspalte"><span class="wt">' + wt + '</span>' +
+            '<div class="' + klasse + '"' + z.stil +
+            ' onclick="tagOeffnen(\'' + datum + '\')">' + inhalt + z.punkt + '</div></div>';
+  }
+  ziel.innerHTML = '<div class="wochenkette">' + html + '</div>';
 }
 
 function ruhetagUmschalten(datum){
@@ -4657,6 +4751,18 @@ function miniMuskelFigur(ziel, ansicht, muskeln){
   });
 }
 
+/** Wie miniMuskelFigur, aber gefärbt nach Trainings-Häufigkeit (Heatmap) statt
+    flach — für „den Menschen" ganz oben in der Statistik (v93). */
+function miniHeatFigur(ziel, ansicht, zaehler){
+  const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
+  ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
+    '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
+  const cv = ziel.querySelector("canvas");
+  muskelKarteLaden(ansicht).then(() => {
+    if(cv && cv.isConnected) muskelHeatmapAufCanvas(cv.getContext("2d"), ansicht, zaehler);
+  });
+}
+
 /* #region Trainings-Heatmap (v86): welche Muskeln zuletzt trainiert wurden.
    Aggregiert das Protokoll über die letzten MUSKEL_HEAT_TAGE Tage (ein Satz = ein
    Punkt je primärem Muskel der Übung), stuft in leicht/mittel/viel und färbt die
@@ -4730,12 +4836,34 @@ function muskelTrainingDetail(key){
 }
 
 /** Legende: Farbstufen der Heatmap erklären. */
-function muskelLegendeZeichnen(){
-  const el = document.getElementById("muskel-legende"); if(!el) return;
+/** Gemeinsame Heatmap-Legende (leicht/mittel/viel) — für die volle Muskelkarte
+    UND „den Menschen" in der Statistik (v93), damit beide dieselbe Skala zeigen. */
+function heatLegendeHtml(){
   const punkt = (bg, op, txt) => '<span style="display:inline-flex;align-items:center;gap:5px;margin:0 8px">' +
     '<span style="width:12px;height:12px;border-radius:3px;background:' + bg + ';opacity:' + op + '"></span>' + txt + '</span>';
-  el.innerHTML = '<div class="meta" style="margin-top:10px;text-align:center">Letzte ' + MUSKEL_HEAT_TAGE + ' Tage · ' +
-    punkt("var(--signal)", 0.45, "leicht") + punkt("var(--signal)", 1, "mittel") + punkt("var(--warn)", 1, "viel") + '</div>';
+  return 'Letzte ' + MUSKEL_HEAT_TAGE + ' Tage · ' +
+    punkt("var(--signal)", 0.45, "leicht") + punkt("var(--signal)", 1, "mittel") + punkt("var(--warn)", 1, "viel");
+}
+function muskelLegendeZeichnen(){
+  const el = document.getElementById("muskel-legende"); if(!el) return;
+  el.innerHTML = '<div class="meta" style="margin-top:10px;text-align:center">' + heatLegendeHtml() + '</div>';
+}
+
+/** v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten, gefärbt
+    nach den in den letzten MUSKEL_HEAT_TAGE Tagen trainierten Muskeln. Reine
+    Anzeige aus dem Protokoll; Antippen öffnet die volle Muskelkarte. */
+function koerperVorschauZeichnen(){
+  const zaehler = trainierteMuskeln(sitzung.daten.protokoll, heuteAlsText(), MUSKEL_HEAT_TAGE);
+  const vorne = document.getElementById("koerper-front");
+  const hinten = document.getElementById("koerper-back");
+  if(vorne)  miniHeatFigur(vorne, "front", zaehler);
+  if(hinten) miniHeatFigur(hinten, "back", zaehler);
+  const leg = document.getElementById("koerper-legende");
+  if(leg) leg.innerHTML = heatLegendeHtml();
+  const hinweis = document.getElementById("koerper-hinweis");
+  if(hinweis) hinweis.textContent = Object.keys(zaehler).length === 0
+    ? "Noch kein Training in den letzten " + MUSKEL_HEAT_TAGE + " Tagen."
+    : "";
 }
 /* #endregion Trainings-Heatmap */
 
@@ -8612,6 +8740,7 @@ function navGehe(bereich){
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
                      "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-muskeln":"nav-statistik",
+                     "view-kalender":"nav-statistik",
                      "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
