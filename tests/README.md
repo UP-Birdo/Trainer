@@ -20,10 +20,10 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test103.js` | Ruhetage/Flamme: `flammeGrenzdatum` (letzter Trainingstag + MAX_LUECKE+1) + `ruhetagRunLen` (Länge eines Ruhetag-Blocks) — Basis für Variante-B-Warnung + Auto-Ruhetage |
 | `test108.js` | Wizard ohne Tag-Zwang: `SPLITS` deckt 0..6 Tage ab, 0/1 Tag → genau 1 Ganzkörper-Plan, bestehende Splits (2..6) unverändert |
 | `test109.js` | Adaptive Pläne-Liste: `planListenDichte` (voll / zeilen / akkordeon) samt Schwellen + Sonderfall „viele Pläne, nur 1 Sportart → keine Akkordeon" |
-| `test110.js` | Statistik-Akkordeon: Verdrahtung Karte↔`statToggle` für alle sechs Statistiken + Toggle-Verhalten (`statToggle`/`statAkkordeonAnwenden` gegen Fake-DOM: Default zu, mehrere offen, erneut zu) |
 | `test111.js` | Ziele erst mit Plan-Übung: `planUebungen`/`zieleVerfuegbar` (nichts da → aus, Plan-Übung/Aktivität → an, nur bestehendes Ziel → an, leerer Übungsname zählt nicht) |
 | `test112.js` | Statistik-Karten öffnen per Tipp: „Öffnen"-Knöpfe entfernt, Karten tragen `muskelnOeffnen`/`kalenderOeffnen`, innere Ziele (Info-„i", Vorschau-Tage) stoppen das Bubbling |
 | `test113.js` | Progression aus echten Wdh: `effektiveNote` (Soll erreicht → Note bleibt, unter Soll → ≥4, unter Wdh-Minimum → 5, Zeit-/satzlose Übungen unverändert) |
+| `test114.js` | Statistik-Kacheln im Raster: sechs Statistiken in `.stat-raster` (auto-fit), Akkordeon (`statToggle`/`stat-inhalt`/`stat-kopf`) restlos entfernt, jede STAT_OPTIONEN-id hat ihre Karte, Info-Texte draußen |
 
 ## Ausführen
 
@@ -47,10 +47,10 @@ VS Codes Electron springt ein):
     & $code tests\test103.js index.html
     & $code tests\test108.js index.html
     & $code tests\test109.js index.html
-    & $code tests\test110.js index.html
     & $code tests\test111.js index.html
     & $code tests\test112.js index.html
     & $code tests\test113.js index.html
+    & $code tests\test114.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

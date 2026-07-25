@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.114
+
+- Die Statistik zeigt die angeschalteten Auswertungen jetzt wieder direkt — nicht
+  mehr eingeklappt hinter Überschriften. Welche erscheinen, wählst du weiter in
+  „Darstellung"; im Statistik-Tab ordnen sie sich als Kacheln an, die sich nach
+  Anzahl richten: eine allein wird breit, mehrere stehen nebeneinander. So hast du
+  alles auf einen Blick, ohne etwas aufklappen zu müssen.
+
 ## 0.113
 
 - Die automatische Steigerung hört jetzt auf deine echten Wiederholungen: Schaffst

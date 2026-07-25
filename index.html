@@ -434,11 +434,12 @@ body:not(.nav-an) #nav{display:none}
 /* v109: Sportart-Kopf als Akkordeon-Zeile bei sehr vielen Plänen. */
 .plan-gruppe{margin-bottom:8px}
 
-/* v110: Statistik-Akkordeon — eingeschaltete Statistik als antippbare Überschrift. */
-.stat-kopf{cursor:pointer;user-select:none;-webkit-user-select:none}
-.stat-pfeil{margin-left:8px}
 /* v112: ganze Statistik-Karte antippbar (Muskelkarte / Kalender) statt eigener Knöpfe. */
 .stat-tap{cursor:pointer}
+/* v114: angeschaltete Statistiken als Kacheln im Raster — eine = breit, mehrere
+   nebeneinander (auto-fit); versteckte Kacheln nehmen keine Zelle ein. */
+.stat-raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:start}
+.stat-raster > .karte{margin-bottom:0}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
@@ -768,72 +769,57 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="wochen-vorschau" style="margin-top:12px"></div>
   </div>
 
-  <!-- v110: Statistik-Akkordeon. Jede eingeschaltete Statistik ist eingeklappt
-       nur die Überschrift (Bibliothek-Muster); Antippen zeigt ihren Inhalt.
-       Kopf = .stat-kopf (Toggle), Inhalt = .stat-inhalt (Sibling, nicht genestet
-       -> Taps im Inhalt lösen den Toggle nicht aus). Info-Texte sind bewusst raus
-       (Nutzer-Wunsch „weniger Text in der Statistik"). -->
+  <!-- v114: Statistik-Kacheln im Raster. Die in „Darstellung" angeschalteten
+       Statistiken erscheinen direkt (Akkordeon von v110 zurückgebaut) als Kacheln,
+       die sich nach Anzahl anordnen: eine = breit, mehrere nebeneinander (CSS
+       auto-fit). Welche erscheinen, steuert statistikSichtbarkeit über das
+       hidden-Attribut — versteckte Kacheln nehmen keine Rasterzelle ein.
+       Info-Texte bleiben bewusst raus (Nutzer-Wunsch „weniger Text"). -->
+  <div class="stat-raster">
   <div class="karte stat-karte" id="stat-koerpergewicht" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('stat-koerpergewicht')">
-      <h2 style="margin:0">Körpergewicht</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <div class="knopfreihe" style="justify-content:flex-end">
-        <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
-      <div id="gewicht-formular" hidden>
-        <div class="raster abstand">
-          <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
-          <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
-        </div>
-        <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
+    <h2>Körpergewicht</h2>
+    <div class="knopfreihe" style="justify-content:flex-end">
+      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
+    <div id="gewicht-formular" hidden>
+      <div class="raster abstand">
+        <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
+        <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
       </div>
-      <div id="gewicht-diagramm" class="abstand"></div>
-      <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen im Untermenü. -->
-      <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
     </div>
+    <div id="gewicht-diagramm" class="abstand"></div>
+    <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen im Untermenü. -->
+    <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
   </div>
 
   <div class="karte stat-karte" id="stat-volumen" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('stat-volumen')">
-      <h2 id="volumen-titel" style="margin:0">Volumen</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <div id="volumen-diagramm" class="abstand"></div>
-    </div>
+    <h2 id="volumen-titel">Volumen</h2>
+    <div id="volumen-diagramm" class="abstand"></div>
   </div>
 
   <!-- v80: Ausdauer-Pendant zum Volumen — km (bzw. Minuten) je Woche/Monat -->
   <div class="karte stat-karte" id="ausdauer-karte" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('ausdauer-karte')">
-      <h2 id="ausdauer-titel" style="margin:0">Ausdauer</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
-      <div id="ausdauer-diagramm" class="abstand"></div>
-    </div>
+    <h2 id="ausdauer-titel">Ausdauer</h2>
+    <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
+    <div id="ausdauer-diagramm" class="abstand"></div>
   </div>
 
   <div class="karte stat-karte" id="fortschritt-karte" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('fortschritt-karte')">
-      <h2 style="margin:0">Übungs-Fortschritt</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
-      <div id="fortschritt-diagramm" class="abstand"></div>
-    </div>
+    <h2>Übungs-Fortschritt</h2>
+    <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
+    <div id="fortschritt-diagramm" class="abstand"></div>
   </div>
 
   <!-- v80: Bestwerte — der beste protokollierte Satz je Übung -->
   <div class="karte stat-karte" id="bestwerte-karte" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('bestwerte-karte')">
-      <h2 style="margin:0">Bestwerte</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <div id="bestwerte-liste" class="abstand"></div>
-    </div>
+    <h2>Bestwerte</h2>
+    <div id="bestwerte-liste" class="abstand"></div>
   </div>
 
   <div class="karte stat-karte" id="stat-trainings" hidden>
-    <div class="zeile stat-kopf" onclick="statToggle('stat-trainings')">
-      <h2 style="margin:0">Trainings</h2><span class="stat-pfeil meta">›</span></div>
-    <div class="stat-inhalt" hidden>
-      <div id="protokoll-liste" class="meta abstand">–</div>
-    </div>
+    <h2>Trainings</h2>
+    <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
   </div>
 
   <!-- v106: Weitere Statistiken wählt man in „Darstellung" — ein Sprung dorthin. -->
@@ -2081,7 +2067,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 113;
+const APP_VERSION = 114;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3857,7 +3843,6 @@ function statistikOeffnen(){
   bestwerteZeichnen();
   protokollZeichnen();
   statistikSichtbarkeit();   // v106: nur die in „Darstellung" gewählten optionalen Statistiken zeigen
-  statOffen.clear(); statAkkordeonAnwenden();   // v110: Statistik startet eingeklappt (nur Überschriften)
   zeige("view-statistik");
 }
 
@@ -3899,25 +3884,9 @@ function statUmschalten(id){
   statAuswahlZeichnen();
 }
 
-/* v110: Statistik-Akkordeon. Die eingeschalteten Statistiken sind eingeklappt nur
-   die Überschrift (Bibliothek-Muster); Antippen zeigt den Inhalt. Session-Zustand
-   (keine Speicherung), Default alles zu — beim Öffnen startet die Statistik
-   eingeklappt. Mehrere dürfen gleichzeitig offen sein (anders als die Bibliothek:
-   die eingeschalteten Statistiken will man nebeneinander im Blick haben). */
-const statOffen = new Set();
-function statToggle(kartenId){
-  if(statOffen.has(kartenId)) statOffen.delete(kartenId); else statOffen.add(kartenId);
-  statAkkordeonAnwenden();
-}
-function statAkkordeonAnwenden(){
-  document.querySelectorAll("#view-statistik .stat-karte").forEach(karte => {
-    const auf = statOffen.has(karte.id);
-    const inhalt = karte.querySelector(".stat-inhalt");
-    const pfeil = karte.querySelector(".stat-pfeil");
-    if(inhalt) inhalt.hidden = !auf;
-    if(pfeil) pfeil.textContent = auf ? "⌄" : "›";
-  });
-}
+/* v114: das Statistik-Akkordeon (v110) ist entfernt — die angeschalteten
+   Statistiken erscheinen direkt als Kacheln im Raster (.stat-raster). Welche
+   sichtbar sind, steuert weiter statistikSichtbarkeit über das hidden-Attribut. */
 
 /** Vollen Monatskalender öffnen — seit v93 ein eigenes Untermenü, damit die
     Statistik oben mit „dem Menschen" und der 7-Tage-Vorschau schlicht bleibt. */
@@ -4021,6 +3990,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.114", punkte:[
+    "Die Statistik zeigt die angeschalteten Auswertungen jetzt wieder direkt — nicht mehr eingeklappt hinter Überschriften. Welche erscheinen, wählst du weiter in Darstellung; im Statistik-Tab ordnen sie sich als Kacheln an, die sich nach Anzahl richten: eine allein wird breit, mehrere stehen nebeneinander. So hast du alles auf einen Blick, ohne etwas aufklappen zu müssen."
+  ]},
   { stand:"0.113", punkte:[
     "Die automatische Steigerung hört jetzt auf deine echten Wiederholungen: Schaffst du weniger als geplant, steigert die App das nächste Mal nicht einfach weiter, sondern hält (oder geht bei deutlich zu wenig eine Stufe zurück) — auch wenn du die Übung als leicht bewertest. Erreichst du dein Soll auf allen Sätzen, zählt wie bisher deine Bewertung. Im Ergebnis steht dann ein kurzer Hinweis, dass diesmal gehalten wurde, damit klar ist, warum."
   ]},
