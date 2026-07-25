@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.110
+
+- Die Statistik ist noch aufgeräumter: Jede Statistik, die du in „Darstellung"
+  eingeschaltet hast (Körpergewicht, Volumen, Ausdauer, Fortschritt, Bestwerte,
+  Trainings), steht jetzt zunächst nur als Überschrift da — wie in der
+  Übungs-Bibliothek. Tippst du sie an, klappt sie auf und zeigt ihre Kurve oder
+  Liste. So siehst du auf einen Blick, was da ist, und öffnest gezielt nur, was
+  dich interessiert. Die kleinen Info-Texte sind aus der Statistik verschwunden.
+
 ## 0.109
 
 - Die Pläne-Seite wächst jetzt mit: Bei wenigen Plänen siehst du wie gewohnt die

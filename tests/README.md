@@ -20,6 +20,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test103.js` | Ruhetage/Flamme: `flammeGrenzdatum` (letzter Trainingstag + MAX_LUECKE+1) + `ruhetagRunLen` (Länge eines Ruhetag-Blocks) — Basis für Variante-B-Warnung + Auto-Ruhetage |
 | `test108.js` | Wizard ohne Tag-Zwang: `SPLITS` deckt 0..6 Tage ab, 0/1 Tag → genau 1 Ganzkörper-Plan, bestehende Splits (2..6) unverändert |
 | `test109.js` | Adaptive Pläne-Liste: `planListenDichte` (voll / zeilen / akkordeon) samt Schwellen + Sonderfall „viele Pläne, nur 1 Sportart → keine Akkordeon" |
+| `test110.js` | Statistik-Akkordeon: Verdrahtung Karte↔`statToggle` für alle sechs Statistiken + Toggle-Verhalten (`statToggle`/`statAkkordeonAnwenden` gegen Fake-DOM: Default zu, mehrere offen, erneut zu) |
 
 ## Ausführen
 
@@ -43,6 +44,7 @@ VS Codes Electron springt ein):
     & $code tests\test103.js index.html
     & $code tests\test108.js index.html
     & $code tests\test109.js index.html
+    & $code tests\test110.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

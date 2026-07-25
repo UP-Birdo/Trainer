@@ -434,6 +434,10 @@ body:not(.nav-an) #nav{display:none}
 /* v109: Sportart-Kopf als Akkordeon-Zeile bei sehr vielen Plänen. */
 .plan-gruppe{margin-bottom:8px}
 
+/* v110: Statistik-Akkordeon — eingeschaltete Statistik als antippbare Überschrift. */
+.stat-kopf{cursor:pointer;user-select:none;-webkit-user-select:none}
+.stat-pfeil{margin-left:8px}
+
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
   font-family:var(--mono);background:transparent;border:2px solid var(--muted);color:var(--muted);
@@ -763,59 +767,72 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe" style="margin-top:10px"><button class="schmal breit" onclick="kalenderOeffnen()">Kalender öffnen</button></div>
   </div>
 
-  <div class="karte" id="stat-koerpergewicht" hidden>
-    <div class="zeile">
-      <h2>Körpergewicht</h2>
-      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
-    </div>
-    <div id="gewicht-formular" hidden>
-      <div class="raster abstand">
-        <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
-        <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
+  <!-- v110: Statistik-Akkordeon. Jede eingeschaltete Statistik ist eingeklappt
+       nur die Überschrift (Bibliothek-Muster); Antippen zeigt ihren Inhalt.
+       Kopf = .stat-kopf (Toggle), Inhalt = .stat-inhalt (Sibling, nicht genestet
+       -> Taps im Inhalt lösen den Toggle nicht aus). Info-Texte sind bewusst raus
+       (Nutzer-Wunsch „weniger Text in der Statistik"). -->
+  <div class="karte stat-karte" id="stat-koerpergewicht" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('stat-koerpergewicht')">
+      <h2 style="margin:0">Körpergewicht</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <div class="knopfreihe" style="justify-content:flex-end">
+        <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
+      <div id="gewicht-formular" hidden>
+        <div class="raster abstand">
+          <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
+          <div><label for="gewicht-datum">Datum</label><input id="gewicht-datum" type="date"></div>
+        </div>
+        <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
       </div>
-      <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
+      <div id="gewicht-diagramm" class="abstand"></div>
+      <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen im Untermenü. -->
+      <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
     </div>
-    <div id="gewicht-diagramm" class="abstand"></div>
-    <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen jetzt im Untermenü,
-         damit die Statistik schlank bleibt (nur Eintragen + Kurve). -->
-    <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
   </div>
 
-  <div class="karte" id="stat-volumen" hidden>
-    <div class="zeile"><h2 id="volumen-titel">Volumen</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-volumen')" aria-label="Info">i</button></div>
-    <div id="info-volumen" class="meta info-text" hidden>Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10). Es geht um den Trend, nicht um Präzision.</div>
-    <div id="volumen-diagramm" class="abstand"></div>
+  <div class="karte stat-karte" id="stat-volumen" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('stat-volumen')">
+      <h2 id="volumen-titel" style="margin:0">Volumen</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <div id="volumen-diagramm" class="abstand"></div>
+    </div>
   </div>
 
   <!-- v80: Ausdauer-Pendant zum Volumen — km (bzw. Minuten) je Woche/Monat -->
-  <div class="karte" id="ausdauer-karte" hidden>
-    <div class="zeile"><h2 id="ausdauer-titel">Ausdauer</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-ausdauer')" aria-label="Info">i</button></div>
-    <div id="info-ausdauer" class="meta info-text" hidden>Summe je Woche (ab ~3 Monaten je Monat): Strecke, wo es eine gibt — sonst Minuten. Der gelbe Balken ist der laufende Zeitraum.</div>
-    <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
-    <div id="ausdauer-diagramm" class="abstand"></div>
+  <div class="karte stat-karte" id="ausdauer-karte" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('ausdauer-karte')">
+      <h2 id="ausdauer-titel" style="margin:0">Ausdauer</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
+      <div id="ausdauer-diagramm" class="abstand"></div>
+    </div>
   </div>
 
-  <div class="karte" id="fortschritt-karte" hidden>
-    <div class="zeile"><h2>Übungs-Fortschritt</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-fortschritt')" aria-label="Info">i</button></div>
-    <div id="info-fortschritt" class="meta info-text" hidden>Bestwert je Trainingstag. Mit Gewicht: geschätztes 1RM (Gewicht × (1 + Wdh ÷ 30)). Ohne Gewicht: die Wiederholungen. Halteübungen: die Sekunden.</div>
-    <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
-    <div id="fortschritt-diagramm" class="abstand"></div>
+  <div class="karte stat-karte" id="fortschritt-karte" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('fortschritt-karte')">
+      <h2 style="margin:0">Übungs-Fortschritt</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
+      <div id="fortschritt-diagramm" class="abstand"></div>
+    </div>
   </div>
 
   <!-- v80: Bestwerte — der beste protokollierte Satz je Übung -->
-  <div class="karte" id="bestwerte-karte" hidden>
-    <div class="zeile"><h2>Bestwerte</h2>
-      <button class="info-knopf" onclick="infoUmschalten('info-bestwerte')" aria-label="Info">i</button></div>
-    <div id="info-bestwerte" class="meta info-text" hidden>Der beste protokollierte Satz je Übung: mit Gewicht als Gewicht × Wiederholungen, ohne Gewicht die meisten Wiederholungen, bei Halteübungen die längste Zeit.</div>
-    <div id="bestwerte-liste" class="abstand"></div>
+  <div class="karte stat-karte" id="bestwerte-karte" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('bestwerte-karte')">
+      <h2 style="margin:0">Bestwerte</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <div id="bestwerte-liste" class="abstand"></div>
+    </div>
   </div>
 
-  <div class="karte" id="stat-trainings" hidden>
-    <h2>Trainings</h2>
-    <div id="protokoll-liste" class="meta abstand">–</div>
+  <div class="karte stat-karte" id="stat-trainings" hidden>
+    <div class="zeile stat-kopf" onclick="statToggle('stat-trainings')">
+      <h2 style="margin:0">Trainings</h2><span class="stat-pfeil meta">›</span></div>
+    <div class="stat-inhalt" hidden>
+      <div id="protokoll-liste" class="meta abstand">–</div>
+    </div>
   </div>
 
   <!-- v106: Weitere Statistiken wählt man in „Darstellung" — ein Sprung dorthin. -->
@@ -2062,7 +2079,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 109;
+const APP_VERSION = 110;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3819,6 +3836,7 @@ function statistikOeffnen(){
   bestwerteZeichnen();
   protokollZeichnen();
   statistikSichtbarkeit();   // v106: nur die in „Darstellung" gewählten optionalen Statistiken zeigen
+  statOffen.clear(); statAkkordeonAnwenden();   // v110: Statistik startet eingeklappt (nur Überschriften)
   zeige("view-statistik");
 }
 
@@ -3858,6 +3876,26 @@ function statUmschalten(id){
   if(i >= 0) liste.splice(i, 1); else liste.push(id);
   speichern();
   statAuswahlZeichnen();
+}
+
+/* v110: Statistik-Akkordeon. Die eingeschalteten Statistiken sind eingeklappt nur
+   die Überschrift (Bibliothek-Muster); Antippen zeigt den Inhalt. Session-Zustand
+   (keine Speicherung), Default alles zu — beim Öffnen startet die Statistik
+   eingeklappt. Mehrere dürfen gleichzeitig offen sein (anders als die Bibliothek:
+   die eingeschalteten Statistiken will man nebeneinander im Blick haben). */
+const statOffen = new Set();
+function statToggle(kartenId){
+  if(statOffen.has(kartenId)) statOffen.delete(kartenId); else statOffen.add(kartenId);
+  statAkkordeonAnwenden();
+}
+function statAkkordeonAnwenden(){
+  document.querySelectorAll("#view-statistik .stat-karte").forEach(karte => {
+    const auf = statOffen.has(karte.id);
+    const inhalt = karte.querySelector(".stat-inhalt");
+    const pfeil = karte.querySelector(".stat-pfeil");
+    if(inhalt) inhalt.hidden = !auf;
+    if(pfeil) pfeil.textContent = auf ? "⌄" : "›";
+  });
 }
 
 /** Vollen Monatskalender öffnen — seit v93 ein eigenes Untermenü, damit die
@@ -3962,6 +4000,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.110", punkte:[
+    "Die Statistik ist noch aufgeräumter: Jede Statistik, die du in Darstellung eingeschaltet hast (Körpergewicht, Volumen, Ausdauer, Fortschritt, Bestwerte, Trainings), steht jetzt zunächst nur als Überschrift da — wie in der Übungs-Bibliothek. Tippst du sie an, klappt sie auf und zeigt ihre Kurve oder Liste. So siehst du auf einen Blick, was da ist, und öffnest gezielt nur, was dich interessiert. Die kleinen Info-Texte sind aus der Statistik verschwunden."
+  ]},
   { stand:"0.109", punkte:[
     "Die Pläne-Seite wächst jetzt mit: Bei wenigen Plänen siehst du wie gewohnt die vollen Karten. Werden es mehr, schrumpfen sie zu schlanken Zeilen — links der Name, rechts der Start-Knopf (Erledigt, Bearbeiten und der Rest weiterhin über langen Druck). Und bei sehr vielen Plänen über mehrere Sportarten hinweg siehst du zuerst nur die Sportarten; tippst du eine an, klappen ihre Pläne auf."
   ]},
