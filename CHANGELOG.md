@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.109
+
+- Die Pläne-Seite wächst jetzt mit: Bei wenigen Plänen siehst du wie gewohnt die
+  vollen Karten. Werden es mehr, schrumpfen sie zu schlanken Zeilen — links der
+  Name, rechts der Start-Knopf (Erledigt, Bearbeiten und der Rest weiterhin über
+  langen Druck). Und bei sehr vielen Plänen über mehrere Sportarten hinweg siehst
+  du zuerst nur die Sportarten; tippst du eine an, klappen ihre Pläne auf.
+
+## 0.108
+
+- Der Trainingsplan-Assistent verlangt keinen festen Tag mehr: Du kannst beim
+  Schritt „An welchen Tagen trainierst du?" auch gar keinen Tag wählen. Dann legt
+  die App einen Ganzkörper-Plan ohne festen Tag an, den du einfach einträgst, wenn
+  du ihn gemacht hast. Wählst du Tage, entsteht wie bisher ein Plan je Tag.
+
 ## 0.107
 
 - Ziele haben jetzt ein eigenes Menü: Auf der Heute-Seite tippst du auf die

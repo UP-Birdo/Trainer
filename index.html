@@ -428,6 +428,12 @@ body:not(.nav-an) #nav{display:none}
    Gezielt nur auf Plan-Karten, damit .geheim (user-select:all) heil bleibt. */
 .karte[data-plan]{user-select:none;-webkit-user-select:none}
 
+/* v109: schlanke Plan-Zeile (Name links, Start rechts) für lange Listen. */
+.plan-zeile{padding:10px 14px}
+.plan-zeile .plan-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* v109: Sportart-Kopf als Akkordeon-Zeile bei sehr vielen Plänen. */
+.plan-gruppe{margin-bottom:8px}
+
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
   font-family:var(--mono);background:transparent;border:2px solid var(--muted);color:var(--muted);
@@ -2056,7 +2062,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 107;
+const APP_VERSION = 109;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3317,6 +3323,24 @@ function sichtbarePlaene(){
   return sitzung.daten.plaene.slice();
 }
 
+/* v109: Anzeige-Dichte der Pläne-Liste — wächst mit der Zahl der Pläne.
+   Schwellen bewusst konservativ: bis 4 Pläne volle Karten, ab 9 Plänen über
+   mindestens 2 Sportarten nur die Sportart-Köpfe (Akkordeon), dazwischen
+   schlanke Zeilen (Name links, Start rechts). */
+const PLAN_VOLL_MAX = 4;
+const PLAN_AKKORDEON_MIN = 9;
+let planGruppenOffen = new Set();   // im Akkordeon aufgeklappte Sportarten (leer = alle zu)
+function planListenDichte(sichtbar, gruppenAnzahl){
+  if(sichtbar.length <= PLAN_VOLL_MAX) return "voll";
+  if(sichtbar.length >= PLAN_AKKORDEON_MIN && gruppenAnzahl >= 2) return "akkordeon";
+  return "zeilen";
+}
+function planGruppeUmschalten(sportId){
+  if(planGruppenOffen.has(sportId)) planGruppenOffen.delete(sportId);
+  else planGruppenOffen.add(sportId);
+  planListeZeichnen();
+}
+
 function planListeZeichnen(){
   // v76: Kopf (Titel + „⋯ Mehr") auf die Stufe einstellen; auf Stufe 1/2 ist
   // dieser Tab der Notizblock (eine Seite, Abschnitte mit Freitext bzw.
@@ -3375,18 +3399,40 @@ function planListeZeichnen(){
       '</div></div>';
   };
 
-  /* B4: nach Sportart gruppiert. Reihenfolge der Gruppen wie in SPORTARTEN,
-     innerhalb einer Gruppe die vom Nutzer gewählte Reihenfolge (▲/▼ im Plan-
-     Menü, gespeichert als Array-Reihenfolge). Sportarten, die im Moment keine
-     sichtbaren Pläne haben, tauchen nicht auf. Ein farbiger Kopf je Gruppe
-     ersetzt die Sportart-Marke in den einzelnen Karten. */
-  let html = "";
+  /* v109: schlanke Zeile — Name links, Start rechts. Sekundär-Aktionen
+     (Erledigt, Bearbeiten, Duplizieren, Löschen) über den langen Druck. */
+  const zeile = p => {
+    const istAkt = p.typ === "aktivitaet";
+    return '<div class="karte plan-zeile" data-plan="' + p.id + '">' +
+      '<div class="zeile">' +
+        '<span class="plan-name">' + text(p.name) + '</span>' +
+        '<button class="primaer schmal" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
+      '</div></div>';
+  };
+
+  /* B4 + v109: nach Sportart gruppiert (Gruppen-Reihenfolge wie in SPORTARTEN,
+     innerhalb einer Gruppe die vom Nutzer gewählte ▲/▼-Reihenfolge). Die
+     Anzeige-Dichte wächst mit der Zahl der Pläne: volle Karten (wenige), schlanke
+     Zeilen (mehr) oder nur die Sportart-Köpfe als Akkordeon (sehr viele über
+     mehrere Sportarten). Sportarten ohne sichtbare Pläne tauchen nicht auf. */
   const gruppen = SPORTARTEN.filter(s => sichtbar.some(p => (p.sportart || "kraft") === s.id));
+  const dichte = planListenDichte(sichtbar, gruppen.length);
+  const renderer = dichte === "voll" ? karte : zeile;
+  let html = "";
   gruppen.forEach(s => {
     const grp = sichtbar.filter(p => (p.sportart || "kraft") === s.id);   // stabile Filter-Reihenfolge = Array-Reihenfolge
-    html += '<div class="meta" style="margin:14px 0 6px;font-weight:700">' +
-      '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
-      grp.map(karte).join("");
+    if(dichte === "akkordeon"){
+      const offen = planGruppenOffen.has(s.id);
+      html += '<button class="breit einst-zeile plan-gruppe" onclick="planGruppeUmschalten(\'' + s.id + '\')">' +
+          '<span><span style="color:' + s.farbe + '">■</span> ' + text(s.name) +
+            ' <span class="meta">(' + grp.length + ')</span></span>' +
+          '<span class="meta">' + (offen ? "⌄" : "›") + '</span></button>' +
+        (offen ? grp.map(renderer).join("") : "");
+    } else {
+      html += '<div class="meta" style="margin:14px 0 6px;font-weight:700">' +
+        '<span style="color:' + s.farbe + '">■</span> ' + text(s.name) + '</div>' +
+        grp.map(renderer).join("");
+    }
   });
   ziel.innerHTML = html;
   langdruckEinrichten();
@@ -3464,6 +3510,14 @@ function planMenue(planId){
   // v79: „Bearbeiten" erst ab Stufe 3 — der Editor ist darunter gesperrt
   // (VIEW_MIN_STUFE), und im Notizblock bearbeitet man direkt in der Karte.
   const aktionen = [];
+  // v109: In der schlanken/Akkordeon-Liste fehlt der Erledigt-Knopf an der Zeile
+  // (nur Name + Start). Dann hier anbieten; bei vollen Karten steht er schon dort.
+  if(!einfach){
+    const sichtbar = sichtbarePlaene();
+    const gruppenAnzahl = SPORTARTEN.filter(x => sichtbar.some(q => (q.sportart || "kraft") === x.id)).length;
+    if(planListenDichte(sichtbar, gruppenAnzahl) !== "voll")
+      aktionen.push({ text:"Erledigt", tun:() => (plan.typ === "aktivitaet" ? planErledigt : kraftErledigt)(planId) });
+  }
   if(!einfach) aktionen.push({ text:"Bearbeiten", tun:() => editorOeffnen(planId) });
   aktionen.push({ text:"Duplizieren", tun:() => planDuplizieren(planId) });
   if(pos > 0) aktionen.push({ text:"▲ Nach oben", tun:() => planSchieben(planId, -1) });
@@ -3908,6 +3962,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.109", punkte:[
+    "Die Pläne-Seite wächst jetzt mit: Bei wenigen Plänen siehst du wie gewohnt die vollen Karten. Werden es mehr, schrumpfen sie zu schlanken Zeilen — links der Name, rechts der Start-Knopf (Erledigt, Bearbeiten und der Rest weiterhin über langen Druck). Und bei sehr vielen Plänen über mehrere Sportarten hinweg siehst du zuerst nur die Sportarten; tippst du eine an, klappen ihre Pläne auf."
+  ]},
+  { stand:"0.108", punkte:[
+    "Der Trainingsplan-Assistent verlangt keinen festen Tag mehr: Du kannst beim Schritt An welchen Tagen trainierst du? auch gar keinen Tag wählen. Dann legt die App einen Ganzkörper-Plan ohne festen Tag an, den du einfach einträgst, wenn du ihn gemacht hast. Wählst du Tage, entsteht wie bisher ein Plan je Tag."
+  ]},
   { stand:"0.107", punkte:[
     "Ziele haben jetzt ein eigenes Menü: Auf der Heute-Seite tippst du auf die Ziele-Karte und landest direkt in der Verwaltung — dort legst du mit + neue Ziele an, schätzt sie ein, löschst sie oder baust sie in Pläne ein. Auf Heute steht der Anlege-Knopf nur, solange du noch kein Ziel hast; danach zeigt die Karte deine Ziele (bei ein bis zwei ausführlich, bei mehr als Überschriften)."
   ]},
@@ -6048,6 +6108,10 @@ function sportUebungBauen(vorlage){
 /* Aufteilung je Trainingshäufigkeit. Reihenfolge der Kategorien = Priorität;
    wie viele davon genutzt werden, entscheidet die gewählte Trainingsdauer. */
 const SPLITS = {
+  // v108: 0 und 1 Tag ergeben EINEN Ganzkörper-Plan (bei 0 Tagen ohne festen Tag,
+  // s. plaeneErstellen). So kann der Wizard ohne Tag-Zwang laufen.
+  0: [ ["Ganzkörper", ["beine","druck","zug","rumpf","druck","zug"]] ],
+  1: [ ["Ganzkörper", ["beine","druck","zug","rumpf","druck","zug"]] ],
   2: [ ["Ganzkörper A", ["beine","druck","zug","rumpf","druck","beine"]],
        ["Ganzkörper B", ["druck","beine","zug","rumpf","zug","beine"]] ],
   3: [ ["Ganzkörper A", ["beine","druck","zug","rumpf","druck","zug"]],
@@ -6142,7 +6206,7 @@ const WIZARD_FRAGEN = [
       ["ausdauer","Kraftausdauer","15–25 Wdh · 30 s Pause"]
     ]},
   { id:"wochentage", typ:"multi", frage:"An welchen Tagen trainierst du?",
-    hilfe:"2 bis 6 Tage. Muskeln wachsen an den Ruhetagen — mehr ist nicht besser.",
+    hilfe:"Bis zu 6 Tage. Muskeln wachsen an den Ruhetagen — mehr ist nicht besser. Ohne Tag entsteht ein Ganzkörper-Plan ohne festen Tag, den du einträgst, wenn er passiert ist.",
     raster:true,
     nurWenn: kraftGewaehlt,
     optionen:[[1,"Montag"],[2,"Dienstag"],[3,"Mittwoch"],[4,"Donnerstag"],[5,"Freitag"],[6,"Samstag"],[7,"Sonntag"]]},
@@ -6368,8 +6432,10 @@ function wzWeiter(){
     if(f.id === "sportarten" && einrichtung.sportarten.length === 0){
       meldung("Bitte mindestens eine Sportart wählen."); return;
     }
-    if(f.id === "wochentage" && (einrichtung.wochentage.length < 2 || einrichtung.wochentage.length > 6)){
-      meldung("Bitte 2 bis 6 Trainingstage wählen."); return;
+    // v108: kein Tag-Zwang mehr — 0 Tage erlaubt (dann ein einzelner Ganzkörper-
+    // Plan ohne festen Tag). Nur die Obergrenze bleibt; SPLITS deckt 0..6 ab.
+    if(f.id === "wochentage" && einrichtung.wochentage.length > 6){
+      meldung("Höchstens 6 Trainingstage wählen."); return;
     }
   }
   wzSchritt++;
@@ -6411,10 +6477,12 @@ function wzZusammenfassung(){
   const geraete = einrichtung.geraete.length
     ? einrichtung.geraete.map(g => geraetName(g)).join(", ") : "nur Körpergewicht";
   const bonus = einrichtung.bonus.length ? einrichtung.bonus.map(b => beschriften("bonus", b)).join(" · ") : "keine";
+  // v108: 0/1 Tag ergibt EINEN Ganzkörper-Plan — die Plan-Zahl kommt aus SPLITS, nicht aus der Tage-Zahl.
+  const gesamt = SPLITS[einrichtung.wochentage.length].length + aktZeilen.length;
 
   document.getElementById("wz-buehne").innerHTML =
     '<h2 class="wz-frage">Passt das so?</h2>' +
-    '<div class="wz-hilfe">Daraus entstehen ' + (einrichtung.wochentage.length + aktZeilen.length) + ' Pläne. Alles ist danach frei änderbar.</div>' +
+    '<div class="wz-hilfe">Daraus ' + (gesamt === 1 ? "entsteht ein Plan" : "entstehen " + gesamt + " Pläne") + '. Alles ist danach frei änderbar.</div>' +
     '<div class="karte"><div class="meta" style="line-height:2">' +
       (aktZeilen.length ? aktZeilen.map(z => text(z)).join("<br>") + "<br><br>" : "") +
       "Krafttraining<br>" +
@@ -6422,7 +6490,7 @@ function wzZusammenfassung(){
       "Ausrüstung: " + geraete + "<br>" +
       "Erfahrung: " + beschriften("erfahrung", einrichtung.erfahrung) + "<br>" +
       "Ziel: " + beschriften("ziel", einrichtung.ziel) + "<br>" +
-      "Tage: " + tage + "<br>" +
+      "Tage: " + (tage || "ohne festen Tag") + "<br>" +
       "Dauer: " + beschriften("dauer", einrichtung.dauer) + "<br>" +
       "Schwerpunkt: " + beschriften("fokus", einrichtung.fokus) + "<br>" +
       "Bonus: " + bonus +
@@ -6555,9 +6623,9 @@ function plaeneErstellen(){
      EINE Übung mehr — so, wie es der Hilfetext verspricht. */
   const fokusKategorien = { ober:["druck","zug"], beine:["beine"], rumpf:["rumpf"] }[einrichtung.fokus] || [];
 
-  /* Ohne Krafttraining gibt es keine Wochentage und damit kein SPLITS[0] —
-     der Aufruf würde hier abstürzen. Die Wache MUSS vor der Berechnung
-     stehen, nicht erst vor ihrer Verwendung. */
+  /* Ohne Krafttraining gibt es keine Wochentage; die Wache MUSS vor der
+     Berechnung stehen. Mit Kraft, aber 0 oder 1 Tag liefert SPLITS[0]/SPLITS[1]
+     einen einzelnen Ganzkörper-Plan (v108) — bei 0 Tagen ohne festen Tag. */
   const neuePlaene = !kraftGewaehlt(einrichtung) ? [] :
     SPLITS[einrichtung.wochentage.length].map(([titel, kategorien], tagIndex) => {
     let liste = kategorien.slice(0, anzahl);
@@ -6576,7 +6644,9 @@ function plaeneErstellen(){
     // über den Namen zuordnet; die reine Übungs-/Ziel-Zuordnung per ID kommt
     // im nächsten Schritt, dann können auch die Buchstaben fallen.
     const plan = { id:neueId(), name: titel, quelle:"assistent",
-                   sportart:"kraft", typ:"kraft", tage:[ einrichtung.wochentage[tagIndex] ],   // Tage sind ein FELD, nicht der Name
+                   sportart:"kraft", typ:"kraft",
+                   // Tage sind ein FELD, nicht der Name. v108: ohne gewählten Tag bleibt es leer (immer sichtbar).
+                   tage: einrichtung.wochentage[tagIndex] != null ? [ einrichtung.wochentage[tagIndex] ] : [],
                    reihenfolge:"klassisch",
                    aufwaermen: einrichtung.bonus.includes("aufwaermen"),
                    dehnen: einrichtung.bonus.includes("dehnen"),
