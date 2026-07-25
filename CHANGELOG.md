@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.098
+
+- Die Körpergewicht-Statistik ist aufgeräumt: In der Statistik siehst du nur noch
+  die Kurve und trägst mit + einen Wert ein. Die Liste aller Einträge (zum
+  Löschen) und die Details wie BMI und Größe sind einen Tipp weiter unter
+  „Einträge & Details".
+
 ## 0.097
 
 - Knöpfe reagieren wieder richtig: Ein getippter Knopf blieb auf dem iPhone

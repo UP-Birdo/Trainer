@@ -755,9 +755,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       </div>
       <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
     </div>
-    <div id="gewicht-info" class="meta abstand"></div>
     <div id="gewicht-diagramm" class="abstand"></div>
-    <div id="gewicht-liste" class="abstand"></div>
+    <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen jetzt im Untermenü,
+         damit die Statistik schlank bleibt (nur Eintragen + Kurve). -->
+    <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
   </div>
 
   <div class="karte">
@@ -1269,6 +1270,20 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Trainings-Verlauf</h1>
     <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Körpergewicht-Details (v98 — Einträge + Info aus der Statistik ausgelagert)
+     ============================================================ -->
+<section id="view-gewicht" class="view">
+  <div class="kopf"><h1>Körpergewicht</h1>
+    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+  <div class="karte">
+    <div id="gewicht-info" class="meta abstand"></div>
+    <h2>Einträge</h2>
+    <div id="gewicht-liste" class="abstand"></div>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <!-- ============================================================
@@ -1982,7 +1997,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 97;
+const APP_VERSION = 98;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2697,7 +2712,7 @@ const VIEW_MIN_STUFE = {
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
   "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
-  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4,
+  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -3834,6 +3849,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.098", punkte:[
+    "Die Körpergewicht-Statistik ist aufgeräumt: In der Statistik siehst du nur noch die Kurve und trägst mit + einen Wert ein. Die Liste aller Einträge (zum Löschen) und die Details wie BMI und Größe sind einen Tipp weiter unter Einträge & Details."
+  ]},
   { stand:"0.097", punkte:[
     "Knöpfe reagieren wieder richtig: Ein getippter Knopf blieb auf dem iPhone manchmal dunkel statt gelb zu werden, bis man woanders hin tippte (z. B. beim Umschalten Jede Woche ↔ Alle 2 Wochen). Das lag an einem klebenden Maus-Effekt, den es auf dem Touchscreen gar nicht geben sollte — jetzt behoben."
   ]},
@@ -4560,6 +4578,14 @@ function gewichtLoeschen(datum){
     speichern();
     gewichtStatistikZeichnen();
   });
+}
+
+/** v98: Körpergewicht-Details (Einträge-Liste + Info/BMI) als eigenes Untermenü —
+    hält die Statistik schlank (dort nur Eintragen + Kurve). */
+function gewichtDetailsOeffnen(){
+  if(!viewErlaubt("view-gewicht")) return;
+  gewichtStatistikZeichnen();   // füllt #gewicht-info + #gewicht-liste (und die Kurve in der Statistik)
+  zeige("view-gewicht");
 }
 
 /** Einfaches SVG-Liniendiagramm. Punkte an Trainingstagen sind gelb. */
@@ -8898,7 +8924,7 @@ function navGehe(bereich){
 function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene",
                      "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-muskeln":"nav-statistik",
-                     "view-kalender":"nav-statistik",
+                     "view-kalender":"nav-statistik", "view-gewicht":"nav-statistik",
                      "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
