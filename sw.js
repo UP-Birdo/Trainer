@@ -11,7 +11,7 @@
    ============================================================ */
 "use strict";
 
-const VERSION = "v91";
+const VERSION = "v92";
 const CACHE = "trainingsapp-" + VERSION;
 const DATEIEN = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png",
                  "muskeln/figur-vorne.png", "muskeln/figur-hinten.png",

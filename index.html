@@ -974,7 +974,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Plan bearbeiten
      ============================================================ -->
 <section id="view-editor" class="view">
-  <div class="kopf"><h1>Plan bearbeiten</h1></div>
+  <div class="kopf"><h1>Plan bearbeiten</h1>
+    <button id="editor-menue-knopf" class="schmal" hidden onclick="editorMenue()" aria-label="Weitere Aktionen">⋯</button></div>
   <div class="karte">
     <label for="plan-name">Name des Plans</label>
     <input id="plan-name" placeholder="z. B. Oberkörper">
@@ -1038,10 +1039,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe">
     <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
     <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
-  </div>
-  <div class="knopfreihe" id="plan-extra-reihe">
-    <button class="schmal" onclick="planDuplizieren(editorPlan.id)">Duplizieren</button>
-    <button class="gefahr" onclick="planLoeschen()">Plan löschen</button>
   </div>
 </section>
 
@@ -1826,7 +1823,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 91;
+const APP_VERSION = 92;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3654,6 +3651,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.092", punkte:[
+    "Der Plan-Editor ist aufgeräumter: Die Übungen erscheinen erst, wenn du ins Suchfeld tippst — nicht mehr eine lange Liste auf einmal. Duplizieren und Löschen sind ins ⋯-Menü oben gewandert, unten stehen nur noch Plan speichern und Abbrechen. Und der Erklärtext bei der Sportart ist weg."
+  ]},
   { stand:"0.091", punkte:[
     "Übungen zum Plan hinzufügen geht jetzt viel einfacher: Statt Dropdowns siehst du die passenden Übungen als Karten — mit Gerät und Muskelgruppe. Einfach die Übung antippen, fertig. Suche und Gerätefilter helfen beim Finden; eine eigene Übung schreiben geht weiterhin."
   ]},
@@ -7229,20 +7229,31 @@ function neueUebungenEinbauen(){
    ============================================================ */
 let editorPlan = null;
 
+let pickerOffen = false;   // v92: Übungs-Karten erst nach Klick ins Suchfeld zeigen
 function planAnlegen(){
   editorMehr = {};
+  pickerOffen = false;
   editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
                  aufwaermen:true, dehnen:true, sportart:"", typ:"", tage:[],
                  wochenTakt:1, wochenAnker:0, einzelTermine:[] };
-  document.getElementById("plan-extra-reihe").hidden = true;    // neu = nichts zu löschen
+  document.getElementById("editor-menue-knopf").hidden = true;    // neu = nichts zu duplizieren/löschen
   editorZeichnen(); zeige("view-editor");
 }
 
 function editorOeffnen(planId){
   editorMehr = {};
+  pickerOffen = false;
   editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
-  document.getElementById("plan-extra-reihe").hidden = false;
+  document.getElementById("editor-menue-knopf").hidden = false;
   editorZeichnen(); zeige("view-editor");
+}
+
+/** „⋯"-Menü im Editor-Kopf: Sekundär-Aktionen (nur bei vorhandenem Plan). */
+function editorMenue(){
+  aktionsMenue(editorPlan.name || "Plan", [
+    { text:"Duplizieren", tun:() => planDuplizieren(editorPlan.id) },
+    { text:"Plan löschen", stil:"gefahr", tun:() => planLoeschen() }
+  ]);
 }
 
 let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
@@ -7347,8 +7358,7 @@ function editorZeichnen(){
     ? '<button onclick="andereSportartWaehlen()">Andere Sportart …</button>' : "";
   document.getElementById("plan-sportart").innerHTML = fest
     ? '<button class="gewaehlt" onclick="planSportartSetzen(\'' + editorPlan.sportart + '\')">' + text(sportart(editorPlan.sportart).name) + '</button>'
-    : ((hatSport ? "" : '<div class="meta" style="margin-bottom:8px">Wähle unten eine Übung — die Sportart ergibt sich daraus. Oder tippe hier direkt eine an.</div>') +
-       SPORTARTEN.filter(s => profilSport.includes(s.id) || s.id === editorPlan.sportart).map(s =>
+    : (SPORTARTEN.filter(s => profilSport.includes(s.id) || s.id === editorPlan.sportart).map(s =>
          '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
          '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join("") +
        andereBtn);
@@ -7490,12 +7500,26 @@ function uebungPickerZeichnen(){
       '<div class="knopfreihe" style="margin-top:8px"><button class="schmal" onclick="pickerWahlAbbrechen()">Abbrechen</button></div>';
     return;
   }
-  // v91: Karteikarten-Picker statt roher Dropdowns. Suchfeld + (Kraft) Gerätefilter
-  // filtern die Karten; jede Karte antippen = hinzufügen. „Eigene Übung" bleibt.
+  // v91: Karteikarten-Picker statt roher Dropdowns. v92: die Karten erscheinen ERST,
+  // wenn der Nutzer das Suchfeld antippt (pickerOffen) — sonst steht der Editor nicht
+  // voller Übungen. „Eigene Übung" bleibt.
   const suchfeld = '<input id="picker-suche" placeholder="Übung suchen …" autocomplete="off" ' +
-    'oninput="pickerKartenZeichnen()" style="margin-bottom:8px">';
+    'onfocus="pickerOeffnen()" oninput="pickerKartenZeichnen()" style="margin-bottom:8px">';
   const eigenBtn = '<div class="knopfreihe" style="margin-top:8px"><button class="schmal' +
     (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung schreiben</button></div>';
+  ziel.innerHTML = '<label class="abstand">Übung hinzufügen</label>' +
+    suchfeld + '<div id="picker-body"></div>' + eigenBtn + eigenBauerHtml();
+  pickerBodyZeichnen();
+}
+
+/** Der aufklappbare Teil des Pickers: bis der Nutzer das Suchfeld antippt (pickerOffen)
+    nur ein Hinweis, danach der Gerätefilter (Kraft) + die Übungs-Karten. */
+function pickerBodyZeichnen(){
+  const body = document.getElementById("picker-body"); if(!body) return;
+  if(!pickerOffen){
+    body.innerHTML = '<div class="meta">Tippe ins Suchfeld, um die passenden Übungen zu sehen.</div>';
+    return;
+  }
   let filter = "";
   if(editorPlan.typ === "kraft"){
     const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
@@ -7504,10 +7528,11 @@ function uebungPickerZeichnen(){
       GERAETE.filter(g => meine.includes(g.id))
         .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("") + '</select>';
   }
-  ziel.innerHTML = '<label class="abstand">Übung hinzufügen — antippen</label>' +
-    suchfeld + filter + '<div id="picker-karten"></div>' + eigenBtn + eigenBauerHtml();
+  body.innerHTML = filter + '<div id="picker-karten"></div>';
   pickerKartenZeichnen();
 }
+
+function pickerOeffnen(){ if(!pickerOffen){ pickerOffen = true; pickerBodyZeichnen(); } }
 
 /** Kandidaten-Übungen für den Picker (Namen), je nach Plan-Zustand — noch keine
     Sportart (alle Profil-Sportarten), Kraft (nach Gerät gefiltert) oder Aktivität

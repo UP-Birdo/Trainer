@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.092
+
+- Der Plan-Editor ist aufgeräumter: Übungen erscheinen erst, wenn du ins
+  Suchfeld tippst (statt einer langen Liste auf einmal). Duplizieren und Löschen
+  sind ins ⋯-Menü oben gewandert — unten nur noch Plan speichern und Abbrechen.
+  Der Erklärtext bei der Sportart ist weg.
+
 ## 0.091
 
 - Übungen zum Plan hinzufügen geht jetzt viel einfacher: statt Dropdowns
