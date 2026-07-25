@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.106
+
+- Die Statistik zeigt jetzt standardmäßig nur noch den Kalender und „Zuletzt
+  trainiert" — schön schlank. Alle weiteren Statistiken (Körpergewicht, Volumen,
+  Ausdauer, Fortschritt, Bestwerte, Trainings-Verlauf) schaltest du bei Bedarf
+  selbst ein: unten in der Statistik auf „Weitere Statistiken anzeigen", das führt
+  dich zu Darstellung, wo du sie einzeln an- und ausknipst.
+
 ## 0.105
 
 - Der Plan-Editor ist umgebaut: Jede Übung ist jetzt eine Karteikarte, die nur den

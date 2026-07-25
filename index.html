@@ -757,7 +757,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe" style="margin-top:10px"><button class="schmal breit" onclick="kalenderOeffnen()">Kalender öffnen</button></div>
   </div>
 
-  <div class="karte">
+  <div class="karte" id="stat-koerpergewicht" hidden>
     <div class="zeile">
       <h2>Körpergewicht</h2>
       <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button>
@@ -775,7 +775,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
   </div>
 
-  <div class="karte">
+  <div class="karte" id="stat-volumen" hidden>
     <div class="zeile"><h2 id="volumen-titel">Volumen</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-volumen')" aria-label="Info">i</button></div>
     <div id="info-volumen" class="meta info-text" hidden>Volumenpunkte = Wdh × Gewicht (Körpergewicht: Wdh × 1, Zeit-Übungen: Sekunden ÷ 10). Es geht um den Trend, nicht um Präzision.</div>
@@ -807,9 +807,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="bestwerte-liste" class="abstand"></div>
   </div>
 
-  <div class="karte">
+  <div class="karte" id="stat-trainings" hidden>
     <h2>Trainings</h2>
     <div id="protokoll-liste" class="meta abstand">–</div>
+  </div>
+
+  <!-- v106: Weitere Statistiken wählt man in „Darstellung" — ein Sprung dorthin. -->
+  <div class="karte">
+    <button class="breit einst-zeile" onclick="einstDarstellungOeffnen()"><span>Weitere Statistiken anzeigen …</span><span class="meta">›</span></button>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -946,6 +951,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <h2>Audio</h2>
     <div class="knopfreihe"><button class="schmal" onclick="tonTesten()">Ton &amp; Ansage testen</button></div>
+  </div>
+  <!-- v106: welche Statistiken in der Statistik erscheinen (Kalender + Zuletzt trainiert sind fest). -->
+  <div class="karte">
+    <h2>Statistiken</h2>
+    <div class="meta abstand">Welche Statistiken angezeigt werden. Kalender und „Zuletzt trainiert" sind immer dabei.</div>
+    <div id="stat-auswahl" class="wahl-raster"></div>
   </div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -2031,7 +2042,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 105;
+const APP_VERSION = 106;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2081,6 +2092,9 @@ function datenNachruesten(daten){
   // verstecken. Also Default 5. Neue Konten werden im Ersteinrichten gefragt und
   // überschreiben den Default sofort. Idempotent (zweiter Lauf lässt den Wert stehen).
   if(daten.einrichtung.simpelheit == null) daten.einrichtung.simpelheit = 5;
+  // v106: welche optionalen Statistiken angezeigt werden (Standard: keine — nur
+  // Kalender + Zuletzt trainiert stehen fest). Auswahl in „Darstellung".
+  if(!Array.isArray(daten.einrichtung.statistiken)) daten.einrichtung.statistiken = [];
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
     // v76 (Simpelheit): Roher Text der Stufe-1/2-Abschnitte. Bleibt auch nach dem
@@ -3703,6 +3717,7 @@ function einstellungenOeffnen(){
 /** Untermenü „Darstellung & Bedienung" (Darstellung + Audio). */
 function einstDarstellungOeffnen(){
   darstellungKarteZeichnen();
+  statAuswahlZeichnen();   // v106: Statistik-Auswahl
   zeige("view-einst-darstellung");
 }
 /** Untermenü „Werkzeuge" (Scheibenrechner + Bibliothek + Papierkorb), ab Stufe 3. */
@@ -3798,7 +3813,46 @@ function statistikOeffnen(){
   ausdauerZeichnen();
   bestwerteZeichnen();
   protokollZeichnen();
+  statistikSichtbarkeit();   // v106: nur die in „Darstellung" gewählten optionalen Statistiken zeigen
   zeige("view-statistik");
+}
+
+/* v106: „Statistik anpassbar". Standard zeigt nur Kalender + „Zuletzt trainiert";
+   alle anderen Statistiken sind optional und werden in „Darstellung" ein-/ausgeschaltet
+   (`einrichtung.statistiken`). Je Stat-id die Karten-Element-id. */
+const STAT_OPTIONEN = [
+  ["koerpergewicht", "Körpergewicht",       "stat-koerpergewicht"],
+  ["volumen",        "Volumen",             "stat-volumen"],
+  ["ausdauer",       "Ausdauer",            "ausdauer-karte"],
+  ["fortschritt",    "Übungs-Fortschritt",  "fortschritt-karte"],
+  ["bestwerte",      "Bestwerte",           "bestwerte-karte"],
+  ["trainings",      "Trainings-Verlauf",   "stat-trainings"]
+];
+/** Blendet die optionalen Statistik-Karten nach dem Setting aus. Die Karten
+    ausdauer/fortschritt/bestwerte haben zusätzlich eine Daten-Prüfung in ihrer
+    Zeichen-Funktion — das Setting darf nur ZUSÄTZLICH ausblenden, nie erzwingen. */
+function statistikSichtbarkeit(){
+  const an = new Set(sitzung.daten.einrichtung.statistiken || []);
+  const immerAnzeigbar = new Set(["stat-koerpergewicht", "stat-volumen", "stat-trainings"]);
+  STAT_OPTIONEN.forEach(([id, , kartenId]) => {
+    const el = document.getElementById(kartenId); if(!el) return;
+    if(!an.has(id)) el.hidden = true;
+    else if(immerAnzeigbar.has(kartenId)) el.hidden = false;
+  });
+}
+/** Auswahl-Knöpfe in „Darstellung": welche Statistiken erscheinen. */
+function statAuswahlZeichnen(){
+  const ziel = document.getElementById("stat-auswahl"); if(!ziel) return;
+  const an = new Set(sitzung.daten.einrichtung.statistiken || []);
+  ziel.innerHTML = STAT_OPTIONEN.map(([id, name]) =>
+    '<button class="' + (an.has(id) ? "gewaehlt" : "") + '" onclick="statUmschalten(\'' + id + '\')">' + text(name) + '</button>').join("");
+}
+function statUmschalten(id){
+  const liste = sitzung.daten.einrichtung.statistiken || (sitzung.daten.einrichtung.statistiken = []);
+  const i = liste.indexOf(id);
+  if(i >= 0) liste.splice(i, 1); else liste.push(id);
+  speichern();
+  statAuswahlZeichnen();
 }
 
 /** Vollen Monatskalender öffnen — seit v93 ein eigenes Untermenü, damit die
@@ -3903,6 +3957,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.106", punkte:[
+    "Die Statistik zeigt jetzt standardmäßig nur noch den Kalender und Zuletzt trainiert — schön schlank. Alle weiteren Statistiken (Körpergewicht, Volumen, Ausdauer, Fortschritt, Bestwerte, Trainings-Verlauf) schaltest du bei Bedarf selbst ein: unten in der Statistik auf Weitere Statistiken anzeigen, das führt dich zu Darstellung, wo du sie einzeln an- und ausknipst."
+  ]},
   { stand:"0.105", punkte:[
     "Der Plan-Editor ist umgebaut: Jede Übung ist jetzt eine Karteikarte, die nur den Namen und eine kurze Info zeigt (z. B. 3 × 10). Tippst du sie an, klappt sie auf — mit einer kleinen Muskel-Figur und allen Feineinstellungen (Sätze, Wdh, Gewicht, Pause). So bleibt die Plan-Seite übersichtlich, auch bei vielen Übungen; eine neu hinzugefügte Übung öffnet sich gleich."
   ]},
