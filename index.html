@@ -1805,7 +1805,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 87;
+const APP_VERSION = 88;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3225,7 +3225,7 @@ function planNeuMenue(){
   // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
   if(stufe() <= 2){ abschnittAnlegen(); return; }
   const eintraege = [];
-  if(stufe() >= 5) eintraege.push({ text:"🧭 Plan mit Assistent", tun: einrichtungOeffnen });
+  if(stufe() >= 5) eintraege.push({ text:"Plan mit Assistent", tun: einrichtungOeffnen });
   eintraege.push({ text:"Eigenen Plan erstellen", tun: planAnlegen });
   eintraege.push({ text:"Training nachtragen", tun:() => eintragenOeffnen(null, 0) });
   aktionsMenue("Neu anlegen", eintraege);
@@ -3620,6 +3620,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.088", punkte:[
+    "Ein Gerät im Profil abgewählt und es hingen Übungen dran? Das lässt sich jetzt mit einem Tipp auf Rückgängig sofort zurückholen — kein versehentlich leerer Plan mehr.",
+    "Letztes übrig gebliebenes Symbol beim Plan-Anlegen entfernt — die Oberfläche ist jetzt durchgehend ruhig (nur die Serien-Flamme 🔥 bleibt)."
+  ]},
   { stand:"0.087", punkte:[
     "Ruhigeres, aufgeräumtes Erscheinungsbild: die kleinen Häkchen und Melde-Symbole sind überall raus — nur die Serien-Flamme 🔥 bleibt. Bedien-Knöpfe (Löschen, Verschieben, Blättern) behalten ihr Zeichen."
   ]},
@@ -6887,17 +6891,29 @@ function profilGeraetUmschalten(id){
         treffer.map(t => "· " + t.uebung.name).join("\n") +
         "\n\nMit entfernen? Sonst bleibt alles, wie es ist.", true, ja => {
     if(!ja) return;
+    // v88: Rückgängig ermöglichen — Zustand VOR dem Entfernen tief sichern
+    // (Pläne + Geräte-Konfig), dann Toast mit „Rückgängig" statt modalem Hinweis.
+    const vorher = {
+      plaene: JSON.parse(JSON.stringify(sitzung.daten.plaene)),
+      konfig: JSON.parse(JSON.stringify(sitzung.daten.einrichtung.geraeteKonfig || {}))
+    };
     const ids = new Set(treffer.map(t => t.uebung.id));
     sitzung.daten.plaene.forEach(p => { p.uebungen = p.uebungen.filter(u => !ids.has(u.id)); });
     liste.splice(pos, 1);
     geraetSichern(liste);
     const leere = sitzung.daten.plaene.filter(p => p.typ === "kraft" && p.uebungen.length === 0);
-    meldung(treffer.length + (treffer.length === 1 ? " Übung entfernt." : " Übungen entfernt.") +
+    const hinweis = treffer.length + (treffer.length === 1 ? " Übung entfernt" : " Übungen entfernt") +
       (leere.length
-        ? "\n\nAchtung: " + leere.map(p => "„" + p.name + "“").join(", ") +
-          (leere.length === 1 ? " ist jetzt leer" : " sind jetzt leer") +
-          " — über „Trainingsplanung“ neu bauen oder von Hand füllen."
-        : ""));
+        ? " · " + leere.map(p => "„" + p.name + "“").join(", ") +
+          (leere.length === 1 ? " ist jetzt leer" : " sind jetzt leer")
+        : "");
+    zeigenToast(hinweis, "info", () => {
+      sitzung.daten.plaene = vorher.plaene;
+      sitzung.daten.einrichtung.geraeteKonfig = vorher.konfig;
+      speichern();
+      sportKonfigNeuZeichnen();
+      zeigenToast("Wiederhergestellt", "erfolg");
+    });
   });
 }
 

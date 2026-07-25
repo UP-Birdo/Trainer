@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.088
+
+- Ein Gerät im Profil abgewählt und es hingen Übungen dran? Das lässt sich jetzt
+  mit einem Tipp auf Rückgängig sofort zurückholen — kein versehentlich leerer
+  Plan mehr.
+- Letztes übrig gebliebenes Symbol beim Plan-Anlegen entfernt — nur die
+  Serien-Flamme 🔥 bleibt.
+
 ## 0.087
 
 - Ruhigeres, aufgeräumtes Erscheinungsbild: die kleinen Häkchen und Melde-Symbole
