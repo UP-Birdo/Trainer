@@ -88,6 +88,15 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
 /* v102: Menü-Zeile in „Mehr" — Beschriftung links, Chevron rechts (Untermenü). */
 .einst-zeile{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;margin-bottom:10px}
 .einst-zeile:last-child{margin-bottom:0}
+/* v105: Übung im Plan als Karteikarte — Kopf tippbar, Details klappen auf. */
+.uebung-karte .uebung-kopf{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.uebung-titel{display:flex;flex-direction:column;min-width:0}
+.uebung-titel strong{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uebung-titel small{color:var(--muted);font-size:12px;margin-top:2px}
+.uebung-karte .chevron{color:var(--muted);font-size:14px;flex:0 0 auto}
+.uebung-body{margin-top:12px}
+.uebung-figur{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.uebung-figur .mini-figur{width:60px}
 /* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
    einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
    weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
@@ -2022,7 +2031,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 104;
+const APP_VERSION = 105;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3894,6 +3903,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.105", punkte:[
+    "Der Plan-Editor ist umgebaut: Jede Übung ist jetzt eine Karteikarte, die nur den Namen und eine kurze Info zeigt (z. B. 3 × 10). Tippst du sie an, klappt sie auf — mit einer kleinen Muskel-Figur und allen Feineinstellungen (Sätze, Wdh, Gewicht, Pause). So bleibt die Plan-Seite übersichtlich, auch bei vielen Übungen; eine neu hinzugefügte Übung öffnet sich gleich."
+  ]},
   { stand:"0.104", punkte:[
     "Ein paar Aufräum-Kleinigkeiten: Die Serien-Kennzahlen (Wochen in Folge und so) sind in der Statistik hinter einem i eingeklappt, und der Gelbe-Punkte-Hinweis unter der Gewichtskurve ist weg. Auf den Plan-Karten teilen sich Start und Erledigt jetzt die Breite (das Menü öffnest du mit langem Druck). Und ein Plan ohne Namen heißt automatisch wie seine Sportart."
   ]},
@@ -7091,6 +7103,7 @@ function eigeneErstellen(){
   // (Als eigene Übung der Sportart wird sie automatisch beim Speichern des Plans
   //  abgelegt — u.eigen/u.eigenSport, siehe editorSpeichern.)
   editorPlan.uebungen.push(eigeneUebungBauen(name, modus, saetze, wert, sport));
+  editorUebungOffen = editorPlan.uebungen.length - 1;   // v105: neue Übung aufklappen
   eigenBauerOffen = false;
   editorZeichnen();
 }
@@ -7690,6 +7703,7 @@ let editorPlan = null;
 let pickerOffen = false;   // v92: Übungs-Karten erst nach Klick ins Suchfeld zeigen
 function planAnlegen(){
   editorMehr = {};
+  editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   pickerOffen = false;
   editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
                  aufwaermen:true, dehnen:true, sportart:"", typ:"", tage:[],
@@ -7700,6 +7714,7 @@ function planAnlegen(){
 
 function editorOeffnen(planId){
   editorMehr = {};
+  editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   pickerOffen = false;
   editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
   document.getElementById("editor-menue-knopf").hidden = false;
@@ -7715,6 +7730,8 @@ function editorMenue(){
 }
 
 let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
+let editorUebungOffen = null;   // v105: welche Übungs-Karteikarte ist aufgeklappt (Index oder null)
+function editorUebungToggle(i){ editorUebungOffen = (editorUebungOffen === i ? null : i); editorZeichnen(); }
 
 function bonusUmschalten(feld){
   editorPlan[feld] = !editorPlan[feld];
@@ -7852,7 +7869,26 @@ function editorZeichnen(){
   document.getElementById("sw-aufwaermen").classList.toggle("gewaehlt", !!editorPlan.aufwaermen);
   document.getElementById("sw-dehnen").classList.toggle("gewaehlt", !!editorPlan.dehnen);
   document.getElementById("uebung-liste").innerHTML = editorPlan.uebungen.map((u,i) => {
+    // v105: jede Übung ist eine Karteikarte — eingeklappt nur Name + Kurz-Info,
+    // Antippen des Kopfs klappt Muskel-Map + Felder auf (editorUebungOffen).
     const istZeit = u.modus === "zeit";
+    const offen = editorUebungOffen === i;
+    const zusammen = istZeit
+      ? u.saetze + " × " + zeitKurz(u.dauer, u.zeitEinheit)
+      : u.saetze + " × " + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "");
+    const titel = u.name.trim() ? text(u.name) : "Übung " + (i+1);
+    const kopf = '<div class="uebung-kopf" onclick="editorUebungToggle(' + i + ')">' +
+        '<span class="uebung-titel"><strong>' + titel + '</strong><small>' + zusammen + '</small></span>' +
+        '<span class="chevron">' + (offen ? "▾" : "▸") + '</span></div>';
+    if(!offen) return '<div class="karte uebung-karte">' + kopf + '</div>';
+
+    // Aufgeklappt: Muskel-Map (wenn erkannt) + volle Bearbeitung.
+    const info = uebungMuskeln(u.name);
+    const figur = (info && info.muskeln && info.muskeln.length)
+      ? '<div class="uebung-figur"><div class="mini-figur" data-mf-ansicht="' + info.ansicht +
+        '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' +
+        (info.label ? '<span class="meta">' + text(info.label) + '</span>' : "") + '</div>' : "";
+
     let basis, mehr = "";
     if(istZeit){
       const e = zeitEinheit(u.zeitEinheit);
@@ -7877,21 +7913,24 @@ function editorZeichnen(){
       (mehr ? '<div class="knopfreihe"><button class="schmal" onclick="editorMehrUmschalten(' + i + ')">' +
               (editorMehr[i] ? "Feinheiten ausblenden" : "Feinheiten (Wdh-Bereich, Schrittweite)") + '</button></div>' +
               (editorMehr[i] ? '<div class="raster abstand">' + mehr + '</div>' : "") : "");
-    return '<div class="karte">' +
-      '<div class="zeile"><label style="margin:0">Übung ' + (i+1) + '</label>' +
-        '<span>' +
+    return '<div class="karte uebung-karte offen">' + kopf +
+      '<div class="uebung-body">' + figur +
+        '<input value="' + text(u.name) + '" placeholder="Name der Übung" oninput="feld(' + i + ',\'name\',this.value,false)">' +
+        '<div class="umschalter abstand">' +
+          '<button class="' + (istZeit?"":"gewaehlt") + '" onclick="modusSetzen(' + i + ',\'wdh\')">Wiederholungen</button>' +
+          '<button class="' + (istZeit?"gewaehlt":"") + '" onclick="modusSetzen(' + i + ',\'zeit\')">Zeit</button>' +
+        '</div>' +
+        felder +
+        '<div class="zeile abstand"><span>' +
           '<button class="mini" ' + (i===0 ? "disabled" : "") + ' onclick="uebungSchieben(' + i + ',-1)" aria-label="nach oben">▲</button> ' +
           '<button class="mini" ' + (i===editorPlan.uebungen.length-1 ? "disabled" : "") + ' onclick="uebungSchieben(' + i + ',1)" aria-label="nach unten">▼</button>' +
-        '</span></div>' +
-      '<input value="' + text(u.name) + '" placeholder="Name der Übung" oninput="feld(' + i + ',\'name\',this.value,false)">' +
-      '<div class="umschalter abstand">' +
-        '<button class="' + (istZeit?"":"gewaehlt") + '" onclick="modusSetzen(' + i + ',\'wdh\')">Wiederholungen</button>' +
-        '<button class="' + (istZeit?"gewaehlt":"") + '" onclick="modusSetzen(' + i + ',\'zeit\')">Zeit</button>' +
-      '</div>' +
-      felder +
-      '<div class="knopfreihe"><button class="schmal gefahr" onclick="uebungLoeschen(' + i + ')">Übung entfernen</button></div>' +
-    '</div>';
+        '</span>' +
+        '<button class="schmal gefahr" onclick="uebungLoeschen(' + i + ')">Übung entfernen</button></div>' +
+      '</div></div>';
   }).join("");
+  // v105: Muskel-Figuren der offenen Karte nachzeichnen (wie in der Bibliothek).
+  document.querySelectorAll("#uebung-liste .mini-figur[data-mf-ansicht]").forEach(el =>
+    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
 }
 
 /** Zahlenfeld mit −/+ Steppern: im Gym schneller und treffsicherer als die Tastatur. */
@@ -8093,6 +8132,7 @@ function uebungInPlanHinzufuegen(name){
   // Leere Platzhalter-Übung ersetzen statt anhängen (wie zuvor bibWaehlen)
   const leer = editorPlan.uebungen.findIndex(x => x.name.trim() === "");
   if(leer >= 0) editorPlan.uebungen[leer] = u; else editorPlan.uebungen.push(u);
+  editorUebungOffen = leer >= 0 ? leer : editorPlan.uebungen.length - 1;   // v105: neue Übung aufklappen
   editorZeichnen();
 }
 
@@ -8114,6 +8154,9 @@ function uebungLoeschen(i){
     else if(n > i) neu[n - 1] = editorMehr[k];
   });
   editorMehr = neu;
+  // v105: offene Karteikarte mitführen (gelöschte -> zu; darüberliegende nachrücken)
+  if(editorUebungOffen === i) editorUebungOffen = null;
+  else if(editorUebungOffen != null && editorUebungOffen > i) editorUebungOffen--;
   editorZeichnen();
 }
 
@@ -8126,6 +8169,9 @@ function uebungSchieben(i, richtung){
   // editorMehr (index-verschlüsselt) mitvertauschen, damit die aufgeklappten
   // "Feinheiten" an der Übung hängen, nicht an der Position.
   const tmp = editorMehr[i]; editorMehr[i] = editorMehr[ziel]; editorMehr[ziel] = tmp;
+  // v105: offene Karteikarte folgt der verschobenen Übung
+  if(editorUebungOffen === i) editorUebungOffen = ziel;
+  else if(editorUebungOffen === ziel) editorUebungOffen = i;
   editorZeichnen();
 }
 

@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.105
+
+- Der Plan-Editor ist umgebaut: Jede Übung ist jetzt eine Karteikarte, die nur den
+  Namen und eine kurze Info zeigt (z. B. 3 × 10). Tippst du sie an, klappt sie auf
+  — mit einer kleinen Muskel-Figur und allen Feineinstellungen (Sätze, Wdh,
+  Gewicht, Pause). So bleibt die Plan-Seite übersichtlich, auch bei vielen Übungen;
+  eine neu hinzugefügte Übung öffnet sich gleich.
+
 ## 0.104
 
 - Ein paar Aufräum-Kleinigkeiten: Die Serien-Kennzahlen (Wochen in Folge und so)
