@@ -3,6 +3,12 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.090
+
+- Beim Plan-Erstellen stehen zuerst nur deine eigenen Sportarten zur Wahl.
+  Brauchst du eine andere, führt der Knopf „Andere Sportart" zur Auswahl und
+  danach zurück in den Plan.
+
 ## 0.089
 
 - Neu: eine Übungs-Bibliothek (unter Mehr). Blättere durch alle Übungen, filtere

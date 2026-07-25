@@ -842,7 +842,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-sportarten" class="view">
   <div class="kopf" style="justify-content:flex-start;gap:12px">
-    <button class="schmal" onclick="profilOeffnen()">‹ Zurück</button>
+    <button class="schmal" onclick="sportartenTabZurueck()">‹ Zurück</button>
     <h1>Sportarten</h1>
     <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info" style="margin-left:auto">i</button></div>
   <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatisch generierte Pläne gibt es nur für Krafttraining</strong> — die anderen Sportarten haben eigene Pläne mit Stoppuhr und Drills: Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel bzw. auf Nachfrage, und die Statistik zeigt km pro Woche.</div>
@@ -1821,7 +1821,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 89;
+const APP_VERSION = 90;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3523,12 +3523,23 @@ function profilOeffnen(){
 
 /** Sportarten-Tab (seit v60 eigenständig; vorher Teil von Profil).
     Rendert die Sportart-Liste und öffnet die Ansicht. */
-function sportartenTabOeffnen(){
+let sportartenZurueckEditor = false;   // v90: nach „andere Sportart" zurück in den Editor?
+function sportartenTabOeffnen(vonEditor){
+  // v90: aus dem Editor („andere Sportart")? Merken, um danach dorthin zurückzuführen.
+  // Jeder normale Aufruf (ohne Arg) setzt das Flag auf false — kein Nachhängen.
+  sportartenZurueckEditor = !!vonEditor;
   const d = sitzung.daten;
   if(!d.einrichtung) d.einrichtung = { geraete:[] };
   geraeteVorher = geraeteKonfig("kraft").geraete.slice();   // Schnappschuss: was ist NEU? (pro Sportart)
   geraeteKarteZeichnen();
   zeige("view-sportarten");
+}
+/** Editor → „andere Sportart": zur Sportart-Seite, danach zurück in den Editor. */
+function andereSportartWaehlen(){ sportartenTabOeffnen(true); }
+/** Zurück aus der Sportart-Liste: in den Editor (wenn von dort gekommen), sonst Profil. */
+function sportartenTabZurueck(){
+  if(sportartenZurueckEditor){ sportartenZurueckEditor = false; editorZeichnen(); zeige("view-editor"); return; }
+  profilOeffnen();
 }
 
 function statistikOeffnen(){
@@ -3638,6 +3649,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.090", punkte:[
+    "Beim Plan-Erstellen stehen jetzt zuerst nur deine eigenen Sportarten zur Wahl — übersichtlicher. Brauchst du eine andere, führt dich der Knopf Andere Sportart direkt zur Auswahl und danach zurück in den Plan."
+  ]},
   { stand:"0.089", punkte:[
     "Neu: eine Übungs-Bibliothek unter Mehr. Blättere durch alle Übungen, filtere nach Kategorie oder such per Textfeld — tippe eine Übung an und du siehst das benötigte Gerät, die beanspruchten Muskeln (mit Figur) und einen kurzen Ausführungs-Tipp."
   ]},
@@ -7314,17 +7328,21 @@ function editorZeichnen(){
   const hatSport = !!editorPlan.sportart;   // v56: Plan darf (noch) ohne Sportart sein
   const fest = editorPlan.uebungen.length > 0;   // sind Übungen drin, ist die Sportart fix
 
-  // Sportart-Knöpfe: Steht die Sportart schon (Übungen vorhanden), wird nur sie
-  // gezeigt — der Plan gehört zu genau EINER Sportart, kein Mischen. Sonst
-  // stehen ALLE Sportarten zur Wahl (v79) — vorher nur die Profil-Sportarten,
-  // und wer die Sportarten-Seite (Stufe 5) nie gesehen hat, hatte im Profil nur
-  // Krafttraining: der Editor bot dann genau einen Knopf an.
+  // Sportart-Knöpfe: Sind schon Übungen drin, wird nur die eine Sportart gezeigt
+  // (ein Plan gehört zu genau EINER Sportart). Sonst nur die im PROFIL gewählten
+  // Sportarten (v90; plus die aktuell gesetzte, falls die mal nicht mehr im Profil
+  // steht) — dazu „Andere Sportart" (ab Stufe 5), das zur Sportart-Seite führt und
+  // danach in den Editor zurückkehrt.
+  const profilSport = sitzung.daten.einrichtung.sportarten || ["kraft"];
+  const andereBtn = viewErlaubt("view-sportarten")
+    ? '<button onclick="andereSportartWaehlen()">Andere Sportart …</button>' : "";
   document.getElementById("plan-sportart").innerHTML = fest
     ? '<button class="gewaehlt" onclick="planSportartSetzen(\'' + editorPlan.sportart + '\')">' + text(sportart(editorPlan.sportart).name) + '</button>'
     : ((hatSport ? "" : '<div class="meta" style="margin-bottom:8px">Wähle unten eine Übung — die Sportart ergibt sich daraus. Oder tippe hier direkt eine an.</div>') +
-       SPORTARTEN.map(s =>
+       SPORTARTEN.filter(s => profilSport.includes(s.id) || s.id === editorPlan.sportart).map(s =>
          '<button class="' + (editorPlan.sportart === s.id ? "gewaehlt" : "") +
-         '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join(""));
+         '" onclick="planSportartSetzen(\'' + s.id + '\')">' + text(s.name) + '</button>').join("") +
+       andereBtn);
 
   /* Der Plan-Typ folgt der Sportart — nichts, was der Nutzer extra wählen muss.
      Krafttraining bekommt Übungen und Sätze, jede andere Sportart eine Dauer. */
