@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.097
+
+- Knöpfe reagieren wieder richtig: Ein getippter Knopf blieb auf dem iPhone
+  manchmal dunkel statt gelb zu werden, bis man woanders hin tippte (z. B. beim
+  Umschalten Jede Woche ↔ Alle 2 Wochen). Das lag an einem klebenden Maus-Effekt,
+  den es auf dem Touchscreen gar nicht geben sollte — jetzt behoben.
+
 ## 0.096
 
 - Nichts geht mehr verloren: Neben dem sofortigen Rückgängig direkt nach dem

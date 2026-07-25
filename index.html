@@ -76,19 +76,25 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 button{font-family:inherit;font-size:16px;border:0;border-radius:6px;padding:14px 16px;
   min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer;
   transition:var(--transition);box-shadow:var(--shadow-sm)}
-button:hover:not(:disabled){background:var(--line);box-shadow:var(--shadow-md)}
 button:active:not(:disabled){transform:scale(0.98)}
 button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--shadow-md)}
-button.primaer:hover:not(:disabled){box-shadow:var(--shadow-lg);opacity:0.95}
 button.gefahr{background:transparent;color:var(--warn);border:2px solid var(--warn);transition:var(--transition)}
-button.gefahr:hover:not(:disabled){background:rgba(215,92,71,0.08)}
 button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
 button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
   background:var(--panel-2);border:2px solid var(--line);transition:var(--transition)}
-button.rund:hover:not(:disabled){border-color:var(--signal);background:rgba(244,199,78,0.08)}
 button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /* 44px = Mindestgröße für Tippziele */
+/* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
+   einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
+   weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
+   Auf Touch ist Hover ohnehin sinnlos. :active (Tastendruck) bleibt für alle. */
+@media (hover: hover){
+  button:hover:not(:disabled){background:var(--line);box-shadow:var(--shadow-md)}
+  button.primaer:hover:not(:disabled){box-shadow:var(--shadow-lg);opacity:0.95}
+  button.gefahr:hover:not(:disabled){background:rgba(215,92,71,0.08)}
+  button.rund:hover:not(:disabled){border-color:var(--signal);background:rgba(244,199,78,0.08)}
+}
 button:disabled{opacity:.4}
 .knopfreihe{display:flex;gap:8px;margin-top:12px}
 .knopfreihe>*{flex:1}
@@ -1976,7 +1982,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 96;
+const APP_VERSION = 97;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3828,6 +3834,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.097", punkte:[
+    "Knöpfe reagieren wieder richtig: Ein getippter Knopf blieb auf dem iPhone manchmal dunkel statt gelb zu werden, bis man woanders hin tippte (z. B. beim Umschalten Jede Woche ↔ Alle 2 Wochen). Das lag an einem klebenden Maus-Effekt, den es auf dem Touchscreen gar nicht geben sollte — jetzt behoben."
+  ]},
   { stand:"0.096", punkte:[
     "Nichts geht mehr verloren: Neben dem sofortigen Rückgängig direkt nach dem Löschen gibt es jetzt einen Papierkorb unter Mehr — dort stehen die zuletzt gelöschten Pläne und Verlaufs-Einträge mit Zeitstempel und lassen sich wiederherstellen.",
     "Die kurze Rückgängig-Meldung ist jetzt deckend statt durchscheinend, steht länger und hat einen richtigen Knopf — so triffst du sie sicher."
