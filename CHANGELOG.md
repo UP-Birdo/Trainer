@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.107
+
+- Ziele haben jetzt ein eigenes Menü: Auf der Heute-Seite tippst du auf die
+  Ziele-Karte und landest direkt in der Verwaltung — dort legst du mit + neue
+  Ziele an, schätzt sie ein, löschst sie oder baust sie in Pläne ein. Auf Heute
+  steht der Anlege-Knopf nur, solange du noch kein Ziel hast; danach zeigt die
+  Karte deine Ziele (bei ein bis zwei ausführlich, bei mehr als Überschriften).
+
 ## 0.106
 
 - Die Statistik zeigt jetzt standardmäßig nur noch den Kalender und „Zuletzt
