@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.116
+
+- Der Statistik-Tab ist aufgeräumter: Die Überschriften der Kacheln sind jetzt
+  klein und dezent statt groß und fett, damit die Diagramme im Vordergrund stehen.
+  Beim Körpergewicht sitzt das Plus zum Eintragen klein oben rechts, und ein Tipp
+  auf die Gewichtskurve öffnet direkt die Einträge und Details (BMI, Größe) — der
+  extra Knopf entfällt.
+
 ## 0.115
 
 - Erster Schritt, um die Nicht-Kraft-Sportarten so ernst zu nehmen wie das

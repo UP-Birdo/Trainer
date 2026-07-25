@@ -440,6 +440,10 @@ body:not(.nav-an) #nav{display:none}
    nebeneinander (auto-fit); versteckte Kacheln nehmen keine Zelle ein. */
 .stat-raster{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:start}
 .stat-raster > .karte{margin-bottom:0}
+/* v116: Kacheln entschlacken — kleine, unaufdringliche Überschrift (kein großer
+   fetter Titel); der Graf ist die Hauptsache. Dazu ein kleiner Rund-Knopf. */
+.stat-karte h2{font-size:14px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
+button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
@@ -777,9 +781,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        Info-Texte bleiben bewusst raus (Nutzer-Wunsch „weniger Text"). -->
   <div class="stat-raster">
   <div class="karte stat-karte" id="stat-koerpergewicht" hidden>
-    <h2>Körpergewicht</h2>
-    <div class="knopfreihe" style="justify-content:flex-end">
-      <button class="rund" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
+    <!-- v116: kleiner Titel + kleines „+" oben rechts im Eck; der Graf ist die Hauptsache. -->
+    <div class="zeile"><h2>Körpergewicht</h2>
+      <button class="rund klein" onclick="gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
     <div id="gewicht-formular" hidden>
       <div class="raster abstand">
         <div><label for="gewicht-wert">Gewicht (kg)</label><input id="gewicht-wert" type="number" inputmode="decimal" step="0.1"></div>
@@ -787,9 +791,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       </div>
       <div class="knopfreihe"><button class="primaer schmal" onclick="gewichtEintragen()">Eintragen</button></div>
     </div>
-    <div id="gewicht-diagramm" class="abstand"></div>
-    <!-- v98: Einträge-Liste + Detail-Info (BMI, Größe …) liegen im Untermenü. -->
-    <div class="knopfreihe"><button class="schmal breit" onclick="gewichtDetailsOeffnen()">Einträge &amp; Details</button></div>
+    <!-- v116: Tipp auf die Kurve öffnet Einträge & Details (BMI, Größe …); der separate Knopf entfällt. -->
+    <div id="gewicht-diagramm" class="abstand stat-tap" onclick="gewichtDetailsOeffnen()"></div>
   </div>
 
   <div class="karte stat-karte" id="stat-volumen" hidden>
@@ -2069,7 +2072,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 115;
+const APP_VERSION = 116;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3992,6 +3995,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.116", punkte:[
+    "Der Statistik-Tab ist aufgeräumter: Die Überschriften der Kacheln sind jetzt klein und dezent statt groß und fett, damit die Diagramme im Vordergrund stehen. Beim Körpergewicht sitzt das Plus zum Eintragen klein oben rechts, und ein Tipp auf die Gewichtskurve öffnet direkt die Einträge und Details (BMI, Größe) — der extra Knopf entfällt."
+  ]},
   { stand:"0.115", punkte:[
     "Erster Schritt, um die Nicht-Kraft-Sportarten so ernst zu nehmen wie das Krafttraining: Yoga & Beweglichkeit kann jetzt neben der Zeit auch deine Beweglichkeit in Grad festhalten. Beim Eintragen (per Stoppuhr oder Nachtragen) gibst du den Wert einfach mit an, und er erscheint im Verlauf. Weitere Messgrößen (Schwierigkeitsgrad beim Klettern, Intervall-Runden) und die passende Fortschritts-Anzeige folgen in den nächsten Schritten."
   ]},
