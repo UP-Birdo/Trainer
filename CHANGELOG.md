@@ -3,6 +3,12 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.091
+
+- Übungen zum Plan hinzufügen geht jetzt viel einfacher: statt Dropdowns
+  erscheinen die passenden Übungen als Karten (mit Gerät und Muskelgruppe) —
+  einfach antippen. Suche und Gerätefilter helfen; eigene Übungen gehen weiter.
+
 ## 0.090
 
 - Beim Plan-Erstellen stehen zuerst nur deine eigenen Sportarten zur Wahl.

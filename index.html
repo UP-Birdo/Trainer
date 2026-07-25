@@ -464,6 +464,11 @@ body:not(.nav-an) #nav{display:none}
 .mini-figur canvas{position:absolute;inset:0;width:100%;height:100%}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
 .picker-muskel:empty{display:none}
+/* Karteikarten-Picker im Editor (v91): antippbare Übungs-Karten statt Dropdown */
+.picker-karte{display:flex;align-items:center;width:100%;text-align:left;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--chalk);font:inherit;cursor:pointer}
+.picker-karte .text{flex:1;min-width:0}
+.picker-karte .text small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+.picker-karte .pfeil{color:var(--signal);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
 .vs-zeile .mini-figur{width:34px;margin-left:auto}
 /* Meilenstein-Abzeichen der Trainings-Serie (v85) */
 .meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px}
@@ -1821,7 +1826,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 90;
+const APP_VERSION = 91;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3649,6 +3654,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.091", punkte:[
+    "Übungen zum Plan hinzufügen geht jetzt viel einfacher: Statt Dropdowns siehst du die passenden Übungen als Karten — mit Gerät und Muskelgruppe. Einfach die Übung antippen, fertig. Suche und Gerätefilter helfen beim Finden; eine eigene Übung schreiben geht weiterhin."
+  ]},
   { stand:"0.090", punkte:[
     "Beim Plan-Erstellen stehen jetzt zuerst nur deine eigenen Sportarten zur Wahl — übersichtlicher. Brauchst du eine andere, führt dich der Knopf Andere Sportart direkt zur Auswahl und danach zurück in den Plan."
   ]},
@@ -6552,8 +6560,9 @@ function zielInPlan(zielId, planId){
   meldung(text(u.name) + " ist jetzt auch in „" + plan.name + "“.\n\nDamit trainierst du sie öfter pro Woche — die Einschätzung oben rechnet das sofort mit.");
 }
 
-/* Die Übungs-Bibliothek wurde in v40 durch den geführten Editor-Picker
-   ersetzt (uebungPickerZeichnen / pickerHinzu). "Eigene Übung" bleibt. */
+/* Die Übungs-Bibliothek wurde in v40 durch den geführten Editor-Picker ersetzt,
+   seit v91 als Karteikarten (uebungPickerZeichnen / pickerKarteHinzu). "Eigene
+   Übung" bleibt. */
 /* C2/C3: "Eigene Übung" öffnet einen kleinen Builder. Erst die Sportart
    (nur aus den im Profil gewählten), dann die Felder zum Selbstbauen. Die
    fertige Übung wird an den Plan gehängt und als eigen markiert — beim
@@ -7481,43 +7490,30 @@ function uebungPickerZeichnen(){
       '<div class="knopfreihe" style="margin-top:8px"><button class="schmal" onclick="pickerWahlAbbrechen()">Abbrechen</button></div>';
     return;
   }
-  const knoepfe =
-    '<div class="knopfreihe" style="margin-top:8px">' +
-      '<button class="primaer schmal" onclick="pickerHinzu()">Hinzufügen</button>' +
-      '<button class="schmal' + (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung</button>' +
-    '</div>';
-  // v80: Suchfeld — „Alle Geräte" listet weit über 100 Übungen, das rohe
-  // Dropdown war auf dem iOS-Rad kaum bedienbar.
+  // v91: Karteikarten-Picker statt roher Dropdowns. Suchfeld + (Kraft) Gerätefilter
+  // filtern die Karten; jede Karte antippen = hinzufügen. „Eigene Übung" bleibt.
   const suchfeld = '<input id="picker-suche" placeholder="Übung suchen …" autocomplete="off" ' +
-    'oninput="pickerUebungenZeichnen()" style="margin-bottom:8px">';
+    'oninput="pickerKartenZeichnen()" style="margin-bottom:8px">';
+  const eigenBtn = '<div class="knopfreihe" style="margin-top:8px"><button class="schmal' +
+    (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung schreiben</button></div>';
+  let filter = "";
   if(editorPlan.typ === "kraft"){
     const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
-    const optionen = '<option value="alle">Alle Geräte</option>' +
-      '<option value="keine">Körpergewicht</option>' +
+    filter = '<select id="picker-geraet" onchange="pickerKartenZeichnen()" style="margin-bottom:8px">' +
+      '<option value="alle">Alle Geräte</option><option value="keine">Körpergewicht</option>' +
       GERAETE.filter(g => meine.includes(g.id))
-        .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("");
-    ziel.innerHTML =
-      '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
-      '<div class="raster">' +
-        '<select id="picker-geraet" onchange="pickerUebungenZeichnen()">' + optionen + '</select>' +
-        '<select id="picker-uebung" onchange="pickerMuskelZeichnen()"></select>' +
-      '</div><div id="picker-muskel" class="picker-muskel"></div>' + knoepfe + eigenBauerHtml();
-  } else {
-    ziel.innerHTML =
-      '<label class="abstand">Übung hinzufügen</label>' + suchfeld +
-      '<select id="picker-uebung" style="width:100%" onchange="pickerMuskelZeichnen()"></select>' +
-      '<div id="picker-muskel" class="picker-muskel"></div>' + knoepfe + eigenBauerHtml();
+        .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("") + '</select>';
   }
-  pickerUebungenZeichnen();
+  ziel.innerHTML = '<label class="abstand">Übung hinzufügen — antippen</label>' +
+    suchfeld + filter + '<div id="picker-karten"></div>' + eigenBtn + eigenBauerHtml();
+  pickerKartenZeichnen();
 }
 
-/** Füllt nur das Übungs-Dropdown — bei Gerätewechsel (Kraft) neu, ohne den
-    ganzen Picker neu zu bauen (sonst spränge die Geräteauswahl zurück). */
-function pickerUebungenZeichnen(){
-  const sel = document.getElementById("picker-uebung");
-  if(!sel) return;
+/** Kandidaten-Übungen für den Picker (Namen), je nach Plan-Zustand — noch keine
+    Sportart (alle Profil-Sportarten), Kraft (nach Gerät gefiltert) oder Aktivität
+    (Drills), jeweils OHNE die schon im Plan stehenden. Suchfeld filtert zusätzlich. */
+function pickerKandidaten(){
   const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
-  // v80: Suchfeld filtert die Auswahl (normalisiert, Teil-Treffer reichen).
   const suche = normName((document.getElementById("picker-suche") || {}).value || "");
   let namen;
   if(!editorPlan.sportart){
@@ -7529,15 +7525,8 @@ function pickerUebungenZeichnen(){
       sportUebungen(sp).forEach(v => menge.add(v.name));
       ((sitzung.daten.eigeneUebungen || {})[sp] || []).forEach(v => menge.add(v.name));
     });
-    namen = [...menge].filter(n => !drin.has(n)).sort((a,b) => a.localeCompare(b, "de"));
-    if(suche) namen = namen.filter(n => normName(n).includes(suche));
-    sel.innerHTML = namen.length
-      ? namen.map(n => '<option value="' + text(n) + '">' + text(n) + '</option>').join("")
-      : '<option value="">— ' + (suche ? "nichts gefunden" : "noch keine Übungen im Profil") + ' —</option>';
-    pickerMuskelZeichnen();
-    return;
-  }
-  if(editorPlan.typ === "kraft"){
+    namen = [...menge].filter(n => !drin.has(n)).sort((a, b) => a.localeCompare(b, "de"));
+  } else if(editorPlan.typ === "kraft"){
     const meine = meineGeraete(editorPlan.sportart);
     const g = (document.getElementById("picker-geraet") || {}).value || "alle";
     namen = UEBUNGEN_DB
@@ -7546,37 +7535,41 @@ function pickerUebungenZeichnen(){
   } else {
     namen = sportUebungen(editorPlan.sportart).filter(v => !drin.has(v.name)).map(v => v.name);
   }
-  // v44: eigene Übungen dieser Sportart mit anbieten (unabhängig vom Gerätefilter)
-  const eigene = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || [])
-    .map(v => v.name).filter(n => !drin.has(n) && !namen.includes(n));
-  namen = namen.concat(eigene);
+  if(editorPlan.sportart){   // v44: eigene Übungen dieser Sportart mit anbieten
+    const eigene = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || [])
+      .map(v => v.name).filter(n => !drin.has(n) && !namen.includes(n));
+    namen = namen.concat(eigene);
+  }
   if(suche) namen = namen.filter(n => normName(n).includes(suche));
-  sel.innerHTML = namen.length
-    ? namen.map(n => '<option>' + text(n) + '</option>').join("")
-    : '<option value="">— ' + (suche ? "nichts gefunden" : "alle passenden schon im Plan") + ' —</option>';
-  pickerMuskelZeichnen();
+  return namen;
 }
 
-/** Zeigt die Fokus-Muskel-Figur der aktuell im Dropdown gewählten Übung (v84) —
-    Vorschau beim Zusammenstellen. Freitext/Drill ohne DB-Treffer: nichts.
-    Cardio: nur Text (kein einzelner Muskel-Fokus). */
-function pickerMuskelZeichnen(){
-  const ziel = document.getElementById("picker-muskel"); if(!ziel) return;
-  const sel = document.getElementById("picker-uebung");
-  const info = uebungMuskeln(sel && sel.value);
-  if(!info){ ziel.innerHTML = ""; return; }
-  const hinweis = '<span class="meta">Trifft vor allem: <strong style="color:var(--chalk)">' + text(info.label) + '</strong></span>';
-  if(!info.muskeln.length){ ziel.innerHTML = hinweis; return; }
-  ziel.innerHTML = '<div class="mini-figur"></div>' + hinweis;
-  miniMuskelFigur(ziel.querySelector(".mini-figur"), info.ansicht, info.muskeln);
+/** Eine Übungs-Karte im Picker: Name + Gerät + Muskelregion; antippen = hinzufügen. */
+function pickerKarteHtml(name){
+  const info = uebungMuskeln(name);
+  const dbu = UEBUNGEN_DB.find(u => u.name === name);
+  const geraet = dbu ? ((dbu.geraet && dbu.geraet !== "keine") ? geraetName(dbu.geraet) : "Körpergewicht") : "";
+  const unten = [geraet, (info && info.label) ? info.label : ""].filter(Boolean).join(" · ");
+  const nameJs = name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  return '<button class="picker-karte" onclick="pickerKarteHinzu(\'' + nameJs + '\')">' +
+    '<span class="text"><strong>' + text(name) + '</strong>' + (unten ? '<small>' + text(unten) + '</small>' : "") + '</span>' +
+    '<span class="pfeil">+</span></button>';
 }
 
-/** Übernimmt die gewählte Übung in den Plan (baut sie je nach Typ auf). */
-function pickerHinzu(){
-  const sel = document.getElementById("picker-uebung");
-  const name = sel && sel.value;
+/** Die Kandidaten-Karten in den Picker zeichnen (Suche/Gerätefilter greifen). */
+function pickerKartenZeichnen(){
+  const ziel = document.getElementById("picker-karten"); if(!ziel) return;
+  const namen = pickerKandidaten();
+  const suche = (document.getElementById("picker-suche") || {}).value || "";
+  ziel.innerHTML = namen.length
+    ? namen.map(pickerKarteHtml).join("")
+    : '<div class="meta">' + (suche ? "Nichts gefunden." : "Alle passenden Übungen sind schon im Plan.") + '</div>';
+}
+
+/** Karte angetippt: Übung hinzufügen. Ohne Sportart wird sie aus der Übung
+    abgeleitet (1 Treffer automatisch, mehrere per Chip-Auswahl). */
+function pickerKarteHinzu(name){
   if(!name) return;
-  // v56: Hat der Plan noch keine Sportart? -> aus der Übung ableiten.
   if(!editorPlan.sportart){
     const kandidaten = sportartenFuerUebung(name)
       .filter(sp => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(sp));
