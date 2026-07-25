@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.101
+
+- Beim Zusammenstellen eines Plans (über Andere Sportart ein neues Gerät
+  hinzugefügt) taucht der Vorschlag, neue Geräte automatisch in die Pläne
+  einzubauen, nicht mehr auf — dort baust du die Übung ja gerade selbst. Im
+  Profil bleibt der Vorschlag wie gehabt.
+
 ## 0.100
 
 - Beim Einrichten einer Sportart kannst du bei der eigenen Zeit jetzt zwischen

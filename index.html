@@ -1996,7 +1996,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 100;
+const APP_VERSION = 101;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3697,6 +3697,7 @@ function systemKarteZeichnen(){
 }
 
 function profilOeffnen(){
+  sportartenZurueckEditor = false;   // v101: normaler Profil-Einstieg -> kein Editor-Kontext (räumt Stale-State)
   const d = sitzung.daten;
   document.getElementById("profil-benutzer").textContent =
     tresor.konten.find(k => k.id === sitzung.kontoId).benutzer;
@@ -3848,6 +3849,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.101", punkte:[
+    "Beim Zusammenstellen eines Plans (über Andere Sportart ein neues Gerät hinzugefügt) taucht der Vorschlag, neue Geräte automatisch in die Pläne einzubauen, nicht mehr auf — dort baust du die Übung ja gerade selbst. Im Profil bleibt der Vorschlag wie gehabt."
+  ]},
   { stand:"0.100", punkte:[
     "Beim Einrichten einer Sportart kannst du bei der eigenen Zeit jetzt zwischen Minuten, Stunden und Sekunden wählen — vorher waren es immer Minuten. Und die Dauer-Auswahl steht in einem sauberen Raster (kein schiefes letztes Feld mehr); Zwischenwerte gehen weiter über die eigene Zeit."
   ]},
@@ -7263,7 +7267,9 @@ function neueGeraeteKnopfZeichnen(){
   const ziel = document.getElementById("geraete-neu-knopf");
   if(!ziel) return;   // v55: der Knopf lebt nur noch auf der Equipment-Unterseite
   const neue = geraeteKonfig(offeneSportart).geraete.filter(g => !geraeteVorher.includes(g));  // v55: pro Sportart
-  ziel.innerHTML = neue.length === 0 ? "" :
+  // v101: Im Editor-Kontext (Plan gerade in Arbeit, via „Andere Sportart") NICHT den
+  // „Übungen in Auto-Pläne einbauen"-Vorschlag zeigen — man baut die Übung ja gerade selbst.
+  ziel.innerHTML = (neue.length === 0 || sportartenZurueckEditor) ? "" :
     '<div class="knopfreihe"><button class="primaer schmal" onclick="neueUebungenEinbauen()">' +
     neue.length + ' neue' + (neue.length === 1 ? 's Gerät' : ' Geräte') + ' → passende Übungen einbauen</button></div>';
 }
