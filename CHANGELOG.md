@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.115
+
+- Erster Schritt, um die Nicht-Kraft-Sportarten so ernst zu nehmen wie das
+  Krafttraining: Yoga & Beweglichkeit kann jetzt neben der Zeit auch deine
+  Beweglichkeit in Grad festhalten. Beim Eintragen (per Stoppuhr oder Nachtragen)
+  gibst du den Wert einfach mit an, und er erscheint im Verlauf. Weitere Messgrößen
+  (Schwierigkeitsgrad beim Klettern, Intervall-Runden) und die passende
+  Fortschritts-Anzeige folgen in den nächsten Schritten.
+
 ## 0.114
 
 - Die Statistik zeigt die angeschalteten Auswertungen jetzt wieder direkt — nicht

@@ -1219,6 +1219,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
       </div>
       <div id="ein-strecke-feld" class="abstand"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
+      <!-- v115: generische Messgröße (z. B. Beweglichkeit in Grad), nur wo die Sportart eine `mass` hat -->
+      <div id="ein-mass-feld" class="abstand" hidden><label for="ein-mass" id="ein-mass-label">Messwert</label><input id="ein-mass" type="number" inputmode="decimal" step="1"></div>
     </div>
 
     <!-- Kraft-Felder: Equipment -> Übung -> optional Sätze (v70) -->
@@ -2067,7 +2069,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 114;
+const APP_VERSION = 115;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3990,6 +3992,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.115", punkte:[
+    "Erster Schritt, um die Nicht-Kraft-Sportarten so ernst zu nehmen wie das Krafttraining: Yoga & Beweglichkeit kann jetzt neben der Zeit auch deine Beweglichkeit in Grad festhalten. Beim Eintragen (per Stoppuhr oder Nachtragen) gibst du den Wert einfach mit an, und er erscheint im Verlauf. Weitere Messgrößen (Schwierigkeitsgrad beim Klettern, Intervall-Runden) und die passende Fortschritts-Anzeige folgen in den nächsten Schritten."
+  ]},
   { stand:"0.114", punkte:[
     "Die Statistik zeigt die angeschalteten Auswertungen jetzt wieder direkt — nicht mehr eingeklappt hinter Überschriften. Welche erscheinen, wählst du weiter in Darstellung; im Statistik-Tab ordnen sie sich als Kacheln an, die sich nach Anzahl richten: eine allein wird breit, mehrere stehen nebeneinander. So hast du alles auf einen Blick, ohne etwas aufklappen zu müssen."
   ]},
@@ -5001,6 +5006,8 @@ function protokollEintragHtml(e, mitAktionen){
   if(e.typ === "aktivitaet"){
     const a = aktivitaetText(e.sportart, e.strecke, (e.dauerMin || 0) * 60, e.dauerMin >= 60 ? "h" : "min");
     if(a) teile.push(a);
+    const m = massText(e.sportart, e.messwert);   // v115: generische Messgröße (Beweglichkeit u. a.)
+    if(m) teile.push(m);
   } else {
     if(e.dauerMin > 0) teile.push(e.dauerMin + " min");
     if(e.saetze.length) teile.push(e.saetze.length + (e.saetze.length === 1 ? " Satz" : " Sätze"));
@@ -5561,7 +5568,11 @@ const SPORTARTEN = [
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", einheiten:"Zeit" },
-  { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet", einheiten:"Zeit" }
+  { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet",
+    // v115 (Nicht-Kraft, Etappe 1): generische Messgröße `mass` neben der Strecke —
+    // eine schlichte Zahl mit Einheit (hier Beweglichkeit in Grad). Fortschritt/Ziele
+    // je Messgröße folgen in einer späteren Etappe.
+    mass:{ label:"Beweglichkeit", einheit:"°", schritt:5, start:30 }, einheiten:"Zeit · Beweglichkeit (°)" }
 ];
 
 /** Plan-Typ folgt IMMER der Sportart — Krafttraining hat Übungen und Sätze,
@@ -5589,6 +5600,16 @@ function tempoText(sportartId, strecke, sekunden){
   if(!sp.strecke || sp.paceJe || !strecke || !sekunden) return "";
   const km = sp.strecke.einheit === "m" ? strecke/1000 : strecke;
   return (Math.round(km / (sekunden/3600) * 10) / 10).toString().replace(".", ",") + " km/h";
+}
+
+/** v115: Text einer generischen Aktivitäts-Messgröße (`mass`, z. B. Beweglichkeit
+    in Grad) — parallel zur Strecke. Leer, wo die Sportart keine `mass` hat oder
+    kein Wert vorliegt. Bewusst getrennt von aktivitaetText, damit dessen viele
+    Aufrufer (Plan-Karten, Wizard) unangetastet bleiben. */
+function massText(sportartId, messwert){
+  const sp = sportart(sportartId);
+  if(!sp.mass || !(messwert > 0)) return "";
+  return sp.mass.label + " " + zahlKurz(messwert) + sp.mass.einheit;
 }
 
 /** Fertige Zeile für Protokoll und Karten: "5,2 km · 32 min · 6:09 min/km" */
@@ -8681,6 +8702,7 @@ function eintragenOeffnen(plan, sekunden){
   const dauerS = sekunden || (plan ? plan.dauer : 1800);
   document.getElementById("ein-dauer").value = inEinheit(dauerS, einheit);
   document.getElementById("ein-strecke").value = plan && plan.strecke ? plan.strecke : "";
+  document.getElementById("ein-mass").value = plan && plan.messwert ? plan.messwert : "";   // v115
   eintragenZeichnen();
   zeige("view-eintragen");
 }
@@ -8701,10 +8723,13 @@ function eintragenZeichnen(){
   document.getElementById("ein-dauer-label").textContent = "Dauer (" + zeitEinheit(einheit).kurz + ")";
   document.getElementById("ein-strecke-feld").hidden = !sp.strecke;
   if(sp.strecke) document.getElementById("ein-strecke-label").textContent = "Strecke (" + sp.strecke.einheit + ")";
+  document.getElementById("ein-mass-feld").hidden = !sp.mass;   // v115: generische Messgröße
+  if(sp.mass) document.getElementById("ein-mass-label").textContent = sp.mass.label + " (" + sp.mass.einheit + ")";
 
   const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
   const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
-  const zeile = aktivitaetText(sport, strecke, dauerS, einheit);
+  const messwert = sp.mass ? (parseFloat(String(document.getElementById("ein-mass").value).replace(",", ".")) || 0) : 0;   // v115
+  const zeile = [aktivitaetText(sport, strecke, dauerS, einheit), massText(sport, messwert)].filter(Boolean).join(" · ");
   document.getElementById("ein-vorschau").textContent = zeile ? "Wird eingetragen: " + zeile : "";
 }
 
@@ -8716,25 +8741,26 @@ function aktivitaetSpeichern(){
   const datum = document.getElementById("ein-datum").value;
   const dauerS = inSekunden(parseFloat(document.getElementById("ein-dauer").value) || 0, einheit);
   const strecke = sp.strecke ? (parseFloat(String(document.getElementById("ein-strecke").value).replace(",", ".")) || 0) : 0;
+  const messwert = sp.mass ? (parseFloat(String(document.getElementById("ein-mass").value).replace(",", ".")) || 0) : 0;   // v115
 
   if(!datum){ meldung("Bitte ein Datum angeben."); return; }
   if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen — geplant wird über den Plan und seine Wochentage."); return; }
   if(dauerS < 60){ meldung("Bitte eine Dauer von mindestens einer Minute angeben."); return; }
   if(sp.strecke && strecke <= 0){
     frage("Ohne Strecke kann die App keine Pace rechnen und ein Streckenziel nicht verfolgen. Trotzdem nur die Zeit eintragen?", true, ja => {
-      if(ja) aktivitaetAblegen(sport, datum, dauerS, 0, einheit);
+      if(ja) aktivitaetAblegen(sport, datum, dauerS, 0, einheit, messwert);
     });
     return;
   }
-  aktivitaetAblegen(sport, datum, dauerS, strecke, einheit);
+  aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert);
 }
 
-function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
+function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   const wochentag = (new Date(datum + "T12:00:00").getDay() + 6) % 7 + 1;
   // Sondertraining = nichts stand für diesen Tag im Plan
   const geplant = eintragPlan ? planAmTag(eintragPlan, datum) : false;
   const notizFeld = document.getElementById("ein-notiz");
-  sitzung.daten.protokoll.push({
+  const neu = {
     id: neueId(),
     datum, plan: eintragPlan ? eintragPlan.name : sportartName(sport),
     planId: eintragPlan ? eintragPlan.id : null,   // v35: stabile Zuordnung; null = freie Aktivität ohne Plan
@@ -8742,7 +8768,11 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit){
     dauerMin: Math.max(1, Math.round(dauerS / 60)),
     notiz: notizFeld ? (notizFeld.value || "").trim() : "",
     strecke, zeitEinheit: einheit, saetze: []
-  });
+  };
+  // v115: generische Messgröße (Beweglichkeit u. a.) nur setzen, wo die Sportart eine hat
+  // und ein Wert vorliegt — additiv und sparsam (alte/andere Einträge tragen kein Feld).
+  if(sportart(sport).mass && messwert > 0) neu.messwert = messwert;
+  sitzung.daten.protokoll.push(neu);
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
   const eintrag = sitzung.daten.protokoll[sitzung.daten.protokoll.length - 1];
   const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];

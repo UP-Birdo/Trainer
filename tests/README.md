@@ -24,6 +24,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test112.js` | Statistik-Karten öffnen per Tipp: „Öffnen"-Knöpfe entfernt, Karten tragen `muskelnOeffnen`/`kalenderOeffnen`, innere Ziele (Info-„i", Vorschau-Tage) stoppen das Bubbling |
 | `test113.js` | Progression aus echten Wdh: `effektiveNote` (Soll erreicht → Note bleibt, unter Soll → ≥4, unter Wdh-Minimum → 5, Zeit-/satzlose Übungen unverändert) |
 | `test114.js` | Statistik-Kacheln im Raster: sechs Statistiken in `.stat-raster` (auto-fit), Akkordeon (`statToggle`/`stat-inhalt`/`stat-kopf`) restlos entfernt, jede STAT_OPTIONEN-id hat ihre Karte, Info-Texte draußen |
+| `test115.js` | Nicht-Kraft Etappe 1: generische Messgröße `massText` (Beweglichkeit in Grad nur bei Sportart mit `mass` + Wert) + Verdrahtung (Yoga-Config, `ein-mass`, `aktivitaetAblegen`-Messwert, Protokoll-Anzeige) |
 
 ## Ausführen
 
@@ -51,6 +52,7 @@ VS Codes Electron springt ein):
     & $code tests\test112.js index.html
     & $code tests\test113.js index.html
     & $code tests\test114.js index.html
+    & $code tests\test115.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
