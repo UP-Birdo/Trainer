@@ -2081,7 +2081,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 112;
+const APP_VERSION = 113;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2768,6 +2768,23 @@ function progressionAnwenden(uebung, note){
   }
   u.pause = begrenzen(u.pause, 30, 300);
   return u;
+}
+
+/* v113: Aus den WIRKLICH geschafften Wiederholungen eine effektive Note ableiten.
+   Nutzer-Entscheidung 07/2026: „weniger geschafft als geplant wirkt wie Note 4-5" —
+   die echten Wdh setzen eine UNTERGRENZE auf die Note, unabhängig davon, wie leicht
+   es sich anfühlte. Wer das Plan-Soll (u.wdh) auf ALLEN Sätzen erreicht, behält seine
+   manuelle RPE-Note; wer darunter bleibt, kann nicht „leicht" gewesen sein und wird
+   höchstens gehalten (4), unter dem Wdh-Minimum sogar zurückgestuft (5). Gilt nur für
+   Wdh-Übungen mit protokollierten Sätzen — Zeit-/Halteübungen behalten ihre Note. */
+function effektiveNote(u, manuelleNote, saetze){
+  if(u.modus !== "wdh") return manuelleNote;
+  const eigene = (saetze || []).filter(s => s.uebungId === u.id && typeof s.wdh === "number");
+  if(eigene.length === 0) return manuelleNote;
+  const minWdh = Math.min(...eigene.map(s => s.wdh));
+  if(u.wdhMin > 0 && minWdh < u.wdhMin) return Math.max(manuelleNote, 5);   // unter dem Minimum: Rückschritt
+  if(minWdh < u.wdh) return Math.max(manuelleNote, 4);                      // unter dem Soll: halten statt steigern
+  return manuelleNote;
 }
 
 /* ============================================================
@@ -4004,6 +4021,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.113", punkte:[
+    "Die automatische Steigerung hört jetzt auf deine echten Wiederholungen: Schaffst du weniger als geplant, steigert die App das nächste Mal nicht einfach weiter, sondern hält (oder geht bei deutlich zu wenig eine Stufe zurück) — auch wenn du die Übung als leicht bewertest. Erreichst du dein Soll auf allen Sätzen, zählt wie bisher deine Bewertung. Im Ergebnis steht dann ein kurzer Hinweis, dass diesmal gehalten wurde, damit klar ist, warum."
+  ]},
   { stand:"0.112", punkte:[
     "In der Statistik brauchst du keine extra Knöpfe mehr: Ein Tipp auf die obere Figur-Karte (Zuletzt trainiert) öffnet direkt die volle Muskelkarte, und ein Tipp auf die Serie-Karte mit der 7-Tage-Vorschau öffnet den Kalender. Einen einzelnen Tag in der Vorschau tippst du weiterhin gezielt an, um ihn zu öffnen."
   ]},
@@ -9435,10 +9455,15 @@ function bewertungAnwenden(){
      Ziele zuerst: Sie setzen die Obergrenze, gegen die die Progression rechnet. */
   const zielBericht = plan ? kraftZieleAnwenden(plan) : [];
   const zeilen = [];
+  // v113: die WIRKLICH geschafften Wdh bestimmen die Progression mit — weniger als
+  // geplant wirkt wie Note 4-5 (Nutzer-Entscheidung 07/2026), unabhängig von der RPE-Note.
+  const gemachteSaetze = lauf.protokollEintrag ? lauf.protokollEintrag.saetze : [];
   if(plan){   // gleicher Guard wie oben: ist der Plan nicht (mehr) im Konto, nur Serie/Ergebnis zeigen, nicht abstürzen
     plan.uebungen = plan.uebungen.map(alt => {
-      const neu = progressionAnwenden(alt, bewertung[alt.id]);
-      zeilen.push({ name:alt.name, alt, neu });
+      const manuelle = bewertung[alt.id];
+      const note = effektiveNote(alt, manuelle, gemachteSaetze);
+      const neu = progressionAnwenden(alt, note);
+      zeilen.push({ name:alt.name, alt, neu, gebremst: note > manuelle });
       return neu;
     });
   }
@@ -9467,6 +9492,7 @@ function bewertungAnwenden(){
     zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
+    if(z.gebremst)                      teile.push("weniger Wdh als geplant — diesmal gehalten");
     if(z.neu.wdh !== z.alt.wdh)         teile.push(z.alt.wdh + " → " + z.neu.wdh + " Wdh");
     if(z.neu.dauer !== z.alt.dauer)     teile.push(z.alt.dauer + " → " + z.neu.dauer + " s");
     if(z.neu.gewicht !== z.alt.gewicht) teile.push(z.alt.gewicht + " → " + z.neu.gewicht + " kg");

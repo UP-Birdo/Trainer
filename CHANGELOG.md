@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.113
+
+- Die automatische Steigerung hört jetzt auf deine echten Wiederholungen: Schaffst
+  du weniger als geplant, steigert die App das nächste Mal nicht einfach weiter,
+  sondern hält (oder geht bei deutlich zu wenig eine Stufe zurück) — auch wenn du
+  die Übung als leicht bewertest. Erreichst du dein Soll auf allen Sätzen, zählt wie
+  bisher deine Bewertung. Im Ergebnis steht dann ein kurzer Hinweis, dass diesmal
+  gehalten wurde, damit klar ist, warum.
+
 ## 0.112
 
 - In der Statistik brauchst du keine extra Knöpfe mehr: Ein Tipp auf die obere

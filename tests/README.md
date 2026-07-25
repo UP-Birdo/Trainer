@@ -23,6 +23,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test110.js` | Statistik-Akkordeon: Verdrahtung Karte↔`statToggle` für alle sechs Statistiken + Toggle-Verhalten (`statToggle`/`statAkkordeonAnwenden` gegen Fake-DOM: Default zu, mehrere offen, erneut zu) |
 | `test111.js` | Ziele erst mit Plan-Übung: `planUebungen`/`zieleVerfuegbar` (nichts da → aus, Plan-Übung/Aktivität → an, nur bestehendes Ziel → an, leerer Übungsname zählt nicht) |
 | `test112.js` | Statistik-Karten öffnen per Tipp: „Öffnen"-Knöpfe entfernt, Karten tragen `muskelnOeffnen`/`kalenderOeffnen`, innere Ziele (Info-„i", Vorschau-Tage) stoppen das Bubbling |
+| `test113.js` | Progression aus echten Wdh: `effektiveNote` (Soll erreicht → Note bleibt, unter Soll → ≥4, unter Wdh-Minimum → 5, Zeit-/satzlose Übungen unverändert) |
 
 ## Ausführen
 
@@ -49,6 +50,7 @@ VS Codes Electron springt ein):
     & $code tests\test110.js index.html
     & $code tests\test111.js index.html
     & $code tests\test112.js index.html
+    & $code tests\test113.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
