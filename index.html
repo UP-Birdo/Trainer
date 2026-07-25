@@ -1086,7 +1086,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-sportart" class="view">
   <div class="kopf"><h1 id="sportart-name">–</h1></div>
-  <div class="meta" id="sportart-einheiten"></div>
 
   <div class="karte abstand">
     <div class="zeile"><h2>Diese Sportart nutze ich</h2>
@@ -1997,7 +1996,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 98;
+const APP_VERSION = 99;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3849,6 +3848,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.099", punkte:[
+    "Die Sportart-Seite ist aufgeräumt: Der überflüssige Kopftext (Zählbar …) und der Hinweis bei aktiver Sportart sind weg. In der Übungs-Übersicht tippst du jetzt erst ein Gerät an und siehst dann dessen Übungen — statt gleich der ganzen Liste. Das kleine Zeit unter Übungen ist ebenfalls raus."
+  ]},
   { stand:"0.098", punkte:[
     "Die Körpergewicht-Statistik ist aufgeräumt: In der Statistik siehst du nur noch die Kurve und trägst mit + einen Wert ein. Die Liste aller Einträge (zum Löschen) und die Details wie BMI und Größe sind einen Tipp weiter unter Einträge & Details."
   ]},
@@ -7007,6 +7009,7 @@ function sportartOeffnen(id){
 }
 
 let bibOffen = {};
+let bibGeraetOffen = {};   // v99: je Gerät eigenes Aufklappen (Kraft-Bibliothek)
 /** Nachschlage-Bibliothek der VORHANDENEN Übungen einer Sportart (einklappbar).
     Kraft: die Datenbank-Übungen (mit Gerät); jede andere Sportart: ihre Drills.
     Reine Ansicht — hinzugefügt werden Übungen weiterhin im Editor-Picker. */
@@ -7024,10 +7027,16 @@ function bibliothekHtml(sportId){
     const gruppenHtml = reihenfolge.map(gid => {
       const us = passend.filter(u => u.geraet === gid);
       if(!us.length) return "";
-      return '<div class="wahl-gruppe"><label>' + text(geraetName(gid)) + '</label></div>' +
-        us.map(u =>
-          '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><strong>' + text(u.name) + '</strong>' +
-          (u.modus === "zeit" ? '<div class="meta">Zeit</div>' : "") + '</div>').join("");
+      // v99: erst das Gerät antippen, dann seine Übungen — nicht mehr alle auf einmal.
+      // Und das „Zeit"-Label unter Übungen ist raus (unnötig).
+      const schluessel = sportId + "|" + gid;
+      const auf = !!bibGeraetOffen[schluessel];
+      const kopf = '<button class="breit" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px" onclick="bibGeraetUmschalten(\'' + schluessel + '\')">' +
+        '<span>' + text(geraetName(gid)) + '</span>' +
+        '<span class="meta">' + us.length + (auf ? " ▲" : " ▼") + '</span></button>';
+      const inhalt = auf ? us.map(u =>
+        '<div style="padding:6px 0 6px 12px;border-bottom:1px solid var(--line)"><strong>' + text(u.name) + '</strong></div>').join("") : "";
+      return kopf + inhalt;
     }).join("");
     return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
       '<button class="schmal" onclick="bibUmschalten(\'' + sportId + '\')">' +
@@ -7048,6 +7057,7 @@ function bibliothekHtml(sportId){
       '</div>' : "") + '</div>';
 }
 function bibUmschalten(sportId){ bibOffen[sportId] = !bibOffen[sportId]; sportartSeiteZeichnen(); }
+function bibGeraetUmschalten(schluessel){ bibGeraetOffen[schluessel] = !bibGeraetOffen[schluessel]; sportartSeiteZeichnen(); }
 
 /* #region Übungs-Bibliothek (v89) — alle DB-Übungen als Karteikarten (Akkordeon).
    Aus „Mehr" erreichbar (ab Stufe 3). Antippen klappt eine Karte auf: Gerät,
@@ -7144,14 +7154,13 @@ function sportartSeiteZeichnen(){
   const an = e.sportarten.includes(s.id);
 
   document.getElementById("sportart-name").textContent = s.name;
-  document.getElementById("sportart-einheiten").innerHTML =
-    '<span style="color:' + s.farbe + '">■</span> Zählbar: ' + text(s.einheiten);
 
   const schalter = document.getElementById("sportart-schalter");
   schalter.textContent = an ? "Ja" : "Nein";
   schalter.classList.toggle("gewaehlt", an);
+  // v99: aktiver Hinweis entfällt (unnötig, blähte auf); nur die Abwahl erklärt sich.
   document.getElementById("sportart-hinweis").textContent = an
-    ? "Pläne dieser Sportart erscheinen in der Liste und färben den Kalender."
+    ? ""
     : "Abgewählt — die Sportart steht im Editor nicht mehr zur Auswahl. Bestehende Pläne behalten sie trotzdem.";
 
   const inhalt = document.getElementById("sportart-inhalt");

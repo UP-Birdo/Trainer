@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.099
+
+- Die Sportart-Seite ist aufgeräumt: Der überflüssige Kopftext (Zählbar …) und
+  der Hinweis bei aktiver Sportart sind weg. In der Übungs-Übersicht tippst du
+  jetzt erst ein Gerät an und siehst dann dessen Übungen — statt gleich der
+  ganzen Liste. Das kleine „Zeit" unter Übungen ist ebenfalls raus.
+
 ## 0.098
 
 - Die Körpergewicht-Statistik ist aufgeräumt: In der Statistik siehst du nur noch
