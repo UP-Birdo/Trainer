@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test138.js` | Übungs-Beschreibungen (`UEBUNG_TEXT`, etappenweise): keine Karteileichen (jeder Schlüssel ist eine echte Übung), Etappe 1 (Beine) vollständig, Substanz je Text (≥120 Zeichen, ≥2 Sätze, nicht doppelt, nicht gleich dem Kurz-Tipp), jede Übung behält ihren Kurz-Tipp |
 | `test137.js` | Dropsätze: `dropSaetze` (80 / 80-60 %, fallende Wdh, keine Drops bei Zeit/Körpergewicht) + Ablauf (hängt ohne Pause am Arbeitssatz) + die Wechselwirkung mit `effektiveNote` (Dropsatz bremst die Progression NICHT, ein echter schwacher Satz schon) |
 | `test136.js` | Supersätze: `superBloecke` (Kopplung mit dem Nachbarn, Ketten, Schalter an der letzten Übung zählt nicht) + `imSuperatz` + der AUSGEFÜHRTE Ablauf (keine Pause zwischen Partnern, Pause danach, ungleiche Satzzahl, Rampen davor) |
 | `test135.js` | Aufwärmsätze: `aufwaermSaetze` (Staffelung 60 / 50-75 / 40-60-80 %, Gewicht steigt & Wdh fallen, Rundung auf die Schrittweite, nie 0 kg, mind. 2 Wdh, keine Rampe bei Zeit/Körpergewicht/0) + Verdrahtung (vor den Arbeitssätzen, halbe Pause, nicht protokolliert, kein Rekord) |
@@ -97,6 +98,7 @@ VS Codes Electron springt ein):
     & $code tests\test135.js index.html
     & $code tests\test136.js index.html
     & $code tests\test137.js index.html
+    & $code tests\test138.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.138
+
+- Die Übungs-Bibliothek bekommt echte Beschreibungen: zu jeder Übung zwei bis drei
+  Sätze — was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste
+  ist. Den Anfang machen alle 40 Bein-Übungen; die übrigen Kategorien kommen nach
+  und nach dazu. Der bisherige Kurz-Tipp bleibt darüber stehen: er ist der Merksatz
+  fürs Gym, der Text die Erklärung zum Nachlesen.
+
 ## 0.137
 
 - Dropsätze: Unter „Feinheiten" einer Übung mit Gewicht stellst du 1 oder 2

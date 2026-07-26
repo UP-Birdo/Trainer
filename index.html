@@ -2249,7 +2249,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 137;
+const APP_VERSION = 138;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4384,6 +4384,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.138", punkte:[
+    "Die Übungs-Bibliothek bekommt echte Beschreibungen: zu jeder Übung zwei bis drei Sätze — was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Den Anfang machen alle 40 Bein-Übungen; die übrigen Kategorien kommen nach und nach dazu. Der bisherige Kurz-Tipp bleibt darüber stehen: er ist der Merksatz fürs Gym, der Text die Erklärung zum Nachlesen."
+  ]},
   { stand:"0.137", punkte:[
     "Dropsätze: Unter „Feinheiten“ einer Übung mit Gewicht stellst du 1 oder 2 Dropsätze ein. Im Training hängen sie direkt am Arbeitssatz — ohne Pause dazwischen, mit 80 bzw. 60 Prozent des Gewichts und entsprechend weniger Wiederholungen. Anders als die Aufwärmsätze zählen sie als echte Arbeit: Sie landen im Verlauf und im Volumen. Beim Steigern werden sie aber richtig einsortiert — dass du dort weniger Wiederholungen schaffst, bremst deine Progression nicht."
   ]},
@@ -6867,6 +6870,61 @@ const UEBUNG_INFO = {
   "Intervall-Läufe":"Wechsel aus schnellen und lockeren Abschnitten."
 };
 
+/* ============================================================
+   v138: Übungs-BESCHREIBUNGEN (2–3 Sätze je Übung).
+   Ergänzt UEBUNG_INFO (ein kurzer Ausführungs-Tipp) um den größeren Rahmen:
+   WAS die Übung trainiert, WIE sie sauber läuft und WELCHER Fehler der
+   häufigste ist. In der Bibliothek steht der Text unter den Muskeln.
+   Bewusst in ETAPPEN gefüllt (147 Übungen sind ein Content-Durchgang, kein
+   Bau-Schritt) — die Tabelle ist deshalb LÜCKENHAFT erlaubt: wo nichts steht,
+   bleibt es beim Kurz-Tipp. Der Test prüft darum keine Vollständigkeit, sondern
+   dass jeder Schlüssel eine echte Übung ist (keine Karteileichen durch Tippfehler).
+   Etappe 1 (v138): alle Bein-Übungen.
+   ============================================================ */
+const UEBUNG_TEXT = {
+  // ---------- Beine ----------
+  "Kniebeugen":"Die Grundübung für Oberschenkel und Gesäß — sie trainiert nebenbei den ganzen Rumpf, weil er die aufrechte Haltung sichern muss. Füße etwa schulterbreit, Knie in Richtung der Zehen, so tief wie es die Hüfte ohne Rundrücken zulässt. Häufigster Fehler: die Fersen heben ab, weil die Sprunggelenke unbeweglich sind — dann hilft eine kleine Erhöhung unter den Fersen.",
+  "Ausfallschritte":"Trainiert jedes Bein einzeln und schult dabei das Gleichgewicht, was beim beidbeinigen Beugen zu kurz kommt. Großer Schritt nach vorn, hinteres Knie tief zum Boden, Oberkörper bleibt aufrecht über der Hüfte. Häufigster Fehler: zu kurzer Schritt — dann schiebt das vordere Knie weit über den Fuß und die Kniescheibe bekommt die ganze Last.",
+  "Glute Bridge":"Isoliert das Gesäß im Liegen und ist damit die rückenschonendste Art, die Hüftstreckung zu üben. Fersen aufstellen, Becken hochdrücken und oben ein bis zwei Sekunden fest anspannen. Häufigster Fehler: den Rücken überstrecken statt die Hüfte zu strecken — der Bauch bleibt fest, die Bewegung kommt aus dem Gesäß.",
+  "Wadenheben":"Trainiert die Wade über den vollen Bewegungsumfang — sie ist der Muskel, der beim Gehen und Springen zuletzt abdrückt. Ganz hoch auf die Fußballen, oben kurz halten, dann langsam bis unter die Waagerechte ablassen. Häufigster Fehler: kurzes Wippen aus dem Sprunggelenk; die Wade wächst über die Dehnung unten und die Spannung oben.",
+  "Wandsitzen":"Eine Halteübung für den vorderen Oberschenkel, die ohne Gewicht auskommt und die Gelenke schont. Rücken flach an die Wand, Oberschenkel waagerecht, Knie über den Fersen, ruhig weiteratmen. Häufigster Fehler: die Hände auf den Oberschenkeln abstützen — das nimmt genau die Last weg, um die es geht.",
+  "Einbeinige Kniebeuge":"Die anspruchsvollste Kniebeuge-Variante ohne Gewicht: ein Bein trägt alles, Hüfte und Rumpf müssen stabilisieren. Standbein fest, Knie in Zehenrichtung, kontrolliert absenken und ohne Schwung wieder hoch. Häufigster Fehler: das Becken kippt zur Seite weg — lieber weniger tief und dafür gerade.",
+  "Step-ups":"Trainiert Bein und Gesäß im Alltagsmuster Treppensteigen und deckt Seitenunterschiede auf. Ganzen Fuß auf die Box, über die Ferse hochdrücken, oben kurz stabil stehen. Häufigster Fehler: sich mit dem hinteren Bein hochstoßen — das Standbein macht die Arbeit, das andere folgt nur.",
+  "Bulgarische Kniebeuge":"Der hintere Fuß liegt erhöht, dadurch landet fast die ganze Last auf dem vorderen Bein — sehr wirksam bei wenig Gewicht. Vorderer Fuß weit genug vorn, senkrecht absenken, Oberkörper leicht vorgeneigt. Häufigster Fehler: zu enger Stand, dann drückt das vordere Knie stark nach vorn.",
+  "Box Jumps":"Eine Sprungübung für Schnellkraft: Sie trainiert, wie schnell Kraft entsteht, nicht wie viel. Kraftvoll abdrücken, weich mit gebeugten Knien auf der Box landen, aufrecht abschließen. Häufigster Fehler: von der Box zurückspringen — lieber heruntersteigen, das spart die Gelenke.",
+  "Goblet Squats":"Das Gewicht vor der Brust zwingt den Oberkörper aufrecht und macht daraus die beste Lern-Kniebeuge. Hantel dicht am Körper halten, Ellenbogen zwischen die Knie senken, Fersen bleiben unten. Häufigster Fehler: zu schweres Gewicht — hier zählt die saubere Tiefe mehr als die Zahl.",
+  "KH-Ausfallschritte":"Ausfallschritte mit Kurzhanteln — die Last hängt seitlich und belastet den Rücken kaum. Hanteln locker an den Seiten, großer Schritt, hinteres Knie tief. Häufigster Fehler: den Oberkörper vorwerfen; die Arme bleiben passiv, das Bein arbeitet.",
+  "KH-Wadenheben":"Wadenheben mit Zusatzgewicht in einer Hand oder beiden — die einfachste Steigerung ohne Maschine. Vorfüße auf eine Stufe, tief ablassen, ganz hoch drücken, oben halten. Häufigster Fehler: zu kurzer Weg; die Ferse muss unter das Niveau der Stufe sinken.",
+  "KH-Kreuzheben":"Trainiert die gesamte Rückseite von der Wade bis zum oberen Rücken und ist die schonendere Einstiegsvariante zum Kreuzheben. Hanteln dicht am Bein führen, Hüfte nach hinten schieben, Rücken gerade. Häufigster Fehler: mit rundem Rücken ziehen — lieber die Knie mehr beugen und den Brustkorb offen halten.",
+  "Kettlebell-Swings":"Ein Schwungmuster für die Hüfte: Es trainiert Kraftausdauer und die explosive Hüftstreckung zugleich. Die Kugel pendelt aus der Hüfte, nicht aus den Armen; oben ist der Körper eine gerade Linie. Häufigster Fehler: daraus eine Kniebeuge machen — die Knie beugen nur wenig, die Hüfte schiebt nach hinten.",
+  "Kettlebell-Goblet-Squat":"Wie die Goblet-Kniebeuge, nur mit der Kettlebell am Griff — der Schwerpunkt sitzt etwas höher und fordert den Rumpf mehr. Kugel an der Brust, Ellenbogen innen, tief und aufrecht beugen. Häufigster Fehler: die Schultern hochziehen; sie bleiben tief, der Griff ist locker.",
+  "LH-Kniebeugen":"Die klassische Langhantel-Kniebeuge und die stärkste Übung für Beine und Gesäß, weil sie am meisten Gewicht erlaubt. Hantel auf dem oberen Rücken, Bauch fest, gleichmäßig tief und wieder hoch. Häufigster Fehler: das Gesäß schießt zuerst hoch — dann ist das Gewicht zu schwer oder der Rumpf nicht fest genug.",
+  "Rumän. Kreuzheben":"Trainiert gezielt die hintere Oberschenkelmuskulatur über die Dehnung, ohne die Hantel abzusetzen. Knie fast gestreckt lassen, Hüfte weit nach hinten schieben, Stange dicht am Bein. Häufigster Fehler: tiefer gehen wollen als die Beweglichkeit zulässt — Schluss ist, wenn der Rücken rund wird.",
+  "LH-Kreuzheben":"Die Ganzkörperübung schlechthin: Beine, Gesäß und der gesamte Rücken arbeiten gegen ein einziges schweres Gewicht. Stange dicht am Schienbein, Brust raus, mit den Beinen andrücken und die Hüfte durchstrecken. Häufigster Fehler: mit den Hüften vorstarten, sodass die Stange vom Körper wegwandert.",
+  "LH-Hip-Thrust":"Die gezielteste Gesäßübung mit Gewicht — die Hüftstreckung findet gegen den größten Hebel statt. Schulterblätter auf der Bank, Kinn leicht angezogen, oben Gesäß fest anspannen. Häufigster Fehler: den unteren Rücken überstrecken statt die Hüfte zu strecken.",
+  "Smith-Kniebeugen":"Kniebeugen in der geführten Maschine: Die Stange läuft in der Schiene, dadurch braucht es weniger Balance und man kann sicher allein schwer arbeiten. Füße etwas vor die Hüfte stellen, kontrolliert absenken. Häufigster Fehler: die Füße zu weit hinten — dann drückt die feste Bahn das Knie nach vorn.",
+  "Beinpresse":"Erlaubt viel Gewicht bei gestütztem Rücken und ist deshalb der sichere Einstieg ins schwere Beintraining. Füße schulterbreit auf die Platte, so tief beugen, wie das Becken auf der Lehne bleibt. Häufigster Fehler: die Knie am Ende durchdrücken — kurz vor dem Streckanschlag stoppen.",
+  "Beinbeuger":"Isoliert die hintere Oberschenkelmuskulatur, die beim Beugen und Drücken sonst zu kurz kommt. Kniegelenk in der Drehachse der Maschine, kontrolliert anziehen, langsam zurücklassen. Häufigster Fehler: das Becken abheben, um mehr Weg zu bekommen.",
+  "Beinstrecker":"Isoliert den vorderen Oberschenkel und eignet sich gut, um ihn nach den schweren Übungen gezielt zu ermüden. Oben kurz halten, ohne die Knie ruckartig durchzuschlagen. Häufigster Fehler: zu schweres Gewicht mit Schwung — hier zählt die Spannung, nicht die Zahl.",
+  "Wadenheben Maschine":"Wadentraining mit gestützter Haltung, dadurch kann man mehr Gewicht und mehr Wiederholungen sauber bewegen. Fersen tief ablassen, ganz hochdrücken, oben eine Sekunde halten. Häufigster Fehler: zu schnelles Wippen ohne Dehnung unten.",
+  "Adduktoren":"Trainiert die Innenseite der Oberschenkel — wichtig für die seitliche Stabilität von Hüfte und Knie. Ruhig zusammenführen, kurz halten, langsam öffnen lassen. Häufigster Fehler: mit Schwung zuschlagen; die letzten Zentimeter sind der eigentliche Reiz.",
+  "Abduktoren":"Trainiert die Außenseite von Hüfte und Gesäß, die beim Gehen und Laufen das Becken gerade hält. Aufrecht sitzen, kontrolliert nach außen drücken, langsam zurück. Häufigster Fehler: den Oberkörper mitschwingen lassen statt aus der Hüfte zu arbeiten.",
+  "Rack-Kniebeugen":"Kniebeugen aus dem Rack mit verkürztem Weg — nützlich, um schwerer zu arbeiten oder eine bestimmte Höhe zu üben. Ablagen auf die gewünschte Tiefe stellen, sauber ablegen statt fallen lassen. Häufigster Fehler: auf den Ablagen abfedern; jede Wiederholung startet ruhig aus dem Stand.",
+  "Band-Kniebeugen":"Kniebeugen gegen ein Gummiband: Der Widerstand steigt nach oben an, genau dort, wo man am stärksten ist. Band unter beide Füße, gleichmäßig tief beugen. Häufigster Fehler: das Band zu straff wählen, sodass die Tiefe verloren geht.",
+  "Schlingen-Kniebeuge":"Kniebeuge mit Schlingentrainer: Die Griffe geben Halt, dadurch gelingt die Tiefe auch bei steifen Sprunggelenken. Arme nur zum Ausbalancieren nutzen, nicht zum Hochziehen. Häufigster Fehler: sich am Band hochziehen — die Beine machen die Arbeit.",
+  "Einbeinige Beinpresse":"Beinpresse mit einem Bein: deckt Seitenunterschiede auf und beseitigt sie, weil das schwächere Bein nicht mehr mitgezogen wird. Fuß mittig auf die Platte, Becken bleibt liegen. Häufigster Fehler: das Becken zur belasteten Seite kippen.",
+  "Wadenpresse (Beinpresse)":"Wadenheben an der Beinpresse: Nur die Fußballen liegen auf der Platte, der Rest des Körpers ist gestützt. Tief ablassen, voll durchdrücken, oben halten. Häufigster Fehler: die Knie mitbeugen — sie bleiben nahezu gestreckt, sonst übernimmt der Oberschenkel.",
+  "Sitzendes Wadenheben":"Im Sitzen ist das Knie gebeugt, dadurch arbeitet vor allem der tiefe Wadenmuskel — die Ergänzung zum stehenden Wadenheben. Voller Umfang, oben halten, langsam ablassen. Häufigster Fehler: zu wenig Wiederholungen; die Wade verträgt und braucht hohe Zahlen.",
+  "Sitzender Beinbeuger":"Beinbeugen im Sitzen: Die Oberschenkelrückseite ist dabei stärker vorgedehnt als im Liegen, was den Reiz erhöht. Rücken an die Lehne, Polster über den Knien, kontrolliert anziehen. Häufigster Fehler: das Gesäß von der Sitzfläche lösen.",
+  "Frontkniebeugen im Rack":"Die Hantel liegt vorn auf den Schultern; das zwingt zu einem sehr aufrechten Oberkörper und trifft den vorderen Oberschenkel stärker. Ellenbogen hoch halten, tief und gleichmäßig beugen. Häufigster Fehler: die Ellenbogen sinken, die Stange rollt nach vorn.",
+  "LH-Frontkniebeugen":"Frontkniebeuge mit freier Langhantel — anspruchsvoll für Beweglichkeit und Rumpf, dafür sehr knieschonend im Vergleich zur gleichen Last im Nacken. Stange auf den vorderen Schultern ablegen, Ellenbogen hoch. Häufigster Fehler: die Stange mit den Händen tragen statt auf den Schultern ablegen.",
+  "LH-Good-Mornings":"Trainiert die Rückseite von Hüfte und Rücken über eine reine Hüftbeugung mit der Hantel im Nacken. Knie leicht gebeugt, Hüfte weit nach hinten, Rücken bleibt gerade. Häufigster Fehler: zu viel Gewicht — diese Übung wird mit wenig Last und viel Kontrolle geübt.",
+  "Kettlebell-Ausfallschritte":"Ausfallschritte mit der Kettlebell vor der Brust: Das Gewicht vorn hält den Oberkörper aufrecht und fordert den Rumpf zusätzlich. Kugel dicht am Körper, hinteres Knie tief. Häufigster Fehler: die Kugel vom Körper weghalten, dann zieht sie nach vorn.",
+  "Wall Balls":"Kniebeuge und Wurf in einem — eine Kraftausdauer-Übung, die schnell außer Atem bringt. Aus der tiefen Beuge nach oben strecken und den Ball an der Wand-Marke fangen. Häufigster Fehler: nur aus den Armen werfen; der Schwung kommt aus den Beinen.",
+  "Kniebeugen mit Weste":"Kniebeugen mit Gewichtsweste: Die Last sitzt am Rumpf statt in den Händen, dadurch bleibt die Technik wie beim Körpergewicht. Gleiche Ausführung, nur schwerer. Häufigster Fehler: zu schnell zu viel Gewicht in der Weste — lieber in kleinen Schritten steigern.",
+  "Bank-Step-ups":"Step-ups auf eine Bank: Die feste Höhe macht die Belastung vergleichbar und eignet sich gut zum Steigern. Ganzen Fuß aufsetzen, über die Ferse hochdrücken, kontrolliert absteigen. Häufigster Fehler: zu hohe Bank — dann kippt das Becken und der Rücken rundet."
+};
+
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl
    der Ansicht der kleinen Fokus-Figur). Die große Muskelkarte färbt beide Seiten. */
 const MUSKEL_SEITE = {
@@ -8234,11 +8292,15 @@ function bibKarteHtml(u){
     ? '<div class="mini-figur" data-mf-ansicht="' + info.ansicht + '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' : "";
   const muskelNamen = (info && info.muskeln) ? info.muskeln.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
   const tip = UEBUNG_INFO[u.name] || "";
+  const beschreibung = UEBUNG_TEXT[u.name] || "";   // v138: 2–3 Sätze, wo schon geschrieben
   return '<div class="karte">' + kopf +
     '<div class="zeile abstand" style="align-items:flex-start;gap:12px">' + figur +
       '<div>' +
         (muskelNamen ? '<div class="meta"><strong style="color:var(--chalk)">Muskeln:</strong> ' + text(muskelNamen) + '</div>' : "") +
         (tip ? '<div class="meta" style="margin-top:6px">' + text(tip) + '</div>' : "") +
+        // v138: Die ausführliche Beschreibung steht UNTER dem Kurz-Tipp — der Tipp
+        // ist der Merksatz fürs Gym, der Text die Erklärung fürs Nachlesen.
+        (beschreibung ? '<div class="meta" style="margin-top:8px;line-height:1.6">' + text(beschreibung) + '</div>' : "") +
       '</div>' +
     '</div></div>';
 }
