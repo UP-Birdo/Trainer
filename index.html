@@ -442,8 +442,11 @@ body:not(.nav-an) #nav{display:none}
 .stat-raster > .karte{margin-bottom:0}
 /* v116: Kacheln entschlacken — kleine, unaufdringliche Überschrift (kein großer
    fetter Titel); der Graf ist die Hauptsache. Dazu ein kleiner Rund-Knopf. */
-.stat-karte h2{font-size:14px;font-weight:600;letter-spacing:0;color:var(--muted);margin-bottom:8px}
+/* v120: Überschriften noch kleiner — dezenter Label-Stil, damit die Grafik dominiert. */
+.stat-karte h2{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
+/* v120: Körpergewicht über die volle Rasterbreite — die Kurve war in der halben Kachel zu klein. */
+#stat-koerpergewicht{grid-column:1 / -1}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
@@ -763,7 +766,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="zeile">
       <div>
         <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
-        <div class="kennzahl-label">Trainings-Serie</div>
+        <!-- v120: „Trainings-Serie"-Label raus — die Flamme + Zahl zeigt es schon. -->
         <div id="serie-meilenstein" style="margin-top:4px"></div>
       </div>
       <!-- v104: die Kennzahlen-Zeile (Wochen in Folge, Trainings gesamt …) liegt hinter dem „i" -->
@@ -2107,7 +2110,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 119;
+const APP_VERSION = 120;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3921,10 +3924,21 @@ function statistikSichtbarkeit(){
   });
 }
 /** Auswahl-Knöpfe in „Darstellung": welche Statistiken erscheinen. */
+/** v120: Hat diese Statistik überhaupt schon Daten? Körpergewicht wird MANUELL
+    befüllt und ist darum immer wählbar; die anderen leiten sich aus dem Training
+    ab — sie erst anbieten, wenn es passende Daten gibt (sonst wählt man Leeres). */
+function statHatDaten(id){
+  const p = sitzung.daten.protokoll || [];
+  if(id === "koerpergewicht") return true;                                  // manuell
+  if(id === "trainings")      return p.length > 0;
+  if(id === "ausdauer")       return p.some(e => e.typ === "aktivitaet");
+  return p.some(e => Array.isArray(e.saetze) && e.saetze.length > 0);        // volumen/fortschritt/bestwerte aus Sätzen
+}
 function statAuswahlZeichnen(){
   const ziel = document.getElementById("stat-auswahl"); if(!ziel) return;
   const an = new Set(sitzung.daten.einrichtung.statistiken || []);
-  ziel.innerHTML = STAT_OPTIONEN.map(([id, name]) =>
+  // Nur anbieten, was Daten hat ODER bereits angeschaltet ist (damit man es abwählen kann).
+  ziel.innerHTML = STAT_OPTIONEN.filter(([id]) => statHatDaten(id) || an.has(id)).map(([id, name]) =>
     '<button class="' + (an.has(id) ? "gewaehlt" : "") + '" onclick="statUmschalten(\'' + id + '\')">' + text(name) + '</button>').join("");
 }
 function statUmschalten(id){
@@ -4041,6 +4055,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.120", punkte:[
+    "Weniger Text auf den Haupt-Tabs. Auf Heute steht ohne Plan nur noch die Überschrift und der eine Knopf zum Loslegen (einen eigenen Plan legst du unter Pläne an). In der Statistik sind die Kachel-Überschriften noch dezenter, das überflüssige Serie-Label ist weg (die Flamme zeigt es ja), und die Körpergewicht-Kurve nimmt jetzt die volle Breite ein, damit sie größer ist. In Darstellung kannst du außerdem nur noch Statistiken anschalten, für die es schon Daten gibt oder die du selbst befüllst."
+  ]},
   { stand:"0.119", punkte:[
     "Ein paar Verbesserungen unter der Haube nach einem gründlichen Durchgang: Die Stoppuhr und der neue Intervall-Timer halten den Bildschirm jetzt zuverlässig wach, auch wenn du kurz weg warst. Ein seltener Fehler beim Nachtragen eines Trainings mit früherem Datum (der versehentlich einen anderen Eintrag verändern konnte) ist behoben. Dazu kleinere Feinheiten (richtige Knopf-Beschriftung für Runden-Pläne, robusteres Laden alter Sicherungen, bessere Bedienbarkeit mit Vorlese-Hilfen)."
   ]},
@@ -5361,10 +5378,10 @@ function koerperVorschauZeichnen(){
   if(hinten) miniHeatFigur(hinten, "back", zaehler);
   const leg = document.getElementById("koerper-legende");
   if(leg) leg.innerHTML = heatLegendeHtml();
+  // v120: den „noch kein Training"-Hinweis aus der Ansicht nehmen (weniger Text) —
+  // die Figur reicht, Details gibt es per Tipp auf die Karte (Muskelkarte).
   const hinweis = document.getElementById("koerper-hinweis");
-  if(hinweis) hinweis.textContent = Object.keys(zaehler).length === 0
-    ? "Noch kein Training in den letzten " + MUSKEL_HEAT_TAGE + " Tagen."
-    : "";
+  if(hinweis) hinweis.textContent = "";
 }
 /* #endregion Trainings-Heatmap */
 
@@ -9644,12 +9661,15 @@ function heuteKarteZeichnen(){
     // legt der Nutzer selbst an — sonst würde eine Oberfläche versprochen, die
     // seine Stufe gar nicht zeigt.
     const mitAssistent = stufe() >= 5;
-    ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--signal)">Willkommen</div>' +
-      '<h2>Noch kein Plan</h2><div class="meta">Leg deinen ersten Trainingsplan an' +
-        (mitAssistent ? ' — die App richtet dir anhand weniger Fragen einen passenden ein.' : '.') + '</div>' +
+    // v120: „Heute" so knapp wie möglich — nur die Überschrift + die EINE Option.
+    // „Eigenen Plan" gibt es bewusst nur noch unter „Pläne" (dort FAB + Leer-Zustand).
+    ziel.innerHTML = '<div class="karte">' +
+      '<h2>Noch kein Plan</h2>' +
       '<div class="knopfreihe">' +
-        (mitAssistent ? '<button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>' : '') +
-        '<button class="' + (mitAssistent ? "" : "primaer ") + 'breit" onclick="planAnlegen()">Eigenen Plan erstellen</button></div></div>';
+        (mitAssistent
+          ? '<button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>'
+          : '<button class="primaer breit" onclick="planListeZeichnen(); zeige(\'view-plaene\')">Zu den Plänen</button>') +
+      '</div></div>';
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +

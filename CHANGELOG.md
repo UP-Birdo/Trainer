@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.120
+
+- Weniger Text auf den Haupt-Tabs. Auf Heute steht ohne Plan nur noch die
+  Überschrift und der eine Knopf zum Loslegen (einen eigenen Plan legst du unter
+  Pläne an). In der Statistik sind die Kachel-Überschriften noch dezenter, das
+  überflüssige Serie-Label ist weg (die Flamme zeigt es ja), und die
+  Körpergewicht-Kurve nimmt jetzt die volle Breite ein, damit sie größer ist. In
+  Darstellung kannst du außerdem nur noch Statistiken anschalten, für die es schon
+  Daten gibt oder die du selbst befüllst.
+
 ## 0.119
 
 - Ein paar Verbesserungen unter der Haube nach einem gründlichen Durchgang: Die

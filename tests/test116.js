@@ -10,7 +10,7 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
 /* 1) Kleine, nicht-fette Kachel-Überschrift. */
-pruefe("stat-karte h2 klein gestylt", /\.stat-karte h2\{[^}]*font-size:14px/.test(src));
+pruefe("stat-karte h2 klein gestylt", /\.stat-karte h2\{[^}]*font-size:1[0-4]px/.test(src));
 pruefe("kleiner Rund-Knopf definiert", src.includes("button.rund.klein{"));
 
 /* 2) Körpergewicht: kleines + im Eck. */

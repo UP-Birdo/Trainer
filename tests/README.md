@@ -29,6 +29,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test117.js` | Nicht-Kraft Etappe 2: `massText` mit Ordinalskala (Kletter-Grad als String, ohne Einheit) + numerische Regression + Verdrahtung (Klettern-Skala, `ein-mass-select`, `massFeldAufbauen`/`massEingabe`, truthy-Guard) |
 | `test118.js` | Nicht-Kraft Etappe 3: Intervall-Logik `intervallPhasen`/`intervallGesamt`/`intervallPhaseBei` (Phasen-Abfolge, keine End-Pause, Gesamtdauer, aktuelle Phase + Restsekunden). Timer/Töne/Wake nur am Gerät prüfbar |
 | `test119.js` | Audit-Bugfixes: `const eintrag = neu` (Sort-Bug), `text(a.text)`-Escaping, `profil`-Nachrüstung, Wake-Lock für Stoppuhr/Intervall, kein `text`-Shadowing, „Runden starten", `view-start` im Auto-Update |
+| `test120.js` | Haupt-Tabs entschlacken: `statHatDaten` (Körpergewicht manuell immer, andere nur mit Daten) + strukturelle Checks (Serie-Label/Kein-Training-Hinweis weg, Körpergewicht volle Breite, kleine Überschrift, Heute nur Trainingsplanung) |
 
 ## Ausführen
 
@@ -61,6 +62,7 @@ VS Codes Electron springt ein):
     & $code tests\test117.js index.html
     & $code tests\test118.js index.html
     & $code tests\test119.js index.html
+    & $code tests\test120.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
