@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.148
+
+- Die Übungs-Suche ist ein eigener Bildschirm geworden. Im Plan steht nur noch
+  der Knopf „Übung hinzufügen“; dahinter hast du die ganze Seite für die Suche.
+  Neu sind übergeordnete Filter zum Antippen: bei Krafttraining nach Bereich
+  (Beine, Drücken, Ziehen, Rumpf, Cardio) und nach Gerät — mit „Körpergewicht“
+  als eigenem Filter. Bei den anderen Sportarten filterst du nach Technik oder
+  Kondition. Die Geräte-Auswahl ist kein Systemfeld mehr, sondern eine Reihe zum
+  Wischen. Eine gewählte Übung landet sofort im Plan und du bleibst in der Suche
+  — so nimmst du mehrere hintereinander auf. „Eigene Übung schreiben“ steht ganz
+  unten, wo man landet, wenn die Suche nichts hergab.
+
 ## 0.147
 
 - Der Plan-Editor ist noch schlanker: Die obere Zeile trägt jetzt nur noch den

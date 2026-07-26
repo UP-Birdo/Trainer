@@ -407,6 +407,19 @@ body:not(.nav-an) #nav{display:none}
 .wahl-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);font-weight:700;
   box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
+/* v148: Filter-Chips der Übungs-Suche — selbst gebaut statt System-Auswahlfeld
+   (Nutzer-Wunsch: das <select> sah nach fremdem Betriebssystem aus). Eine Reihe
+   je Filter, seitlich scrollbar: So bleiben auch zehn Geräte in EINER Zeile,
+   ohne die halbe Seite zu füllen. Gewählt wird über Rahmen und Textfarbe, NICHT
+   über Gelb — die eine gelbe Hauptaktion je Bildschirm bleibt reserviert. */
+.filter-reihe{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px;
+  scrollbar-width:none}
+.filter-reihe::-webkit-scrollbar{display:none}
+.filter-reihe button{flex:0 0 auto;min-height:38px;padding:8px 14px;font-size:14px;
+  background:var(--panel-2);border:2px solid var(--line);border-radius:19px;
+  color:var(--muted);white-space:nowrap;transition:var(--transition)}
+.filter-reihe button.gewaehlt{border-color:var(--chalk);color:var(--chalk);font-weight:600}
+.filter-titel{font-size:12px;color:var(--muted);margin-top:10px}
 .wahl-gruppe{margin:14px 0 6px}
 /* Wochentage in einer Zeile, wie die Kopfzeile des Kalenders.
    minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
@@ -1300,6 +1313,32 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="primaer" onclick="editorSpeichern()">Plan speichern</button>
     <button onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button>
   </div>
+</section>
+
+<!-- ============================================================
+     ÜBUNGS-SUCHE (v148) — eigene Ansicht über dem ganzen Bildschirm.
+     Bis v147 saß der Picker mitten im Editor: Suchfeld, Geräte-Auswahl und
+     Karten drängten sich zwischen Übungsliste und Speichern-Knopf. Auf
+     Nutzer-Wunsch ist daraus ein Untermenü geworden — hier ist Platz für
+     übergeordnete Filter (Bereich, Gerät bzw. Art), und der Editor bleibt
+     die Liste des Plans. „Eigene Übung" steht ganz unten, wo man landet,
+     wenn die Suche nichts Passendes hergab.
+     ============================================================ -->
+<section id="view-uebung-picker" class="view">
+  <div class="kopf"><h1>Übung hinzufügen</h1>
+    <button class="schmal" onclick="pickerZurueck()">Fertig</button></div>
+  <!-- v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer). -->
+  <div id="picker-wartet" class="karte" hidden></div>
+  <div id="picker-suchkarte" class="karte">
+    <input id="picker-suche" placeholder="Übung suchen …" autocomplete="off" oninput="pickerKartenZeichnen()">
+    <div id="picker-filter"></div>
+  </div>
+  <div id="picker-karten"></div>
+  <div id="picker-eigen-karte" class="karte">
+    <button class="breit" onclick="eigeneUebung()">Eigene Übung schreiben</button>
+    <div id="picker-eigen"></div>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
 <!-- ============================================================
@@ -2266,7 +2305,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 147;
+const APP_VERSION = 148;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3013,6 +3052,7 @@ const VIEW_MIN_STUFE = {
   "view-intervall": 3, "view-intervall-neu": 3,        // v118: Intervall-Timer + Anlage
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
+  "view-uebung-picker": 3,                           // v148: Übungs-Suche als eigene Ansicht
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
   "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
   "view-einst-werkzeuge": 3,                         // Untermenü „Werkzeuge" (v102)
@@ -4404,6 +4444,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.148", punkte:[
+    "Die Übungs-Suche ist ein eigener Bildschirm geworden. Im Plan steht nur noch der Knopf „Übung hinzufügen“; dahinter hast du die ganze Seite für die Suche. Neu sind übergeordnete Filter zum Antippen: bei Krafttraining nach Bereich (Beine, Drücken, Ziehen, Rumpf, Cardio) und nach Gerät — mit „Körpergewicht“ als eigenem Filter. Bei den anderen Sportarten filterst du nach Technik oder Kondition. Die Geräte-Auswahl ist kein Systemfeld mehr, sondern eine Reihe zum Wischen. Eine gewählte Übung landet sofort im Plan und du bleibst in der Suche — so nimmst du mehrere hintereinander auf. „Eigene Übung schreiben“ steht ganz unten, wo man landet, wenn die Suche nichts hergab."
+  ]},
   { stand:"0.147", punkte:[
     "Der Plan-Editor ist noch schlanker: Die obere Zeile trägt jetzt nur noch den Namen deines Plans — der ganze Stand dahinter ist weg, die Einzelheiten stehen ohnehin eine Ebene tiefer. Die Muskel-Karte darunter hat ihre Beschriftung verloren und ist dafür deutlich größer geworden: ein richtiges Schaubild statt einer Randnotiz.",
     "In der Plan-Übersicht steht über einem Plan ohne festen Tag keine Zeile mehr. Sie sagte nur, dass es nichts zu sagen gibt.",
@@ -8740,7 +8783,7 @@ function sportartenFuerUebung(name){
   });
   return [...treffer];
 }
-function eigeneUebung(){ eigenBauerOffen = !eigenBauerOffen; uebungPickerZeichnen(); }
+function eigeneUebung(){ eigenBauerOffen = !eigenBauerOffen; pickerAnsichtZeichnen(); }
 
 /** Der Builder als HTML (leer, wenn zu). Sportart-Auswahl nur aus den im Profil
     gewählten Sportarten, vorbelegt mit der Sportart des Plans. */
@@ -8802,7 +8845,11 @@ function eigeneErstellen(){
   editorPlan.uebungen.push(eigeneUebungBauen(name, modus, saetze, wert, sport));
   editorUebungOffen = editorPlan.uebungen.length - 1;   // v105: neue Übung aufklappen
   eigenBauerOffen = false;
+  /* v148: Eine selbst geschriebene Übung will man in aller Regel gleich einstellen
+     (Sätze, Gewicht) — also zurück in den Editor, wo sie aufgeklappt wartet.
+     Beim Auswählen aus der Liste ist es andersherum: dort bleibt man in der Suche. */
   editorZeichnen();
+  zeige("view-editor");
 }
 
 /* ============================================================
@@ -9442,12 +9489,13 @@ function neueUebungenEinbauen(){
    ============================================================ */
 let editorPlan = null;
 
-let pickerOffen = false;   // v92: Übungs-Karten erst nach Klick ins Suchfeld zeigen
+/* v148: Die Filter der Übungs-Suche. Nur Anzeige-Zustand, wird beim Öffnen
+   zurückgesetzt — nichts davon gehört zum Plan. */
+let pickerFilter = { kat:"alle", geraet:"alle", art:"alle" };
 function planAnlegen(){
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
-  pickerOffen = false;
   editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
                  aufwaermen:true, dehnen:true, sportart:"", typ:"", tage:[],
                  wochenTakt:1, wochenAnker:0, einzelTermine:[] };
@@ -9464,7 +9512,6 @@ function editorOeffnen(planId){
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
-  pickerOffen = false;
   editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
   document.getElementById("editor-menue-knopf").hidden = false;
   editorZeichnen(); zeige("view-editor");
@@ -9905,53 +9952,97 @@ function reihenfolgeSetzen(rf){ editorPlan.reihenfolge = rf; editorZeichnen(); }
 /* Geführter Picker im Editor (v40) — ersetzt die alte Übungs-Bibliothek.
    Kraft: Gerät → passende Übung aus UEBUNGEN_DB. Sportart: Drill aus
    SPORT_UEBUNGEN. Plus „Eigene Übung" (Freitext) — bleibt bewusst erhalten. */
+/* v148: Im EDITOR steht nur noch der Eingang zur Suche — ein Knopf. Der Picker
+   selbst wohnt in seiner eigenen Ansicht (view-uebung-picker). */
 function uebungPickerZeichnen(){
   const ziel = document.getElementById("uebung-picker");
   if(!ziel) return;
-  // v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer)?
+  ziel.innerHTML = '<div class="knopfreihe"><button class="breit" onclick="uebungPickerOeffnen()">' +
+    'Übung hinzufügen</button></div>';
+}
+
+/** v148: Die Suche öffnen. Filter und Suchtext starten jedes Mal frisch — wer
+    sie später wieder aufmacht, sucht in aller Regel etwas anderes. */
+function uebungPickerOeffnen(){
+  pickerFilter = { kat:"alle", geraet:"alle", art:"alle" };
+  eigenBauerOffen = false;
+  uebungWartet = null;
+  const feld = document.getElementById("picker-suche");
+  if(feld) feld.value = "";
+  pickerAnsichtZeichnen();
+  zeige("view-uebung-picker");
+}
+
+/** Zurück in den Editor — die Übungen sind schon drin (jede Karte fügt sofort
+    hinzu), es gibt hier nichts zu bestätigen. Darum „Fertig" statt „Abbrechen". */
+function pickerZurueck(){
+  uebungWartet = null;
+  editorZeichnen();
+  zeige("view-editor");
+}
+
+/** Zeichnet die ganze Such-Ansicht: Warte-Frage ODER Filter + Karten + Bauer. */
+function pickerAnsichtZeichnen(){
+  const wartet = document.getElementById("picker-wartet");
+  if(!wartet) return;
+  const suchkarte = document.getElementById("picker-suchkarte");
+  const karten = document.getElementById("picker-karten");
+  const eigenKarte = document.getElementById("picker-eigen-karte");
+
+  /* v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer). Dann
+     ist das die EINZIGE Frage auf dem Bildschirm — weitersuchen kann man erst,
+     wenn der Plan weiß, wohin er gehört. */
   if(uebungWartet){
     const kandidaten = sportartenFuerUebung(uebungWartet)
       .filter(sp => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(sp));
-    ziel.innerHTML =
-      '<label class="abstand">„' + text(uebungWartet) + '" gibt es in mehreren Sportarten — welche gilt für diesen Plan?</label>' +
-      '<div class="wahl-raster">' + kandidaten.map(sp =>
+    wartet.innerHTML =
+      '<label>„' + text(uebungWartet) + '" gibt es in mehreren Sportarten — welche gilt für diesen Plan?</label>' +
+      '<div class="wahl-raster abstand">' + kandidaten.map(sp =>
         '<button onclick="pickerSportBestaetigen(\'' + sp + '\')">' + text(sportart(sp).name) + '</button>').join("") + '</div>' +
-      '<div class="knopfreihe" style="margin-top:8px"><button class="schmal" onclick="pickerWahlAbbrechen()">Abbrechen</button></div>';
+      '<div class="knopfreihe"><button class="schmal" onclick="pickerWahlAbbrechen()">Abbrechen</button></div>';
+    wartet.hidden = false;
+    suchkarte.hidden = karten.hidden = eigenKarte.hidden = true;
     return;
   }
-  // v91: Karteikarten-Picker statt roher Dropdowns. v92: die Karten erscheinen ERST,
-  // wenn der Nutzer das Suchfeld antippt (pickerOffen) — sonst steht der Editor nicht
-  // voller Übungen. „Eigene Übung" bleibt.
-  const suchfeld = '<input id="picker-suche" placeholder="Übung suchen …" autocomplete="off" ' +
-    'onfocus="pickerOeffnen()" oninput="pickerKartenZeichnen()" style="margin-bottom:8px">';
-  const eigenBtn = '<div class="knopfreihe" style="margin-top:8px"><button class="schmal' +
-    (eigenBauerOffen ? " gewaehlt" : "") + '" onclick="eigeneUebung()">Eigene Übung schreiben</button></div>';
-  ziel.innerHTML = '<label class="abstand">Übung hinzufügen</label>' +
-    suchfeld + '<div id="picker-body"></div>' + eigenBtn + eigenBauerHtml();
-  pickerBodyZeichnen();
-}
-
-/** Der aufklappbare Teil des Pickers: bis der Nutzer das Suchfeld antippt (pickerOffen)
-    nur ein Hinweis, danach der Gerätefilter (Kraft) + die Übungs-Karten. */
-function pickerBodyZeichnen(){
-  const body = document.getElementById("picker-body"); if(!body) return;
-  if(!pickerOffen){
-    body.innerHTML = '<div class="meta">Tippe ins Suchfeld, um die passenden Übungen zu sehen.</div>';
-    return;
-  }
-  let filter = "";
-  if(editorPlan.typ === "kraft"){
-    const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
-    filter = '<select id="picker-geraet" onchange="pickerKartenZeichnen()" style="margin-bottom:8px">' +
-      '<option value="alle">Alle Geräte</option><option value="keine">Körpergewicht</option>' +
-      GERAETE.filter(g => meine.includes(g.id))
-        .map(g => '<option value="' + g.id + '">' + text(g.name) + '</option>').join("") + '</select>';
-  }
-  body.innerHTML = filter + '<div id="picker-karten"></div>';
+  wartet.hidden = true;
+  suchkarte.hidden = karten.hidden = eigenKarte.hidden = false;
+  document.getElementById("picker-filter").innerHTML = pickerFilterHtml();
+  document.getElementById("picker-eigen").innerHTML = eigenBauerHtml();
   pickerKartenZeichnen();
 }
 
-function pickerOeffnen(){ if(!pickerOffen){ pickerOffen = true; pickerBodyZeichnen(); } }
+/** v148: Die übergeordneten Filter als selbst gebaute Chip-Reihen.
+    Kraft: Bereich (Muskelgruppe) + Gerät — inklusive „Körpergewicht", das man
+    am häufigsten sucht. Aktivität: Technik oder Kondition. Ohne feste Sportart
+    gibt es nichts zu filtern (die Liste mischt dann mehrere Sportarten). */
+function pickerFilterHtml(){
+  const reihe = (titel, feld, eintraege) =>
+    '<div class="filter-titel">' + text(titel) + '</div><div class="filter-reihe">' +
+    eintraege.map(([wert, name]) =>
+      '<button class="' + (pickerFilter[feld] === wert ? "gewaehlt" : "") +
+      '" onclick="pickerFilterSetzen(\'' + feld + '\',\'' + wert + '\')">' + text(name) + '</button>').join("") +
+    '</div>';
+  if(!editorPlan.sportart) return "";
+  if(editorPlan.typ === "kraft"){
+    const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
+    const geraete = [["alle","Alle Geräte"], ["keine","Körpergewicht"]].concat(
+      GERAETE.filter(g => meine.includes(g.id) && g.id !== "keine").map(g => [g.id, g.name]));
+    return reihe("Bereich", "kat", BIB_KATS) + reihe("Gerät", "geraet", geraete);
+  }
+  return reihe("Art", "art", [["alle","Alles"], ["technik","Technik"], ["kondition","Kondition"]]);
+}
+
+function pickerFilterSetzen(feld, wert){
+  pickerFilter[feld] = wert;
+  document.getElementById("picker-filter").innerHTML = pickerFilterHtml();
+  pickerKartenZeichnen();
+}
+
+/* v148: `pickerBodyZeichnen` ist entfallen — die Ansicht hat feste Bereiche
+   (Suchkarte, Karten, Bauer), `pickerAnsichtZeichnen` füllt sie. Damit ist auch
+   der Hinweis „erst ins Suchfeld tippen" weg: In einer eigenen Ansicht steht die
+   Liste sofort da, dafür ist man ja hergekommen. */
+
 
 /** Kandidaten-Übungen für den Picker (Namen), je nach Plan-Zustand — noch keine
     Sportart (alle Profil-Sportarten), Kraft (nach Gerät gefiltert) oder Aktivität
@@ -9971,13 +10062,20 @@ function pickerKandidaten(){
     });
     namen = [...menge].filter(n => !drin.has(n)).sort((a, b) => a.localeCompare(b, "de"));
   } else if(editorPlan.typ === "kraft"){
+    // v148: Gerät UND Bereich kommen jetzt aus den Filter-Chips (pickerFilter)
+    // statt aus einem <select> im Markup — eine Quelle, auch ohne offene Ansicht.
     const meine = meineGeraete(editorPlan.sportart);
-    const g = (document.getElementById("picker-geraet") || {}).value || "alle";
+    const g = pickerFilter.geraet, k = pickerFilter.kat;
     namen = UEBUNGEN_DB
-      .filter(u => meine.includes(u.geraet) && (g === "alle" || u.geraet === g) && !drin.has(u.name))
+      .filter(u => meine.includes(u.geraet) &&
+                   (g === "alle" || u.geraet === g) &&
+                   (k === "alle" || u.kat === k) && !drin.has(u.name))
       .map(u => u.name);
   } else {
-    namen = sportUebungen(editorPlan.sportart).filter(v => !drin.has(v.name)).map(v => v.name);
+    const a = pickerFilter.art;
+    namen = sportUebungen(editorPlan.sportart)
+      .filter(v => !drin.has(v.name) && (a === "alle" || v.art === a))
+      .map(v => v.name);
   }
   if(editorPlan.sportart){   // v44: eigene Übungen dieser Sportart mit anbieten
     const eigene = ((sitzung.daten.eigeneUebungen || {})[editorPlan.sportart] || [])
@@ -10005,9 +10103,15 @@ function pickerKartenZeichnen(){
   const ziel = document.getElementById("picker-karten"); if(!ziel) return;
   const namen = pickerKandidaten();
   const suche = (document.getElementById("picker-suche") || {}).value || "";
+  // v148: Mit Filtern gibt es einen dritten Grund für eine leere Liste — dann
+  // nennen wir ihn, statt „alles schon im Plan" zu behaupten.
+  const gefiltert = pickerFilter.kat !== "alle" || pickerFilter.geraet !== "alle" || pickerFilter.art !== "alle";
+  const leer = suche ? "Nichts gefunden."
+             : gefiltert ? "Kein Treffer mit diesen Filtern."
+             : "Alle passenden Übungen sind schon im Plan.";
   ziel.innerHTML = namen.length
-    ? namen.map(pickerKarteHtml).join("")
-    : '<div class="meta">' + (suche ? "Nichts gefunden." : "Alle passenden Übungen sind schon im Plan.") + '</div>';
+    ? '<div class="karte">' + namen.map(pickerKarteHtml).join("") + '</div>'
+    : '<div class="karte"><div class="meta">' + leer + '</div></div>';
 }
 
 /** Karte angetippt: Übung hinzufügen. Ohne Sportart wird sie aus der Übung
@@ -10018,10 +10122,15 @@ function pickerKarteHinzu(name){
     const kandidaten = sportartenFuerUebung(name)
       .filter(sp => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(sp));
     if(kandidaten.length === 1){ planSportartSetzen(kandidaten[0]); }        // 1:1 -> automatisch
-    else if(kandidaten.length > 1){ uebungWartet = name; uebungPickerZeichnen(); return; }  // mehrdeutig -> Chips
+    else if(kandidaten.length > 1){ uebungWartet = name; pickerAnsichtZeichnen(); return; }  // mehrdeutig -> Chips
     else { meldung("Diese Übung gehört zu keiner deiner Sportarten."); return; }
   }
   uebungInPlanHinzufuegen(name);
+  /* v148: Wir bleiben in der Suche — meist nimmt man mehrere Übungen auf einmal
+     auf. Die eben gewählte fällt von selbst aus der Liste (sie steht ja im Plan);
+     der Toast bestätigt, dass etwas passiert ist, obwohl die Ansicht bleibt. */
+  pickerAnsichtZeichnen();
+  zeigenToast(name + " hinzugefügt", "erfolg");
 }
 
 /** Baut die Übung passend zum Plan-Typ und hängt sie an (ersetzt einen Platzhalter). */
@@ -10063,8 +10172,10 @@ function pickerSportBestaetigen(sportId){
   const name = uebungWartet; uebungWartet = null;
   planSportartSetzen(sportId);            // Sportart + Typ festlegen (rendert)
   uebungInPlanHinzufuegen(name);          // dann die Übung anhängen (rendert)
+  pickerAnsichtZeichnen();                // v148: zurück zur Suche, jetzt mit Filtern
+  zeigenToast(name + " hinzugefügt", "erfolg");
 }
-function pickerWahlAbbrechen(){ uebungWartet = null; uebungPickerZeichnen(); }
+function pickerWahlAbbrechen(){ uebungWartet = null; pickerAnsichtZeichnen(); }
 /** v136: Kopplung mit der nächsten Übung an/aus. */
 function superKopplungUmschalten(i){
   const u = editorPlan.uebungen[i];
