@@ -1159,21 +1159,23 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Plan bearbeiten
      ============================================================ -->
 <section id="view-editor" class="view">
-  <div class="kopf"><h1>Plan bearbeiten</h1>
+  <div class="kopf"><h1 id="editor-titel">Plan bearbeiten</h1>
     <button id="editor-menue-knopf" class="schmal" hidden onclick="editorMenue()" aria-label="Weitere Aktionen">⋯</button></div>
   <div class="karte">
-    <label for="plan-name">Name des Plans</label>
-    <input id="plan-name" placeholder="z. B. Oberkörper">
-    <label class="abstand">Sportart</label>
-    <div id="plan-sportart" class="wahl-raster"></div>
-    <!-- v126/v131: ALLE Grundeinstellungen des Plans liegen hinter EINER Zeile und
-         starten zugeklappt — beim Anlegen standen hier sonst Wochentage, Takt,
-         Reihenfolge, Bonus bzw. Dauer/Strecke/Ziel im Weg, bevor man die erste
-         Übung sah. Die Zeile zeigt den Stand („Mo, Do · Zirkel · Aufwärmen"),
-         ein Tipp klappt alles auf. -->
-    <button class="breit einst-zeile abstand" onclick="editorEinstUmschalten()">
+    <!-- v126/v131/v146: ALLE Einstellungen des Plans liegen hinter EINER Zeile und
+         starten zugeklappt. Seit v146 gehören NAME und SPORTART dazu (Nutzer-Wunsch):
+         Sie werden einmal gesetzt und danach nie wieder angefasst — im Weg standen
+         sie trotzdem jedes Mal. Der Name steht stattdessen als Überschrift oben.
+         Die Zeile zeigt den Stand („Laufen · Mo, Do · Zirkel"), ein Tipp klappt auf.
+         Ohne gewählte Sportart klappt der Block von selbst auf — sonst wäre ein
+         neuer Plan ein leerer Bildschirm. -->
+    <button class="breit einst-zeile" onclick="editorEinstUmschalten()">
       <span id="plan-einst-stand">Einstellungen</span><span class="meta" id="plan-einst-pfeil">›</span></button>
     <div id="editor-einst-block" hidden>
+      <label class="abstand" for="plan-name">Name des Plans</label>
+      <input id="plan-name" placeholder="z. B. Oberkörper" oninput="planNameTippen(this.value)">
+      <label class="abstand">Sportart</label>
+      <div id="plan-sportart" class="wahl-raster"></div>
       <div class="zeile abstand"><label style="margin:0">Wochentage — keiner = immer sichtbar</label>
         <button class="info-knopf" onclick="infoUmschalten('info-tag')" aria-label="Info">i</button></div>
       <div id="info-tag" class="meta info-text" hidden>Mehrfachauswahl — derselbe Plan darf z. B. Montag <em>und</em> Donnerstag laufen. Ein Plan mit Wochentagen erscheint in der Liste nur an diesen Tagen und färbt sie im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
@@ -1186,8 +1188,33 @@ button.gewaehlt{background:var(--signal);color:#16181C}
           <button id="takt-2" onclick="planTaktSetzen(2)">Alle 2 Wochen</button>
         </div>
       </div>
-    <!-- Nur bei Aktivitäten: eine Dauer, optional eine Strecke. Keine Übungen, keine Sätze. -->
-    <div id="editor-aktivitaet" hidden>
+
+    <div id="editor-kraft">
+    <label class="abstand">Reihenfolge</label>
+    <div class="umschalter">
+      <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch</button>
+      <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="info-knopf" onclick="infoUmschalten('info-zirkel')" aria-label="Info">i</button></div>
+    <div id="info-zirkel" class="meta info-text" hidden>Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
+
+    <div class="zeile abstand"><label style="margin:0">Bonus-Programme</label>
+      <button class="info-knopf" onclick="infoUmschalten('info-bonus')" aria-label="Info">i</button></div>
+    <div id="info-bonus" class="meta info-text" hidden>Fachlicher Konsens (Cleveland Clinic, Harvard Health): <strong style="color:var(--chalk)">dynamisch aufwärmen vor</strong> dem Training, <strong style="color:var(--chalk)">statisch dehnen danach</strong>. Langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.</div>
+    <div class="raster" style="margin-top:8px">
+      <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">Aufwärmen</button></div>
+      <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">Dehnen</button></div>
+    </div>
+    </div>
+    </div><!-- /editor-einst-block -->
+  </div>
+
+  <!-- Nur bei Aktivitäten: Dauer, optional Strecke und Ziel. v146: Diese Werte
+       stehen NICHT mehr hinter den Einstellungen — sie SIND der Inhalt eines
+       Aktivitäts-Plans, das Gegenstück zur Übungsliste beim Krafttraining.
+       Beim Laufen soll man genau sie einstellen, ohne vorher an Titel,
+       Sportart und Wochentagen vorbeizumüssen (Nutzer-Wunsch). -->
+  <div id="editor-aktivitaet" class="karte" hidden>
       <!-- v133: Bei Sportarten mit Runden-Training (intervall:true) hier umschalten —
            statt nur über den eigenen Anlege-Weg. „Runden" ersetzt Dauer/Strecke:
            die Dauer ergibt sich aus Runden × (Belastung + Pause). -->
@@ -1253,26 +1280,6 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       </div>
       </div><!-- /akt-dauer-block -->
       <div class="meta" id="akt-hinweis" style="margin-top:10px"></div>
-    </div>
-
-    <div id="editor-kraft">
-    <label class="abstand">Reihenfolge</label>
-    <div class="umschalter">
-      <button id="rf-klassisch" onclick="reihenfolgeSetzen('klassisch')">Klassisch</button>
-      <button id="rf-zirkel" onclick="reihenfolgeSetzen('zirkel')">Zirkel</button>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="info-knopf" onclick="infoUmschalten('info-zirkel')" aria-label="Info">i</button></div>
-    <div id="info-zirkel" class="meta info-text" hidden>Zirkel: Runde für Runde je ein Satz jeder Übung — die Reihenfolge wird pro Runde neu gemischt.</div>
-
-    <div class="zeile abstand"><label style="margin:0">Bonus-Programme</label>
-      <button class="info-knopf" onclick="infoUmschalten('info-bonus')" aria-label="Info">i</button></div>
-    <div id="info-bonus" class="meta info-text" hidden>Fachlicher Konsens (Cleveland Clinic, Harvard Health): <strong style="color:var(--chalk)">dynamisch aufwärmen vor</strong> dem Training, <strong style="color:var(--chalk)">statisch dehnen danach</strong>. Langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.</div>
-    <div class="raster" style="margin-top:8px">
-      <div class="umschalter"><button id="sw-aufwaermen" onclick="bonusUmschalten('aufwaermen')">Aufwärmen</button></div>
-      <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">Dehnen</button></div>
-    </div>
-    </div>
-    </div><!-- /editor-einst-block -->
   </div>
   <!-- v132: Muskel-Map des ganzen Plans — wächst dynamisch mit jeder Übung, die
        du hinzufügst. Steht über der Übungsliste, damit man beim Bauen sieht,
@@ -2253,7 +2260,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 145;
+const APP_VERSION = 146;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4395,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.146", punkte:[
+    "Der Plan-Editor ist noch einmal aufgeräumt: Auch Name und Sportart liegen jetzt hinter der Zeile „Einstellungen“ — beides stellt man einmal ein und fasst es nie wieder an. Der Name deines Plans steht stattdessen als Überschrift ganz oben und zieht beim Tippen live mit; die Einstellungs-Zeile nennt zusätzlich die Sportart. Bei Laufen, Yoga, Klettern und Co. stehen Dauer, Strecke und Ziel dafür jetzt offen in einer eigenen Karte: Das sind die Werte, um die es geht — sie sind das Gegenstück zur Übungsliste beim Krafttraining und gehören nicht in ein Untermenü.",
+    "In der Muskelkarte wählst du beim Erkunden jetzt immer nur EINE Muskelgruppe: Ein Tipp auf einen anderen Muskel wechselt die Auswahl, derselbe nochmal hebt sie auf. Vorher sammelten sich die Karten untereinander an."
+  ]},
   { stand:"0.145", punkte:[
     "Die Sportarten haben jetzt einen richtigen Übungs-Katalog: aus 39 Drills sind 81 geworden, jede Sportart bringt mindestens sechs mit. Neu dabei ist überall die ruhige lange Einheit, die bisher fehlte — der Dauerlauf, die Grundlagenfahrt, der Marsch mit Rucksack, die lockeren Bahnen. Dazu kommen echte Technik-Bausteine wie Wasserlage, Einbeiniges Treten, Hüfte eindrehen, Volley am Netz oder der Herabschauende Hund. Und die Liste unter der Sportart zeigt zu jedem Drill die Muskel-Figur und einen kurzen Ausführungs-Tipp — so wie es die Kraft-Bibliothek längst tut."
   ]},
@@ -6164,8 +6175,12 @@ function muskelTippen(e){
     muskelAuswahlZeichnen(); muskelStatusText();
     return;
   }
-  const i = muskelStatus.gewaehlt.indexOf(key);
-  if(i >= 0) muskelStatus.gewaehlt.splice(i, 1); else muskelStatus.gewaehlt.push(key);
+  /* v146 (Nutzer-Wunsch): Auch im Erkunden-Modus ist immer HÖCHSTENS EIN Muskel
+     gewählt — ein Tipp ersetzt die Wahl, derselbe Muskel nochmal hebt sie auf.
+     Mehrfachauswahl erzeugte eine lange Kartenliste, durch die man scrollen
+     musste, obwohl man nur wissen wollte, was ein Muskel macht. Der
+     Heatmap-Modus war schon immer einfach-wählend; jetzt sind beide gleich. */
+  muskelStatus.gewaehlt = muskelStatus.gewaehlt[0] === key ? [] : [key];
   muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
 }
 
@@ -6203,8 +6218,9 @@ function muskelStatusText(){
       : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.";
     return;
   }
-  const n = muskelStatus.gewaehlt.length;
-  el.textContent = n ? (n === 1 ? "1 Muskel gewählt — nochmal tippen hebt auf" : n + " Muskeln gewählt")
+  // v146: Es ist immer höchstens einer gewählt — der Mehrzahl-Fall ist entfallen.
+  el.textContent = muskelStatus.gewaehlt.length
+    ? "Nochmal tippen hebt die Auswahl auf."
     : "Tippe eine Muskelgruppe an.";
 }
 /* #endregion Muskelkarte */
@@ -9449,7 +9465,12 @@ function planTageText(plan){
     setzt auf `planTageText` (v126) und `planZielText` (v121) auf, statt deren
     Formulierungen zu wiederholen. */
 function planEinstText(plan){
-  const teile = [planTageText(plan)];
+  /* v146: Die Sportart steht jetzt mit in der Stand-Zeile — sie ist in die
+     Einstellungen gewandert und wäre sonst nirgends mehr ablesbar. Ohne gewählte
+     Sportart bleibt der Platz frei (dann klappt der Block ohnehin auf). */
+  const teile = [];
+  if(plan.sportart) teile.push(sportart(plan.sportart).name);
+  teile.push(planTageText(plan));
   if(plan.typ === "aktivitaet"){
     // v133: Ein Runden-Plan beschreibt sich über seine Phasen, nicht über die Uhr.
     const ziel = plan.intervall ? intervallText(plan) : planZielText(plan);
@@ -9464,6 +9485,12 @@ function planEinstText(plan){
 
 let editorEinstOffen = false;   // v126/v131: Grundeinstellungen starten zugeklappt
 function editorEinstUmschalten(){ editorEinstOffen = !editorEinstOffen; editorZeichnen(); }
+
+/** v146: Der Plan-Name steht als Überschrift; beim Tippen zieht sie live mit.
+    Bewusst OHNE editorZeichnen() — ein Neuzeichnen nähme den Fokus aus dem Feld. */
+function planNameTippen(wert){
+  document.getElementById("editor-titel").textContent = (wert || "").trim() || "Plan bearbeiten";
+}
 
 let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
 let editorUebungOffen = null;   // v105: welche Übungs-Karteikarte ist aufgeklappt (Index oder null)
@@ -9697,11 +9724,20 @@ function editorZeichnen(){
       '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
       '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("");
 
-  // v131: EINE aufklappbare Zeile für alle Grundeinstellungen; sie trägt den Stand.
-  // Ohne Sportart gibt es noch nichts einzustellen — dann bleibt sie weg.
+  /* v146: Der Plan-NAME steht jetzt als Überschrift — er ist aus der Karte in die
+     Einstellungen gewandert, und ohne ihn oben wüsste man nicht mehr, welchen Plan
+     man gerade bearbeitet. Ohne Namen bleibt die alte Überschrift stehen. */
+  document.getElementById("editor-titel").textContent = editorPlan.name.trim() || "Plan bearbeiten";
+
+  /* v131: EINE aufklappbare Zeile für alle Einstellungen; sie trägt den Stand.
+     v146: Solange keine Sportart gewählt ist, klappt sie ZWANGSWEISE auf — sonst
+     wäre ein neuer Plan ein leerer Bildschirm, weil auch die Sportart-Wahl darin
+     liegt. Der Pfeil zeigt dann nach unten, das Antippen bleibt wirkungslos
+     (statt eine Wahl zu verstecken, die getroffen werden muss). */
+  const einstOffen = editorEinstOffen || !hatSport;
   document.getElementById("plan-einst-stand").textContent = "Einstellungen: " + planEinstText(editorPlan);
-  document.getElementById("plan-einst-pfeil").textContent = editorEinstOffen ? "⌄" : "›";
-  document.getElementById("editor-einst-block").hidden = !editorEinstOffen;
+  document.getElementById("plan-einst-pfeil").textContent = einstOffen ? "⌄" : "›";
+  document.getElementById("editor-einst-block").hidden = !einstOffen;
 
   // D2: Wiederholungs-Umschalter nur bei festen Tagen zeigen.
   const hatTage = editorPlan.tage.length > 0;

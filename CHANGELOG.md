@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.146
+
+- Der Plan-Editor ist noch einmal aufgeräumt: Auch Name und Sportart liegen jetzt
+  hinter der Zeile „Einstellungen“ — beides stellt man einmal ein und fasst es nie
+  wieder an. Der Name deines Plans steht stattdessen als Überschrift ganz oben und
+  zieht beim Tippen live mit; die Einstellungs-Zeile nennt zusätzlich die
+  Sportart. Bei Laufen, Yoga, Klettern und Co. stehen Dauer, Strecke und Ziel
+  dafür jetzt offen in einer eigenen Karte: Das sind die Werte, um die es geht —
+  sie sind das Gegenstück zur Übungsliste beim Krafttraining und gehören nicht in
+  ein Untermenü.
+- In der Muskelkarte wählst du beim Erkunden jetzt immer nur EINE Muskelgruppe:
+  Ein Tipp auf einen anderen Muskel wechselt die Auswahl, derselbe nochmal hebt
+  sie auf. Vorher sammelten sich die Karten untereinander an.
+
 ## 0.145
 
 - Die Sportarten haben jetzt einen richtigen Übungs-Katalog: aus 39 Drills sind

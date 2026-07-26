@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test146.js` | Editor-Kopf + Einfachauswahl: `planEinstText` nennt die Sportart; Struktur über die **Verschachtelung** geprüft (Name/Sportart/Wochentage/Kraft-Block **in** `#editor-einst-block`, Aktivitäts-Werte als eigene Karte **außerhalb**), Überschrift aus dem Plan-Namen, Zwangs-Aufklappen ohne Sportart, `planNameTippen` ohne Neuzeichnen + `muskelTippen` wählt in beiden Modi höchstens einen Muskel |
 | `test145.js` | Drill-Katalog (81 Drills): Umfang je Sportart (≥6, Technik + Kondition), jeder Drill vollständig (Art/Modus/Sätze/Menge), Namen je Sportart eindeutig, Kurz-Tipp für jeden Drill (`drillTipp`, Erbe aus `UEBUNG_INFO`), keine Tipp-/Muskel-Leichen, nur bekannte Muskeln — und die figurlosen Drills sind **exakt** die dokumentierten sechs + Verdrahtung der Anzeige (Figur, Tipp, Nachzeichnen) |
 | `test144.js` | Fortschrittsregel je Sportart-Klasse: `planGesteigert` (Ausdauer hebt Strecke + Zeit, Spielsport nur Zeit, Klettern nur den Grad, Intervall die Runden), Reinheit (Plan bleibt unangetastet), `null` wenn nichts zu heben ist, `steigerungText` verspricht nur Wirkliches, jede Klasse bleibt unter `STEIGERUNG_MAX` je Woche + Zuordnung aller Sportarten |
 | `test142.js` | Übungs-Beschreibungen — **Etappen-Register**: oben eine Liste aller Kategorien (`kat`/`version`/`anzahl`), darunter die Prüfungen darüber (Kategorie vollständig, Anzahl stimmt, jeder Text nennt den häufigsten Fehler) plus die allgemeinen Substanz-Prüfungen. **Seit v143 vollständig:** jede Übung aus `UEBUNGEN_DB` braucht einen Text, das Register muss alle Kategorien kennen und seine Summe der Bibliotheksgröße entsprechen |
@@ -111,6 +112,7 @@ VS Codes Electron springt ein):
     & $code tests\test142.js index.html
     & $code tests\test144.js index.html
     & $code tests\test145.js index.html
+    & $code tests\test146.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
