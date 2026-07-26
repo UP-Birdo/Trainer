@@ -23,8 +23,9 @@ const modul = { exports: {} };
 new Function("module", "exports", [
   "const VORBEREITUNG_S = 10;",
   "const RAMPEN = { 1:[0.6], 2:[0.5,0.75], 3:[0.4,0.6,0.8] };",
+  "const DROPS = { 1:[0.8], 2:[0.8,0.6] };",   // v137: der Ablauf ruft dropSaetze mit
   "function zeitAnsage(){ return 'zeit'; }",
-  grabFn("aufwaermSaetze"), grabFn("superBloecke"), grabFn("imSuperatz"),
+  grabFn("aufwaermSaetze"), grabFn("dropSaetze"), grabFn("superBloecke"), grabFn("imSuperatz"),
   grabFn("klassischerAblauf"),
   "module.exports = { superBloecke, imSuperatz, klassischerAblauf };"
 ].join("\n"))(modul, modul.exports);

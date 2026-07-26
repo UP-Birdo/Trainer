@@ -88,7 +88,9 @@ pruefe("kuerzere Pause nach dem Aufwaermsatz",
 pruefe("wird NICHT protokolliert",
   grabFn("satzProtokollieren").includes("if(schritt && schritt.rampe) return;"));
 pruefe("kein Rekord auf dem Aufwaermsatz", grabFn("rekordPruefen").includes("schritt.rampe"));
-pruefe("Anzeige nutzt die Rampen-Werte", src.includes("const r = s.rampe ? s.rampeWert : null"));
+// v137 hat dieselbe Zeile um die Dropsaetze erweitert — geprueft wird die
+// Aussage: die Anzeige nimmt bei einer Rampe deren eigene Werte.
+pruefe("Anzeige nutzt die Rampen-Werte", /const r = s\.rampe \? s\.rampeWert :/.test(src));
 pruefe("Editor-Feld nur mit Gewicht",
   /u\.gewicht > 0 \? zahlfeld\(i,"rampe","Aufwärmsätze"/.test(src));
 pruefe("Editor klemmt auf 0..3", grabFn("rampeKlemmen").includes("begrenzen(Math.round(u.rampe) || 0, 0, 3)"));

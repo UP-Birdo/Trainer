@@ -2249,7 +2249,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 136;
+const APP_VERSION = 137;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2956,7 +2956,10 @@ function progressionAnwenden(uebung, note){
    Wdh-Übungen mit protokollierten Sätzen — Zeit-/Halteübungen behalten ihre Note. */
 function effektiveNote(u, manuelleNote, saetze){
   if(u.modus !== "wdh") return manuelleNote;
-  const eigene = (saetze || []).filter(s => s.uebungId === u.id && typeof s.wdh === "number");
+  // v137: Dropsätze zählen hier NICHT mit. Sie tragen bewusst weniger Gewicht und
+  // damit weniger Wdh — als „Soll verfehlt" gelesen würden sie jede Steigerung
+  // blockieren, obwohl sie ein Zeichen von MEHR Arbeit sind.
+  const eigene = (saetze || []).filter(s => s.uebungId === u.id && typeof s.wdh === "number" && !s.drop);
   if(eigene.length === 0) return manuelleNote;
   const minWdh = Math.min(...eigene.map(s => s.wdh));
   if(u.wdhMin > 0 && minWdh < u.wdhMin) return Math.max(manuelleNote, 5);   // unter dem Minimum: Rückschritt
@@ -4381,6 +4384,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.137", punkte:[
+    "Dropsätze: Unter „Feinheiten“ einer Übung mit Gewicht stellst du 1 oder 2 Dropsätze ein. Im Training hängen sie direkt am Arbeitssatz — ohne Pause dazwischen, mit 80 bzw. 60 Prozent des Gewichts und entsprechend weniger Wiederholungen. Anders als die Aufwärmsätze zählen sie als echte Arbeit: Sie landen im Verlauf und im Volumen. Beim Steigern werden sie aber richtig einsortiert — dass du dort weniger Wiederholungen schaffst, bremst deine Progression nicht."
+  ]},
   { stand:"0.136", punkte:[
     "Supersätze: Im Plan-Editor kannst du eine Übung mit der direkt folgenden koppeln — lange auf die Übung drücken und „Mit nächster Übung koppeln“ wählen. Im Training läuft dann je Runde ein Satz beider Übungen OHNE Pause dazwischen; die Pause kommt erst danach. Koppelst du eine Kette (A mit B, B mit C), wird daraus ein Dreier-Superatz. In der Übungsliste steht bei gekoppelten Übungen „Superatz“."
   ]},
@@ -9023,7 +9029,8 @@ function editorZeichnen(){
       : u.saetze + " × " + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "")) +
       // v136: sichtbar machen, dass diese Übung zu einem Superatz gehört
       (imSuperatz(editorPlan.uebungen, i) ? " · Superatz" : "") +
-      (u.rampe > 0 ? " · " + u.rampe + " Aufwärm" : "");   // v135
+      (u.rampe > 0 ? " · " + u.rampe + " Aufwärm" : "") +   // v135
+      (u.drop  > 0 ? " · " + u.drop  + " Drop" : "");       // v137
     const titel = u.name.trim() ? text(u.name) : "Übung " + (i+1);
     // v125: Die Muskel-Map steht jetzt auch an der GELISTETEN (eingeklappten)
     // Übung — klein im Kopf (Nutzer-Wunsch: „die gelisteten Übungen sollen die
@@ -9067,8 +9074,10 @@ function editorZeichnen(){
               zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht,2.5) + zahlfeld(i,"pause","Pause (s)",u.pause,15);
       mehr = zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin,1) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax,1) +
              zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt,0.5) +
-             // v135: Aufwärmsätze (0–3) — nur sinnvoll, wo es Gewicht hochzutasten gibt.
-             (u.gewicht > 0 ? zahlfeld(i,"rampe","Aufwärmsätze",u.rampe || 0,1) : "");
+             // v135/v137: Aufwärm- und Dropsätze — beide nur sinnvoll, wo es
+             // Gewicht hoch- bzw. herunterzugehen gibt.
+             (u.gewicht > 0 ? zahlfeld(i,"rampe","Aufwärmsätze",u.rampe || 0,1) +
+                              zahlfeld(i,"drop","Dropsätze",u.drop || 0,1) : "");
     }
     const felder = '<div class="raster abstand">' + basis + '</div>' +
       (mehr ? '<div class="knopfreihe"><button class="schmal" onclick="editorMehrUmschalten(' + i + ')">' +
@@ -9112,12 +9121,13 @@ function zahlfeld(i, schluessel, beschriftung, wert, schritt){
     '</div></div>';
 }
 
-/** v135: Die Aufwärmsätze kennen nur 0–3 (mehr Stufen gibt RAMPEN nicht her) —
-    darum hier klemmen, statt den Stepper ins Leere laufen zu lassen. */
+/** v135/v137: Aufwärm- und Dropsätze kennen nur die Stufen, die RAMPEN bzw.
+    DROPS hergeben (0–3 und 0–2) — darum hier klemmen, statt den Stepper ins
+    Leere laufen zu lassen. */
 function rampeKlemmen(){
   (editorPlan.uebungen || []).forEach(u => {
-    if(u.rampe == null) return;
-    u.rampe = begrenzen(Math.round(u.rampe) || 0, 0, 3);
+    if(u.rampe != null) u.rampe = begrenzen(Math.round(u.rampe) || 0, 0, 3);
+    if(u.drop  != null) u.drop  = begrenzen(Math.round(u.drop)  || 0, 0, 2);
   });
 }
 
@@ -9523,6 +9533,32 @@ function ablaufErzeugen(plan){
 const RAMPEN = { 1:[0.6], 2:[0.5, 0.75], 3:[0.4, 0.6, 0.8] };
 
 /* ============================================================
+   v137: Dropsätze — direkt nach dem Arbeitssatz Gewicht runter und weitermachen.
+   Gegenstück zur Rampe (v135), nur in die andere Richtung und mit einem
+   entscheidenden Unterschied: **Dropsätze sind Arbeit** und werden protokolliert
+   (Volumen, Verlauf), Aufwärmsätze nicht. Gewählte Staffelung:
+     1 Drop -> 80 %        2 Drops -> 80 / 60 % des Arbeitsgewichts
+   Die vorgeschlagenen Wdh sind je Drop ~70 % der vorherigen (nach dem schweren
+   Satz schafft man weniger); im Training passt man sie ohnehin mit +/- an.
+   ============================================================ */
+const DROPS = { 1:[0.8], 2:[0.8, 0.6] };
+
+/** Die Dropsätze einer Übung als {gewicht, wdh}-Liste. Rein/testbar. */
+function dropSaetze(uebung, anzahl){
+  const n = Math.round(anzahl || 0);
+  const stufen = DROPS[n];
+  if(!uebung || !stufen) return [];
+  if(uebung.modus === "zeit" || !(uebung.gewicht > 0)) return [];
+  const schritt = uebung.gewichtSchritt > 0 ? uebung.gewichtSchritt : 0.5;
+  let wdh = uebung.wdh || 0;
+  return stufen.map(anteil => {
+    const gewicht = Math.max(schritt, Math.round(uebung.gewicht * anteil / schritt) * schritt);
+    wdh = Math.max(2, Math.round(wdh * 0.7 + 1e-9));   // Epsilon wie in v135 (Float-Falle)
+    return { gewicht: Math.round(gewicht * 100) / 100, wdh };
+  });
+}
+
+/* ============================================================
    v136: Supersätze — zwei (oder mehr) Übungen ohne Pause dazwischen.
    Modelliert als EIN Schalter an der früheren Übung: `superMitNaechster`
    koppelt sie mit der DIREKT FOLGENDEN. Bewusst kein Gruppen-Feld mit eigener
@@ -9605,6 +9641,12 @@ function klassischerAblauf(plan){
           schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
             ansage: u.name + partner + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
                     (u.gewicht > 0 ? " mit " + u.gewicht + " Kilo" : "") });
+          // v137: Dropsätze hängen DIREKT am Arbeitssatz — ohne Pause dazwischen,
+          // das ist ihr Sinn. Sie zählen als Arbeit und werden protokolliert.
+          dropSaetze(u, u.drop).forEach((d, di) => {
+            schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s, drop:true, dropWert:d,
+              ansage: "Drop " + (di+1) + ": " + d.wdh + " Wiederholungen mit " + d.gewicht + " Kilo" });
+          });
         }
         const letzterPartner = k === dranInRunde.length - 1;
         const ende = (bi === bloecke.length - 1) && (s === maxSaetze) && letzterPartner;
@@ -10356,6 +10398,13 @@ function satzProtokollieren(schritt, istSekunden){
   // E2: die WIRKLICH geschafften Wiederholungen (per +/- im Training angepasst),
   // Rückfall auf die geplante Zahl, falls nichts verstellt wurde.
   else { eintrag.wdh = (lauf.istWdh != null ? lauf.istWdh : u.wdh); eintrag.gewicht = u.gewicht; }
+  // v137: Ein Dropsatz zählt als Arbeit (Volumen, Verlauf) — mit SEINEM Gewicht
+  // und als solcher markiert. Die Markierung ist wichtig: `effektiveNote` (v113)
+  // darf ihn nicht als „Soll verfehlt" lesen, er hat ja bewusst weniger Gewicht.
+  if(schritt && schritt.drop){
+    eintrag.drop = true;
+    if(schritt.dropWert) eintrag.gewicht = schritt.dropWert.gewicht;
+  }
   // v127: Vergleich VOR dem Anhängen ziehen — sonst wäre der Satz sein eigener Rekord.
   const vorher = lauf.saetze.slice();
   lauf.saetze.push(eintrag);
@@ -10423,8 +10472,11 @@ function schrittBetreten(){
   if(s.typ === "satz-wdh"){
     // v135: Ein Aufwärmsatz zeigt SEINE Werte (leichter, weniger Wdh) und sagt
     // klar, dass er einer ist — sonst hielte man ihn für den ersten Arbeitssatz.
-    const r = s.rampe ? s.rampeWert : null;
-    phase.textContent = r ? "Aufwärmsatz " + s.satz : "Satz " + s.satz + " von " + u.saetze;
+    // v137: Dropsätze zeigen wie die Rampe ihre eigenen (niedrigeren) Werte.
+    const r = s.rampe ? s.rampeWert : (s.drop ? s.dropWert : null);
+    phase.textContent = s.rampe ? "Aufwärmsatz " + s.satz
+                      : s.drop  ? "Drop-Satz · nach Satz " + s.satz
+                                : "Satz " + s.satz + " von " + u.saetze;
     phase.classList.remove("pause");
     lauf.istWdh = r ? r.wdh : u.wdh;              // E2: Ist-Wdh, per +/- anpassbar
     zahl.textContent = lauf.istWdh;
@@ -10663,9 +10715,10 @@ function bisherigerRekord(uebungId, modus){
 /** Zeigt "REKORD", wenn der anstehende Satz alles bisherige übertrifft. */
 function rekordPruefen(schritt){
   const anzeige = document.getElementById("uhr-rekord");
-  // v135: Auf einem Aufwärmsatz nie „Rekord" versprechen — er trägt bewusst
-  // weniger Gewicht, verglichen würden aber die Arbeitswerte.
-  if(!schritt || schritt.rampe || (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
+  // v135/v137: Auf einem Aufwärm- oder Dropsatz nie „Rekord" versprechen — beide
+  // tragen bewusst weniger Gewicht, verglichen würden aber die Arbeitswerte.
+  if(!schritt || schritt.rampe || schritt.drop ||
+     (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
   const u = lauf.plan.uebungen[schritt.uebungIndex];
   const best = bisherigerRekord(u.id, u.modus);
   const jetzt = u.modus === "zeit" ? u.dauer : u.wdh * (u.gewicht > 0 ? u.gewicht : 1);

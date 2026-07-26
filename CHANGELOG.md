@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.137
+
+- Dropsätze: Unter „Feinheiten" einer Übung mit Gewicht stellst du 1 oder 2
+  Dropsätze ein. Im Training hängen sie direkt am Arbeitssatz — ohne Pause
+  dazwischen, mit 80 bzw. 60 Prozent des Gewichts und entsprechend weniger
+  Wiederholungen. Anders als die Aufwärmsätze zählen sie als echte Arbeit: Sie
+  landen im Verlauf und im Volumen. Beim Steigern werden sie aber richtig
+  einsortiert — dass du dort weniger Wiederholungen schaffst, bremst deine
+  Progression nicht.
+
 ## 0.136
 
 - Supersätze: Im Plan-Editor kannst du eine Übung mit der direkt folgenden koppeln
