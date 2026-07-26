@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 143;
+const APP_VERSION = 144;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.144", punkte:[
+    "Jede Sportart steigert jetzt das, was bei ihr wirklich Fortschritt ist. Bisher hob die App nach einer zu leichten Einheit überall pauschal Zeit und Strecke an — beim Klettern hieß das: länger in der Halle stehen. Neu: Ausdauer steigert Strecke und Zeit gemeinsam (das Tempo bleibt), Spielsportarten nur die Spielzeit und langsamer, Kampfsport die Runden, Yoga Haltezeit und Winkel, Klettern ausschließlich den Schwierigkeitsgrad. Die Frage nach der Einheit sagt dir außerdem genau, was sie anheben wird — und sie kommt nur noch, wenn es an deinem Plan überhaupt etwas zu heben gibt."
+  ]},
   { stand:"0.143", punkte:[
     "Geschafft: Jetzt hat JEDE der 135 Übungen in der Bibliothek ihre Beschreibung. Zum Abschluss kamen Rumpf und Ausdauer dazu — vom Plank über den Türkischen Aufsteher bis zu den Intervall-Läufen. Der kurze Merksatz bleibt wie gewohnt darüber stehen, der Text erklärt darunter, was die Übung bringt, wie sie sauber läuft und welcher Fehler der häufigste ist."
   ]},
@@ -6379,34 +6382,36 @@ function geraeteFuerOrt(ort){
    Graphit-Ton, damit nichts nach Neon aussieht.
    ------------------------------------------------------------ */
 const SPORTARTEN = [
-  { id:"kraft",       name:"Krafttraining",       farbe:"#F2C14E", planTyp:"kraft",
+  // `fortschritt` = Schlüssel in FORTSCHRITT_KLASSEN (v144): Was hebt ein
+  // „war zu leicht" bei dieser Sportart an? Siehe die Herleitung dort.
+  { id:"kraft",       name:"Krafttraining",       farbe:"#F2C14E", planTyp:"kraft", fortschritt:"kraft",
     einheiten:"Sätze · Wdh · Gewicht · Haltezeit" },
 
   // Ausdauer: Strecke UND Zeit -> daraus rechnet die App die Pace. Nie speichern,
   // was sich ausrechnen lässt, sonst laufen zwei Wahrheiten auseinander.
-  { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet", intervall:true,
+  { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet", intervall:true, fortschritt:"ausdauer",
     strecke:{ einheit:"km", schritt:0.5, start:3 },  paceJe:1,   einheiten:"km · Zeit · Pace (min/km)" },
-  { id:"radfahren", name:"Radfahren", farbe:"#2FA8A0", planTyp:"aktivitaet",
+  { id:"radfahren", name:"Radfahren", farbe:"#2FA8A0", planTyp:"aktivitaet", fortschritt:"ausdauer",
     strecke:{ einheit:"km", schritt:1, start:10 },   paceJe:null, einheiten:"km · Zeit · km/h" },
-  { id:"wandern",   name:"Wandern",   farbe:"#A98150", planTyp:"aktivitaet",
+  { id:"wandern",   name:"Wandern",   farbe:"#A98150", planTyp:"aktivitaet", fortschritt:"ausdauer",
     strecke:{ einheit:"km", schritt:1, start:8 },    paceJe:null, einheiten:"km · Zeit" },
-  { id:"schwimmen", name:"Schwimmen", farbe:"#56C7E8", planTyp:"aktivitaet",
+  { id:"schwimmen", name:"Schwimmen", farbe:"#56C7E8", planTyp:"aktivitaet", fortschritt:"ausdauer",
     strecke:{ einheit:"m", schritt:50, start:500 },  paceJe:100, einheiten:"Meter · Zeit · Pace (min/100 m)" },
-  { id:"rudern",    name:"Rudern",    farbe:"#7A8CD9", planTyp:"aktivitaet",
+  { id:"rudern",    name:"Rudern",    farbe:"#7A8CD9", planTyp:"aktivitaet", fortschritt:"ausdauer",
     strecke:{ einheit:"m", schritt:100, start:1000 },paceJe:500, einheiten:"Meter · Zeit · Split (min/500 m)" },
 
   // Ohne sinnvolles STRECKEN-Maß: Hier gibt es die Trainingszeit — und, wo es
   // etwas anderes Messbares gibt, seit v115/v117 eine `mass` (Grad, Schwierigkeit).
-  { id:"klettern",    name:"Klettern",            farbe:"#C8553D", planTyp:"aktivitaet",
+  { id:"klettern",    name:"Klettern",            farbe:"#C8553D", planTyp:"aktivitaet", fortschritt:"schwierigkeit",
     // v117 (Nicht-Kraft, Etappe 2): Schwierigkeit als Ordinalskala (franz. Sportkletter-
     // Grade) statt Zahl — `skala` statt `einheit`/`schritt`. Gewählte Standard-Skala; bei
     // Bedarf leicht austauschbar (UIAA, Bouldern …).
     mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a" }, einheiten:"Zeit · Schwierigkeit" },
-  { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", einheiten:"Zeit" },
-  { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", einheiten:"Zeit" },
-  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, einheiten:"Zeit · Runden" },
-  { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", einheiten:"Zeit" },
-  { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet",
+  { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
+  { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
+  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, fortschritt:"kampf", einheiten:"Zeit · Runden" },
+  { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
+  { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet", fortschritt:"beweglichkeit",
     // v115 (Nicht-Kraft, Etappe 1): generische Messgröße `mass` neben der Strecke —
     // eine schlichte Zahl mit Einheit (hier Beweglichkeit in Grad). Ziel und
     // Fortschritt dazu seit v121 (Etappe 4); `max` ist die Sanity-Grenze eines
@@ -6421,6 +6426,89 @@ function planTypFuer(sportartId){ return sportart(sportartId).planTyp; }
 
 /** Hat diese Sportart ein sinnvolles Streckenmaß? Klettern hat keins. */
 function hatStrecke(sportartId){ return !!sportart(sportartId).strecke; }
+
+/* ============================================================
+   v144 (Nicht-Kraft, Etappe 5): FORTSCHRITTSREGEL JE SPORTART-KLASSE.
+
+   Bis v143 stieg jede Aktivität pauschal um 7 %: Dauer UND Strecke, egal ob
+   Marathon-Vorbereitung, Tischtennis-Abend oder Yoga. Das war zwei Dinge auf
+   einmal falsch — zu grob (ein Läufer steigert anders als ein Kletterer) und
+   an einer Stelle schlicht zu viel: 7 % je Einheit sind bei drei Einheiten pro
+   Woche +22,5 %, über der eigenen Hausregel STEIGERUNG_MAX (20 % je Woche,
+   Herleitung dort). Die Klassen unten liegen deshalb darunter (6 % → +19,1 %
+   bei drei Einheiten).
+
+   Was in welcher Klasse wächst, folgt der Frage „was ist hier eigentlich
+   Fortschritt?":
+   - ausdauer      Umfang. Strecke und Zeit steigen gemeinsam, damit das Tempo
+                   gleich bleibt und nur das Volumen wächst.
+   - spiel         Spielzeit, und die nur langsam. Der eigentliche Fortschritt
+                   steckt in den Drills (die laufen über die Satz-Progression).
+   - kampf         Runden (Intervall-Plan). Ohne Intervall die Zeit, langsam.
+   - beweglichkeit Haltezeit, langsam — das Ziel ist der Winkel (Messgröße).
+   - schwierigkeit GAR NICHTS an der Uhr: Zwei Stunden statt anderthalb in der
+                   Halle sind kein Fortschritt, ein Grad höher schon. Klettern
+                   steigert ausschließlich über die Messgröße.
+   - kraft         kommt hier nie an (eigene Satz-Progression), steht nur der
+                   Vollständigkeit halber im Register.
+
+   Prozente sind Zuwachs JE EINHEIT (0 = wächst hier nicht).
+   ============================================================ */
+const FORTSCHRITT_KLASSEN = {
+  kraft:         { name:"Krafttraining", dauer:0,    strecke:0    },
+  ausdauer:      { name:"Ausdauer",      dauer:0.06, strecke:0.06 },
+  spiel:         { name:"Spielsport",    dauer:0.05, strecke:0    },
+  kampf:         { name:"Kampfsport",    dauer:0.05, strecke:0    },
+  beweglichkeit: { name:"Beweglichkeit", dauer:0.05, strecke:0    },
+  schwierigkeit: { name:"Schwierigkeit", dauer:0,    strecke:0    }
+};
+
+/** Die Fortschrittsregel einer Sportart. Unbekannt/fehlend → `ausdauer`, die
+    Regel, die bis v143 für alle galt (nichts wird durch das Fehlen schlechter). */
+function fortschrittKlasse(sportartId){
+  return FORTSCHRITT_KLASSEN[sportart(sportartId).fortschritt] || FORTSCHRITT_KLASSEN.ausdauer;
+}
+
+/** Was würde ein „war zu leicht" an diesem Plan konkret ändern?
+    Gibt die NEUEN Felder zurück — oder null, wenn sich nichts ändern würde
+    (dann wird auch nicht gefragt; eine Frage ohne Wirkung ist eine Lüge).
+    Rein: fasst den übergebenen Plan nicht an.
+    `massReif` = das Messgrößen-Ziel stand (v121-Regel, wird außen geprüft). */
+function planGesteigert(plan, sportartId, massReif){
+  if(!plan) return null;
+  const k = fortschrittKlasse(sportartId);
+  const neu = {};
+  if(plan.intervall){
+    /* Bei einem Intervall-Plan sind die RUNDEN das Ziel; die Dauer ist nur ihr
+       Ergebnis. Sie zusätzlich anzuheben, würde doppelt zählen und den Plan von
+       seinem Timer entkoppeln (v121). Gilt in jeder Klasse. */
+    neu.intervall = intervallSteigern(plan.intervall);
+    neu.dauer = intervallGesamt(intervallPhasen(neu.intervall.runden, neu.intervall.belastung, neu.intervall.pause));
+  } else if(plan.dauer && k.dauer > 0){
+    neu.dauer = begrenzen(Math.round(plan.dauer * (1 + k.dauer)), 60, MAX_DAUER_S);
+  }
+  if(plan.strecke && k.strecke > 0) neu.strecke = Math.round(plan.strecke * (1 + k.strecke) * 10) / 10;
+  if(massReif) neu.massZiel = massSchritt(sportartId, plan.massZiel, 1);
+  const geaendert = Object.keys(neu).some(f => JSON.stringify(neu[f]) !== JSON.stringify(plan[f]));
+  return geaendert ? neu : null;
+}
+
+/** Was ein „ja" konkret anhebt — formuliert AUS dem Ergebnis von
+    planGesteigert, nicht aus der Klasse. So verspricht die Frage nie etwas,
+    das an diesem Plan gar nicht passiert (ein Lauf-Plan ohne Strecke hebt eben
+    nur die Zeit). */
+function steigerungText(neu, sportartId){
+  if(!neu) return "";
+  const teile = [];
+  if(neu.intervall)              teile.push("die Runden");
+  else if(neu.dauer !== undefined) teile.push("die Zeit");
+  if(neu.strecke !== undefined)  teile.push("die Strecke");
+  if(neu.massZiel !== undefined){
+    const m = sportart(sportartId).mass;
+    teile.push(m && m.label ? "die " + m.label : "dein Ziel");
+  }
+  return teile.join(" und ");
+}
 
 /** Pace als Text, GERECHNET aus Strecke und Zeit — nie gespeichert.
     paceJe = Bezugsstrecke (1 km beim Laufen, 100 m beim Schwimmen). */
@@ -10578,21 +10666,15 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
      (null >= 0 wäre in JS wahr). */
   const vergleich = echterPlan ? massVergleich(sport, messwert, echterPlan.massZiel) : null;
   const massReif = vergleich !== null && vergleich >= 0;
-  if(echterPlan && (echterPlan.dauer || echterPlan.strecke || echterPlan.intervall || massReif)){
-    frage(eingetragen + "\n\nWar die Einheit zu leicht? Dann hebe ich dein Ziel einen Schritt an.", false, ja => {
+  /* v144 (Etappe 5): WAS gesteigert wird, entscheidet die Sportart-Klasse
+     (planGesteigert). Gibt sie null zurück, gäbe es an diesem Plan nichts zu
+     heben — dann fragen wir gar nicht erst. */
+  const steigerung = planGesteigert(echterPlan, sport, massReif);
+  if(steigerung){
+    frage(eingetragen + "\n\nWar die Einheit zu leicht? Dann hebe ich " +
+          steigerungText(steigerung, sport) + " einen Schritt an.", false, ja => {
       if(!ja) return;
-      if(echterPlan.intervall){
-        /* Bei einem Intervall-Plan sind die RUNDEN das Ziel; die Dauer ist nur ihr
-           Ergebnis. Sie zusätzlich um 7 % anzuheben, würde doppelt zählen und den
-           Plan von seinem Timer entkoppeln. */
-        echterPlan.intervall = intervallSteigern(echterPlan.intervall);
-        const iv = echterPlan.intervall;
-        echterPlan.dauer = intervallGesamt(intervallPhasen(iv.runden, iv.belastung, iv.pause));
-      } else if(echterPlan.dauer){
-        echterPlan.dauer = begrenzen(Math.round(echterPlan.dauer * 1.07), 60, MAX_DAUER_S);
-      }
-      if(echterPlan.strecke) echterPlan.strecke = Math.round(echterPlan.strecke * 1.07 * 10) / 10;
-      if(massReif) echterPlan.massZiel = massSchritt(sport, echterPlan.massZiel, 1);
+      Object.assign(echterPlan, steigerung);
       speichern();
       const zielZeile = echterPlan.intervall
         ? [intervallText(echterPlan), massText(echterPlan.sportart, echterPlan.massZiel)].filter(Boolean).join(" · ")

@@ -118,8 +118,10 @@ pruefe("Sportart-Wechsel setzt massZiel",
 pruefe("Erfassung wird aus massZiel vorbelegt", src.includes("plan.massZiel != null ? plan.massZiel"));
 pruefe("Steigerung nur bei erreichtem Ziel",
   src.includes("const massReif = vergleich !== null && vergleich >= 0"));
+/* v144: die Steigerung wohnt jetzt in `planGesteigert` (Regel je Sportart-Klasse).
+   Geprüft wird deshalb die FUNKTION, nicht mehr eine Zeile im Aufrufer. */
 pruefe("Intervall-Plan steigert Runden statt Uhr",
-  src.includes("echterPlan.intervall = intervallSteigern(echterPlan.intervall)"));
+  grabFn("planGesteigert").includes("intervallSteigern("));
 pruefe("Statistik-Kachel messwerte verdrahtet",
   src.includes('id="messwerte-karte"') && src.includes('["messwerte",') &&
   src.includes("function messwerteZeichnen(") && src.includes('if(id === "messwerte")'));

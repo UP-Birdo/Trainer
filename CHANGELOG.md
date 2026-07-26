@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.144
+
+- Jede Sportart steigert jetzt das, was bei ihr wirklich Fortschritt ist. Bisher
+  hob die App nach einer zu leichten Einheit überall pauschal Zeit und Strecke an
+  — beim Klettern hieß das: länger in der Halle stehen. Neu: Ausdauer steigert
+  Strecke und Zeit gemeinsam (das Tempo bleibt), Spielsportarten nur die
+  Spielzeit und langsamer, Kampfsport die Runden, Yoga Haltezeit und Winkel,
+  Klettern ausschließlich den Schwierigkeitsgrad. Die Frage nach der Einheit sagt
+  dir außerdem genau, was sie anheben wird — und sie kommt nur noch, wenn es an
+  deinem Plan überhaupt etwas zu heben gibt.
+
 ## 0.143
 
 - Geschafft: Jetzt hat JEDE der 135 Übungen in der Bibliothek ihre Beschreibung.

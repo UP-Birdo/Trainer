@@ -17,6 +17,24 @@ function grabFn(name){
   }
   throw new Error("Klammern unausgeglichen: " + name);
 }
+/* v144: die Yoga-Prüfung liest jetzt die ECHTE Tabelle statt mit einer
+   Zeichen-Abstands-Regex im Quelltext zu suchen — ein zusätzliches Feld an der
+   Sportart (hier `fortschritt`) darf sie nicht umwerfen (Lehre aus v136). */
+function grabLiteral(name){
+  const decl = "const " + name + " = ";
+  const i = src.indexOf(decl);
+  if(i < 0) throw new Error("Konstante nicht gefunden: " + name);
+  let start = i + decl.length;
+  while(start < src.length && src[start] !== "{" && src[start] !== "[") start++;
+  const auf = src[start], zu = auf === "{" ? "}" : "]";
+  let tiefe = 0;
+  for(let k = start; k < src.length; k++){
+    if(src[k] === auf) tiefe++;
+    else if(src[k] === zu){ tiefe--; if(tiefe === 0) return src.slice(start, k + 1); }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
+const SPORTARTEN_ECHT = eval("(" + grabLiteral("SPORTARTEN") + ")");
 
 const code = [
   "const SPORTS = { yoga:{ mass:{ label:'Beweglichkeit', einheit:'°', schritt:5, start:30 } }, laufen:{ strecke:{ einheit:'km' } } };",
@@ -40,7 +58,8 @@ pruefe("Sportart ohne mass -> leer", massText("laufen", 5) === "");
 pruefe("Unbekannte Sportart -> leer", massText("xxx", 5) === "");
 
 /* 2) Verdrahtung im Quelltext. */
-pruefe("Yoga trägt mass-Config", /id:"yoga"[\s\S]{0,400}mass:\{/.test(src));
+const yogaEintrag = SPORTARTEN_ECHT.find(s => s.id === "yoga");
+pruefe("Yoga trägt mass-Config", !!(yogaEintrag && yogaEintrag.mass && yogaEintrag.mass.label && yogaEintrag.mass.schritt));
 pruefe("Erfassungsfeld ein-mass vorhanden", src.includes('id="ein-mass"'));
 pruefe("aktivitaetAblegen nimmt messwert",
   src.includes("function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert)"));
