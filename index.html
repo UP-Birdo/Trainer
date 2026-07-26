@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 139;
+const APP_VERSION = 140;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.140", punkte:[
+    "Jetzt haben auch die Nicht-Kraft-Sportarten eine Muskelkarte: Für 34 Drills — vom Topspin über den Sonnengruß bis zu Bergsprints — ist hinterlegt, welche Muskeln sie fordern und welche mitarbeiten. Sie erscheinen damit überall dort mit Figur, wo Kraftübungen schon eine hatten: im Plan-Editor, in der Trainings-Vorschau und in der Muskelkarte deines Plans. Reine Technik ohne klaren Schwerpunkt (etwa Aufschlag-Training) bleibt bewusst ohne Figur — geraten wird nicht."
+  ]},
   { stand:"0.139", punkte:[
     "Die Muskelkarte kann jetzt mehr: Bei den großen Grundübungen siehst du neben den Hauptmuskeln auch die MITBELASTETEN — sie werden blasser eingefärbt, und in der Bibliothek stehen sie als eigene Zeile darunter. Die Figuren sind außerdem etwas heller und ruhiger gezeichnet. Unter der Haube ist die Karte so umgebaut, dass eine feinere Muskelkarte später einfach eingesetzt werden kann, ohne dass eine einzige Übungs-Zuordnung neu geschrieben werden muss."
   ]},
@@ -7063,19 +7066,36 @@ function uebungMuskelSatz(eintrag){
   return { p, s };
 }
 
+/** v140: Aus einem Muskel-Satz die Anzeige-Form bauen (Ansicht = Seite des
+    ersten Primärmuskels, Label = die Regionen). Eine Stelle für Kraftübungen
+    UND Sportart-Drills — sonst driften die zwei Wege auseinander. */
+function muskelSatzAnzeige(satz){
+  if(!satz || !satz.p.length) return null;
+  const regionen = [...new Set(satz.p.map(m => (MUSKEL_INFO[m] || {}).region).filter(Boolean))];
+  return { ansicht: MUSKEL_SEITE[satz.p[0]] === "back" ? "back" : "front",
+           muskeln: satz.p, sekundaer: satz.s, label: regionen.join(", ") };
+}
+
 function uebungMuskeln(name){
   if(!name) return null;
   let t = UEBUNGEN_DB.find(u => u.name === name);
   if(!t){ const n = normName(name); t = UEBUNGEN_DB.find(u => normName(u.name) === n); }
-  if(!t) return null;
-  const satz = uebungMuskelSatz(UEBUNG_MUSKELN[t.name]);
-  if(satz.p.length){
-    // Ansicht = Seite des PRIMÄR-Muskels (erster Eintrag), damit z. B. Klimmzüge
-    // (Latissimus) die Rückseite zeigen, nicht die Vorderseite (Bizeps).
-    const regionen = [...new Set(satz.p.map(m => (MUSKEL_INFO[m] || {}).region).filter(Boolean))];
-    return { ansicht: MUSKEL_SEITE[satz.p[0]] === "back" ? "back" : "front",
-             muskeln: satz.p, sekundaer: satz.s, label: regionen.join(", ") };
+  if(!t){
+    // v140: Kein Kraft-Eintrag — dann vielleicht ein Sportart-Drill (Topspin,
+    // Sonnengruß …). Erst exakt, dann normalisiert, wie oben.
+    let s = SPORT_MUSKELN[name];
+    if(!s){
+      const n = normName(name);
+      const treffer = Object.keys(SPORT_MUSKELN).find(k => normName(k) === n);
+      if(treffer) s = SPORT_MUSKELN[treffer];
+    }
+    return s ? muskelSatzAnzeige(uebungMuskelSatz(s)) : null;
   }
+  // Ansicht = Seite des PRIMÄR-Muskels (erster Eintrag), damit z. B. Klimmzüge
+  // (Latissimus) die Rückseite zeigen, nicht die Vorderseite (Bizeps) —
+  // v140: das entscheidet jetzt muskelSatzAnzeige, für beide Wege gleich.
+  const fein = muskelSatzAnzeige(uebungMuskelSatz(UEBUNG_MUSKELN[t.name]));
+  if(fein) return fein;
   const kat = KAT_MUSKELN[t.kat];
   // v139: auch die grobe Kategorie läuft durch die Alias-Schicht.
   return kat ? { ansicht:kat.ansicht, muskeln: muskelnAufKarte(kat.muskeln), sekundaer: [], label:kat.label } : null;
@@ -7154,6 +7174,68 @@ const SPORT_UEBUNGEN = {
     { name:"Balance-Halten (Baum)",     art:"technik",   modus:"zeit", saetze:3, dauer:45 },
     { name:"Tiefe Vorbeuge (Dehnung)",  art:"kondition", modus:"zeit", saetze:3, dauer:60 }
   ]
+};
+
+/* ============================================================
+   v140: Muskel-Zuordnung für die SPORTART-DRILLS.
+   Bisher fanden nur Kraftübungen (UEBUNGEN_DB) eine Figur — bei einem Topspin
+   oder Sonnengruß blieb sie leer. Recherchiert je Drill: welche Muskeln die
+   Bewegung hauptsächlich fordert (`p`) und welche mitarbeiten (`s`).
+   Bewusst ZURÜCKHALTEND: Technik-Drills sind Ganzkörper-Bewegungen; hier stehen
+   die Muskeln, die man danach wirklich spürt — nicht die vollständige Anatomie.
+   Wo eine Bewegung keinen ehrlichen Schwerpunkt hat, steht sie NICHT drin und
+   bleibt figurlos (raten wäre schlechter als schweigen, v125-Linie).
+   Die Schlüssel sind die Drill-Namen aus SPORT_UEBUNGEN.
+   ============================================================ */
+const SPORT_MUSKELN = {
+  // -- Laufen --
+  "Lauf-ABC (Skippings, Anfersen)": { p:["quadriceps","calves"],            s:["hamstrings","abs","tibialis"] },
+  "Steigerungsläufe":               { p:["quadriceps","hamstrings"],        s:["glutes","calves"] },
+  "Intervall-Läufe (hart/locker)":  { p:["quadriceps","hamstrings","calves"], s:["glutes","abs"] },
+  "Bergsprints":                    { p:["glutes","quadriceps"],            s:["calves","hamstrings","abs"] },
+  // -- Radfahren --
+  "Trittfrequenz-Drill (hohe Kadenz)": { p:["quadriceps"],                  s:["calves","hamstrings"] },
+  "Berg-Intervalle":                   { p:["quadriceps","glutes"],         s:["hamstrings","calves","lowerback"] },
+  "Sprint-Intervalle":                 { p:["quadriceps","glutes"],         s:["hamstrings","calves","abs"] },
+  // -- Wandern --
+  "Bergauf-Intervalle":                   { p:["quadriceps","glutes"],      s:["calves","hamstrings"] },
+  "Ausfallschritte (Trittsicherheit)":    { p:["quadriceps","glutes"],      s:["hamstrings","abs"] },
+  "Balance auf unebenem Grund":           { p:["tibialis","calves"],        s:["abs","obliques","quadriceps"] },
+  // -- Schwimmen --
+  "Beinschlag mit Brett": { p:["quadriceps","glutes"],                      s:["abs","hamstrings"] },
+  "Einarm-Kraul-Drill":   { p:["latissimus","deltoid"],                     s:["triceps","obliques","infraspinatus"] },
+  "Sprint-Bahnen":        { p:["latissimus","deltoid"],                     s:["triceps","abs","quadriceps"] },
+  // -- Rudern --
+  "Ruderschlag-Technik (Beine-Rumpf-Arme)": { p:["quadriceps","latissimus"], s:["lowerback","biceps","glutes"] },
+  "500-m-Intervalle":                       { p:["quadriceps","latissimus"], s:["glutes","lowerback","biceps"] },
+  "Kraftausdauer (niedrige Schlagzahl)":    { p:["latissimus","quadriceps"], s:["trapezius","lowerback","glutes"] },
+  // -- Klettern --
+  "Fingerhang am Board":           { p:["forearm"],                         s:["latissimus","biceps"] },
+  "Fußtechnik-Drill (leise Füße)": { p:["calves","tibialis"],               s:["abs","quadriceps"] },
+  "Core / Beinheben":              { p:["abs"],                             s:["obliques","forearm"] },
+  // -- Tischtennis --
+  "Vorhand-Topspin (Übungskorb)": { p:["obliques","deltoid"],               s:["forearm","quadriceps"] },
+  "Rückhand-Konter":              { p:["deltoid","forearm"],                s:["obliques"] },
+  "Beinarbeit / Footwork":        { p:["quadriceps","calves"],              s:["glutes","obliques"] },
+  // -- Tennis --
+  "Vorhand cross (Korbübung)":     { p:["obliques","deltoid"],              s:["forearm","quadriceps","pectoral"] },
+  "Split-Step / Footwork":         { p:["quadriceps","calves"],             s:["glutes","abs"] },
+  "Shuttle-Sprints (Platzlinien)": { p:["quadriceps","calves"],             s:["glutes","hamstrings"] },
+  // -- Kampfsport --
+  "Schattenboxen":                { p:["deltoid","obliques"],               s:["abs","calves","triceps"] },
+  "Sacktraining (Kombinationen)": { p:["deltoid","obliques"],               s:["pectoral","triceps","abs","calves"] },
+  "Kick-Technik (beidseitig)":    { p:["obliques","quadriceps"],            s:["glutes","abs","adductors"] },
+  // -- Fußball --
+  "Dribbling-Parcours":  { p:["quadriceps","calves"],                       s:["adductors","glutes"] },
+  "Torschuss-Training":  { p:["quadriceps","adductors"],                    s:["glutes","obliques"] },
+  // -- Yoga --
+  "Sonnengruß (Flow)":        { p:["abs","deltoid"],                        s:["hamstrings","quadriceps","lowerback"] },
+  "Krieger-Sequenz":          { p:["quadriceps","glutes"],                  s:["deltoid","abs","adductors"] },
+  "Balance-Halten (Baum)":    { p:["calves","tibialis"],                    s:["glutes","abs","adductors"] },
+  "Tiefe Vorbeuge (Dehnung)": { p:["hamstrings"],                           s:["lowerback","calves"] }
+  /* Ohne Eintrag bleiben bewusst: Aufschlag-Training, Passgenauigkeit,
+     Klimmzüge (steht schon in UEBUNGEN_DB) — reine Technik ohne klaren
+     muskulären Schwerpunkt bzw. schon anderweitig zugeordnet. */
 };
 
 /** Alle hinterlegten Sportart-Übungen einer Sportart (leer, wenn keine). */

@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.140
+
+- Jetzt haben auch die Nicht-Kraft-Sportarten eine Muskelkarte: Für 34 Drills — vom
+  Topspin über den Sonnengruß bis zu Bergsprints — ist hinterlegt, welche Muskeln
+  sie fordern und welche mitarbeiten. Sie erscheinen damit überall dort mit Figur,
+  wo Kraftübungen schon eine hatten: im Plan-Editor, in der Trainings-Vorschau und
+  in der Muskelkarte deines Plans. Reine Technik ohne klaren Schwerpunkt (etwa
+  Aufschlag-Training) bleibt bewusst ohne Figur — geraten wird nicht.
+
 ## 0.139
 
 - Die Muskelkarte kann jetzt mehr: Bei den großen Grundübungen siehst du neben den

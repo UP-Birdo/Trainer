@@ -42,6 +42,9 @@ const code = [
   grabConst("MUSKEL_INFO"),
   grabConst("KAT_MUSKELN"), grabConst("UEBUNGEN_DB"), grabConst("UEBUNG_MUSKELN"),
   grabFn("muskelAufKarte"), grabFn("muskelnAufKarte"), grabFn("uebungMuskelSatz"),
+  // v140: uebungMuskeln kennt jetzt auch Sportart-Drills und teilt sich die
+  // Anzeige-Form mit ihnen.
+  grabConst("SPORT_MUSKELN"), grabFn("muskelSatzAnzeige"),
   grabFn("normName"), grabFn("uebungMuskeln"),
   grabFn("tagDifferenz"), grabFn("trainierteMuskeln"),
   "const HEAT_MAX_ALPHA = " + heatMax + ";", grabFn("heatAlpha"),
