@@ -1,8 +1,9 @@
 /* v133-Test: Runden-Training als Umschalter im Plan-Editor.
    Testbar sind die Zustands-Funktionen gegen einen Mini-Editor-Plan:
    `planIntervallSetzen` (an/aus), `editorIvSetzen`/`editorIvStufe` (Grenzen,
-   Schrittweiten) und dass die Plan-Dauer IMMER den Phasen folgt. Dazu
-   `planEinstText` mit Intervall und die Verdrahtung im Markup.
+   Schrittweiten) und dass die Plan-Dauer IMMER den Phasen folgt. Dazu die
+   Runden-Anzeige auf der Plan-Karte (bis v146: Einstellungs-Zeile) und die
+   Verdrahtung im Markup.
    Hinweis: in Test-LABELS keine typografischen Anfuehrungszeichen (Haus-Falle). */
 "use strict";
 const fs = require("fs");
@@ -98,8 +99,11 @@ pruefe("Dauer-Block weicht den Runden",
   src.includes('document.getElementById("akt-dauer-block").hidden = istIv'));
 pruefe("Sportart-Wechsel raeumt das Intervall weg",
   src.includes("if(!sportart(id).intervall) editorPlan.intervall = null"));
-pruefe("Stand-Zeile nennt die Runden",
-  grabFn("planEinstText").includes("plan.intervall ? intervallText(plan)"));
+/* v147: `planEinstText` ist entfallen — die Einstellungs-Zeile traegt nur noch
+   den Plan-Namen. Die Runden stehen weiterhin dort, wo sie hingehoeren: auf der
+   Plan-Karte in der Uebersicht (dieselbe `intervallText`). */
+pruefe("Plan-Karte nennt die Runden",
+  grabFn("planListeZeichnen").includes("p.intervall ? intervallText(p)"));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

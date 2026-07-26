@@ -445,7 +445,11 @@ body:not(.nav-an) #nav{display:none}
 .plan-text{flex:1;min-width:0}
 .plan-figuren{display:flex;gap:6px;flex:0 0 auto}
 .plan-figuren .mini-figur{width:30px}
-#editor-muskeln .plan-figuren .mini-figur{width:40px}
+/* v147: Im Editor ist die Muskel-Map keine Randnotiz, sondern das Schaubild des
+   Plans — sie steht jetzt allein in ihrer Karte (die Beschriftung ist raus) und
+   darf entsprechend groß sein. Mittig, damit sie ohne Text nicht schief hängt. */
+#editor-muskeln .plan-figuren{justify-content:center;gap:14px;width:100%}
+#editor-muskeln .plan-figuren .mini-figur{width:110px}
 /* Vorschau — das Inhaltsverzeichnis vor dem Training */
 .vs-zeile{display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--panel);
   border:2px solid var(--line);border-radius:6px;margin-bottom:5px;transition:var(--transition)}
@@ -1159,7 +1163,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Plan bearbeiten
      ============================================================ -->
 <section id="view-editor" class="view">
-  <div class="kopf"><h1 id="editor-titel">Plan bearbeiten</h1>
+  <div class="kopf"><h1>Plan bearbeiten</h1>
     <button id="editor-menue-knopf" class="schmal" hidden onclick="editorMenue()" aria-label="Weitere Aktionen">⋯</button></div>
   <div class="karte">
     <!-- v126/v131/v146: ALLE Einstellungen des Plans liegen hinter EINER Zeile und
@@ -1284,9 +1288,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <!-- v132: Muskel-Map des ganzen Plans — wächst dynamisch mit jeder Übung, die
        du hinzufügst. Steht über der Übungsliste, damit man beim Bauen sieht,
        was der Plan schon abdeckt und was fehlt. -->
+  <!-- v147: ohne Beschriftung — die Figuren sagen selbst, was sie zeigen.
+       Die erklärende Zeile ist auf Nutzer-Wunsch entfallen, das Schaubild dafür
+       deutlich größer geworden. -->
   <div id="editor-muskeln" class="karte" hidden>
-    <div class="zeile"><span class="meta" id="editor-muskeln-text">Trifft diese Muskeln</span>
-      <span id="editor-muskeln-figuren"></span></div>
+    <div id="editor-muskeln-figuren"></div>
   </div>
   <div id="uebung-liste"></div>
   <div id="uebung-picker"></div>
@@ -2260,7 +2266,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 146;
+const APP_VERSION = 147;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3624,10 +3630,12 @@ function planListeZeichnen(){
     }
     const zusatz = (p.reihenfolge === "zirkel" ? " · Zirkel" : "") +
                    (p.aufwaermen ? " · Aufwärmen" : "") + (p.dehnen ? " · Dehnen" : "");
-    const tage = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag";
-    // B4: die Sportart steht jetzt in der Gruppen-Überschrift — die Karte
-    // zeigt darum nur noch die Tage.
-    const marke = tage;
+    /* B4: die Sportart steht in der Gruppen-Überschrift — die Karte zeigt darum
+       nur noch die Tage. v147 (Nutzer-Wunsch): Hat der Plan KEINEN festen Tag,
+       steht die Zeile gar nicht mehr da. Der frühere Ersatztext teilte nur mit,
+       dass es nichts mitzuteilen gibt — und das auf jeder Karte eines tagfreien
+       Plans, was die meisten Aktivitäts-Pläne sind. */
+    const marke = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "";
     // v125: Kurz auf die Karte tippen öffnet den Plan (Nutzer-Wunsch) — die
     // Knöpfe darin stoppen die Weiterreichung, sonst löste jeder Start-Tipp
     // zusätzlich das Öffnen aus (dieselbe Trennung wie bei den Statistik-Karten, v112).
@@ -3639,7 +3647,7 @@ function planListeZeichnen(){
       // v132: rechts die Muskel-Map des GANZEN Plans (vorne + hinten) — so sieht
       // man von außen, was der Plan trifft, ohne ihn zu öffnen.
       '<div class="plan-kopfzeile"><div class="plan-text">' +
-      '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
+      (marke ? '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' : "") +
       '<h2>' + haken + text(p.name) + '</h2>' +
       '<div class="meta">' +
         (istAkt ? (p.intervall ? intervallText(p) : planZielText(p))   // v121: planZielText trägt auch das Messgrößen-Ziel
@@ -4194,6 +4202,7 @@ function profilOeffnen(){
 function zieleOeffnen(){
   if(!viewErlaubt("view-ziele")) return;
   document.getElementById("ziel-formular").hidden = true;
+  zielPlusZeichnen();   // v147: zugeklappt heißt „+", auch beim erneuten Öffnen
   zieleZeichnen();
   zeige("view-ziele");
 }
@@ -4395,6 +4404,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.147", punkte:[
+    "Der Plan-Editor ist noch schlanker: Die obere Zeile trägt jetzt nur noch den Namen deines Plans — der ganze Stand dahinter ist weg, die Einzelheiten stehen ohnehin eine Ebene tiefer. Die Muskel-Karte darunter hat ihre Beschriftung verloren und ist dafür deutlich größer geworden: ein richtiges Schaubild statt einer Randnotiz.",
+    "In der Plan-Übersicht steht über einem Plan ohne festen Tag keine Zeile mehr. Sie sagte nur, dass es nichts zu sagen gibt.",
+    "Bei den Zielen wird das Plus zum Kreuz, sobald die Eingabe offen ist — derselbe Knopf schließt sie wieder."
+  ]},
   { stand:"0.146", punkte:[
     "Der Plan-Editor ist noch einmal aufgeräumt: Auch Name und Sportart liegen jetzt hinter der Zeile „Einstellungen“ — beides stellt man einmal ein und fasst es nie wieder an. Der Name deines Plans steht stattdessen als Überschrift ganz oben und zieht beim Tippen live mit; die Einstellungs-Zeile nennt zusätzlich die Sportart. Bei Laufen, Yoga, Klettern und Co. stehen Dauer, Strecke und Ziel dafür jetzt offen in einer eigenen Karte: Das sind die Werte, um die es geht — sie sind das Gegenstück zur Übungsliste beim Krafttraining und gehören nicht in ein Untermenü.",
     "In der Muskelkarte wählst du beim Erkunden jetzt immer nur EINE Muskelgruppe: Ein Tipp auf einen anderen Muskel wechselt die Auswahl, derselbe nochmal hebt sie auf. Vorher sammelten sich die Karten untereinander an."
@@ -4409,7 +4423,7 @@ const NEUIGKEITEN = [
     "Geschafft: Jetzt hat JEDE der 135 Übungen in der Bibliothek ihre Beschreibung. Zum Abschluss kamen Rumpf und Ausdauer dazu — vom Plank über den Türkischen Aufsteher bis zu den Intervall-Läufen. Der kurze Merksatz bleibt wie gewohnt darüber stehen, der Text erklärt darunter, was die Übung bringt, wie sie sauber läuft und welcher Fehler der häufigste ist."
   ]},
   { stand:"0.142", punkte:[
-    "Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis zu Rack Pulls. Damit haben 104 der 147 Übungen ihren Text. Es fehlen nur noch Rumpf und Ausdauer."
+    "Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis zu Rack Pulls. Damit haben 104 der 135 Übungen ihren Text. Es fehlen nur noch Rumpf und Ausdauer."
   ]},
   { stand:"0.141", punkte:[
     "Die Übungs-Beschreibungen gehen weiter: Nach den Bein-Übungen haben jetzt auch alle 33 Druck-Übungen ihren Text — Brust, Schulter und Trizeps, vom einfachen Liegestütz bis zum Kabel-Crossover. Jede erklärt in zwei bis drei Sätzen, was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Als Nächstes folgen die Zug-Übungen."
@@ -8396,7 +8410,19 @@ function zielArten(u){
 function zielFormularZeigen(){
   const f = document.getElementById("ziel-formular");
   f.hidden = !f.hidden;
+  zielPlusZeichnen();
   if(!f.hidden) zielFormularZeichnen(true);
+}
+
+/** v147 (Nutzer-Wunsch): Derselbe Knopf öffnet UND schließt das Formular — also
+    sagt er auch, was er gerade tut: „+" beim Anlegen, „×" zum Schließen. Eine
+    Quelle für beide Zustände, damit Beschriftung und Vorlese-Text nie
+    auseinanderlaufen; jede Stelle, die das Formular umschaltet, ruft sie auf. */
+function zielPlusZeichnen(){
+  const offen = !document.getElementById("ziel-formular").hidden;
+  const plus = document.getElementById("ziel-plus");
+  plus.textContent = offen ? "×" : "+";
+  plus.setAttribute("aria-label", offen ? "Eingabe schließen" : "Ziel hinzufügen");
 }
 
 function zielFormularZeichnen(neuAufbauen){
@@ -8450,6 +8476,7 @@ function zielEintragen(){
                              wdh: art === "wdh" ? wert : undefined });   // wdh: Altfeld, für ältere Versionen lesbar
   speichern();
   document.getElementById("ziel-formular").hidden = true;
+  zielPlusZeichnen();   // v147: nach dem Speichern ist wieder zu — also „+"
   document.getElementById("ziel-wert").value = "";
   zieleZeichnen();
   zeigenToast("Ziel hinzugefügt", "erfolg");
@@ -9460,36 +9487,18 @@ function planTageText(plan){
          ((plan.wochenTakt || 1) === 2 ? " · alle 2 Wochen" : "");
 }
 
-/** v131: Der Stand ALLER Grundeinstellungen in einer Zeile — Tage/Takt plus, je
-    nach Plan-Typ, die Aktivitäts-Ziele bzw. Reihenfolge und Bonus. Rein/testbar;
-    setzt auf `planTageText` (v126) und `planZielText` (v121) auf, statt deren
-    Formulierungen zu wiederholen. */
-function planEinstText(plan){
-  /* v146: Die Sportart steht jetzt mit in der Stand-Zeile — sie ist in die
-     Einstellungen gewandert und wäre sonst nirgends mehr ablesbar. Ohne gewählte
-     Sportart bleibt der Platz frei (dann klappt der Block ohnehin auf). */
-  const teile = [];
-  if(plan.sportart) teile.push(sportart(plan.sportart).name);
-  teile.push(planTageText(plan));
-  if(plan.typ === "aktivitaet"){
-    // v133: Ein Runden-Plan beschreibt sich über seine Phasen, nicht über die Uhr.
-    const ziel = plan.intervall ? intervallText(plan) : planZielText(plan);
-    if(ziel) teile.push(ziel);
-  } else {
-    if(plan.reihenfolge === "zirkel") teile.push("Zirkel");
-    if(plan.aufwaermen) teile.push("Aufwärmen");
-    if(plan.dehnen) teile.push("Dehnen");
-  }
-  return teile.join(" · ");
-}
+/* v147: `planEinstText` (der Stand ALLER Einstellungen in einer Zeile, v131) ist
+   ersatzlos entfallen — die Zeile trägt jetzt nur noch den Plan-Namen. Die
+   Bausteine leben weiter: `planTageText` (v126) und `planZielText` (v121). */
 
 let editorEinstOffen = false;   // v126/v131: Grundeinstellungen starten zugeklappt
 function editorEinstUmschalten(){ editorEinstOffen = !editorEinstOffen; editorZeichnen(); }
 
-/** v146: Der Plan-Name steht als Überschrift; beim Tippen zieht sie live mit.
-    Bewusst OHNE editorZeichnen() — ein Neuzeichnen nähme den Fokus aus dem Feld. */
+/** v146/v147: Der Plan-Name steht auf der Einstellungs-Zeile; beim Tippen zieht
+    sie live mit. Bewusst OHNE editorZeichnen() — ein Neuzeichnen nähme den Fokus
+    aus dem Feld, und man tippt mitten im Wort. */
 function planNameTippen(wert){
-  document.getElementById("editor-titel").textContent = (wert || "").trim() || "Plan bearbeiten";
+  document.getElementById("plan-einst-stand").textContent = (wert || "").trim() || "Einstellungen";
 }
 
 let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
@@ -9724,18 +9733,17 @@ function editorZeichnen(){
       '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
       '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("");
 
-  /* v146: Der Plan-NAME steht jetzt als Überschrift — er ist aus der Karte in die
-     Einstellungen gewandert, und ohne ihn oben wüsste man nicht mehr, welchen Plan
-     man gerade bearbeitet. Ohne Namen bleibt die alte Überschrift stehen. */
-  document.getElementById("editor-titel").textContent = editorPlan.name.trim() || "Plan bearbeiten";
-
-  /* v131: EINE aufklappbare Zeile für alle Einstellungen; sie trägt den Stand.
+  /* v131: EINE aufklappbare Zeile für alle Einstellungen.
      v146: Solange keine Sportart gewählt ist, klappt sie ZWANGSWEISE auf — sonst
      wäre ein neuer Plan ein leerer Bildschirm, weil auch die Sportart-Wahl darin
      liegt. Der Pfeil zeigt dann nach unten, das Antippen bleibt wirkungslos
-     (statt eine Wahl zu verstecken, die getroffen werden muss). */
+     (statt eine Wahl zu verstecken, die getroffen werden muss).
+     v147 (Nutzer-Wunsch): Die Zeile trägt jetzt NUR den Plan-Namen — nicht mehr
+     den Stand („Einstellungen: Krafttraining · Mo, Do"). Der Name ist das, wonach
+     man den Plan sucht; die Einzelheiten stehen eine Ebene tiefer, wo man sie
+     ohnehin ändert. Ohne Namen bleibt das Wort „Einstellungen" als Wegweiser. */
   const einstOffen = editorEinstOffen || !hatSport;
-  document.getElementById("plan-einst-stand").textContent = "Einstellungen: " + planEinstText(editorPlan);
+  document.getElementById("plan-einst-stand").textContent = editorPlan.name.trim() || "Einstellungen";
   document.getElementById("plan-einst-pfeil").textContent = einstOffen ? "⌄" : "›";
   document.getElementById("editor-einst-block").hidden = !einstOffen;
 

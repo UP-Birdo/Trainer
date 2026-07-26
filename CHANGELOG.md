@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.147
+
+- Der Plan-Editor ist noch schlanker: Die obere Zeile trägt jetzt nur noch den
+  Namen deines Plans — der ganze Stand dahinter ist weg, die Einzelheiten stehen
+  ohnehin eine Ebene tiefer. Die Muskel-Karte darunter hat ihre Beschriftung
+  verloren und ist dafür deutlich größer geworden: ein richtiges Schaubild statt
+  einer Randnotiz.
+- In der Plan-Übersicht steht über einem Plan ohne festen Tag keine Zeile mehr.
+  Sie sagte nur, dass es nichts zu sagen gibt.
+- Bei den Zielen wird das Plus zum Kreuz, sobald die Eingabe offen ist —
+  derselbe Knopf schließt sie wieder.
+
 ## 0.146
 
 - Der Plan-Editor ist noch einmal aufgeräumt: Auch Name und Sportart liegen jetzt
@@ -51,7 +63,7 @@ Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 
 - Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen
   erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis
-  zu Rack Pulls. Damit haben 104 der 147 Übungen ihren Text. Es fehlen nur noch
+  zu Rack Pulls. Damit haben 104 der 135 Übungen ihren Text. Es fehlen nur noch
   Rumpf und Ausdauer.
 
 ## 0.141

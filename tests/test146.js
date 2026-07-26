@@ -35,13 +35,6 @@ function grabLiteral(name){
 }
 
 const code = [
-  "const SPORTARTEN = " + grabLiteral("SPORTARTEN") + ";",
-  "const WOCHENTAGE = " + grabLiteral("WOCHENTAGE") + ";",
-  grabFn("sportart"),
-  grabFn("planTageText"),
-  "function intervallText(){ return 'IV'; }",
-  "function planZielText(){ return 'ZIEL'; }",
-  grabFn("planEinstText"),
   /* muskelTippen: der Treffer kommt sonst aus dem Bild-Pixel — hier reicht der
      Schluessel selbst als Ereignis. Die Zeichen-Funktionen sind reine Anzeige. */
   "let muskelStatus = { ansicht:'front', gewaehlt:[], modus:'erkunden' };",
@@ -50,25 +43,14 @@ const code = [
   "function muskelAuswahlZeichnen(){}",
   "function muskelStatusText(){}",
   grabFn("muskelTippen"),
-  "module.exports = { planEinstText, muskelTippen, status: () => muskelStatus };"
+  "module.exports = { muskelTippen, status: () => muskelStatus };"
 ].join("\n");
 const modul = { exports: {} };
 new Function("module", "exports", code)(modul, modul.exports);
-const { planEinstText, muskelTippen, status } = modul.exports;
+const { muskelTippen, status } = modul.exports;
 
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
-
-/* ---------- 1) Stand-Zeile nennt jetzt die Sportart ---------- */
-pruefe("Stand-Zeile beginnt mit der Sportart",
-  planEinstText({ sportart:"laufen", typ:"aktivitaet", tage:[] }).startsWith("Laufen · "));
-pruefe("Sportart und Tage stehen zusammen",
-  planEinstText({ sportart:"kraft", typ:"kraft", tage:[1,4] }) === "Krafttraining · Mo, Do");
-pruefe("ohne Sportart bleibt der Platz frei",
-  planEinstText({ typ:"kraft", tage:[] }) === "kein fester Tag");
-pruefe("Kraft-Zusaetze bleiben erhalten",
-  planEinstText({ sportart:"kraft", typ:"kraft", tage:[], reihenfolge:"zirkel", aufwaermen:true })
-    === "Krafttraining · kein fester Tag · Zirkel · Aufwärmen");
 
 /* ---------- 2) Editor-Struktur: was liegt wo? ---------- */
 const abStart = src.indexOf('<section id="view-editor"');
@@ -87,13 +69,10 @@ pruefe("Wochentage liegen in den Einstellungen", drin('<div id="plan-tag"'));
 pruefe("Kraft-Block (Reihenfolge/Bonus) liegt in den Einstellungen", drin('<div id="editor-kraft"'));
 pruefe("Aktivitaets-Werte liegen AUSSERHALB der Einstellungen", pos('<div id="editor-aktivitaet"') > blockZu);
 pruefe("Aktivitaets-Block ist eine eigene Karte", editor.includes('<div id="editor-aktivitaet" class="karte" hidden>'));
-pruefe("Ueberschrift traegt eine id", editor.includes('<h1 id="editor-titel">'));
-pruefe("Name aktualisiert die Ueberschrift beim Tippen", editor.includes('oninput="planNameTippen(this.value)"'));
+pruefe("Name aktualisiert die Zeile beim Tippen", editor.includes('oninput="planNameTippen(this.value)"'));
 
 /* ---------- 3) Editor-Verdrahtung ---------- */
 const zeichnen = grabFn("editorZeichnen");
-pruefe("Ueberschrift wird aus dem Plan-Namen gesetzt",
-  zeichnen.includes('document.getElementById("editor-titel").textContent = editorPlan.name.trim() || "Plan bearbeiten"'));
 pruefe("ohne Sportart klappt der Block zwangsweise auf",
   zeichnen.includes("const einstOffen = editorEinstOffen || !hatSport"));
 pruefe("Block folgt dieser Entscheidung",

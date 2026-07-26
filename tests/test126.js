@@ -48,7 +48,11 @@ pruefe("Original-Liste bleibt unsortiert-unberuehrt", (() => {
       erweitert — die Namen heissen seither einst statt tage. */
 pruefe("Aufklapp-Zeile vorhanden", src.includes('onclick="editorEinstUmschalten()"'));
 pruefe("Block startet versteckt", src.includes('<div id="editor-einst-block" hidden>'));
-pruefe("Zeile traegt den Stand", src.includes('"Einstellungen: " + planEinstText(editorPlan)'));
+/* v147: Die Zeile trug bis v146 den Stand aller Einstellungen; jetzt traegt sie
+   nur noch den Plan-Namen (Nutzer-Wunsch). Was hier zaehlt, ist unveraendert:
+   Sie ist beschriftet und wird beim Zeichnen gefuellt. */
+pruefe("Zeile wird beschriftet",
+  grabFn("editorZeichnen").includes('document.getElementById("plan-einst-stand").textContent ='));
 pruefe("Umschalter + Startwert zu", src.includes("function editorEinstUmschalten()") &&
   /let editorEinstOffen = false/.test(src));
 pruefe("planAnlegen startet zugeklappt", grabFn("planAnlegen").includes("editorEinstOffen = false"));
