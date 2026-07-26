@@ -3,6 +3,84 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.129
+
+- Aufgeräumt unter „Pläne": Solange noch kein Plan da ist, steht dort nur noch die
+  eine Aktion (Trainingsplanung). Alle anderen Wege zum Anlegen — eigener Plan,
+  Beispielplan, Intervall-Plan und Training nachtragen — findest du gebündelt im
+  gelben „+" unten rechts. Auch der feste Intervall-Knopf unter der Liste ist
+  dorthin gewandert.
+
+## 0.128
+
+- Mehrere Pläne auf einmal löschen: Drücke lange auf einen Plan und wähle
+  „Auswählen". Danach hat jeder Plan ein Kästchen, ein Tipp hakt ihn an (Starten und
+  Öffnen sind in dieser Zeit pausiert), und oben erscheint „Löschen (N)".
+  Rückgängig gibt es einmal für die ganze Aktion — nicht für jeden Plan einzeln.
+  „Abbrechen" oder ein Tab-Wechsel beendet die Auswahl.
+
+## 0.127
+
+- Neu im Training: Schaffst du einen Satz, der besser ist als alles bisher, meldet
+  die App sofort „Neuer Rekord" mit dem Wert (z. B. 12 × 40 kg). Gezählt wird gegen
+  deine ganze Historie und gegen die vorherigen Sätze desselben Trainings — dein
+  erster Satz einer neuen Übung ist also noch kein Rekord.
+
+## 0.126
+
+- Der Plan-Editor ist ruhiger geworden: Wochentage und Wiederholung starten
+  zugeklappt — die Zeile zeigt den Stand („Mo, Do · alle 2 Wochen"), ein Tipp klappt
+  sie auf. Und die Übungs-Auswahl erscheint erst, wenn die Sportart feststeht; hast
+  du nur eine Sportart im Profil, ist sie sofort vorausgewählt und du kannst direkt
+  Übungen hinzufügen.
+
+## 0.125
+
+- Pläne öffnen sich jetzt mit einem kurzen Tipp auf die Karte — langes Drücken bleibt
+  das Menü (Bearbeiten, Duplizieren, Verschieben, Löschen), und die Knöpfe Start und
+  Erledigt lösen weiterhin nur ihre eigene Aktion aus. Und beim Bearbeiten eines Plans
+  zeigt jede Übung, die in der Bibliothek steht, ihre Muskel-Map: klein neben dem
+  Namen in der Liste, groß beim Aufklappen.
+
+## 0.124
+
+- Beim Aktivieren einer Sportart legt die App nicht mehr ungefragt einen Plan an: Du
+  wirst gefragt, ob du jetzt einen Plan anlegen willst oder später. Bei „Später"
+  passiert nichts weiter — der Einricht-Assistent wartet dann auf der Sportart-Seite
+  unter „Plan anlegen" auf dich. Im Plan-Editor bedienst du die Übungen jetzt wie die
+  Pläne: kurz antippen klappt eine Übung zum Bearbeiten auf, langes Drücken öffnet ein
+  Menü mit Verschieben und Löschen.
+
+## 0.123
+
+- Weniger Text auf den einfachen Stufen — je einfacher die Stufe, desto ruhiger der
+  Bildschirm. Im Notizblock (Stufe 1) ist die Erklärung zum Muster „Sätze 2 Wdh 20
+  Liegestütze" hinter das kleine „i" oben gewandert, der Platzhalter ist kurz, und
+  „Getan" kommt ohne Erklärzeile aus. Auf „Heute" fallen zwei Füll-Sätze weg: nach
+  dem Training steht nur noch „Erledigt", und beim Ruhetag erscheint ein Untertitel
+  nur, wenn er wirklich etwas sagt.
+
+## 0.122
+
+- Die Muskelkarte kann jetzt vorne und hinten NEBENEINANDER zeigen — der neue Knopf
+  „Beide" neben Vorne und Hinten. Beide Figuren bleiben antippbar, und im Modus
+  „Zuletzt trainiert" siehst du damit den ganzen Körper auf einen Blick. Außerdem
+  sitzt die Einfachheit unter „Mehr" jetzt als schlichte Menü-Zeile bei den anderen
+  Einträgen — mit deiner aktuellen Stufe gleich im Namen; die Erklärung dazu steht
+  dort, wo du die Stufe wirklich auswählst.
+
+## 0.121
+
+- Yoga und Klettern bekommen ein echtes Ziel: Im Plan legst du fest, welche
+  Beweglichkeit (in Grad) bzw. welchen Schwierigkeitsgrad du anpeilst — der Wert
+  steht auf der Plan-Karte und ist beim Eintragen schon vorgemerkt. Hast du dein
+  Ziel erreicht und war die Einheit zu leicht, hebt die App es auf Nachfrage einen
+  Schritt an (beim Klettern der nächste Grad, bei der Beweglichkeit 5 Grad mehr).
+  Intervall-Pläne steigern jetzt sinnvoll ihre Runden statt einfach die Uhr. Und in
+  der Statistik gibt es die neue Kachel „Messwerte": dein Verlauf der letzten
+  Einheiten mit Bestwert und gestrichelter Ziel-Linie — einzuschalten unter
+  Mehr › Darstellung.
+
 ## 0.120
 
 - Weniger Text auf den Haupt-Tabs. Auf Heute steht ohne Plan nur noch die

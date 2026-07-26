@@ -65,10 +65,20 @@ const px = 100, py = 200;
 hit[py * meta.w + px] = gidDeltoid;
 T.setDaten({ front: { hit, pixel:{} } });
 T.status.ansicht = "front";
-const treff = { currentTarget: { getBoundingClientRect: () => ({ left:0, top:0, width:meta.w, height:meta.h }) }, clientX: px + 0.5, clientY: py + 0.5 };
+/* v122: Die Ansicht kommt jetzt vom getippten Figur-Block (data-ansicht), damit
+   „Beide" zwei Figuren nebeneinander stellen kann — das Ereignis muss deshalb
+   ein `closest` mitbringen (im Browser die .muskel-figur um die Tipp-Flaeche). */
+const zielFlaeche = (ansicht) => ({
+  getBoundingClientRect: () => ({ left:0, top:0, width:meta.w, height:meta.h }),
+  closest: () => ({ dataset: { ansicht } })
+});
+const treff = { currentTarget: zielFlaeche("front"), clientX: px + 0.5, clientY: py + 0.5 };
 pruefe("Treffer auf Deltoid", T.muskelTreffer(treff) === "deltoid");
-const leer = { currentTarget: { getBoundingClientRect: () => ({ left:0, top:0, width:meta.w, height:meta.h }) }, clientX: 5.5, clientY: 5.5 };
+const leer = { currentTarget: zielFlaeche("front"), clientX: 5.5, clientY: 5.5 };
 pruefe("Leere Flaeche kein Treffer", T.muskelTreffer(leer) === null);
+/* Derselbe Tipp auf die HINTERE Figur darf nicht in der vorderen Karte suchen. */
+const hinten = { currentTarget: zielFlaeche("back"), clientX: px + 0.5, clientY: py + 0.5 };
+pruefe("Tipp auf die andere Figur nutzt deren Karte", T.muskelTreffer(hinten) === null);
 
 /* 3) Toggle: an, dann aus */
 T.status.gewaehlt = [];

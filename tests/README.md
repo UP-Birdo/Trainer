@@ -23,13 +23,22 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test111.js` | Ziele erst mit Plan-Übung: `planUebungen`/`zieleVerfuegbar` (nichts da → aus, Plan-Übung/Aktivität → an, nur bestehendes Ziel → an, leerer Übungsname zählt nicht) |
 | `test112.js` | Statistik-Karten öffnen per Tipp: „Öffnen"-Knöpfe entfernt, Karten tragen `muskelnOeffnen`/`kalenderOeffnen`, innere Ziele (Info-„i", Vorschau-Tage) stoppen das Bubbling |
 | `test113.js` | Progression aus echten Wdh: `effektiveNote` (Soll erreicht → Note bleibt, unter Soll → ≥4, unter Wdh-Minimum → 5, Zeit-/satzlose Übungen unverändert) |
-| `test114.js` | Statistik-Kacheln im Raster: sechs Statistiken in `.stat-raster` (auto-fit), Akkordeon (`statToggle`/`stat-inhalt`/`stat-kopf`) restlos entfernt, jede STAT_OPTIONEN-id hat ihre Karte, Info-Texte draußen |
+| `test114.js` | Statistik-Kacheln im Raster: je `STAT_OPTIONEN`-Eintrag eine Kachel in `.stat-raster` (auto-fit; Anzahl bewusst nicht festgenagelt), Akkordeon (`statToggle`/`stat-inhalt`/`stat-kopf`) restlos entfernt, jede STAT_OPTIONEN-id hat ihre Karte, Info-Texte draußen |
 | `test115.js` | Nicht-Kraft Etappe 1: generische Messgröße `massText` (Beweglichkeit in Grad nur bei Sportart mit `mass` + Wert) + Verdrahtung (Yoga-Config, `ein-mass`, `aktivitaetAblegen`-Messwert, Protokoll-Anzeige) |
 | `test116.js` | Statistik-Kacheln entschlacken: kleine `.stat-karte h2` + `rund klein` im CSS, Körpergewicht mit kleinem „+" und antippbarer Kurve (→ Details), separater Details-Knopf entfernt |
 | `test117.js` | Nicht-Kraft Etappe 2: `massText` mit Ordinalskala (Kletter-Grad als String, ohne Einheit) + numerische Regression + Verdrahtung (Klettern-Skala, `ein-mass-select`, `massFeldAufbauen`/`massEingabe`, truthy-Guard) |
 | `test118.js` | Nicht-Kraft Etappe 3: Intervall-Logik `intervallPhasen`/`intervallGesamt`/`intervallPhaseBei` (Phasen-Abfolge, keine End-Pause, Gesamtdauer, aktuelle Phase + Restsekunden). Timer/Töne/Wake nur am Gerät prüfbar |
 | `test119.js` | Audit-Bugfixes: `const eintrag = neu` (Sort-Bug), `text(a.text)`-Escaping, `profil`-Nachrüstung, Wake-Lock für Stoppuhr/Intervall, kein `text`-Shadowing, „Runden starten", `view-start` im Auto-Update |
 | `test120.js` | Haupt-Tabs entschlacken: `statHatDaten` (Körpergewicht manuell immer, andere nur mit Daten) + strukturelle Checks (Serie-Label/Kein-Training-Hinweis weg, Körpergewicht volle Breite, kleine Überschrift, Heute nur Trainingsplanung) |
+| `test121.js` | Nicht-Kraft Etappe 4: Ziel + Fortschritt je Messgröße — `massZahl` (Ordinalskala als Rang, Komma-Eingabe), `massVergleich` (Ziel erreicht?, `null` bei fehlendem Wert), `massSchritt`/`massKlemmen` (ein Schritt + Grenzen), `planZielText` (eine Ziel-Zeile) und `intervallSteigern` (eine Runde mehr, solange ≤ 20 %, sonst Belastung) + Verdrahtung |
+| `test122.js` | Muskelkarte „Beide" + Einfachheits-Zeile: `muskelAnsichten` (beide → front+back, kein stiller Fallback) + Verdrahtung (Figuren gebaut statt fester IDs, Treffer aus dem getippten Block, Einfachheit als `einst-zeile` mit Stufe im Namen, Erklärtext in der Auswahl) |
+| `test123.js` | Weniger Text auf den einfachen Stufen: Muster-Hinweis hinter dem „i" (nur Stufe 1, klappt beim Stufenwechsel zu), kurzer Platzhalter, Getan-Untertitel + Plus-Erklärung weg, zwei Füll-Sätze auf „Heute" weg — informativer Ruhetag-Untertitel bleibt |
+| `test124.js` | Sportart-Frage statt Auto-Plan + Langdruck auf Übungs-Karten: `uebungMenue` (Pfeile nur wo sie hinführen, Ersatztitel, unbekannter Index öffnet nichts) + Verdrahtung (`langdruckBinden` für beide Kartenarten, `data-uebung`, Neu-Anbindung nach dem Zeichnen, zwei Antworten, Nachhol-Knopf nur ohne Plan) |
+| `test125.js` | Plan per Kurz-Tipp öffnen + Muskel-Map an gelisteten Übungen: `planTippen` (Gate ab Stufe 3) + Verdrahtung (Karte/Zeile tragen den Tipp, Knöpfe stoppen das Bubbling, Klick nach dem Langdruck wird einmal geschluckt, Kopf-Figur nur bei erkannten Muskeln) |
+| `test126.js` | Editor-Feinschliff: `planTageText` (Stand-Zeile: kein fester Tag / „Mo, Do" / Takt 2 genannt, Takt 1 nicht) + Verdrahtung (Wochentage-Block zugeklappt, Übungen/Picker erst mit Sportart, einzige Profil-Sportart vorausgewählt) |
+| `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
+| `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
+| `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
 
 ## Ausführen
 
@@ -63,6 +72,15 @@ VS Codes Electron springt ein):
     & $code tests\test118.js index.html
     & $code tests\test119.js index.html
     & $code tests\test120.js index.html
+    & $code tests\test121.js index.html
+    & $code tests\test122.js index.html
+    & $code tests\test123.js index.html
+    & $code tests\test124.js index.html
+    & $code tests\test125.js index.html
+    & $code tests\test126.js index.html
+    & $code tests\test127.js index.html
+    & $code tests\test128.js index.html
+    & $code tests\test129.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
