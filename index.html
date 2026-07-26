@@ -1111,9 +1111,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div class="raster abstand">
         <div><label>Dauer</label>
           <div class="stepper">
-            <button onclick="aktDauerStufe(-1)">−</button>
+            <button onclick="aktDauerStufe(-1)" aria-label="weniger">−</button>
             <input id="akt-dauer" type="number" inputmode="decimal" onchange="aktDauerSetzen(this.value)">
-            <button onclick="aktDauerStufe(1)">+</button>
+            <button onclick="aktDauerStufe(1)" aria-label="mehr">+</button>
           </div></div>
         <div><label for="akt-einheit">Einheit</label>
           <select id="akt-einheit" onchange="aktEinheitSetzen(this.value)"></select></div>
@@ -1121,9 +1121,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div id="akt-strecke-feld" class="abstand">
         <label id="akt-strecke-label">Strecke</label>
         <div class="stepper">
-          <button onclick="aktStreckeStufe(-1)">−</button>
+          <button onclick="aktStreckeStufe(-1)" aria-label="weniger">−</button>
           <input id="akt-strecke" type="number" inputmode="decimal" onchange="aktStreckeSetzen(this.value)">
-          <button onclick="aktStreckeStufe(1)">+</button>
+          <button onclick="aktStreckeStufe(1)" aria-label="mehr">+</button>
         </div>
       </div>
       <div class="meta" id="akt-hinweis" style="margin-top:10px"></div>
@@ -2107,7 +2107,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 118;
+const APP_VERSION = 119;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2119,6 +2119,9 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
   if(!Array.isArray(daten.papierkorb)) daten.papierkorb = []; // v96: zuletzt gelöschte Dinge, wiederherstellbar
   if(typeof daten.letzterBesuch !== "string") daten.letzterBesuch = ""; // v103: für automatische Ruhetage
+  // v119: profil wird breit ungeschützt gelesen (groesse/geschlecht/geburtsjahr) — eine
+  // alte/handgemachte Sicherung ohne profil ließ Login/Statistik abstürzen.
+  if(!daten.profil || typeof daten.profil !== "object") daten.profil = {};
   // v44 (C3): selbst gebaute Übungen, je Sportart. { sportId: [{name,modus,saetze,wdh|dauer}] }
   if(!daten.eigeneUebungen || typeof daten.eigeneUebungen !== "object") daten.eigeneUebungen = {};
   // Einrichtung gab es früher erst nach dem Wizard. Sie ist jetzt immer da —
@@ -2737,7 +2740,10 @@ function bildschirmFreigeben(){
   if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
 }
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && lauf) bildschirmWachhalten();
+  // v119: iOS gibt den Wake-Lock beim Verstecken frei — auch für Stoppuhr und
+  // Intervall-Timer (nicht nur den Kraft-Timer `lauf`) beim Zurückkehren neu holen.
+  if(document.visibilityState === "visible" &&
+     (lauf || (stoppuhr && stoppuhr.laeuft) || (ivLauf && ivLauf.laeuft))) bildschirmWachhalten();
 });
 
 /* ============================================================
@@ -3550,7 +3556,7 @@ function aktionsMenue(titel, aktionen){
   menueAktionen = aktionen;
   document.getElementById("menue-titel").textContent = titel;
   document.getElementById("menue-knoepfe").innerHTML = aktionen.map((a, i) =>
-    '<button class="' + (a.stil || "") + '" onclick="menueKlick(' + i + ')">' + a.text + '</button>').join("");
+    '<button class="' + (a.stil || "") + '" onclick="menueKlick(' + i + ')">' + text(a.text) + '</button>').join("");   // v119: Nutzertext (Plan-Namen) escapen
   document.getElementById("menue-hintergrund").classList.add("offen");
 }
 function menueKlick(i){
@@ -4035,6 +4041,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.119", punkte:[
+    "Ein paar Verbesserungen unter der Haube nach einem gründlichen Durchgang: Die Stoppuhr und der neue Intervall-Timer halten den Bildschirm jetzt zuverlässig wach, auch wenn du kurz weg warst. Ein seltener Fehler beim Nachtragen eines Trainings mit früherem Datum (der versehentlich einen anderen Eintrag verändern konnte) ist behoben. Dazu kleinere Feinheiten (richtige Knopf-Beschriftung für Runden-Pläne, robusteres Laden alter Sicherungen, bessere Bedienbarkeit mit Vorlese-Hilfen)."
+  ]},
   { stand:"0.118", punkte:[
     "Neu für Kampfsport und Laufen: geführtes Intervall-Training. Auf der Pläne-Seite legst du mit Intervall-Plan anlegen eine Einheit aus Runden, Belastung und Pause an (z. B. 8 Runden mit 30 Sekunden Belastung und 15 Sekunden Pause). Startest du sie, führt dich ein Timer Runde für Runde durch — mit Countdown, Ton-Signalen an jedem Wechsel und Bildschirm-wach. Am Ende wird die Einheit ganz normal in den Verlauf eingetragen."
   ]},
@@ -4623,12 +4632,13 @@ function autoRuhetageEintragen(){
   speichern();
   if(!neu.length) return;
   kalenderZeichnen();
-  let text = "Seit deinem letzten Besuch (" + datumKurz(vorher) + ") habe ich " + neu.length +
+  // v119: NICHT `text` nennen — das verdeckt die globale Escaping-Funktion text().
+  let meldungsText = "Seit deinem letzten Besuch (" + datumKurz(vorher) + ") habe ich " + neu.length +
     (neu.length === 1 ? " Ruhetag" : " Ruhetage") + " im Kalender vermerkt (" +
     datumKurz(neu[0]) + (neu.length > 1 ? " bis " + datumKurz(neu[neu.length - 1]) : "") + ").";
   const erloschen = flammeErloschenAm();
-  if(erloschen && erloschen > vorher) text += "\n\nDeine Flamme ist am " + datumKurz(erloschen) + " erloschen.";
-  meldung(text);
+  if(erloschen && erloschen > vorher) meldungsText += "\n\nDeine Flamme ist am " + datumKurz(erloschen) + " erloschen.";
+  meldung(meldungsText);
 }
 
 /** D1: Tag-Fenster im Kalender. Zeigt, was an dem Tag geplant/erledigt ist,
@@ -4938,7 +4948,7 @@ function gewichtStatistikZeichnen(){
   listeZiel.innerHTML = eintraege.slice().reverse().slice(0,10).map(e =>
     '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
     '<span class="meta">' + e.datum + (trainingstage.has(e.datum) ? " · trainiert" : "") + '</span>' +
-    '<span>' + e.kg.toFixed(1) + ' kg &nbsp;<button class="schmal gefahr" onclick="gewichtLoeschen(\'' + e.datum + '\')">×</button></span>' +
+    '<span>' + e.kg.toFixed(1) + ' kg &nbsp;<button class="schmal gefahr" onclick="gewichtLoeschen(\'' + e.datum + '\')" aria-label="Gewichtseintrag löschen">×</button></span>' +
     '</div>').join("");
 }
 
@@ -7190,7 +7200,7 @@ function zieleZeichnen(){
         }
         return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">' +
           '<div class="zeile"><strong>' + text(z.uebung) + ': ' + zahlKurz(z.wert) + ' ' + text(z.einheit || "Wdh") + ' bis ' + datumKurz(z.datum) + '</strong>' +
-          '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')">×</button></div>' +
+          '<button class="schmal gefahr" onclick="zielLoeschen(\'' + z.id + '\')" aria-label="Ziel löschen">×</button></div>' +
           '<div class="meta" style="border-left:3px solid ' + farbe + ';padding-left:8px;margin-top:4px;line-height:1.5">' + e.text + '</div>' +
           '<div class="knopfreihe"><button class="schmal" onclick="zielPickerUmschalten(\'' + z.id + '\')">' +
             (offenerZielPicker === z.id ? "Auswahl schließen" : "In Pläne einbauen") + '</button></div>' +
@@ -8108,9 +8118,9 @@ function editorZeichnen(){
       basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) +
               '<div><label>Dauer (' + e.kurz + ')</label>' +
                 '<div class="stepper">' +
-                  '<button onclick="dauerStufe(' + i + ',-1)">−</button>' +
+                  '<button onclick="dauerStufe(' + i + ',-1)" aria-label="weniger">−</button>' +
                   '<input type="number" inputmode="decimal" value="' + inEinheit(u.dauer, e.id) + '" onchange="dauerSetzen(' + i + ',this.value)">' +
-                  '<button onclick="dauerStufe(' + i + ',1)">+</button>' +
+                  '<button onclick="dauerStufe(' + i + ',1)" aria-label="mehr">+</button>' +
                 '</div></div>' +
               '<div><label>Einheit</label><select onchange="zeitEinheitSetzen(' + i + ',this.value)">' +
                 ZEITEINHEITEN.map(z => '<option value="' + z.id + '"' + (z.id === e.id ? " selected" : "") + '>' + z.name + '</option>').join("") +
@@ -9016,7 +9026,6 @@ function aktivitaetSpeichern(){
 }
 
 function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
-  const wochentag = (new Date(datum + "T12:00:00").getDay() + 6) % 7 + 1;
   // Sondertraining = nichts stand für diesen Tag im Plan
   const geplant = eintragPlan ? planAmTag(eintragPlan, datum) : false;
   const notizFeld = document.getElementById("ein-notiz");
@@ -9035,7 +9044,10 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   if(sportart(sport).mass && messwert) neu.messwert = messwert;
   sitzung.daten.protokoll.push(neu);
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
-  const eintrag = sitzung.daten.protokoll[sitzung.daten.protokoll.length - 1];
+  // v119-Fix: die gepushte Referenz nehmen, NICHT protokoll[last] — bei einem
+  // rückdatierten Eintrag steht dort ein fremder, späterer Eintrag, der sonst
+  // bewertet und (Note/Notiz) überschrieben würde.
+  const eintrag = neu;
   const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];
   speichern();
   const plan = eintragPlan;
@@ -9609,7 +9621,8 @@ function heuteKarteZeichnen(){
               plan.uebungen.reduce((a,u) => a + u.saetze, 0) + ' Sätze · ca. ' + dauerSchaetzen(plan) + ' min' +
               (plan.aufwaermen ? ' · Aufwärmen' : '') + (plan.dehnen ? ' · Dehnen' : '')) + '</div>' +
         '<div class="knopfreihe"><button class="primaer breit" onclick="trainingStarten(\'' + plan.id + '\')">' +
-          (istAkt ? (erledigt ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
+          (plan.intervall ? (erledigt ? "Nochmal — Runden" : "Runden starten")   // v119: Intervall-Plan
+                  : istAkt ? (erledigt ? "Nochmal — Stoppuhr" : "Stoppuhr starten")
                   : (erledigt ? "Nochmal trainieren" : "Training starten")) + '</button>' +
           // v80: „Erledigt" gibt es jetzt auch für Kraftpläne (Sollwerte werden
           // protokolliert, ohne Bewertung) — vorher nur für Aktivitäten.
@@ -9807,7 +9820,8 @@ async function updatePruefen(){
 /** Lädt neu, wenn es gerade gefahrlos ist. */
 function updateAnwenden(){
   if(!updateWartet) return;
-  const sicher = document.getElementById("view-plaene").classList.contains("aktiv") ||
+  const sicher = document.getElementById("view-start").classList.contains("aktiv") ||   // v119: „Heute" ist sicher (kein Training)
+                 document.getElementById("view-plaene").classList.contains("aktiv") ||
                  document.getElementById("view-login").classList.contains("aktiv");
   if(!sicher || lauf) return;          // Training/Bewertung nie unterbrechen
   updateWartet = false;

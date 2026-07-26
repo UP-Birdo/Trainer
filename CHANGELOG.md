@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.119
+
+- Ein paar Verbesserungen unter der Haube nach einem gründlichen Durchgang: Die
+  Stoppuhr und der neue Intervall-Timer halten den Bildschirm jetzt zuverlässig
+  wach, auch wenn du kurz weg warst. Ein seltener Fehler beim Nachtragen eines
+  Trainings mit früherem Datum (der versehentlich einen anderen Eintrag verändern
+  konnte) ist behoben. Dazu kleinere Feinheiten (richtige Knopf-Beschriftung für
+  Runden-Pläne, robusteres Laden alter Sicherungen, bessere Bedienbarkeit mit
+  Vorlese-Hilfen).
+
 ## 0.118
 
 - Neu für Kampfsport und Laufen: geführtes Intervall-Training. Auf der Pläne-Seite
