@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.143
+
+- Geschafft: Jetzt hat JEDE der 135 Übungen in der Bibliothek ihre Beschreibung.
+  Zum Abschluss kamen Rumpf und Ausdauer dazu — vom Plank über den Türkischen
+  Aufsteher bis zu den Intervall-Läufen. Der kurze Merksatz bleibt wie gewohnt
+  darüber stehen, der Text erklärt darunter, was die Übung bringt, wie sie sauber
+  läuft und welcher Fehler der häufigste ist.
+
 ## 0.142
 
 - Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen

@@ -12,11 +12,16 @@ const src = fs.readFileSync(process.argv[2], "utf8");
 
 /* ---- Register: Kategorie -> seit welcher Version vollstaendig beschrieben ---- */
 const ETAPPEN = [
-  { kat:"beine", version:"v138", anzahl:40 },
-  { kat:"druck", version:"v141", anzahl:33 },
-  { kat:"zug",   version:"v142", anzahl:31 }
-  // offen: rumpf (23), cardio (8) — beim Fertigstellen hier ergaenzen.
+  { kat:"beine",  version:"v138", anzahl:40 },
+  { kat:"druck",  version:"v141", anzahl:33 },
+  { kat:"zug",    version:"v142", anzahl:31 },
+  { kat:"rumpf",  version:"v143", anzahl:23 },
+  { kat:"cardio", version:"v143", anzahl:8 }
 ];
+
+/* Seit v143 sind ALLE Kategorien durch — ab hier wird Vollstaendigkeit hart
+   geprueft: eine neue Uebung ohne Text faellt sofort auf. */
+const VOLLSTAENDIG_SEIT = "v143";
 
 function grabLiteral(name){
   const decl = "const " + name + " = ";
@@ -65,6 +70,15 @@ pruefe("Register nennt nur echte Kategorien" + (unbekannt.length ? " (" + unbeka
 /* 3) Summe: so viele Uebungen wie erwartet haben einen Text. */
 const summe = ETAPPEN.reduce((s, e) => s + e.anzahl, 0);
 pruefe("mindestens " + summe + " Uebungen beschrieben (ist: " + schluessel.length + ")", schluessel.length >= summe);
+
+/* 3a) Seit v143: KEINE Uebung ohne Text — auch keine spaeter hinzugefuegte.
+      Das Register deckt damit die ganze Bibliothek ab. */
+const ohneText = [...namen].filter(n => !UEBUNG_TEXT[n]);
+pruefe("seit " + VOLLSTAENDIG_SEIT + " hat jede Uebung einen Text" + (ohneText.length ? " (fehlt: " + ohneText.join(", ") + ")" : ""),
+  ohneText.length === 0);
+pruefe("Register deckt alle Kategorien ab (" + ETAPPEN.length + " von " + new Set(UEBUNGEN_DB.map(u => u.kat)).size + ")",
+  ETAPPEN.length === new Set(UEBUNGEN_DB.map(u => u.kat)).size);
+pruefe("Registersumme entspricht der Bibliothek (" + summe + " / " + UEBUNGEN_DB.length + ")", summe === UEBUNGEN_DB.length);
 
 /* 4) Unveraendert gueltig, egal wie viele Etappen fertig sind. */
 const leichen = schluessel.filter(k => !namen.has(k));

@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 142;
+const APP_VERSION = 143;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.143", punkte:[
+    "Geschafft: Jetzt hat JEDE der 135 Übungen in der Bibliothek ihre Beschreibung. Zum Abschluss kamen Rumpf und Ausdauer dazu — vom Plank über den Türkischen Aufsteher bis zu den Intervall-Läufen. Der kurze Merksatz bleibt wie gewohnt darüber stehen, der Text erklärt darunter, was die Übung bringt, wie sie sauber läuft und welcher Fehler der häufigste ist."
+  ]},
   { stand:"0.142", punkte:[
     "Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis zu Rack Pulls. Damit haben 104 der 147 Übungen ihren Text. Es fehlen nur noch Rumpf und Ausdauer."
   ]},
@@ -6976,13 +6979,15 @@ const UEBUNG_INFO = {
    Ergänzt UEBUNG_INFO (ein kurzer Ausführungs-Tipp) um den größeren Rahmen:
    WAS die Übung trainiert, WIE sie sauber läuft und WELCHER Fehler der
    häufigste ist. In der Bibliothek steht der Text unter den Muskeln.
-   Bewusst in ETAPPEN gefüllt (147 Übungen sind ein Content-Durchgang, kein
-   Bau-Schritt) — die Tabelle ist deshalb LÜCKENHAFT erlaubt: wo nichts steht,
-   bleibt es beim Kurz-Tipp. Der Test prüft darum keine Vollständigkeit, sondern
-   dass jeder Schlüssel eine echte Übung ist (keine Karteileichen durch Tippfehler).
+   Bewusst in ETAPPEN gefüllt (ein Content-Durchgang über die ganze Bibliothek
+   ist kein Bau-Schritt) — bis v142 war die Tabelle deshalb lückenhaft erlaubt:
+   wo nichts stand, blieb es beim Kurz-Tipp.
    Etappe 1 (v138): alle Bein-Übungen.
    Etappe 2 (v141): alle Druck-Übungen (Brust, Schulter, Trizeps).
    Etappe 3 (v142): alle Zug-Übungen (Rücken, Bizeps, hintere Schulter).
+   Etappe 4 (v143): Rumpf und Ausdauer — damit ist die Tabelle VOLLSTÄNDIG.
+   Seit v143 gilt: JEDE Übung in UEBUNGEN_DB hat hier einen Text. Wer eine neue
+   Übung aufnimmt, schreibt den Text mit — der Test lässt keine Lücke mehr durch.
    ============================================================ */
 const UEBUNG_TEXT = {
   // ---------- Beine ----------
@@ -7093,7 +7098,42 @@ const UEBUNG_TEXT = {
   "Bizeps-Curls am Kabel":"Der Zug bleibt über den ganzen Weg gleich, auch ganz unten, wo freie Gewichte den Muskel entlasten. Ellbogen fest, gleichmäßig hoch, oben kurz halten. Häufigster Fehler: einen Schritt zu weit vom Turm weg stehen; dann zieht das Kabel den Arm nach hinten.",
   "Scott-Curls Kurzhantel":"Scott-Curls einarmig: Jede Seite arbeitet für sich, Unterschiede zwischen links und rechts fallen sofort auf. Oberarm satt aufs Pult, sauber curlen, beide Seiten gleich oft. Häufigster Fehler: die Schulter vom Pult heben, um die letzten Zentimeter zu schaffen.",
   "Smith-Rudern":"Rudern mit geführter Stange: Die Bahn liegt fest, dadurch kann man sich ganz auf den Zug und die Rückenhaltung konzentrieren. Vorgebeugt stehen, Stange zum Bauch ziehen. Häufigster Fehler: zu nah oder zu weit vor der Schiene stehen; die Stange muss senkrecht über dem Bauch laufen.",
-  "Renegade Rows":"Rudern aus der Liegestützposition: Rücken und Rumpf arbeiten gleichzeitig, weil der Körper die Drehung aushalten muss. Füße breit aufstellen, abwechselnd eine Hantel zur Hüfte ziehen, Hüfte ruhig halten. Häufigster Fehler: das Becken bei jedem Zug mitdrehen — lieber leichter und stabil."
+  "Renegade Rows":"Rudern aus der Liegestützposition: Rücken und Rumpf arbeiten gleichzeitig, weil der Körper die Drehung aushalten muss. Füße breit aufstellen, abwechselnd eine Hantel zur Hüfte ziehen, Hüfte ruhig halten. Häufigster Fehler: das Becken bei jedem Zug mitdrehen — lieber leichter und stabil.",
+
+  // ---------- Rumpf ----------
+  "Plank":"Die Grundübung für den Rumpf: Sie trainiert nicht Bewegung, sondern das Halten — genau das, wofür die Rumpfmuskulatur im Alltag da ist. Unterarme unter den Schultern, Bauch und Gesäß gleichzeitig anspannen, gleichmäßig weiteratmen. Häufigster Fehler: die Zeit zum Ziel machen und dabei durchhängen; 30 saubere Sekunden sind mehr wert als zwei schlaffe Minuten.",
+  "Seitstütz":"Trainiert die seitliche Rumpfmuskulatur, die bei Plank und Crunches kaum arbeitet — sie hält das Becken beim Gehen gerade. Seitlich stützen, Hüfte oben, Körper in einer Linie von Kopf bis Fuß. Häufigster Fehler: die Hüfte im Laufe der Zeit absinken lassen; lieber früher abbrechen und einen zweiten Satz machen.",
+  "Crunches":"Die klassische Bauchübung mit kurzem Weg: Sie krümmt die Wirbelsäule nur ein Stück und trifft dabei den geraden Bauchmuskel. Nur die Schulterblätter vom Boden heben, oben kurz anspannen, kontrolliert ablegen. Häufigster Fehler: sich am Nacken hochziehen — die Hände liegen locker an den Schläfen, der Blick geht schräg nach oben.",
+  "Beinheben an der Matte":"Trifft den unteren Teil des Bauchmuskels, der bei Crunches zu kurz kommt. Beine gestreckt heben und langsam senken, der untere Rücken bleibt die ganze Zeit am Boden. Häufigster Fehler: die Beine so tief senken, dass sich der Rücken hebt — dort ist die Grenze, nicht am Boden.",
+  "Hüftheben":"Hebt das Becken aus der Rückenlage und trainiert Gesäß und unteren Rücken in einer sehr gelenkschonenden Position. Becken heben, oben fest anspannen, kontrolliert ablegen. Häufigster Fehler: den Rücken oben überstrecken statt die Hüfte zu strecken.",
+  "Vierfüßler-Diagonale":"Eine Stabilitätsübung: Der Rumpf muss die Position halten, während Arm und Bein das Gleichgewicht stören — genau das trainiert den tiefen Rücken. Gegenüberliegenden Arm und Fuß strecken, kurz halten, Seite wechseln. Häufigster Fehler: das Becken zur Seite kippen lassen; die Bewegung bleibt klein und ruhig.",
+  "Bauchmaschine":"Bauchtraining mit einstellbarem Gewicht — dadurch lässt sich der Bauch wie jeder andere Muskel planmäßig steigern statt über immer mehr Wiederholungen. Oberkörper einrollen, aus dem Bauch arbeiten, kontrolliert zurücklassen. Häufigster Fehler: sich mit den Armen an den Griffen herunterziehen.",
+  "Rückenstrecker":"Trainiert den unteren Rücken über die Streckung — der wichtigste Ausgleich zu vielem Sitzen. Oberkörper bis zur geraden Linie heben und dort stoppen. Häufigster Fehler: über die Linie hinaus ins Hohlkreuz gehen; das belastet die Wirbelgelenke ohne Zusatznutzen.",
+  "L-Sit an Parallettes":"Eine Haltekraft-Übung, die Bauch, Hüftbeuger und Schultern gleichzeitig fordert und sehr viel Körperspannung verlangt. Gestützt hängen, Schultern aktiv nach unten drücken, Beine waagerecht halten. Häufigster Fehler: die Schultern hochrutschen lassen; erst steht die feste Stützposition, dann kommen die Beine.",
+  "Beinheben liegend":"Die einfachere Variante des Beinhebens: Die Knie dürfen leicht gebeugt bleiben, dadurch wird der Hebel kürzer und der Rücken bleibt eher am Boden. Beine langsam senken, Rücken flach halten. Häufigster Fehler: mit Schwung arbeiten — das Tempo nach unten entscheidet über den Reiz.",
+  "Bergsteiger":"Verbindet Rumpfspannung mit Ausdauer: In der Liegestützposition wechseln die Beine zügig, während der Rumpf ruhig bleiben muss. Knie zur Brust, Hüfte tief, gleichmäßiger Rhythmus. Häufigster Fehler: die Hüfte nach oben schieben, sobald das Tempo steigt.",
+  "Russian Twist":"Trainiert die Drehung des Rumpfes — die Bewegung, die beim Werfen, Schlagen und Umdrehen gebraucht wird und im Kraftraum sonst fehlt. Aufrecht sitzen, leicht zurücklehnen, Oberkörper kontrolliert zur Seite drehen. Häufigster Fehler: nur die Arme hin und her schwenken; die Drehung kommt aus dem Rumpf.",
+  "Hollow Hold":"Die Grundposition des Turnens: Der ganze Körper bildet eine flache Schale, der untere Rücken bleibt fest am Boden. Arme und Beine leicht angehoben halten, ruhig atmen. Häufigster Fehler: Arme und Beine zu tief nehmen, sodass sich der Rücken hebt — lieber höher und dafür sauber.",
+  "Käfer (Dead Bug)":"Die rückenschonendste Bauchübung: Der Rumpf hält die Position, während Arm und Bein gegenläufig arbeiten. Gegenüberliegenden Arm und Fuß langsam absenken, der untere Rücken bleibt am Boden. Häufigster Fehler: zu schnell arbeiten — hier ist die Langsamkeit der eigentliche Reiz.",
+  "Bauchroller":"Eine der härtesten Bauchübungen überhaupt: Beim Vorrollen muss der Rumpf verhindern, dass der Rücken durchhängt. Aus den Knien so weit vorrollen, wie die Spannung trägt, kontrolliert zurückziehen. Häufigster Fehler: weiter rollen als die Kraft reicht; die Grenze ist dort, wo das Becken abkippt.",
+  "Medizinball-Twist":"Drehung mit Zusatzgewicht: Der Ball verlängert den Hebel und macht aus der Rotationsbewegung eine echte Kraftübung. Ball seitlich Richtung Boden führen, Beine ruhig halten. Häufigster Fehler: den ganzen Körper mitdrehen statt nur den Oberkörper.",
+  "Kabel-Crunches":"Bauchtraining am Kabel mit frei wählbarem Gewicht — der Weg, den Bauch auch mit wenigen Wiederholungen wirklich zu fordern. Am Seil einrollen, die Bewegung kommt aus dem Bauch. Häufigster Fehler: mit den Armen ziehen und aus der Hüfte beugen, statt die Wirbelsäule einzurollen.",
+  "Schlingen-Plank":"Plank mit den Füßen in den Schlaufen: Die Auflage ist beweglich, dadurch muss der Rumpf ununterbrochen nachkorrigieren. Körper gerade, Bauch fest, ruhige Atmung. Häufigster Fehler: zu früh auf die instabile Variante wechseln; erst muss der normale Plank sauber stehen.",
+  "Rotations-Bauchmaschine":"Die geführte Übung für die seitlichen Bauchmuskeln — sie erlaubt echtes Gewicht bei einer Bewegung, die frei schwer zu dosieren ist. Kontrolliert drehen, beide Seiten gleich oft. Häufigster Fehler: mit Schwung durchdrehen; die Rotation bleibt langsam und im schmerzfreien Bereich.",
+  "Reverse Hyperextension":"Der Oberkörper liegt fest, die Beine heben sich — dadurch arbeitet der untere Rücken bei sehr geringer Belastung der Bandscheiben. Beine aus der Hüfte heben, oben kurz halten. Häufigster Fehler: die Beine hochschwingen und den Rücken dabei überstrecken.",
+  "Seitbeuge an der Bank":"Trainiert die seitliche Rumpfmuskulatur über den vollen Beugeweg statt nur im Halten wie beim Seitstütz. Seitlich fixieren, kontrolliert senken und heben. Häufigster Fehler: nach vorn oder hinten ausweichen; die Bewegung läuft genau in der Seitenebene.",
+  "Medizinball-Slams":"Eine explosive Ganzkörperübung: Der Ball wird mit voller Kraft geworfen — das trainiert Schnellkraft und bringt zugleich den Puls hoch. Ball über den Kopf, kraftvoll auf den Boden werfen, der Bewegung in die Hocke folgen. Häufigster Fehler: nur mit den Armen schlagen; der Schwung kommt aus Rumpf und Hüfte.",
+  "Türkischer Aufsteher":"Die komplexeste Übung im Programm: vom Liegen zum Stehen, das Gewicht dabei durchgehend über dem Kopf — Stabilität, Beweglichkeit und Koordination in einem. Jeden Schritt einzeln und langsam ausführen. Häufigster Fehler: zu schwer starten; die Abfolge wird zuerst ohne Gewicht gelernt.",
+
+  // ---------- Ausdauer ----------
+  "Seilspringen":"Ausdauer, Koordination und Wadenkraft in einer Übung, die kaum Platz braucht. Aus den Handgelenken drehen, kleine Sprünge, weich auf den Fußballen landen. Häufigster Fehler: zu hoch springen und aus den Armen kurbeln — beides kostet Kraft, ohne etwas zu bringen.",
+  "Burpees":"Die Ganzkörper-Ausdauerübung schlechthin: Kniebeuge, Liegestütz und Strecksprung hintereinander bringen den Puls in Sekunden nach oben. Flüssig und gleichmäßig arbeiten statt in Schüben. Häufigster Fehler: zu schnell starten; die Ausführung fällt dann schon im zweiten Satz auseinander.",
+  "Hampelmänner":"Der klassische Aufwärmer: Er bringt Kreislauf und Schultern in Gang, ohne die Gelenke nennenswert zu belasten. Arme und Beine gleichzeitig auf und zu, gleichmäßiger Rhythmus, weich landen. Häufigster Fehler: die Arme nur halb hochnehmen; oben berühren sich die Hände über dem Kopf.",
+  "High Knees":"Laufen auf der Stelle mit hohen Knien: hoher Puls bei minimalem Platzbedarf, dazu ein Reiz für Hüftbeuger und Waden. Knie bis auf Hüfthöhe, auf den Fußballen bleiben, aufrecht laufen. Häufigster Fehler: sich nach hinten lehnen — der Oberkörper bleibt senkrecht über der Hüfte.",
+  "Laufband / Ergometer":"Gleichmäßige Ausdauer bei planbarer Belastung — die Grundlage, auf der Intervalle und harte Einheiten überhaupt erst aufbauen. Aufrechte Haltung, gleichmäßiges Tempo, ruhige Atmung. Häufigster Fehler: sich an den Griffen abstützen; das senkt die Belastung, ohne dass die Anzeige es merkt.",
+  "Double Unders":"Seilspringen mit zwei Durchschlägen pro Sprung: deutlich anstrengender als der einfache Sprung und ein echter Test fürs Timing. Etwas höher springen, das Seil aus schnellen Handgelenken beschleunigen. Häufigster Fehler: die Arme weit vom Körper wegnehmen; die Ellbogen bleiben nah an den Rippen.",
+  "Crosstrainer-Intervalle":"Harte und lockere Abschnitte im Wechsel — das bringt in kurzer Zeit mehr Ausdauer als gleichmäßiges Tempo und stößt dabei nicht auf die Gelenke. Im harten Abschnitt wirklich hart, im lockeren wirklich locker. Häufigster Fehler: die Pausen zu kurz halten; ohne echte Erholung wird daraus nur ein mittelmäßiges Dauertempo.",
+  "Intervall-Läufe":"Wechsel aus schnellen und lockeren Laufabschnitten: die wirksamste Art, die Ausdauer zu steigern, wenn die Grundlage steht. Vor dem ersten harten Abschnitt gründlich einlaufen. Häufigster Fehler: ohne Grundlagenausdauer mit Intervallen anfangen — erst kommen die ruhigen Läufe, dann die schnellen."
 };
 
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl
