@@ -1207,6 +1207,38 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="meta" style="margin-top:12px">Die App muss dafür im Vordergrund bleiben — <span id="stopp-warnung"></span> friert sie sonst ein. Für lange Einheiten lieber hinterher eintragen.</div>
 </section>
 
+<!-- v118 (Nicht-Kraft, Etappe 3): Intervall-Plan anlegen -->
+<section id="view-intervall-neu" class="view">
+  <div class="kopf"><h1>Intervall-Plan</h1></div>
+  <label class="abstand" for="iv-name">Name</label>
+  <input id="iv-name" type="text" placeholder="z. B. Box-Runden">
+  <label class="abstand" for="iv-sport">Sportart</label>
+  <select id="iv-sport"></select>
+  <div class="raster abstand">
+    <div><label for="iv-runden">Runden</label><input id="iv-runden" type="number" inputmode="numeric" min="1" step="1" value="8" oninput="intervallVorschau()"></div>
+    <div><label for="iv-belastung">Belastung (Sek.)</label><input id="iv-belastung" type="number" inputmode="numeric" min="5" step="5" value="30" oninput="intervallVorschau()"></div>
+  </div>
+  <div class="abstand"><label for="iv-pause">Pause (Sek.)</label><input id="iv-pause" type="number" inputmode="numeric" min="0" step="5" value="15" oninput="intervallVorschau()"></div>
+  <div id="iv-vorschau" class="meta abstand"></div>
+  <div class="knopfreihe">
+    <button class="primaer schmal" onclick="intervallPlanSpeichern()">Plan speichern</button>
+    <button class="schmal" onclick="planListeZeichnen(); zeige('view-plaene')">Abbrechen</button>
+  </div>
+</section>
+
+<!-- v118: geführter Intervall-Timer -->
+<section id="view-intervall" class="view">
+  <div class="kopf"><h1 id="iv-t-name">Intervall</h1></div>
+  <div class="meta" id="iv-t-sport"></div>
+  <div id="iv-t-runde" class="meta abstand" style="text-align:center;font-size:16px"></div>
+  <div class="stopp-uhr abstand"><div id="iv-t-zahl" class="uhr-zahl">0:00</div></div>
+  <div id="iv-t-phase" class="meta" style="text-align:center;font-size:20px;font-weight:700"></div>
+  <div class="knopfreihe"><button class="primaer breit" id="iv-t-knopf" onclick="intervallKnopf()">Start</button></div>
+  <div class="knopfreihe"><button class="breit" onclick="intervallFertig()">Fertig — eintragen</button></div>
+  <div class="knopfreihe"><button class="breit gefahr" onclick="intervallAbbrechen()">Abbrechen</button></div>
+  <div class="meta" style="margin-top:12px">Die App muss dafür im Vordergrund bleiben — <span id="iv-t-warnung"></span> friert sie sonst ein.</div>
+</section>
+
 <section id="view-eintragen" class="view">
   <div class="kopf"><h1>Training eintragen</h1></div>
   <div class="karte">
@@ -2075,7 +2107,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 117;
+const APP_VERSION = 118;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2807,6 +2839,7 @@ function stufe(){
 const VIEW_MIN_STUFE = {
   "view-start": 3,                                   // "Heute" gibt es erst mit echtem Training
   "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
+  "view-intervall": 3, "view-intervall-neu": 3,        // v118: Intervall-Timer + Anlage
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
@@ -3381,6 +3414,8 @@ function planListeZeichnen(){
   // Bildschirm. Hier steht nur noch die Liste aller Pläne.
   const ziel = document.getElementById("plan-liste");
   const plaene = sitzung.daten.plaene;
+  // v118: Intervall-Plan anbieten, sobald der Nutzer eine Intervall-Sportart betreibt.
+  const hatIvSport = (sitzung.daten.einrichtung.sportarten || []).some(id => sportart(id).intervall);
   if(plaene.length === 0){
     // Der Assistent ist Stufe 5; darunter nur „Eigenen Plan" + Beispiel.
     // v95: Der Beispielplan ist ein Kraft-Ganzkörper — nur anbieten, wenn der
@@ -3391,6 +3426,7 @@ function planListeZeichnen(){
       (stufe() >= 5 ? '<button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>' : '') +
       '<button class="' + (stufe() >= 5 ? "" : "primaer ") + 'schmal" onclick="planAnlegen()">Eigenen Plan</button>' +
       (machtKraft ? '<button class="schmal" onclick="beispielLaden()">Beispielplan laden</button>' : '') +
+      (hatIvSport ? '<button class="schmal" onclick="intervallPlanNeu()">Intervall-Plan</button>' : '') +
       '</div></div>';
     return;
   }
@@ -3418,11 +3454,11 @@ function planListeZeichnen(){
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + text(p.name) + '</h2>' +
       '<div class="meta">' +
-        (istAkt ? aktivitaetText(p.sportart, p.strecke, p.dauer, p.zeitEinheit)
+        (istAkt ? (p.intervall ? intervallText(p) : aktivitaetText(p.sportart, p.strecke, p.dauer, p.zeitEinheit))
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
         (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '<div class="knopfreihe">' +
-        '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
+        '<button class="primaer breit" onclick="trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>' +
         // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
         // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; Start/Erledigt teilen sich die Breite.
         '<button class="breit" onclick="' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + p.id + '\')">Erledigt</button>' +
@@ -3436,7 +3472,7 @@ function planListeZeichnen(){
     return '<div class="karte plan-zeile" data-plan="' + p.id + '">' +
       '<div class="zeile">' +
         '<span class="plan-name">' + text(p.name) + '</span>' +
-        '<button class="primaer schmal" onclick="trainingStarten(\'' + p.id + '\')">' + (istAkt ? "Stoppuhr" : "Start") + '</button>' +
+        '<button class="primaer schmal" onclick="trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>' +
       '</div></div>';
   };
 
@@ -3464,6 +3500,7 @@ function planListeZeichnen(){
         grp.map(renderer).join("");
     }
   });
+  if(hatIvSport) html += '<div class="knopfreihe" style="margin-top:14px"><button class="schmal breit" onclick="intervallPlanNeu()">Intervall-Plan anlegen</button></div>';   // v118
   ziel.innerHTML = html;
   langdruckEinrichten();
 }
@@ -3998,6 +4035,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.118", punkte:[
+    "Neu für Kampfsport und Laufen: geführtes Intervall-Training. Auf der Pläne-Seite legst du mit Intervall-Plan anlegen eine Einheit aus Runden, Belastung und Pause an (z. B. 8 Runden mit 30 Sekunden Belastung und 15 Sekunden Pause). Startest du sie, führt dich ein Timer Runde für Runde durch — mit Countdown, Ton-Signalen an jedem Wechsel und Bildschirm-wach. Am Ende wird die Einheit ganz normal in den Verlauf eingetragen."
+  ]},
   { stand:"0.117", punkte:[
     "Nächster Schritt bei den Nicht-Kraft-Sportarten: Klettern kann jetzt neben der Zeit auch den Schwierigkeitsgrad festhalten. Beim Eintragen wählst du den Grad aus einer Skala (französische Sportkletter-Grade von 3 bis 8c), und er erscheint im Verlauf. Falls du lieber eine andere Grad-Skala nutzt, sag Bescheid — die lässt sich leicht austauschen."
   ]},
@@ -5563,7 +5603,7 @@ const SPORTARTEN = [
 
   // Ausdauer: Strecke UND Zeit -> daraus rechnet die App die Pace. Nie speichern,
   // was sich ausrechnen lässt, sonst laufen zwei Wahrheiten auseinander.
-  { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet",
+  { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet", intervall:true,
     strecke:{ einheit:"km", schritt:0.5, start:3 },  paceJe:1,   einheiten:"km · Zeit · Pace (min/km)" },
   { id:"radfahren", name:"Radfahren", farbe:"#2FA8A0", planTyp:"aktivitaet",
     strecke:{ einheit:"km", schritt:1, start:10 },   paceJe:null, einheiten:"km · Zeit · km/h" },
@@ -5582,7 +5622,7 @@ const SPORTARTEN = [
     mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a" }, einheiten:"Zeit · Schwierigkeit" },
   { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", einheiten:"Zeit" },
-  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", einheiten:"Zeit" },
+  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, einheiten:"Zeit · Runden" },
   { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", einheiten:"Zeit" },
   { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet",
     // v115 (Nicht-Kraft, Etappe 1): generische Messgröße `mass` neben der Strecke —
@@ -8624,6 +8664,176 @@ function stoppuhrAufraeumen(){
   stoppuhr = null;
 }
 
+/* ============================================================
+   #region Intervall-Training (Nicht-Kraft, Etappe 3, v118)
+   Geführter Runden-Timer: je Runde Belastung + Pause, mit Countdown und
+   vorausgeplanten Tönen (iOS-sicher wie der Kraft-Timer — tonPlanen legt sie auf
+   die Audio-Uhr). Nur für Sportarten mit `intervall:true`; ein Intervall-Plan ist
+   ein Aktivitäts-Plan mit `intervall:{runden,belastung,pause}`.
+   ============================================================ */
+function intervallSportarten(){ return SPORTARTEN.filter(s => s.intervall); }
+
+/** Reine Phasen-Liste: je Runde eine Belastung, dazwischen (NICHT nach der
+    letzten Runde) eine Pause. Jede Phase mit Start-Offset `ab` in Sekunden. */
+function intervallPhasen(runden, belastung, pause){
+  const phasen = [];
+  let ab = 0;
+  for(let r = 1; r <= runden; r++){
+    phasen.push({ art:"belastung", runde:r, dauer:belastung, ab }); ab += belastung;
+    if(r < runden && pause > 0){ phasen.push({ art:"pause", runde:r, dauer:pause, ab }); ab += pause; }
+  }
+  return phasen;
+}
+function intervallGesamt(phasen){
+  return phasen.length ? phasen[phasen.length - 1].ab + phasen[phasen.length - 1].dauer : 0;
+}
+/** Aktuelle Phase + ganze Restsekunden an Position `sek`; null = fertig. */
+function intervallPhaseBei(phasen, sek){
+  for(const p of phasen){
+    if(sek < p.ab + p.dauer) return { phase:p, rest: Math.max(0, Math.ceil(p.ab + p.dauer - sek)) };
+  }
+  return null;
+}
+
+/* ---- Anlegen ---- */
+function intervallPlanNeu(){
+  if(!viewErlaubt("view-intervall-neu")) return;
+  document.getElementById("iv-sport").innerHTML =
+    intervallSportarten().map(s => '<option value="' + s.id + '">' + text(s.name) + '</option>').join("");
+  document.getElementById("iv-name").value = "";
+  document.getElementById("iv-runden").value = 8;
+  document.getElementById("iv-belastung").value = 30;
+  document.getElementById("iv-pause").value = 15;
+  intervallVorschau();
+  zeige("view-intervall-neu");
+}
+function intervallWerteLesen(){
+  return {
+    runden:    Math.max(1, Math.round(parseFloat(document.getElementById("iv-runden").value) || 0)),
+    belastung: Math.max(5, Math.round(parseFloat(document.getElementById("iv-belastung").value) || 0)),
+    pause:     Math.max(0, Math.round(parseFloat(document.getElementById("iv-pause").value) || 0))
+  };
+}
+function intervallVorschau(){
+  const w = intervallWerteLesen();
+  const gesamt = intervallGesamt(intervallPhasen(w.runden, w.belastung, w.pause));
+  document.getElementById("iv-vorschau").textContent =
+    w.runden + " Runden · " + w.belastung + " s Belastung + " + w.pause + " s Pause · gesamt " + uhrText(gesamt);
+}
+/** Kurzform fürs Plan-Kärtchen: "8 × 30/15 s · 6:00". */
+function intervallText(plan){
+  const iv = plan.intervall;
+  return iv.runden + " × " + iv.belastung + "/" + iv.pause + " s · " +
+    uhrText(intervallGesamt(intervallPhasen(iv.runden, iv.belastung, iv.pause)));
+}
+function intervallPlanSpeichern(){
+  const w = intervallWerteLesen();
+  const sport = document.getElementById("iv-sport").value;
+  const gesamt = intervallGesamt(intervallPhasen(w.runden, w.belastung, w.pause));
+  const name = (document.getElementById("iv-name").value || "").trim() || (sportartName(sport) + " Intervall");
+  sitzung.daten.plaene.push({
+    id: neueId(), name, sportart: sport, typ:"aktivitaet", quelle:"eigen",
+    tage:[], wochenTakt:1, wochenAnker:0, einzelTermine:[],
+    intervall: { runden:w.runden, belastung:w.belastung, pause:w.pause },
+    dauer: gesamt, zeitEinheit:"min", strecke:0, uebungen:[],
+    reihenfolge:"klassisch", aufwaermen:false, dehnen:false
+  });
+  speichern();
+  planListeZeichnen();
+  zeige("view-plaene");
+  zeigenToast("Intervall-Plan angelegt", "erfolg");
+}
+
+/* ---- Timer ---- */
+let ivLauf = null;   // { plan, phasen, gesamt, start, gelaufen, laeuft, timerId }
+
+function intervallOeffnen(planId){
+  const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  const iv = plan.intervall;
+  const phasen = intervallPhasen(iv.runden, iv.belastung, iv.pause);
+  ivLauf = { plan, phasen, gesamt: intervallGesamt(phasen), start:0, gelaufen:0, laeuft:false, timerId:null };
+  document.getElementById("iv-t-name").textContent = plan.name;
+  document.getElementById("iv-t-sport").innerHTML =
+    '<span style="color:' + sportartFarbe(plan.sportart) + '">■</span> ' + text(sportartName(plan.sportart)) +
+    ' · ' + intervallText(plan);
+  document.getElementById("iv-t-warnung").textContent = systemText("iOS", "Android", "Das System");
+  intervallZeichnen();
+  zeige("view-intervall");
+}
+/** Immer aus Date.now() rechnen (iOS drosselt Timer im Hintergrund). */
+function intervallSekunden(){
+  return ivLauf.gelaufen + (ivLauf.laeuft ? (Date.now() - ivLauf.start) / 1000 : 0);
+}
+function intervallZeichnen(){
+  if(!ivLauf) return;
+  const pos = intervallPhaseBei(ivLauf.phasen, intervallSekunden());
+  if(!pos){ intervallFertig(); return; }
+  document.getElementById("iv-t-runde").textContent =
+    "Runde " + pos.phase.runde + " / " + ivLauf.plan.intervall.runden;
+  document.getElementById("iv-t-zahl").textContent = uhrText(pos.rest);
+  const el = document.getElementById("iv-t-phase");
+  el.textContent = pos.phase.art === "belastung" ? "Belastung" : "Pause";
+  el.style.color = pos.phase.art === "belastung" ? "var(--signal)" : "var(--rest)";
+  document.getElementById("iv-t-knopf").textContent =
+    ivLauf.laeuft ? "Pause" : (ivLauf.gelaufen ? "Weiter" : "Start");
+}
+/** Alle Töne des RESTLICHEN Ablaufs im Voraus auf die Audio-Uhr legen (iOS-sicher):
+    ein Signal je Phasenstart, drei kurze Countdown-Pieper vor Phasenende, Schluss-Ton. */
+function intervallToenePlanen(){
+  if(!ctx) return;
+  toeneVerwerfen();
+  const jetzt = ctx.currentTime, el = intervallSekunden();
+  ivLauf.phasen.forEach(p => {
+    const startRel = p.ab - el;
+    if(startRel > 0.05) tonPlanen(jetzt + startRel, p.art === "belastung" ? 880 : 440, 0.2, 0.5);
+    const endeRel = p.ab + p.dauer - el;
+    for(let k = 3; k >= 1; k--){ const r = endeRel - k; if(r > 0.05) tonPlanen(jetzt + r, 520, 0.07, 0.22); }
+  });
+  const schlussRel = ivLauf.gesamt - el;
+  if(schlussRel > 0.05) tonPlanen(jetzt + schlussRel, 990, 0.4, 0.6);
+}
+function intervallKnopf(){
+  if(tippGesperrt() || !ivLauf) return;
+  if(ivLauf.laeuft){
+    ivLauf.gelaufen = intervallSekunden();
+    ivLauf.laeuft = false;
+    clearInterval(ivLauf.timerId);
+    toeneVerwerfen();
+  } else {
+    audioFreischalten();          // in der Tippgeste (iOS)
+    bildschirmWachhalten();
+    ivLauf.start = Date.now();
+    ivLauf.laeuft = true;
+    intervallToenePlanen();
+    ivLauf.timerId = setInterval(intervallZeichnen, 250);
+  }
+  intervallZeichnen();
+}
+function intervallFertig(){
+  if(!ivLauf) return;
+  const el = Math.round(Math.min(intervallSekunden(), ivLauf.gesamt));
+  const plan = ivLauf.plan;
+  intervallAufraeumen();
+  if(el < 5){ planListeZeichnen(); zeige("view-plaene"); return; }
+  sprich("Fertig");
+  eintragenOeffnen(plan, el);   // ins gemeinsame Formular -> aktivitaetAblegen
+}
+function intervallAbbrechen(){
+  frage("Intervall-Training verwerfen? Es wird nichts eingetragen.", true, ja => {
+    if(!ja) return;
+    intervallAufraeumen();
+    planListeZeichnen();
+    zeige("view-plaene");
+  });
+}
+function intervallAufraeumen(){
+  if(ivLauf) clearInterval(ivLauf.timerId);
+  toeneVerwerfen();
+  bildschirmFreigeben();
+  ivLauf = null;
+}
+/* #endregion Intervall-Training */
+
 /* ---------- Das Formular: einziger Ort, an dem eine Aktivität entsteht ---------- */
 let eintragPlan = null;
 
@@ -8871,6 +9081,7 @@ let vorschauPlan = null;
     läuft auf der Stoppuhr. Beide Wege enden im selben Protokoll. */
 function trainingStarten(planId){
   const plan = sitzung.daten.plaene.find(p => p.id === planId);
+  if(plan.intervall){ intervallOeffnen(planId); return; }   // v118: Intervall-Plan -> geführter Runden-Timer
   if(plan.typ === "aktivitaet"){ stoppuhrOeffnen(planId); return; }
   vorschauPlan = JSON.parse(JSON.stringify(plan));
   vorschauZeichnen();
@@ -9343,7 +9554,8 @@ function navAktualisieren(id){
                      "view-einst-darstellung":"nav-einst", "view-einst-werkzeuge":"nav-einst",
                      "view-einst-konto":"nav-einst", "view-einst-hilfe":"nav-einst",
                      "view-bibliothek":"nav-einst", "view-papierkorb":"nav-einst",
-                     "view-editor":"nav-plaene" };
+                     "view-editor":"nav-plaene",
+                     "view-intervall":"nav-plaene", "view-intervall-neu":"nav-plaene" };   // v118
   // v76: Stufenabhängige Leiste. Welche Tabs überhaupt sichtbar sind, bestimmt
   // die Stufe (navTabsFuerStufe) — Stufe 1/2 = gar keine Leiste, Stufe 3 ohne
   // Statistik. Es wird nichts umgebaut, nur ein-/ausgeblendet.

@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.118
+
+- Neu für Kampfsport und Laufen: geführtes Intervall-Training. Auf der Pläne-Seite
+  legst du mit „Intervall-Plan anlegen" eine Einheit aus Runden, Belastung und Pause
+  an (z. B. 8 Runden mit 30 Sekunden Belastung und 15 Sekunden Pause). Startest du
+  sie, führt dich ein Timer Runde für Runde durch — mit Countdown, Ton-Signalen an
+  jedem Wechsel und Bildschirm-wach. Am Ende wird die Einheit ganz normal in den
+  Verlauf eingetragen.
+
 ## 0.117
 
 - Nächster Schritt bei den Nicht-Kraft-Sportarten: Klettern kann jetzt neben der
