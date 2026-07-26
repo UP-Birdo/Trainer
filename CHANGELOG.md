@@ -3,6 +3,34 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.136
+
+- Supersätze: Im Plan-Editor kannst du eine Übung mit der direkt folgenden koppeln
+  — lange auf die Übung drücken und „Mit nächster Übung koppeln" wählen. Im
+  Training läuft dann je Runde ein Satz beider Übungen OHNE Pause dazwischen; die
+  Pause kommt erst danach. Koppelst du eine Kette (A mit B, B mit C), wird daraus
+  ein Dreier-Superatz. In der Übungsliste steht bei gekoppelten Übungen „Superatz".
+
+## 0.135
+
+- Aufwärmsätze: Bei jeder Übung mit Gewicht kannst du im Editor (unter
+  „Feinheiten") 1 bis 3 Aufwärmsätze einstellen. Die App tastet sich dann
+  automatisch heran — bei drei Sätzen mit 40, 60 und 80 Prozent deines
+  Arbeitsgewichts, mit entsprechend mehr Wiederholungen bei leichtem und wenigen
+  bei schwerem Gewicht. Im Training führt der Timer dich ganz normal durch,
+  kennzeichnet sie aber als Aufwärmsatz und mit kürzerer Pause. Sie zählen bewusst
+  NICHT in Volumen, Bestwerte oder Rekorde — es ist Vorbereitung, kein
+  Trainingsreiz.
+
+## 0.134
+
+- Neu: Körpermaße. Neben dem Gewicht kannst du jetzt Brust, Taille, Hüfte, Oberarm
+  und Oberschenkel in Zentimetern festhalten — Muskelaufbau zeigt sich am Maßband
+  oft früher als auf der Waage. Die Kachel „Körpermaße" schaltest du unter
+  Mehr › Darstellung ein; dort wählst du das Maß aus, trägst mit „+" einen Wert ein
+  und siehst den Verlauf als Kurve. Ein Tipp auf die Kurve zeigt alle Einträge (und
+  lässt dich einzelne löschen).
+
 ## 0.133
 
 - Runden-Training gibt es jetzt direkt im Plan-Editor: Bei Sportarten, die

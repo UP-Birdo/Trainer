@@ -844,6 +844,21 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="gewicht-diagramm" class="abstand stat-tap" onclick="gewichtDetailsOeffnen()"></div>
   </div>
 
+  <!-- v134: Körpermaße — eine Kachel, fünf Umfänge über die Auswahl. -->
+  <div class="karte stat-karte" id="stat-koerpermasse" hidden>
+    <div class="zeile"><h2>Körpermaße</h2>
+      <button class="rund klein" onclick="koerpermassFormularZeigen()" aria-label="Maß eintragen">+</button></div>
+    <select id="koerpermass-art" class="abstand" onchange="koerpermassArtSetzen(this.value)"></select>
+    <div id="koerpermass-formular" hidden>
+      <div class="raster abstand">
+        <div><label for="koerpermass-wert">Umfang (cm)</label><input id="koerpermass-wert" type="number" inputmode="decimal" step="0.1"></div>
+        <div><label for="koerpermass-datum">Datum</label><input id="koerpermass-datum" type="date"></div>
+      </div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="koerpermassEintragen()">Eintragen</button></div>
+    </div>
+    <div id="koerpermass-diagramm" class="abstand stat-tap" onclick="koerpermassDetailsOeffnen()"></div>
+  </div>
+
   <div class="karte stat-karte" id="stat-volumen" hidden>
     <h2 id="volumen-titel">Volumen</h2>
     <div id="volumen-diagramm" class="abstand"></div>
@@ -1507,6 +1522,18 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="gewicht-info" class="meta abstand"></div>
     <h2>Einträge</h2>
     <div id="gewicht-liste" class="abstand"></div>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- v134: Einträge eines Körpermaßes (Tipp auf die Kurve) — wie view-gewicht. -->
+<section id="view-koerpermasse" class="view">
+  <div class="kopf"><h1 id="koerpermasse-titel">Körpermaß</h1>
+    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+  <div class="karte">
+    <div id="koerpermasse-info" class="meta abstand"></div>
+    <h2>Einträge</h2>
+    <div id="koerpermasse-liste" class="abstand"></div>
   </div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -2222,12 +2249,15 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 133;
+const APP_VERSION = 136;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
 function datenNachruesten(daten){
   if(!Array.isArray(daten.gewichte))  daten.gewichte = [];
+  // v134: Körpermaße (Umfänge in cm) — dieselbe Bauart wie `gewichte`, nur mit
+  // einer `art` je Zeile. Additiv, damit alte Sicherungen weiter laden.
+  if(!Array.isArray(daten.koerpermasse)) daten.koerpermasse = [];
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
@@ -2967,6 +2997,7 @@ const VIEW_MIN_STUFE = {
   "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
   "view-einst-werkzeuge": 3,                         // Untermenü „Werkzeuge" (v102)
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
+  "view-koerpermasse": 4,   // v134
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5, "view-ziele": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -3958,6 +3989,10 @@ function uebungMenue(i){
   const aktionen = [];
   if(i > 0) aktionen.push({ text:"▲ Nach oben", tun:() => uebungSchieben(i, -1) });
   if(i < editorPlan.uebungen.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => uebungSchieben(i, 1) });
+  // v136: Superatz — koppelt mit der DIREKT folgenden Übung (darum nur dort).
+  if(i < editorPlan.uebungen.length - 1)
+    aktionen.push({ text: u.superMitNaechster ? "Kopplung lösen" : "Mit nächster Übung koppeln",
+                    tun:() => superKopplungUmschalten(i) });
   aktionen.push({ text:"Übung löschen", stil:"gefahr", tun:() => uebungLoeschen(i) });
   aktionsMenue(u.name.trim() || ("Übung " + (i + 1)), aktionen);
 }
@@ -4177,6 +4212,7 @@ function statistikOeffnen(){
   wochenVorschauZeichnen();    // v93: 7-Tage-Kalender-Vorschau statt vollem Monat
   volumenZeichnen();
   gewichtStatistikZeichnen();
+  koerpermassZeichnen();     // v134: Körpermaße
   fortschrittZeichnen();
   ausdauerZeichnen();
   messwerteZeichnen();       // v121: Verlauf der Messgrößen (Beweglichkeit, Schwierigkeit …)
@@ -4191,6 +4227,7 @@ function statistikOeffnen(){
    (`einrichtung.statistiken`). Je Stat-id die Karten-Element-id. */
 const STAT_OPTIONEN = [
   ["koerpergewicht", "Körpergewicht",       "stat-koerpergewicht"],
+  ["koerpermasse",   "Körpermaße",          "stat-koerpermasse"],   // v134
   ["volumen",        "Volumen",             "stat-volumen"],
   ["ausdauer",       "Ausdauer",            "ausdauer-karte"],
   ["messwerte",      "Messwerte",           "messwerte-karte"],
@@ -4203,7 +4240,7 @@ const STAT_OPTIONEN = [
     Zeichen-Funktion — das Setting darf nur ZUSÄTZLICH ausblenden, nie erzwingen. */
 function statistikSichtbarkeit(){
   const an = new Set(sitzung.daten.einrichtung.statistiken || []);
-  const immerAnzeigbar = new Set(["stat-koerpergewicht", "stat-volumen", "stat-trainings"]);
+  const immerAnzeigbar = new Set(["stat-koerpergewicht", "stat-koerpermasse", "stat-volumen", "stat-trainings"]);
   STAT_OPTIONEN.forEach(([id, , kartenId]) => {
     const el = document.getElementById(kartenId); if(!el) return;
     if(!an.has(id)) el.hidden = true;
@@ -4217,6 +4254,7 @@ function statistikSichtbarkeit(){
 function statHatDaten(id){
   const p = sitzung.daten.protokoll || [];
   if(id === "koerpergewicht") return true;                                  // manuell
+  if(id === "koerpermasse")   return true;                                  // v134: manuell, immer wählbar
   if(id === "trainings")      return p.length > 0;
   if(id === "ausdauer")       return p.some(e => e.typ === "aktivitaet");
   if(id === "messwerte")      return p.some(e => e.messwert != null && e.messwert !== "");   // v121
@@ -4343,6 +4381,15 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.136", punkte:[
+    "Supersätze: Im Plan-Editor kannst du eine Übung mit der direkt folgenden koppeln — lange auf die Übung drücken und „Mit nächster Übung koppeln“ wählen. Im Training läuft dann je Runde ein Satz beider Übungen OHNE Pause dazwischen; die Pause kommt erst danach. Koppelst du eine Kette (A mit B, B mit C), wird daraus ein Dreier-Superatz. In der Übungsliste steht bei gekoppelten Übungen „Superatz“."
+  ]},
+  { stand:"0.135", punkte:[
+    "Aufwärmsätze: Bei jeder Übung mit Gewicht kannst du im Editor (unter „Feinheiten“) 1 bis 3 Aufwärmsätze einstellen. Die App tastet sich dann automatisch heran — bei drei Sätzen mit 40, 60 und 80 Prozent deines Arbeitsgewichts, mit entsprechend mehr Wiederholungen bei leichtem und wenigen bei schwerem Gewicht. Im Training führt der Timer dich ganz normal durch, kennzeichnet sie aber als Aufwärmsatz und mit kürzerer Pause. Sie zählen bewusst NICHT in Volumen, Bestwerte oder Rekorde — es ist Vorbereitung, kein Trainingsreiz."
+  ]},
+  { stand:"0.134", punkte:[
+    "Neu: Körpermaße. Neben dem Gewicht kannst du jetzt Brust, Taille, Hüfte, Oberarm und Oberschenkel in Zentimetern festhalten — Muskelaufbau zeigt sich am Maßband oft früher als auf der Waage. Die Kachel „Körpermaße“ schaltest du unter Mehr › Darstellung ein; dort wählst du das Maß aus, trägst mit „+“ einen Wert ein und siehst den Verlauf als Kurve. Ein Tipp auf die Kurve zeigt alle Einträge (und lässt dich einzelne löschen)."
+  ]},
   { stand:"0.133", punkte:[
     "Runden-Training gibt es jetzt direkt im Plan-Editor: Bei Sportarten, die Intervalle können (Laufen, Kampfsport), steht in den Einstellungen ein Umschalter „Dauer / Runden“. Auf „Runden“ stellst du Runden, Belastung und Pause ein — die Gesamtdauer rechnet die App daraus. So wird aus einem bestehenden Plan mit zwei Tipps ein Intervall-Plan (und zurück); der eigene Anlege-Weg über das „+“ bleibt daneben bestehen."
   ]},
@@ -5292,6 +5339,143 @@ function gewichtFormularZeigen(){
   }
 }
 
+/* ============================================================
+   v134: Körpermaße — Umfänge neben dem Gewicht.
+   Aus dem Audit-Vergleich mit Strong/Hevy: der Muskelaufbau zeigt sich am Maßband
+   früher als auf der Waage. Bewusst dieselbe Bauart wie `gewichte` (eine Zeile je
+   Tag und Maß, der neuere Wert gewinnt) — nur mit einer `art`, damit fünf Kurven
+   aus EINER Liste kommen. Die Funktionen heißen `koerpermass…`, NICHT `mass…`:
+   `massText`/`massZahl`/`massSchritt` (v115–v121) sind die Messgröße einer
+   Sportart und haben damit nichts zu tun.
+   ============================================================ */
+const KOERPERMASSE = [
+  { id:"brust",        name:"Brust" },
+  { id:"taille",       name:"Taille" },
+  { id:"huefte",       name:"Hüfte" },
+  { id:"arm",          name:"Oberarm" },
+  { id:"oberschenkel", name:"Oberschenkel" }
+];
+const KOERPERMASS_EINHEIT = "cm";
+
+/** Alle Einträge einer Maßart, chronologisch. Rein/testbar. */
+function koerpermassReihe(liste, art){
+  return (liste || []).filter(e => e && e.art === art)
+    .slice().sort((a,b) => a.datum < b.datum ? -1 : 1);
+}
+
+/** Wert setzen: EIN Wert je Tag UND Maßart — ein zweiter Eintrag am selben Tag
+    korrigiert den ersten (wie beim Gewicht), statt die Kurve zu verdoppeln. */
+function koerpermassSetzen(liste, datum, art, wert){
+  const vorhanden = liste.find(e => e.art === art && e.datum === datum);
+  if(vorhanden) vorhanden.wert = wert;
+  else liste.push({ datum, art, wert });
+  liste.sort((a,b) => a.datum < b.datum ? -1 : 1);
+  return liste;
+}
+
+/** Veränderung zum ersten Eintrag — die eigentliche Aussage einer Maß-Reihe. */
+function koerpermassTrend(reihe){
+  if(!reihe || reihe.length < 2) return null;
+  return Math.round((reihe[reihe.length-1].wert - reihe[0].wert) * 10) / 10;
+}
+
+/* ---- Körpermaße: Anzeige (Kurve wie beim Gewicht, bewusst gespiegelt) ---- */
+let koerpermassArt = KOERPERMASSE[0].id;
+function koerpermassArtSetzen(id){ koerpermassArt = id; koerpermassZeichnen(); }
+function koerpermassFormularZeigen(){
+  const f = document.getElementById("koerpermass-formular");
+  f.hidden = !f.hidden;
+  if(!f.hidden){
+    document.getElementById("koerpermass-datum").value = heuteAlsText();
+    document.getElementById("koerpermass-wert").focus();
+  }
+}
+function koerpermassEintragen(){
+  const wert = parseFloat(String(document.getElementById("koerpermass-wert").value).replace(",", "."));
+  const datum = document.getElementById("koerpermass-datum").value || heuteAlsText();
+  if(!wert || wert <= 0){ meldung("Bitte einen Umfang in Zentimetern eingeben."); return; }
+  koerpermassSetzen(sitzung.daten.koerpermasse, datum, koerpermassArt, Math.round(wert * 10) / 10);
+  speichern();
+  document.getElementById("koerpermass-formular").hidden = true;
+  document.getElementById("koerpermass-wert").value = "";
+  koerpermassZeichnen();
+}
+function koerpermassLoeschen(datum, art){
+  frage("Eintrag vom " + datum + " löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.koerpermasse = sitzung.daten.koerpermasse.filter(e => !(e.datum === datum && e.art === art));
+    speichern();
+    koerpermassZeichnen();
+  });
+}
+function koerpermassName(id){
+  const m = KOERPERMASSE.find(x => x.id === id);
+  return m ? m.name : id;
+}
+
+function koerpermassZeichnen(){
+  const karte = document.getElementById("stat-koerpermasse");
+  if(!karte) return;
+  const auswahl = document.getElementById("koerpermass-art");
+  if(!KOERPERMASSE.some(m => m.id === koerpermassArt)) koerpermassArt = KOERPERMASSE[0].id;
+  auswahl.innerHTML = KOERPERMASSE.map(m => {
+    const n = koerpermassReihe(sitzung.daten.koerpermasse, m.id).length;
+    return '<option value="' + m.id + '"' + (m.id === koerpermassArt ? " selected" : "") + '>' +
+      text(m.name) + (n ? " (" + n + ")" : "") + '</option>';
+  }).join("");
+
+  const reihe = koerpermassReihe(sitzung.daten.koerpermasse, koerpermassArt);
+  const diagramm = document.getElementById("koerpermass-diagramm");
+  const liste = document.getElementById("koerpermasse-liste");
+  const info = document.getElementById("koerpermasse-info");
+  const titel = document.getElementById("koerpermasse-titel");
+  if(titel) titel.textContent = koerpermassName(koerpermassArt);
+
+  if(!reihe.length){
+    diagramm.innerHTML = '<div class="leer">Noch nichts gemessen. Mit + den ersten Wert erfassen.</div>';
+    if(liste) liste.innerHTML = "";
+    if(info) info.textContent = "";
+    return;
+  }
+  const jetzt = reihe[reihe.length - 1];
+  const trend = koerpermassTrend(reihe);
+  if(info) info.textContent = jetzt.wert.toFixed(1) + " " + KOERPERMASS_EINHEIT + " (" + datumKurz(jetzt.datum) + ")" +
+    (trend === null ? "" : "  ·  " + (trend >= 0 ? "+" : "−") + Math.abs(trend).toFixed(1) + " " +
+      KOERPERMASS_EINHEIT + " seit " + datumKurz(reihe[0].datum));
+
+  if(reihe.length >= 2){
+    const B = 560, H = 220, rand = 34;
+    const werte = reihe.map(e => e.wert);
+    const min = Math.min(...werte), max = Math.max(...werte);
+    const spanne = (max - min) || 1;
+    const x = i => rand + i * (B - 2*rand) / (reihe.length - 1);
+    const y = w => H - rand - (w - min) / spanne * (H - 2*rand);
+    const linie = reihe.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.wert).toFixed(1)).join(" ");
+    const punkte = reihe.map((e,i) =>
+      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+    diagramm.innerHTML =
+      '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Verlauf ' + text(koerpermassName(koerpermassArt)) + '">' +
+      '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' cm</text>' +
+      '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + min.toFixed(1) + ' cm</text>' +
+      '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte + '</svg>';
+  } else {
+    diagramm.innerHTML = '<div class="meta">' + jetzt.wert.toFixed(1) + ' cm — ab zwei Einträgen erscheint hier der Verlauf.</div>';
+  }
+
+  if(liste) liste.innerHTML = reihe.slice().reverse().map(e =>
+    '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+    '<span class="meta">' + e.datum + '</span>' +
+    '<span>' + e.wert.toFixed(1) + ' cm &nbsp;<button class="schmal gefahr" onclick="koerpermassLoeschen(\'' + e.datum + '\',\'' + e.art + '\')" aria-label="Eintrag löschen">×</button></span>' +
+    '</div>').join("");
+}
+
+/** Einträge des gewählten Maßes (Tipp auf die Kurve) — wie beim Gewicht. */
+function koerpermassDetailsOeffnen(){
+  if(!viewErlaubt("view-koerpermasse")) return;
+  koerpermassZeichnen();
+  zeige("view-koerpermasse");
+}
+
 function gewichtEintragen(){
   const kg = parseFloat(document.getElementById("gewicht-wert").value);
   const datum = document.getElementById("gewicht-datum").value || heuteAlsText();
@@ -5998,6 +6182,7 @@ function statistikAktualisieren(){
   kalenderZeichnen();
   volumenZeichnen();
   gewichtStatistikZeichnen();
+  koerpermassZeichnen();     // v134: Körpermaße
   fortschrittZeichnen();
   ausdauerZeichnen();
   messwerteZeichnen();   // v121
@@ -8767,6 +8952,7 @@ function planTaktSetzen(t){
 }
 
 function editorZeichnen(){
+  rampeKlemmen();   // v135: Aufwärmsätze auf 0–3 halten
   document.getElementById("plan-name").value = editorPlan.name;
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
   if(!Array.isArray(editorPlan.tage)) editorPlan.tage = [];
@@ -8832,9 +9018,12 @@ function editorZeichnen(){
     // Antippen des Kopfs klappt Muskel-Map + Felder auf (editorUebungOffen).
     const istZeit = u.modus === "zeit";
     const offen = editorUebungOffen === i;
-    const zusammen = istZeit
+    const zusammen = (istZeit
       ? u.saetze + " × " + zeitKurz(u.dauer, u.zeitEinheit)
-      : u.saetze + " × " + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "");
+      : u.saetze + " × " + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "")) +
+      // v136: sichtbar machen, dass diese Übung zu einem Superatz gehört
+      (imSuperatz(editorPlan.uebungen, i) ? " · Superatz" : "") +
+      (u.rampe > 0 ? " · " + u.rampe + " Aufwärm" : "");   // v135
     const titel = u.name.trim() ? text(u.name) : "Übung " + (i+1);
     // v125: Die Muskel-Map steht jetzt auch an der GELISTETEN (eingeklappten)
     // Übung — klein im Kopf (Nutzer-Wunsch: „die gelisteten Übungen sollen die
@@ -8877,7 +9066,9 @@ function editorZeichnen(){
       basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"wdh","Wiederholungen",u.wdh,1) +
               zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht,2.5) + zahlfeld(i,"pause","Pause (s)",u.pause,15);
       mehr = zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin,1) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax,1) +
-             zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt,0.5);
+             zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt,0.5) +
+             // v135: Aufwärmsätze (0–3) — nur sinnvoll, wo es Gewicht hochzutasten gibt.
+             (u.gewicht > 0 ? zahlfeld(i,"rampe","Aufwärmsätze",u.rampe || 0,1) : "");
     }
     const felder = '<div class="raster abstand">' + basis + '</div>' +
       (mehr ? '<div class="knopfreihe"><button class="schmal" onclick="editorMehrUmschalten(' + i + ')">' +
@@ -8919,6 +9110,15 @@ function zahlfeld(i, schluessel, beschriftung, wert, schritt){
     '" oninput="feld(' + i + ',\'' + schluessel + '\',this.value,true)">' +
     '<button onclick="feldStufe(' + i + ',\'' + schluessel + '\',' + s + ')" aria-label="mehr">+</button>' +
     '</div></div>';
+}
+
+/** v135: Die Aufwärmsätze kennen nur 0–3 (mehr Stufen gibt RAMPEN nicht her) —
+    darum hier klemmen, statt den Stepper ins Leere laufen zu lassen. */
+function rampeKlemmen(){
+  (editorPlan.uebungen || []).forEach(u => {
+    if(u.rampe == null) return;
+    u.rampe = begrenzen(Math.round(u.rampe) || 0, 0, 3);
+  });
 }
 
 function feldStufe(i, schluessel, delta){
@@ -9120,8 +9320,20 @@ function pickerSportBestaetigen(sportId){
   uebungInPlanHinzufuegen(name);          // dann die Übung anhängen (rendert)
 }
 function pickerWahlAbbrechen(){ uebungWartet = null; uebungPickerZeichnen(); }
+/** v136: Kopplung mit der nächsten Übung an/aus. */
+function superKopplungUmschalten(i){
+  const u = editorPlan.uebungen[i];
+  if(!u || i >= editorPlan.uebungen.length - 1) return;
+  u.superMitNaechster = !u.superMitNaechster;
+  editorZeichnen();
+}
+
 function uebungLoeschen(i){
+  // v136: Die letzte Übung kann niemanden mehr koppeln — sonst hinge nach dem
+  // Löschen ein Schalter an einer Übung ohne Nachfolger.
   editorPlan.uebungen.splice(i,1);
+  const letzte = editorPlan.uebungen[editorPlan.uebungen.length - 1];
+  if(letzte) letzte.superMitNaechster = false;
   // editorMehr ist nach Index verschlüsselt: nach dem Löschen nachrücken lassen,
   // sonst erbt die falsche Übung den auf-/zugeklappten "Feinheiten"-Zustand.
   const neu = {};
@@ -9297,23 +9509,108 @@ function ablaufErzeugen(plan){
   return alle;
 }
 
+/* ============================================================
+   v135: Aufwärmsätze (Ramp-up) — leichtere Sätze vor den Arbeitssätzen.
+   Aus dem Audit-Vergleich (Strong/Hevy) und trainingsüblicher Praxis: an eine
+   schwere Arbeitslast tastet man sich heran, statt kalt hineinzugehen.
+   Gewählte Staffelung (dokumentiert, damit sie nachvollziehbar bleibt):
+     1 Satz  -> 60 %          2 Sätze -> 50/75 %      3 Sätze -> 40/60/80 %
+   Die Wiederholungen laufen gegenläufig zum Gewicht (`1.4 − Anteil`): leicht =
+   mehr Wdh zum Warmwerden, schwer = wenige zum Reinfinden, nie unter 2.
+   NUR für Wdh-Übungen MIT Gewicht — an Körpergewicht und Haltezeiten gibt es
+   nichts hochzutasten (dafür ist das Aufwärm-Programm des Plans da).
+   ============================================================ */
+const RAMPEN = { 1:[0.6], 2:[0.5, 0.75], 3:[0.4, 0.6, 0.8] };
+
+/* ============================================================
+   v136: Supersätze — zwei (oder mehr) Übungen ohne Pause dazwischen.
+   Modelliert als EIN Schalter an der früheren Übung: `superMitNaechster`
+   koppelt sie mit der DIREKT FOLGENDEN. Bewusst kein Gruppen-Feld mit eigener
+   id: eine Kopplung ist eine Beziehung zwischen Nachbarn, und beim Verschieben
+   muss man dann nichts nachziehen — was koppelt, sieht man an der Reihenfolge.
+   Eine Kette (A koppelt B, B koppelt C) ergibt einen Dreier-Superatz.
+   Der Zirkel-Modus (v26) bleibt unberührt: er mischt ohnehin den ganzen Plan.
+   ============================================================ */
+/** Zerlegt die Übungsliste in Blöcke: [[0],[1,2],[3]] — ein Block ist entweder
+    eine Einzelübung oder ein Superatz. Rein/testbar. */
+function superBloecke(uebungen){
+  const liste = uebungen || [];
+  const bloecke = [];
+  liste.forEach((u, i) => {
+    const vorgaengerKoppelt = i > 0 && !!(liste[i-1] && liste[i-1].superMitNaechster);
+    if(vorgaengerKoppelt) bloecke[bloecke.length - 1].push(i);
+    else bloecke.push([i]);
+  });
+  return bloecke;
+}
+
+/** Ist diese Übung Teil eines Supersatzes? (Für die Anzeige im Editor.) */
+function imSuperatz(uebungen, i){
+  const liste = uebungen || [];
+  return !!((liste[i] && liste[i].superMitNaechster && liste[i+1]) ||
+            (i > 0 && liste[i-1] && liste[i-1].superMitNaechster));
+}
+
+/** Die Aufwärmsätze einer Übung als {gewicht, wdh}-Liste. Rein/testbar. */
+function aufwaermSaetze(uebung, anzahl){
+  const n = Math.round(anzahl || 0);
+  const stufen = RAMPEN[n];
+  if(!uebung || !stufen) return [];
+  if(uebung.modus === "zeit" || !(uebung.gewicht > 0)) return [];
+  const schritt = uebung.gewichtSchritt > 0 ? uebung.gewichtSchritt : 0.5;
+  return stufen.map(anteil => {
+    // Auf die Schrittweite runden — Zwischenwerte kann man nicht auflegen —,
+    // aber nie auf null: ein Satz „mit 0 kg" wäre kein Aufwärmsatz.
+    const roh = uebung.gewicht * anteil;
+    const gewicht = Math.max(schritt, Math.round(roh / schritt) * schritt);
+    /* Float-Falle (wie beim Scheibenrechner, v85): `1.4 - 0.75` ist 0,6499999…,
+       nicht 0,65 — ohne Epsilon fiele die Rundung dort um eine Wiederholung
+       nach unten, obwohl die Rechnung glatt aufgehen sollte. */
+    const wdhRoh = (uebung.wdh || 0) * (1.4 - anteil);
+    return { gewicht: Math.round(gewicht * 100) / 100,
+             wdh: Math.max(2, Math.round(wdhRoh + 1e-9)) };
+  });
+}
+
 function klassischerAblauf(plan){
   const schritte = [];
-  plan.uebungen.forEach((u, ui) => {
-    for(let s = 1; s <= u.saetze; s++){
-      if(u.modus === "zeit"){
-        // Vorbereitungs-Countdown: Zeit, um in Position zu gehen, bevor die Uhr läuft.
-        schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
-          ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
-        schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
-          ansage: zeitAnsage(u.dauer, u.zeitEinheit) + ". Los." });
-      } else {
-        schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
-          ansage: u.name + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
-                  (u.gewicht > 0 ? " mit " + u.gewicht + " Kilo" : "") });
-      }
-      const ende = (ui === plan.uebungen.length - 1) && (s === u.saetze);
-      if(!ende) schritte.push({ typ:"pause", uebungIndex:ui, sekunden:u.pause });
+  const bloecke = superBloecke(plan.uebungen);
+  bloecke.forEach((block, bi) => {
+    // v135: Erst die Rampen ALLER Partner, dann die Arbeitssätze. Die Aufwärmsätze
+    // tragen `rampe:true` — sie werden NICHT protokolliert (kein Volumen, kein Rekord).
+    block.forEach(ui => {
+      const u = plan.uebungen[ui];
+      aufwaermSaetze(u, u.rampe).forEach((a, i) => {
+        schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:i+1, rampe:true, rampeWert:a,
+          ansage: "Aufwärmsatz " + (i+1) + ": " + u.name + ", " + a.wdh + " Wiederholungen mit " + a.gewicht + " Kilo" });
+        schritte.push({ typ:"pause", uebungIndex:ui, sekunden: Math.max(30, Math.round((u.pause || 60) / 2)) });
+      });
+    });
+    // v136: Ein Block ist entweder EINE Übung oder ein Superatz (mehrere Partner).
+    // Im Superatz läuft je Runde ein Satz jeder Übung OHNE Pause dazwischen —
+    // genau das macht ihn aus; die Pause kommt erst nach der Runde.
+    const maxSaetze = Math.max(...block.map(ui => plan.uebungen[ui].saetze));
+    for(let s = 1; s <= maxSaetze; s++){
+      const dranInRunde = block.filter(ui => s <= plan.uebungen[ui].saetze);   // Partner mit weniger Sätzen steigen aus
+      dranInRunde.forEach((ui, k) => {
+        const u = plan.uebungen[ui];
+        const partner = dranInRunde.length > 1 ? " (Superatz " + (k+1) + " von " + dranInRunde.length + ")" : "";
+        if(u.modus === "zeit"){
+          // Vorbereitungs-Countdown: Zeit, um in Position zu gehen, bevor die Uhr läuft.
+          schritte.push({ typ:"bereit", uebungIndex:ui, satz:s, sekunden:VORBEREITUNG_S,
+            ansage: "Bereitmachen für " + u.name + ", Satz " + s + " von " + u.saetze + ". " + VORBEREITUNG_S + " Sekunden." });
+          schritte.push({ typ:"satz-zeit", uebungIndex:ui, satz:s, sekunden:u.dauer,
+            ansage: zeitAnsage(u.dauer, u.zeitEinheit) + ". Los." });
+        } else {
+          schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:s,
+            ansage: u.name + partner + ", Satz " + s + " von " + u.saetze + ", " + u.wdh + " Wiederholungen" +
+                    (u.gewicht > 0 ? " mit " + u.gewicht + " Kilo" : "") });
+        }
+        const letzterPartner = k === dranInRunde.length - 1;
+        const ende = (bi === bloecke.length - 1) && (s === maxSaetze) && letzterPartner;
+        // Zwischen den Partnern KEINE Pause — nach der Runde die des zuletzt Geübten.
+        if(letzterPartner && !ende) schritte.push({ typ:"pause", uebungIndex:ui, sekunden:u.pause });
+      });
     }
   });
   return schritte;
@@ -10050,6 +10347,9 @@ function istNeuerRekord(satz, vorherigeSaetze, historienBest){
 }
 
 function satzProtokollieren(schritt, istSekunden){
+  // v135: Aufwärmsätze zählen nicht — sie sind Vorbereitung, kein Trainingsreiz.
+  // Sonst verwässerten sie Volumen, Bestwerte und die Rekord-Meldung.
+  if(schritt && schritt.rampe) return;
   const u = lauf.plan.uebungen[schritt.uebungIndex];
   const eintrag = { uebungId: u.id, name: u.name, modus: u.modus, satz: schritt.satz, note: null };
   if(u.modus === "zeit") eintrag.dauer = istSekunden;
@@ -10121,12 +10421,16 @@ function schrittBetreten(){
   document.getElementById("uhr-letztes").textContent = s.typ === "pause" ? "" : letztesMalText(u);
 
   if(s.typ === "satz-wdh"){
-    phase.textContent = "Satz " + s.satz + " von " + u.saetze;
+    // v135: Ein Aufwärmsatz zeigt SEINE Werte (leichter, weniger Wdh) und sagt
+    // klar, dass er einer ist — sonst hielte man ihn für den ersten Arbeitssatz.
+    const r = s.rampe ? s.rampeWert : null;
+    phase.textContent = r ? "Aufwärmsatz " + s.satz : "Satz " + s.satz + " von " + u.saetze;
     phase.classList.remove("pause");
-    lauf.istWdh = u.wdh;                          // E2: Ist-Wdh, per +/- anpassbar
+    lauf.istWdh = r ? r.wdh : u.wdh;              // E2: Ist-Wdh, per +/- anpassbar
     zahl.textContent = lauf.istWdh;
     zahl.className = "uhr-zahl";
-    label.textContent = "WIEDERHOLUNGEN" + (u.gewicht > 0 ? "  ·  " + u.gewicht + " KG" : "");
+    const gew = r ? r.gewicht : u.gewicht;
+    label.textContent = "WIEDERHOLUNGEN" + (gew > 0 ? "  ·  " + gew + " KG" : "");
     knopf.textContent = "Satz fertig";
     plus.disabled  = false; plus.textContent  = "+1"; plus.onclick  = () => wdhAendern(1);
     minus.disabled = false; minus.textContent = "−1"; minus.onclick = () => wdhAendern(-1);
@@ -10359,7 +10663,9 @@ function bisherigerRekord(uebungId, modus){
 /** Zeigt "REKORD", wenn der anstehende Satz alles bisherige übertrifft. */
 function rekordPruefen(schritt){
   const anzeige = document.getElementById("uhr-rekord");
-  if(!schritt || (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
+  // v135: Auf einem Aufwärmsatz nie „Rekord" versprechen — er trägt bewusst
+  // weniger Gewicht, verglichen würden aber die Arbeitswerte.
+  if(!schritt || schritt.rampe || (schritt.typ !== "satz-wdh" && schritt.typ !== "satz-zeit")){ anzeige.hidden = true; return; }
   const u = lauf.plan.uebungen[schritt.uebungIndex];
   const best = bisherigerRekord(u.id, u.modus);
   const jetzt = u.modus === "zeit" ? u.dauer : u.wdh * (u.gewicht > 0 ? u.gewicht : 1);
@@ -10400,6 +10706,7 @@ function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene", "view-ziele":"nav-start",
                      "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-muskeln":"nav-statistik",
                      "view-kalender":"nav-statistik", "view-gewicht":"nav-statistik",
+                     "view-koerpermasse":"nav-statistik",   // v134
                      "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",
                      "view-sport-ort":"nav-einst", "view-sport-geraete":"nav-einst",
