@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.145
+
+- Die Sportarten haben jetzt einen richtigen Übungs-Katalog: aus 39 Drills sind
+  81 geworden, jede Sportart bringt mindestens sechs mit. Neu dabei ist überall
+  die ruhige lange Einheit, die bisher fehlte — der Dauerlauf, die
+  Grundlagenfahrt, der Marsch mit Rucksack, die lockeren Bahnen. Dazu kommen
+  echte Technik-Bausteine wie Wasserlage, Einbeiniges Treten, Hüfte eindrehen,
+  Volley am Netz oder der Herabschauende Hund. Und die Liste unter der Sportart
+  zeigt zu jedem Drill die Muskel-Figur und einen kurzen Ausführungs-Tipp — so
+  wie es die Kraft-Bibliothek längst tut.
+
 ## 0.144
 
 - Jede Sportart steigert jetzt das, was bei ihr wirklich Fortschritt ist. Bisher

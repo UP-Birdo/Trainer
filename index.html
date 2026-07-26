@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 144;
+const APP_VERSION = 145;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.145", punkte:[
+    "Die Sportarten haben jetzt einen richtigen Übungs-Katalog: aus 39 Drills sind 81 geworden, jede Sportart bringt mindestens sechs mit. Neu dabei ist überall die ruhige lange Einheit, die bisher fehlte — der Dauerlauf, die Grundlagenfahrt, der Marsch mit Rucksack, die lockeren Bahnen. Dazu kommen echte Technik-Bausteine wie Wasserlage, Einbeiniges Treten, Hüfte eindrehen, Volley am Netz oder der Herabschauende Hund. Und die Liste unter der Sportart zeigt zu jedem Drill die Muskel-Figur und einen kurzen Ausführungs-Tipp — so wie es die Kraft-Bibliothek längst tut."
+  ]},
   { stand:"0.144", punkte:[
     "Jede Sportart steigert jetzt das, was bei ihr wirklich Fortschritt ist. Bisher hob die App nach einer zu leichten Einheit überall pauschal Zeit und Strecke an — beim Klettern hieß das: länger in der Halle stehen. Neu: Ausdauer steigert Strecke und Zeit gemeinsam (das Tempo bleibt), Spielsportarten nur die Spielzeit und langsamer, Kampfsport die Runden, Yoga Haltezeit und Winkel, Klettern ausschließlich den Schwierigkeitsgrad. Die Frage nach der Einheit sagt dir außerdem genau, was sie anheben wird — und sie kommt nur noch, wenn es an deinem Plan überhaupt etwas zu heben gibt."
   ]},
@@ -7315,70 +7318,229 @@ function uebungMuskeln(name){
    modus/saetze/wdh|dauer wie bei Kraftübungen, nur OHNE Gewicht — Sport-Drills
    laufen über Wiederholungen oder Zeit. Das Feld art wandert in die Plan-Übung
    und trägt die spätere Fortschritts-Strategie (0.044): Technik steigert man
-   anders als Kondition. Sportart für Sportart erweiterbar (Inhalt = 0.041+). */
+   anders als Kondition. Sportart für Sportart erweiterbar (Inhalt = 0.041+).
+
+   v145 (Nicht-Kraft, Etappe 5b): Katalog von 39 auf 81 Drills ausgebaut. Je
+   Sportart gehören jetzt drei Bausteine dazu, damit ein Plan ohne Verein und
+   ohne Trainer trägt:
+     TECHNIK    die Fertigkeit selbst (Topspin, Wasserlage, Hüfte eindrehen),
+     KONDITION  die passende Athletik (Intervalle, Footwork),
+     GRUNDLAGE  die ruhige lange Einheit, auf der beides aufbaut — sie fehlte
+                bisher komplett, obwohl sie in jeder Ausdauer-Sportart den
+                größten Teil des Trainings ausmacht.
+   Kurz-Tipp je Drill in SPORT_INFO, Muskeln in SPORT_MUSKELN. */
 const SPORT_UEBUNGEN = {
   laufen: [
     { name:"Lauf-ABC (Skippings, Anfersen)",  art:"technik",   modus:"zeit", saetze:3, dauer:30 },
     { name:"Steigerungsläufe",                art:"technik",   modus:"zeit", saetze:4, dauer:20 },
+    { name:"Trittfrequenz (Kadenz halten)",   art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"Hopserlauf (Fußgelenkskraft)",    art:"technik",   modus:"zeit", saetze:3, dauer:30 },
     { name:"Intervall-Läufe (hart/locker)",   art:"kondition", modus:"zeit", saetze:5, dauer:60 },
-    { name:"Bergsprints",                     art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+    { name:"Bergsprints",                     art:"kondition", modus:"zeit", saetze:6, dauer:20 },
+    { name:"Tempodauerlauf (Schwelle)",       art:"kondition", modus:"zeit", saetze:2, dauer:600 },
+    { name:"Ruhiger Dauerlauf (Grundlage)",   art:"kondition", modus:"zeit", saetze:1, dauer:1800 }
   ],
   radfahren: [
     { name:"Trittfrequenz-Drill (hohe Kadenz)", art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"Einbeiniges Treten",                art:"technik",   modus:"zeit", saetze:4, dauer:45 },
+    { name:"Wiegetritt am Berg",                art:"technik",   modus:"zeit", saetze:3, dauer:60 },
     { name:"Berg-Intervalle",                   art:"kondition", modus:"zeit", saetze:4, dauer:120 },
-    { name:"Sprint-Intervalle",                 art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+    { name:"Sprint-Intervalle",                 art:"kondition", modus:"zeit", saetze:6, dauer:20 },
+    { name:"Tempodauerfahrt (Schwelle)",        art:"kondition", modus:"zeit", saetze:2, dauer:600 },
+    { name:"Grundlagenfahrt (ruhig)",           art:"kondition", modus:"zeit", saetze:1, dauer:2700 }
   ],
   wandern: [
+    { name:"Balance auf unebenem Grund",        art:"technik",   modus:"zeit", saetze:3, dauer:45 },
+    { name:"Bergab-Technik (kurze Schritte)",   art:"technik",   modus:"zeit", saetze:4, dauer:120 },
     { name:"Bergauf-Intervalle",                art:"kondition", modus:"zeit", saetze:4, dauer:120 },
     { name:"Ausfallschritte (Trittsicherheit)", art:"kondition", modus:"wdh",  saetze:3, wdh:12 },
-    { name:"Balance auf unebenem Grund",        art:"technik",   modus:"zeit", saetze:3, dauer:45 }
+    { name:"Treppen-Intervalle",                art:"kondition", modus:"zeit", saetze:5, dauer:90 },
+    { name:"Marsch mit Rucksack (Grundlage)",   art:"kondition", modus:"zeit", saetze:1, dauer:3600 }
   ],
   schwimmen: [
-    { name:"Beinschlag mit Brett",  art:"technik",   modus:"zeit", saetze:4, dauer:45 },
-    { name:"Einarm-Kraul-Drill",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
-    { name:"Sprint-Bahnen",         art:"kondition", modus:"zeit", saetze:6, dauer:30 }
+    { name:"Beinschlag mit Brett",       art:"technik",   modus:"zeit", saetze:4, dauer:45 },
+    { name:"Einarm-Kraul-Drill",         art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Wasserlage (Streamline)",    art:"technik",   modus:"zeit", saetze:4, dauer:20 },
+    { name:"Armzug mit Pull-Buoy",       art:"technik",   modus:"zeit", saetze:4, dauer:60 },
+    { name:"Atem-Rhythmus (3er-Zug)",    art:"technik",   modus:"zeit", saetze:4, dauer:60 },
+    { name:"Sprint-Bahnen",              art:"kondition", modus:"zeit", saetze:6, dauer:30 },
+    { name:"Lockere Dauerbahnen",        art:"kondition", modus:"zeit", saetze:1, dauer:900 }
   ],
   rudern: [
     { name:"Ruderschlag-Technik (Beine-Rumpf-Arme)", art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"Nur-Arme-Ziehen (Technik)",              art:"technik",   modus:"zeit", saetze:3, dauer:45 },
     { name:"500-m-Intervalle",                       art:"kondition", modus:"zeit", saetze:4, dauer:120 },
-    { name:"Kraftausdauer (niedrige Schlagzahl)",    art:"kondition", modus:"zeit", saetze:3, dauer:180 }
+    { name:"Pyramiden-Intervalle",                   art:"kondition", modus:"zeit", saetze:5, dauer:90 },
+    { name:"Kraftausdauer (niedrige Schlagzahl)",    art:"kondition", modus:"zeit", saetze:3, dauer:180 },
+    { name:"Lockeres Dauerrudern (Grundlage)",       art:"kondition", modus:"zeit", saetze:1, dauer:1200 }
   ],
   klettern: [
-    { name:"Fingerhang am Board",           art:"kondition", modus:"zeit", saetze:5, dauer:10 },
-    { name:"Klimmzüge",                     art:"kondition", modus:"wdh",  saetze:4, wdh:8 },
-    { name:"Fußtechnik-Drill (leise Füße)", art:"technik",   modus:"zeit", saetze:3, dauer:120 },
-    { name:"Core / Beinheben",              art:"kondition", modus:"wdh",  saetze:3, wdh:12 }
+    { name:"Fußtechnik-Drill (leise Füße)",    art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Hüfte eindrehen (Eindrehtechnik)", art:"technik",   modus:"zeit", saetze:4, dauer:90 },
+    { name:"Antritt / Deadpoint",              art:"technik",   modus:"wdh",  saetze:5, wdh:4 },
+    { name:"Fingerhang am Board",              art:"kondition", modus:"zeit", saetze:5, dauer:10 },
+    { name:"Klimmzüge",                        art:"kondition", modus:"wdh",  saetze:4, wdh:8 },
+    { name:"Core / Beinheben",                 art:"kondition", modus:"wdh",  saetze:3, wdh:12 },
+    { name:"Boulder im Grenzbereich",          art:"kondition", modus:"zeit", saetze:6, dauer:60 },
+    { name:"Ausdauer-Runden (leichte Route)",  art:"kondition", modus:"zeit", saetze:4, dauer:300 }
   ],
   tischtennis: [
-    { name:"Vorhand-Topspin (Übungskorb)", art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
-    { name:"Rückhand-Konter",              art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
-    { name:"Beinarbeit / Footwork",        art:"kondition", modus:"zeit", saetze:3, dauer:60 },
-    { name:"Aufschlag-Training",           art:"technik",   modus:"wdh",  saetze:3, wdh:15 }
+    { name:"Vorhand-Topspin (Übungskorb)",   art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Rückhand-Konter",                art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Vorhand/Rückhand im Wechsel",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Schupf-Sicherheit (Unterschnitt)", art:"technik", modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Aufschlag-Training",             art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Aufschlag und dritter Ball",     art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Beinarbeit / Footwork",          art:"kondition", modus:"zeit", saetze:3, dauer:60 },
+    { name:"Balleimer-Kondition",            art:"kondition", modus:"zeit", saetze:4, dauer:45 }
   ],
   tennis: [
     { name:"Vorhand cross (Korbübung)",     art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Rückhand cross (Korbübung)",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Volley am Netz",                art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
     { name:"Aufschlag-Training",            art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Return-Training",               art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
     { name:"Split-Step / Footwork",         art:"kondition", modus:"zeit", saetze:3, dauer:30 },
-    { name:"Shuttle-Sprints (Platzlinien)", art:"kondition", modus:"zeit", saetze:6, dauer:25 }
+    { name:"Shuttle-Sprints (Platzlinien)", art:"kondition", modus:"zeit", saetze:6, dauer:25 },
+    { name:"Cross-Longline-Wechsel",        art:"kondition", modus:"zeit", saetze:4, dauer:60 }
   ],
   kampfsport: [
-    { name:"Schattenboxen",                art:"technik",   modus:"zeit", saetze:3, dauer:120 },
-    { name:"Sacktraining (Kombinationen)", art:"kondition", modus:"zeit", saetze:4, dauer:90 },
-    { name:"Kick-Technik (beidseitig)",    art:"technik",   modus:"wdh",  saetze:3, wdh:20 }
+    { name:"Schattenboxen",                    art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Kick-Technik (beidseitig)",        art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Pratzentraining (mit Partner)",    art:"technik",   modus:"zeit", saetze:4, dauer:120 },
+    { name:"Beinarbeit und Distanz",           art:"technik",   modus:"zeit", saetze:3, dauer:90 },
+    { name:"Verteidigung (Blocks, Ausweichen)",art:"technik",   modus:"zeit", saetze:3, dauer:90 },
+    { name:"Sacktraining (Kombinationen)",     art:"kondition", modus:"zeit", saetze:4, dauer:90 },
+    { name:"Seilspringen (Kondition)",         art:"kondition", modus:"zeit", saetze:3, dauer:180 }
   ],
   fussball: [
     { name:"Dribbling-Parcours",            art:"technik",   modus:"zeit", saetze:4, dauer:60 },
     { name:"Passgenauigkeit (an die Wand)", art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Ballan- und -mitnahme",         art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
     { name:"Torschuss-Training",            art:"technik",   modus:"wdh",  saetze:3, wdh:10 },
-    { name:"Sprint-Intervalle",             art:"kondition", modus:"zeit", saetze:6, dauer:20 }
+    { name:"Flanken (beidfüßig)",           art:"technik",   modus:"wdh",  saetze:3, wdh:10 },
+    { name:"Kopfball-Training",             art:"technik",   modus:"wdh",  saetze:3, wdh:12 },
+    { name:"Sprint-Intervalle",             art:"kondition", modus:"zeit", saetze:6, dauer:20 },
+    { name:"1 gegen 1 (Dribbling)",         art:"kondition", modus:"zeit", saetze:4, dauer:60 }
   ],
   yoga: [
-    { name:"Sonnengruß (Flow)",         art:"technik",   modus:"zeit", saetze:3, dauer:180 },
-    { name:"Krieger-Sequenz",           art:"technik",   modus:"zeit", saetze:3, dauer:120 },
-    { name:"Balance-Halten (Baum)",     art:"technik",   modus:"zeit", saetze:3, dauer:45 },
-    { name:"Tiefe Vorbeuge (Dehnung)",  art:"kondition", modus:"zeit", saetze:3, dauer:60 }
+    { name:"Sonnengruß (Flow)",              art:"technik",   modus:"zeit", saetze:3, dauer:180 },
+    { name:"Krieger-Sequenz",                art:"technik",   modus:"zeit", saetze:3, dauer:120 },
+    { name:"Balance-Halten (Baum)",          art:"technik",   modus:"zeit", saetze:3, dauer:45 },
+    { name:"Herabschauender Hund (Halten)",  art:"technik",   modus:"zeit", saetze:3, dauer:60 },
+    { name:"Hüftöffner (Taube)",             art:"technik",   modus:"zeit", saetze:2, dauer:90 },
+    { name:"Drehsitz (Wirbelsäule)",         art:"technik",   modus:"zeit", saetze:2, dauer:60 },
+    { name:"Atemübung (Pranayama)",          art:"technik",   modus:"zeit", saetze:1, dauer:300 },
+    { name:"Tiefe Vorbeuge (Dehnung)",       art:"kondition", modus:"zeit", saetze:3, dauer:60 }
   ]
 };
+
+/* v145: Kurz-Tipp je DRILL — das Gegenstück zu UEBUNG_INFO bei den Kraftübungen.
+   Eine Zeile, im Training lesbar. Der Schlüssel ist der Drill-Name; gleiche Namen
+   in mehreren Sportarten teilen sich bewusst einen Tipp (Sprint-Intervalle sind
+   auf dem Rad wie auf dem Platz dieselbe Sache). Vollständig: JEDER Drill hat
+   einen Tipp, `test145` lässt keine Lücke durch. */
+const SPORT_INFO = {
+  // -- Laufen --
+  "Lauf-ABC (Skippings, Anfersen)":"Kurze Bodenkontakte, aufrechter Oberkörper, Bewegung aus dem Fußgelenk.",
+  "Steigerungsläufe":"Locker anlaufen, gleichmäßig bis fast Vollgas steigern, sauber auslaufen.",
+  "Trittfrequenz (Kadenz halten)":"Kleine, schnelle Schritte statt langer — etwa 180 Schritte je Minute.",
+  "Hopserlauf (Fußgelenkskraft)":"Betont hoch abdrücken, weich landen, Arme mitschwingen.",
+  "Intervall-Läufe (hart/locker)":"Im harten Teil wirklich hart, im lockeren wirklich locker.",
+  "Bergsprints":"Kurz und steil, voller Einsatz bergauf, gehend zurück.",
+  "Tempodauerlauf (Schwelle)":"Zügig, aber kontrolliert — Sprechen geht nur noch in kurzen Sätzen.",
+  "Ruhiger Dauerlauf (Grundlage)":"So langsam, dass Reden möglich bleibt. Der größte Teil des Trainings.",
+  // -- Radfahren --
+  "Trittfrequenz-Drill (hohe Kadenz)":"Kleiner Gang, hohe Kadenz, Oberkörper ruhig, kein Wippen im Sattel.",
+  "Einbeiniges Treten":"Ein Bein aushängen, rund treten ohne toten Punkt, dann wechseln.",
+  "Wiegetritt am Berg":"Aus dem Sattel, Rad ruhig unter dem Körper, gleichmäßiger Rhythmus.",
+  "Berg-Intervalle":"Gleichmäßig hart bergauf, locker zurückrollen.",
+  "Sprint-Intervalle":"Kurz und maximal, danach echte Erholung.",
+  "Tempodauerfahrt (Schwelle)":"Zügig und gleichmäßig, Kadenz halten, nicht überziehen.",
+  "Grundlagenfahrt (ruhig)":"Ruhiges Tempo über lange Zeit — die Basis für alles andere.",
+  // -- Wandern --
+  "Balance auf unebenem Grund":"Bewusst über Wurzeln und Steine gehen, Blick voraus statt auf die Füße.",
+  "Bergab-Technik (kurze Schritte)":"Kleine Schritte, Knie weich, Gewicht mittig — nicht bremsen und rutschen.",
+  "Bergauf-Intervalle":"Gleichmäßig steil hoch, Atmung an den Schritt koppeln.",
+  "Ausfallschritte (Trittsicherheit)":"Großer Schritt, hinteres Knie tief, Oberkörper aufrecht.",
+  "Treppen-Intervalle":"Ganzen Fuß aufsetzen, über die Ferse drücken, ruhig zurückgehen.",
+  "Marsch mit Rucksack (Grundlage)":"Gewicht dicht am Rücken, gleichmäßiges Tempo, früh trinken.",
+  // -- Schwimmen --
+  "Beinschlag mit Brett":"Aus der Hüfte schlagen, Beine lang, Füße locker.",
+  "Einarm-Kraul-Drill":"Ein Arm führt, der andere ruht vorn — die ganze Länge nutzen.",
+  "Wasserlage (Streamline)":"Nach dem Abstoß lang machen, Arme am Kopf, Körper wie ein Pfeil.",
+  "Armzug mit Pull-Buoy":"Beine ruhig, nur der Armzug arbeitet, Hand vorn lang lassen.",
+  "Atem-Rhythmus (3er-Zug)":"Alle drei Züge atmen, beide Seiten — der Kopf bleibt tief.",
+  "Sprint-Bahnen":"Kurze Bahnen maximal, dazwischen wirklich ausruhen.",
+  "Lockere Dauerbahnen":"Gleichmäßig, ruhig atmen, auf saubere Züge achten.",
+  // -- Rudern --
+  "Ruderschlag-Technik (Beine-Rumpf-Arme)":"Reihenfolge halten: erst Beine, dann Rumpf, zuletzt Arme.",
+  "Nur-Arme-Ziehen (Technik)":"Beine still, nur die Arme ziehen — schult das Ende des Schlags.",
+  "500-m-Intervalle":"Gleichmäßiges Tempo über die ganze Distanz, nicht zu schnell starten.",
+  "Pyramiden-Intervalle":"Die Intervalle werden länger und wieder kürzer, das Tempo bleibt gleich.",
+  "Kraftausdauer (niedrige Schlagzahl)":"Wenige, kräftige Schläge — der Druck kommt aus den Beinen.",
+  "Lockeres Dauerrudern (Grundlage)":"Ruhige Schlagzahl, saubere Technik, lange Strecke.",
+  // -- Klettern --
+  "Fußtechnik-Drill (leise Füße)":"Den Fuß bewusst setzen, kein Nachrutschen — leise ist sauber.",
+  "Hüfte eindrehen (Eindrehtechnik)":"Hüfte zur Wand drehen, die Außenkante des Fußes belasten.",
+  "Antritt / Deadpoint":"Aus der Bewegung zum Griff und im höchsten Punkt zupacken.",
+  "Fingerhang am Board":"Schultern aktiv nach unten, kurze Hänge, lange Pausen.",
+  "Core / Beinheben":"Becken leicht einrollen, nicht pendeln.",
+  "Boulder im Grenzbereich":"Wenige maximale Versuche mit langer Pause — Qualität vor Menge.",
+  "Ausdauer-Runden (leichte Route)":"Leichte Route mehrfach hintereinander, ruhig atmen, Arme locker.",
+  // -- Tischtennis --
+  "Vorhand-Topspin (Übungskorb)":"Aus den Beinen beschleunigen, der Schläger streift den Ball von unten.",
+  "Rückhand-Konter":"Kurz vor dem Körper abnehmen, Handgelenk stabil.",
+  "Vorhand/Rückhand im Wechsel":"Zwischen den Schlägen die Füße stellen, nicht nur den Arm drehen.",
+  "Schupf-Sicherheit (Unterschnitt)":"Flach über das Netz, Schläger offen, den Ball früh nehmen.",
+  "Aufschlag-Training":"Immer dieselbe Wurfhöhe, ein Ziel auf dem Tisch markieren.",
+  "Aufschlag und dritter Ball":"Aufschlag und den geplanten dritten Ball als eine Einheit üben.",
+  "Beinarbeit / Footwork":"Kleine Schritte, Gewicht auf den Ballen, nie mit gekreuzten Beinen.",
+  "Balleimer-Kondition":"Hohes Tempo über die volle Zeit — die Technik darf dabei nicht zerfallen.",
+  // -- Tennis --
+  "Vorhand cross (Korbübung)":"Früh am Ball, Treffpunkt vor dem Körper, hoch ausschwingen.",
+  "Rückhand cross (Korbübung)":"Schulter zum Netz drehen und aus der Drehung schlagen.",
+  "Volley am Netz":"Kurzer Block statt Schwung, Schlägerkopf über der Hand.",
+  "Return-Training":"Split-Step im Moment des Aufschlags, kurz und früh zurückspielen.",
+  "Split-Step / Footwork":"Kleiner Hüpfer genau dann, wenn der Gegner trifft.",
+  "Shuttle-Sprints (Platzlinien)":"Linie berühren, sauber abbremsen, sofort wieder los.",
+  "Cross-Longline-Wechsel":"Abwechselnd cross und longline — die Beine bestimmen den Schlag.",
+  // -- Kampfsport --
+  "Schattenboxen":"Den Gegner vorstellen, Deckung oben, die Bewegung nie stoppen.",
+  "Kick-Technik (beidseitig)":"Standbein drehen, Hüfte mitnehmen, Deckung bleibt oben.",
+  "Pratzentraining (mit Partner)":"Auf Ansage schlagen, sauber statt hart, sofort zurück in die Deckung.",
+  "Beinarbeit und Distanz":"Distanz halten und brechen, die Füße bleiben unter dem Körper.",
+  "Verteidigung (Blocks, Ausweichen)":"Klein machen, Kopf aus der Linie, Blick am Gegner.",
+  "Sacktraining (Kombinationen)":"Feste Kombinationen, sauber ausatmen, Handgelenke gerade.",
+  "Seilspringen (Kondition)":"Aus den Handgelenken, kleine Sprünge, gleichmäßiger Rhythmus.",
+  // -- Fußball --
+  "Dribbling-Parcours":"Ball eng am Fuß, Blick hoch, das Tempo erst am Ende steigern.",
+  "Passgenauigkeit (an die Wand)":"Innenseite, Standbein neben den Ball, ein Ziel markieren.",
+  "Ballan- und -mitnahme":"Den Ball mit dem ersten Kontakt dorthin mitnehmen, wo du hinwillst.",
+  "Torschuss-Training":"Standbein neben den Ball, Spann treffen, Körper über dem Ball.",
+  "Flanken (beidfüßig)":"Vor dem Schlag aufblicken, beide Seiten gleich oft üben.",
+  "Kopfball-Training":"Aus dem Rumpf, Augen auf, mit der Stirn treffen.",
+  "1 gegen 1 (Dribbling)":"Tempowechsel und Körpertäuschung, dann am Gegner vorbei.",
+  // -- Yoga --
+  "Sonnengruß (Flow)":"Bewegung und Atem koppeln — eine Bewegung, ein Atemzug.",
+  "Krieger-Sequenz":"Vorderes Knie über dem Fuß, Becken gerade, Schultern tief.",
+  "Balance-Halten (Baum)":"Blick auf einen festen Punkt, den Fuß nicht aufs Knie setzen.",
+  "Herabschauender Hund (Halten)":"Gesäß hoch, Rücken lang — die Fersen dürfen den Boden verfehlen.",
+  "Hüftöffner (Taube)":"Langsam hineinsinken, ruhig atmen, beide Seiten gleich lang.",
+  "Drehsitz (Wirbelsäule)":"Erst aufrichten, dann drehen — nie andersherum.",
+  "Atemübung (Pranayama)":"Ruhig durch die Nase, Ausatmen länger als Einatmen.",
+  "Tiefe Vorbeuge (Dehnung)":"Knie leicht gebeugt, aus der Hüfte falten, nicht wippen.",
+  // Drills, die schon als Kraftübung geführt werden, erben ihren Tipp von dort:
+  "Klimmzüge": null
+};
+
+/** Kurz-Tipp zu einem Drill ODER einer Kraftübung — eine Quelle für beide
+    Welten, damit die Anzeige nicht zwei Tabellen kennen muss. `null` in
+    SPORT_INFO heißt bewusst „nimm den Kraft-Tipp". */
+function drillTipp(name){
+  if(!name) return "";
+  return SPORT_INFO[name] || UEBUNG_INFO[name] || "";
+}
 
 /* ============================================================
    v140: Muskel-Zuordnung für die SPORTART-DRILLS.
@@ -7395,51 +7557,91 @@ const SPORT_MUSKELN = {
   // -- Laufen --
   "Lauf-ABC (Skippings, Anfersen)": { p:["quadriceps","calves"],            s:["hamstrings","abs","tibialis"] },
   "Steigerungsläufe":               { p:["quadriceps","hamstrings"],        s:["glutes","calves"] },
+  "Trittfrequenz (Kadenz halten)":  { p:["calves","quadriceps"],            s:["hamstrings","tibialis"] },
+  "Hopserlauf (Fußgelenkskraft)":   { p:["calves","tibialis"],              s:["quadriceps","glutes"] },
   "Intervall-Läufe (hart/locker)":  { p:["quadriceps","hamstrings","calves"], s:["glutes","abs"] },
   "Bergsprints":                    { p:["glutes","quadriceps"],            s:["calves","hamstrings","abs"] },
+  "Tempodauerlauf (Schwelle)":      { p:["quadriceps","hamstrings"],        s:["calves","glutes","abs"] },
+  "Ruhiger Dauerlauf (Grundlage)":  { p:["quadriceps","calves"],            s:["hamstrings","glutes"] },
   // -- Radfahren --
   "Trittfrequenz-Drill (hohe Kadenz)": { p:["quadriceps"],                  s:["calves","hamstrings"] },
+  "Einbeiniges Treten":                { p:["quadriceps"],                  s:["hamstrings","glutes","tibialis"] },
+  "Wiegetritt am Berg":                { p:["quadriceps","glutes"],         s:["deltoid","abs","calves"] },
   "Berg-Intervalle":                   { p:["quadriceps","glutes"],         s:["hamstrings","calves","lowerback"] },
   "Sprint-Intervalle":                 { p:["quadriceps","glutes"],         s:["hamstrings","calves","abs"] },
+  "Tempodauerfahrt (Schwelle)":        { p:["quadriceps"],                  s:["glutes","hamstrings","calves"] },
+  "Grundlagenfahrt (ruhig)":           { p:["quadriceps"],                  s:["glutes","calves"] },
   // -- Wandern --
+  "Balance auf unebenem Grund":           { p:["tibialis","calves"],        s:["abs","obliques","quadriceps"] },
+  "Bergab-Technik (kurze Schritte)":      { p:["quadriceps"],               s:["tibialis","glutes","abs"] },
   "Bergauf-Intervalle":                   { p:["quadriceps","glutes"],      s:["calves","hamstrings"] },
   "Ausfallschritte (Trittsicherheit)":    { p:["quadriceps","glutes"],      s:["hamstrings","abs"] },
-  "Balance auf unebenem Grund":           { p:["tibialis","calves"],        s:["abs","obliques","quadriceps"] },
+  "Treppen-Intervalle":                   { p:["quadriceps","glutes"],      s:["calves","hamstrings"] },
+  "Marsch mit Rucksack (Grundlage)":      { p:["quadriceps","glutes"],      s:["calves","trapezius","lowerback"] },
   // -- Schwimmen --
-  "Beinschlag mit Brett": { p:["quadriceps","glutes"],                      s:["abs","hamstrings"] },
-  "Einarm-Kraul-Drill":   { p:["latissimus","deltoid"],                     s:["triceps","obliques","infraspinatus"] },
-  "Sprint-Bahnen":        { p:["latissimus","deltoid"],                     s:["triceps","abs","quadriceps"] },
+  "Beinschlag mit Brett":  { p:["quadriceps","glutes"],                     s:["abs","hamstrings"] },
+  "Einarm-Kraul-Drill":    { p:["latissimus","deltoid"],                    s:["triceps","obliques","infraspinatus"] },
+  "Wasserlage (Streamline)": { p:["abs","deltoid"],                         s:["glutes","latissimus"] },
+  "Armzug mit Pull-Buoy":  { p:["latissimus","deltoid"],                    s:["triceps","pectoral","forearm"] },
+  "Sprint-Bahnen":         { p:["latissimus","deltoid"],                    s:["triceps","abs","quadriceps"] },
+  "Lockere Dauerbahnen":   { p:["latissimus","deltoid"],                    s:["triceps","abs"] },
   // -- Rudern --
   "Ruderschlag-Technik (Beine-Rumpf-Arme)": { p:["quadriceps","latissimus"], s:["lowerback","biceps","glutes"] },
+  "Nur-Arme-Ziehen (Technik)":              { p:["latissimus","biceps"],     s:["trapezius","forearm"] },
   "500-m-Intervalle":                       { p:["quadriceps","latissimus"], s:["glutes","lowerback","biceps"] },
+  "Pyramiden-Intervalle":                   { p:["quadriceps","latissimus"], s:["glutes","lowerback","biceps"] },
   "Kraftausdauer (niedrige Schlagzahl)":    { p:["latissimus","quadriceps"], s:["trapezius","lowerback","glutes"] },
+  "Lockeres Dauerrudern (Grundlage)":       { p:["latissimus","quadriceps"], s:["glutes","lowerback"] },
   // -- Klettern --
-  "Fingerhang am Board":           { p:["forearm"],                         s:["latissimus","biceps"] },
-  "Fußtechnik-Drill (leise Füße)": { p:["calves","tibialis"],               s:["abs","quadriceps"] },
-  "Core / Beinheben":              { p:["abs"],                             s:["obliques","forearm"] },
+  "Fußtechnik-Drill (leise Füße)":    { p:["calves","tibialis"],            s:["abs","quadriceps"] },
+  "Hüfte eindrehen (Eindrehtechnik)": { p:["obliques","adductors"],         s:["abs","glutes"] },
+  "Antritt / Deadpoint":              { p:["latissimus","quadriceps"],      s:["forearm","abs","calves"] },
+  "Fingerhang am Board":              { p:["forearm"],                      s:["latissimus","biceps"] },
+  "Core / Beinheben":                 { p:["abs"],                          s:["obliques","forearm"] },
+  "Boulder im Grenzbereich":          { p:["forearm","latissimus"],         s:["biceps","abs","quadriceps"] },
+  "Ausdauer-Runden (leichte Route)":  { p:["forearm","latissimus"],         s:["biceps","calves","abs"] },
   // -- Tischtennis --
-  "Vorhand-Topspin (Übungskorb)": { p:["obliques","deltoid"],               s:["forearm","quadriceps"] },
-  "Rückhand-Konter":              { p:["deltoid","forearm"],                s:["obliques"] },
-  "Beinarbeit / Footwork":        { p:["quadriceps","calves"],              s:["glutes","obliques"] },
+  "Vorhand-Topspin (Übungskorb)":      { p:["obliques","deltoid"],          s:["forearm","quadriceps"] },
+  "Rückhand-Konter":                   { p:["deltoid","forearm"],           s:["obliques"] },
+  "Vorhand/Rückhand im Wechsel":       { p:["obliques","deltoid"],          s:["forearm","quadriceps","calves"] },
+  "Schupf-Sicherheit (Unterschnitt)":  { p:["forearm","deltoid"],           s:["obliques"] },
+  "Beinarbeit / Footwork":             { p:["quadriceps","calves"],         s:["glutes","obliques"] },
+  "Balleimer-Kondition":               { p:["quadriceps","obliques"],       s:["calves","deltoid","glutes"] },
   // -- Tennis --
   "Vorhand cross (Korbübung)":     { p:["obliques","deltoid"],              s:["forearm","quadriceps","pectoral"] },
+  "Rückhand cross (Korbübung)":    { p:["obliques","deltoid"],              s:["forearm","trapezius","quadriceps"] },
+  "Volley am Netz":                { p:["deltoid","forearm"],               s:["quadriceps","abs"] },
+  "Return-Training":               { p:["obliques","quadriceps"],           s:["deltoid","forearm"] },
   "Split-Step / Footwork":         { p:["quadriceps","calves"],             s:["glutes","abs"] },
   "Shuttle-Sprints (Platzlinien)": { p:["quadriceps","calves"],             s:["glutes","hamstrings"] },
+  "Cross-Longline-Wechsel":        { p:["quadriceps","obliques"],           s:["calves","glutes","deltoid"] },
   // -- Kampfsport --
-  "Schattenboxen":                { p:["deltoid","obliques"],               s:["abs","calves","triceps"] },
-  "Sacktraining (Kombinationen)": { p:["deltoid","obliques"],               s:["pectoral","triceps","abs","calves"] },
-  "Kick-Technik (beidseitig)":    { p:["obliques","quadriceps"],            s:["glutes","abs","adductors"] },
+  "Schattenboxen":                     { p:["deltoid","obliques"],          s:["abs","calves","triceps"] },
+  "Kick-Technik (beidseitig)":         { p:["obliques","quadriceps"],       s:["glutes","abs","adductors"] },
+  "Pratzentraining (mit Partner)":     { p:["deltoid","obliques"],          s:["pectoral","triceps","calves"] },
+  "Beinarbeit und Distanz":            { p:["calves","quadriceps"],         s:["glutes","abs"] },
+  "Verteidigung (Blocks, Ausweichen)": { p:["deltoid","obliques"],          s:["abs","calves"] },
+  "Sacktraining (Kombinationen)":      { p:["deltoid","obliques"],          s:["pectoral","triceps","abs","calves"] },
+  "Seilspringen (Kondition)":          { p:["calves"],                      s:["quadriceps","forearm","deltoid"] },
   // -- Fußball --
-  "Dribbling-Parcours":  { p:["quadriceps","calves"],                       s:["adductors","glutes"] },
-  "Torschuss-Training":  { p:["quadriceps","adductors"],                    s:["glutes","obliques"] },
+  "Dribbling-Parcours":     { p:["quadriceps","calves"],                    s:["adductors","glutes"] },
+  "Ballan- und -mitnahme":  { p:["quadriceps","adductors"],                 s:["calves","abs"] },
+  "Torschuss-Training":     { p:["quadriceps","adductors"],                 s:["glutes","obliques"] },
+  "Flanken (beidfüßig)":    { p:["quadriceps","adductors"],                 s:["obliques","glutes"] },
+  "Kopfball-Training":      { p:["neck","abs"],                             s:["quadriceps","calves"] },
+  "1 gegen 1 (Dribbling)":  { p:["quadriceps","calves"],                    s:["adductors","glutes","obliques"] },
   // -- Yoga --
-  "Sonnengruß (Flow)":        { p:["abs","deltoid"],                        s:["hamstrings","quadriceps","lowerback"] },
-  "Krieger-Sequenz":          { p:["quadriceps","glutes"],                  s:["deltoid","abs","adductors"] },
-  "Balance-Halten (Baum)":    { p:["calves","tibialis"],                    s:["glutes","abs","adductors"] },
-  "Tiefe Vorbeuge (Dehnung)": { p:["hamstrings"],                           s:["lowerback","calves"] }
-  /* Ohne Eintrag bleiben bewusst: Aufschlag-Training, Passgenauigkeit,
-     Klimmzüge (steht schon in UEBUNGEN_DB) — reine Technik ohne klaren
-     muskulären Schwerpunkt bzw. schon anderweitig zugeordnet. */
+  "Sonnengruß (Flow)":             { p:["abs","deltoid"],                   s:["hamstrings","quadriceps","lowerback"] },
+  "Krieger-Sequenz":               { p:["quadriceps","glutes"],             s:["deltoid","abs","adductors"] },
+  "Balance-Halten (Baum)":         { p:["calves","tibialis"],               s:["glutes","abs","adductors"] },
+  "Herabschauender Hund (Halten)": { p:["deltoid","hamstrings"],            s:["calves","abs","latissimus"] },
+  "Hüftöffner (Taube)":            { p:["glutes","adductors"],              s:["hamstrings","lowerback"] },
+  "Drehsitz (Wirbelsäule)":        { p:["obliques"],                        s:["lowerback","glutes"] },
+  "Tiefe Vorbeuge (Dehnung)":      { p:["hamstrings"],                      s:["lowerback","calves"] }
+  /* Ohne Eintrag bleiben bewusst: Aufschlag-Training, Aufschlag und dritter
+     Ball, Passgenauigkeit (reine Technik ohne muskulären Schwerpunkt),
+     Atem-Rhythmus und Atemübung (Atmung, kein Muskeltraining) sowie Klimmzüge
+     (steht schon in UEBUNGEN_DB). Raten wäre schlechter als schweigen. */
 };
 
 /** Alle hinterlegten Sportart-Übungen einer Sportart (leer, wenn keine). */
@@ -8645,18 +8847,29 @@ function bibliothekHtml(sportId){
         (offen ? "Zuklappen" : "Ansehen (" + passend.length + ")") + '</button></div>' +
       (offen ? '<div class="abstand">' + gruppenHtml + '</div>' : "") + '</div>';
   }
-  // andere Sportarten: flache Liste ihrer Drills
-  const liste = sportUebungen(sportId).map(v => ({ name:v.name,
-    info: (v.art === "technik" ? "Technik" : "Kondition") + " · " + (v.modus === "zeit" ? "Zeit" : "Wdh") }));
-  if(!liste.length) return "";
+  /* Andere Sportarten: Liste ihrer Drills. v145 — sie zeigt jetzt dasselbe wie
+     die Kraft-Bibliothek: Mini-Figur (Muskeln), Art/Modus und den Kurz-Tipp.
+     Vorher stand hier nur der nackte Name mit „Technik · Zeit"; wer den Plan
+     ohne Verein zusammenstellt, konnte damit nichts anfangen. */
+  const drills = sportUebungen(sportId);
+  if(!drills.length) return "";
   const offen = !!bibOffen[sportId];
+  const zeilen = drills.map(v => {
+    const art = (v.art === "technik" ? "Technik" : "Kondition") + " · " +
+                (v.modus === "zeit" ? "Zeit" : "Wdh");
+    const figur = miniFigurHtml(uebungMuskeln(v.name), "uebung-mini");
+    const tipp = drillTipp(v.name);
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">' +
+      figur +
+      '<div style="flex:1;min-width:0"><strong>' + text(v.name) + '</strong>' +
+      '<div class="meta">' + text(art) + '</div>' +
+      (tipp ? '<div class="meta" style="margin-top:4px">' + text(tipp) + '</div>' : "") +
+      '</div></div>';
+  }).join("");
   return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
     '<button class="schmal" onclick="bibUmschalten(\'' + sportId + '\')">' +
-      (offen ? "Zuklappen" : "Ansehen (" + liste.length + ")") + '</button></div>' +
-    (offen ? '<div class="abstand">' + liste.map(x =>
-      '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
-      '<strong>' + text(x.name) + '</strong><div class="meta">' + text(x.info) + '</div></div>').join("") +
-      '</div>' : "") + '</div>';
+      (offen ? "Zuklappen" : "Ansehen (" + drills.length + ")") + '</button></div>' +
+    (offen ? '<div class="abstand">' + zeilen + '</div>' : "") + '</div>';
 }
 function bibUmschalten(sportId){ bibOffen[sportId] = !bibOffen[sportId]; sportartSeiteZeichnen(); }
 function bibGeraetUmschalten(schluessel){ bibGeraetOffen[schluessel] = !bibGeraetOffen[schluessel]; sportartSeiteZeichnen(); }
@@ -8789,6 +9002,7 @@ function sportartSeiteZeichnen(){
     inhalt.innerHTML =
       (hatPlan ? "" : '<div class="karte"><button class="breit" onclick="sportSetupStarten(\'' + s.id + '\')">Plan anlegen</button></div>') +
       bibliothekHtml(s.id) + eigeneUebungenHtml(s.id);
+    miniFigurenZeichnen("#sportart-inhalt");   // v145: die Drill-Liste hat jetzt Figuren
     return;
   }
 
