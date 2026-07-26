@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 140;
+const APP_VERSION = 141;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.141", punkte:[
+    "Die Übungs-Beschreibungen gehen weiter: Nach den Bein-Übungen haben jetzt auch alle 33 Druck-Übungen ihren Text — Brust, Schulter und Trizeps, vom einfachen Liegestütz bis zum Kabel-Crossover. Jede erklärt in zwei bis drei Sätzen, was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Als Nächstes folgen die Zug-Übungen."
+  ]},
   { stand:"0.140", punkte:[
     "Jetzt haben auch die Nicht-Kraft-Sportarten eine Muskelkarte: Für 34 Drills — vom Topspin über den Sonnengruß bis zu Bergsprints — ist hinterlegt, welche Muskeln sie fordern und welche mitarbeiten. Sie erscheinen damit überall dort mit Figur, wo Kraftübungen schon eine hatten: im Plan-Editor, in der Trainings-Vorschau und in der Muskelkarte deines Plans. Reine Technik ohne klaren Schwerpunkt (etwa Aufschlag-Training) bleibt bewusst ohne Figur — geraten wird nicht."
   ]},
@@ -6975,6 +6978,7 @@ const UEBUNG_INFO = {
    bleibt es beim Kurz-Tipp. Der Test prüft darum keine Vollständigkeit, sondern
    dass jeder Schlüssel eine echte Übung ist (keine Karteileichen durch Tippfehler).
    Etappe 1 (v138): alle Bein-Übungen.
+   Etappe 2 (v141): alle Druck-Übungen (Brust, Schulter, Trizeps).
    ============================================================ */
 const UEBUNG_TEXT = {
   // ---------- Beine ----------
@@ -7017,7 +7021,42 @@ const UEBUNG_TEXT = {
   "Kettlebell-Ausfallschritte":"Ausfallschritte mit der Kettlebell vor der Brust: Das Gewicht vorn hält den Oberkörper aufrecht und fordert den Rumpf zusätzlich. Kugel dicht am Körper, hinteres Knie tief. Häufigster Fehler: die Kugel vom Körper weghalten, dann zieht sie nach vorn.",
   "Wall Balls":"Kniebeuge und Wurf in einem — eine Kraftausdauer-Übung, die schnell außer Atem bringt. Aus der tiefen Beuge nach oben strecken und den Ball an der Wand-Marke fangen. Häufigster Fehler: nur aus den Armen werfen; der Schwung kommt aus den Beinen.",
   "Kniebeugen mit Weste":"Kniebeugen mit Gewichtsweste: Die Last sitzt am Rumpf statt in den Händen, dadurch bleibt die Technik wie beim Körpergewicht. Gleiche Ausführung, nur schwerer. Häufigster Fehler: zu schnell zu viel Gewicht in der Weste — lieber in kleinen Schritten steigern.",
-  "Bank-Step-ups":"Step-ups auf eine Bank: Die feste Höhe macht die Belastung vergleichbar und eignet sich gut zum Steigern. Ganzen Fuß aufsetzen, über die Ferse hochdrücken, kontrolliert absteigen. Häufigster Fehler: zu hohe Bank — dann kippt das Becken und der Rücken rundet."
+  "Bank-Step-ups":"Step-ups auf eine Bank: Die feste Höhe macht die Belastung vergleichbar und eignet sich gut zum Steigern. Ganzen Fuß aufsetzen, über die Ferse hochdrücken, kontrolliert absteigen. Häufigster Fehler: zu hohe Bank — dann kippt das Becken und der Rücken rundet.",
+
+  // ---------- Druck (Brust, Schulter, Trizeps) ----------
+  "Liegestütze":"Die Grundübung fürs Drücken ohne Geräte: Brust, vordere Schulter und Trizeps arbeiten zusammen, und der Rumpf muss nebenbei den Körper gerade halten. Hände etwa schulterbreit unter den Schultern, Körper in einer Linie von Kopf bis Ferse, Brust bis knapp über den Boden. Häufigster Fehler: die Hüfte sackt durch — dann zieht der untere Rücken; lieber die Hände erhöhen und sauber bleiben.",
+  "Pike Push-ups":"Die Vorstufe zum Drücken im Handstand: Durch die hohe Hüfte zeigt der Druck fast senkrecht nach oben und trifft die Schulter statt der Brust. Hüfte hoch, Kopf zwischen den Händen Richtung Boden senken, Ellbogen nach schräg hinten. Häufigster Fehler: die Hüfte sinkt im Laufe des Satzes ab, dann wird daraus ein normaler Liegestütz.",
+  "Enge Liegestütze":"Der enge Griff verlagert die Arbeit von der Brust auf den Trizeps — die günstigste Trizepsübung überhaupt, weil sie gar nichts braucht. Hände unter der Brust, Ellbogen dicht am Körper nach hinten führen. Häufigster Fehler: die Ellbogen wandern nach außen; dann ist es wieder ein normaler Liegestütz.",
+  "Stuhl-Dips":"Trainiert den Trizeps mit dem eigenen Körpergewicht und braucht nur eine feste Kante — der einfachste Einstieg ins Dip-Muster. Hände an der Kante, Gesäß dicht am Stuhl, Ellbogen gerade nach hinten beugen. Häufigster Fehler: zu weit von der Kante weg sitzen; dann zieht die Schulter nach vorn und das Gelenk bekommt die Last.",
+  "Dips am Barren":"Die stärkste Druckübung mit dem eigenen Körpergewicht — vorgelehnt trifft sie mehr die Brust, aufrecht mehr den Trizeps. Schultern tief lassen und kontrolliert etwa bis zum rechten Winkel absenken, ohne unten zu federn. Häufigster Fehler: die Tiefe erzwingen, bis die Schulter vorn abkippt; sie wird über Wochen erarbeitet.",
+  "Erhöhte Liegestütze":"Je höher die Hände liegen, desto weniger Last tragen die Arme — der saubere Weg zum ersten vollen Liegestütz. Ausführung wie am Boden, der Körper bleibt gerade. Häufigster Fehler: zu früh auf den Boden wechseln; erst wenn die volle Wiederholungszahl sauber läuft, wird die Auflage niedriger.",
+  "KH-Bankdrücken":"Bankdrücken mit zwei getrennten Gewichten: Der Weg ist größer als mit der Stange, die Brust wird stärker gedehnt und keine Seite kann sich verstecken. Hanteln über der Brust zusammenführen, unten kurz halten. Häufigster Fehler: die Hanteln oben aneinanderschlagen — kurz vor dem Kontakt stoppen, sonst geht die Spannung verloren.",
+  "KH-Schulterdrücken":"Drücken über Kopf mit Kurzhanteln fordert die Schulter über den vollen Weg und deckt Seitenunterschiede auf. Von Schulterhöhe senkrecht nach oben, Rippen unten lassen, Rumpf fest. Häufigster Fehler: ins Hohlkreuz ausweichen, wenn der Arm nicht weit genug nach oben kommt — dann besser im Sitzen mit Lehne drücken.",
+  "KH-Seitheben":"Die Übung für den mittleren Schulterkopf, der beim Drücken kaum arbeitet — sie macht die Schulter breit. Arme leicht gebeugt seitlich bis Schulterhöhe heben, langsam ablassen. Häufigster Fehler: zu schwere Hanteln mit Schwung; hier wirken schon sehr kleine Gewichte, wenn die Bewegung langsam bleibt.",
+  "KH-Trizepsdrücken":"Isoliert den Trizeps mit dem Gewicht hinter dem Kopf — in dieser Position ist der lange Kopf gedehnt und bekommt den größten Reiz. Oberarm bleibt senkrecht stehen, nur der Unterarm bewegt sich. Häufigster Fehler: der Ellbogen wandert nach vorn oder außen, dann übernimmt die Schulter einen Teil der Arbeit.",
+  "Schrägbankdrücken KH":"Die schräge Bank verlagert den Druck auf die obere Brust und die vordere Schulter — die sinnvolle Ergänzung zum flachen Drücken. Bank auf etwa 30 bis 45 Grad, Hanteln über den Schlüsselbeinen führen. Häufigster Fehler: zu steil eingestellt; ab etwa 60 Grad wird daraus Schulterdrücken.",
+  "LH-Bankdrücken":"Die klassische Brustübung mit der Langhantel: Sie erlaubt das meiste Gewicht und gilt als Maßstab für Druckkraft. Schulterblätter fest zusammen und nach unten, Stange kontrolliert zur unteren Brust, gerade nach oben drücken. Häufigster Fehler: die Stange auf der Brust abfedern — jede Wiederholung wird geführt, auch nach unten.",
+  "LH-Schulterdrücken":"Drücken über Kopf mit der Stange im Stehen ist eine halbe Ganzkörperübung, weil Rumpf und Beine das Gewicht stabilisieren müssen. Stange dicht am Gesicht vorbeiführen, den Kopf oben leicht durchschieben. Häufigster Fehler: das Gewicht nach hinten wegdrücken statt senkrecht nach oben.",
+  "Kettlebell-Drücken":"Die Kugel hängt außen am Unterarm, dadurch fordert dieses Drücken Handgelenk und Schulterstabilität mehr als eine Kurzhantel. Kugel eng am Körper hochdrücken, Handrücken bleibt gerade. Häufigster Fehler: das Handgelenk abknicken lassen; die Kugel muss über dem Unterarm balancieren.",
+  "Brustpresse":"Bankdrücken an der geführten Maschine: Der Rücken liegt an, die Bahn ist vorgegeben — deshalb kann man auch allein sicher bis nahe an die Erschöpfung gehen. Griffe auf Brusthöhe einstellen, gleichmäßig drücken. Häufigster Fehler: die Sitzhöhe nicht anpassen; zu hohe Griffe belasten die Schulter, zu tiefe nur den Trizeps.",
+  "Butterfly":"Isoliert die Brust ohne Beteiligung des Trizeps — hier zählt allein das Zusammenführen der Arme vor dem Körper. Ellbogen leicht gebeugt und auf einer Höhe halten, langsam bis zur spürbaren Dehnung öffnen. Häufigster Fehler: zu weit nach hinten öffnen, wodurch die Schulter nach vorn kippt.",
+  "Schulterpresse Maschine":"Schulterdrücken mit Rückenlehne: die sicherste Art, über Kopf schwer zu arbeiten, weil der untere Rücken nicht ausweichen kann. Sitz so einstellen, dass die Griffe auf Schulterhöhe liegen. Häufigster Fehler: die Arme oben einrasten lassen — kurz vor dem Anschlag stoppen hält die Spannung im Muskel.",
+  "Trizeps am Kabel":"Der Kabelzug hält die Spannung über den ganzen Weg, auch am Ende der Streckung, wo freie Gewichte entlasten. Ellbogen fest am Körper, nur der Unterarm streckt, unten eine Sekunde halten. Häufigster Fehler: mit dem Oberkörper nachdrücken, sobald es schwer wird.",
+  "Smith-Bankdrücken":"Bankdrücken in der Führungsschiene: Die Stange kann nicht kippen, dadurch lässt sich auch ohne Hilfe nahe ans Maximum gehen. Bank so schieben, dass die Stange auf die untere Brust trifft. Häufigster Fehler: die Bank falsch positionieren — die feste Bahn verzeiht keine schlechte Lage.",
+  "Liegestütze mit Weste":"Die Steigerung, wenn der normale Liegestütz zweistellig und sauber läuft: Die Last sitzt am Rumpf, die Technik bleibt unverändert. In kleinen Schritten Gewicht zulegen. Häufigster Fehler: mit der Weste wieder schlampig werden; sobald die Hüfte durchhängt, ist das Gewicht zu hoch.",
+  "Parallettes-Liegestütze":"Die Griffe erlauben, tiefer als der Boden zu sinken — mehr Dehnung für die Brust und ein gerades statt abgeknicktes Handgelenk. Tief zwischen die Griffe absenken, Körper bleibt gerade. Häufigster Fehler: die Tiefe erzwingen, bevor die Schulter dafür beweglich genug ist.",
+  "Parallettes-Dips":"Dips dicht über dem Boden: Sie lassen sich jederzeit mit den Füßen entlasten und sind darum die am besten dosierbare Dip-Variante. Rumpf aufrecht, Schultern tief, kontrolliert absenken. Häufigster Fehler: die Schultern hochziehen lassen, dann klemmt das Gelenk.",
+  "Band-Schulterdrücken":"Drücken über Kopf gegen ein Gummiband: Der Widerstand wächst nach oben an, genau dort, wo die Schulter am stärksten ist. Band unter beide Füße, aus Schulterhöhe senkrecht strecken. Häufigster Fehler: nach vorn statt nach oben drücken; das Band muss dicht am Körper laufen.",
+  "Schlingen-Liegestütze":"Die Griffe hängen frei, deshalb muss der Körper die Bewegung selbst stabilisieren — das trainiert Rumpf und Schultergürtel zusätzlich zur Brust. Je aufrechter man steht, desto leichter; Tempo bewusst langsam. Häufigster Fehler: zu flach einsteigen — erst die Stabilität, dann der Winkel.",
+  "Schräge Brustpresse":"Die geführte Variante des Schrägbankdrückens: Sie trifft die obere Brust und braucht dabei keine Balance. Griffe etwa auf Höhe der Schlüsselbeine einstellen, gleichmäßig drücken. Häufigster Fehler: den Kopf von der Lehne heben, um mehr Kraft zu bekommen.",
+  "Enge Brustpresse":"Der enge Griff verschiebt die Arbeit Richtung Trizeps — nützlich, um nach dem schweren Drücken gezielt nachzulegen. Ellbogen dicht am Körper führen. Häufigster Fehler: dasselbe Gewicht wie beim weiten Griff wählen; eng bedeutet immer leichter.",
+  "Einarmige Schulterpresse":"Einseitiges Drücken deckt Seitenunterschiede auf und fordert den Rumpf gegen die Verdrehung. Freie Hand ruhig halten, Becken bleibt gerade, beide Seiten gleich oft. Häufigster Fehler: sich zur Gegenseite neigen, um Schwung zu holen.",
+  "Kabel-Crossover":"Führt die Arme über die Körpermitte zusammen — der einzige Weg, die Brust ganz am Ende der Bewegung noch zu belasten. Leichte Vorlage, Ellbogen im festen leichten Winkel. Häufigster Fehler: daraus ein Drücken machen, indem die Ellbogen mitstrecken.",
+  "Kabel-Seitheben":"Seitheben am Kabel: Der Zug wirkt schon ganz unten, wo Kurzhanteln noch fast keine Last erzeugen. Kabel von der Gegenseite greifen, seitlich bis Schulterhöhe führen. Häufigster Fehler: zu weit hochziehen — über Schulterhöhe übernimmt der Nacken.",
+  "Smith-Schulterdrücken":"Schulterdrücken in der Schiene: Die feste Bahn nimmt die Balance ab und erlaubt schwere Sätze ohne Hilfe. Sitzposition so wählen, dass die Stange dicht am Gesicht läuft. Häufigster Fehler: zu weit vor der Stange sitzen, dann drückt man nach vorn statt nach oben.",
+  "KH-Fliegende":"Die freie Variante des Butterfly: Sie dehnt die Brust unten stark und braucht deshalb deutlich weniger Gewicht, als man vermutet. Ellbogen im leicht gebeugten Winkel fixieren, kontrolliert öffnen und zusammenführen. Häufigster Fehler: zu schwer wählen und daraus ein Drücken machen.",
+  "Trizeps-Dips an der Bank":"Dips mit den Händen auf einer Bank und den Füßen am Boden — über die Beinstellung lässt sich die Last fein dosieren. Ellbogen gerade nach hinten, Gesäß dicht an der Bank. Häufigster Fehler: die Beine zu weit vorn ablegen und dabei die Schulter überdehnen.",
+  "Negativ-Dips":"Nur die Absenkphase, dafür sehr langsam: der übliche Weg zum ersten sauberen Dip, weil man beim Bremsen mehr Kraft hat als beim Drücken. Oben starten, 3 bis 5 Sekunden absenken, mit den Füßen wieder hochsteigen. Häufigster Fehler: unten die Spannung fallen lassen statt kontrolliert auszusteigen."
 };
 
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl

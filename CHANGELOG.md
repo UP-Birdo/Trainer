@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.141
+
+- Die Übungs-Beschreibungen gehen weiter: Nach den Bein-Übungen haben jetzt auch
+  alle 33 Druck-Übungen ihren Text — Brust, Schulter und Trizeps, vom einfachen
+  Liegestütz bis zum Kabel-Crossover. Jede erklärt in zwei bis drei Sätzen, was
+  sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Als
+  Nächstes folgen die Zug-Übungen.
+
 ## 0.140
 
 - Jetzt haben auch die Nicht-Kraft-Sportarten eine Muskelkarte: Für 34 Drills — vom
