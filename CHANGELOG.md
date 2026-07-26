@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.142
+
+- Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen
+  erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis
+  zu Rack Pulls. Damit haben 104 der 147 Übungen ihren Text. Es fehlen nur noch
+  Rumpf und Ausdauer.
+
 ## 0.141
 
 - Die Übungs-Beschreibungen gehen weiter: Nach den Bein-Übungen haben jetzt auch

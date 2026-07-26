@@ -2253,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 141;
+const APP_VERSION = 142;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4388,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.142", punkte:[
+    "Dritte Etappe der Übungs-Beschreibungen: Jetzt sind auch alle 31 Zug-Übungen erklärt — Rücken, Bizeps und hintere Schulter, vom Superman über Klimmzüge bis zu Rack Pulls. Damit haben 104 der 147 Übungen ihren Text. Es fehlen nur noch Rumpf und Ausdauer."
+  ]},
   { stand:"0.141", punkte:[
     "Die Übungs-Beschreibungen gehen weiter: Nach den Bein-Übungen haben jetzt auch alle 33 Druck-Übungen ihren Text — Brust, Schulter und Trizeps, vom einfachen Liegestütz bis zum Kabel-Crossover. Jede erklärt in zwei bis drei Sätzen, was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Als Nächstes folgen die Zug-Übungen."
   ]},
@@ -6979,6 +6982,7 @@ const UEBUNG_INFO = {
    dass jeder Schlüssel eine echte Übung ist (keine Karteileichen durch Tippfehler).
    Etappe 1 (v138): alle Bein-Übungen.
    Etappe 2 (v141): alle Druck-Übungen (Brust, Schulter, Trizeps).
+   Etappe 3 (v142): alle Zug-Übungen (Rücken, Bizeps, hintere Schulter).
    ============================================================ */
 const UEBUNG_TEXT = {
   // ---------- Beine ----------
@@ -7056,7 +7060,40 @@ const UEBUNG_TEXT = {
   "Smith-Schulterdrücken":"Schulterdrücken in der Schiene: Die feste Bahn nimmt die Balance ab und erlaubt schwere Sätze ohne Hilfe. Sitzposition so wählen, dass die Stange dicht am Gesicht läuft. Häufigster Fehler: zu weit vor der Stange sitzen, dann drückt man nach vorn statt nach oben.",
   "KH-Fliegende":"Die freie Variante des Butterfly: Sie dehnt die Brust unten stark und braucht deshalb deutlich weniger Gewicht, als man vermutet. Ellbogen im leicht gebeugten Winkel fixieren, kontrolliert öffnen und zusammenführen. Häufigster Fehler: zu schwer wählen und daraus ein Drücken machen.",
   "Trizeps-Dips an der Bank":"Dips mit den Händen auf einer Bank und den Füßen am Boden — über die Beinstellung lässt sich die Last fein dosieren. Ellbogen gerade nach hinten, Gesäß dicht an der Bank. Häufigster Fehler: die Beine zu weit vorn ablegen und dabei die Schulter überdehnen.",
-  "Negativ-Dips":"Nur die Absenkphase, dafür sehr langsam: der übliche Weg zum ersten sauberen Dip, weil man beim Bremsen mehr Kraft hat als beim Drücken. Oben starten, 3 bis 5 Sekunden absenken, mit den Füßen wieder hochsteigen. Häufigster Fehler: unten die Spannung fallen lassen statt kontrolliert auszusteigen."
+  "Negativ-Dips":"Nur die Absenkphase, dafür sehr langsam: der übliche Weg zum ersten sauberen Dip, weil man beim Bremsen mehr Kraft hat als beim Drücken. Oben starten, 3 bis 5 Sekunden absenken, mit den Füßen wieder hochsteigen. Häufigster Fehler: unten die Spannung fallen lassen statt kontrolliert auszusteigen.",
+
+  // ---------- Zug (Rücken, Bizeps, hintere Schulter) ----------
+  "Superman":"Die einfachste Übung für den unteren Rücken — sie braucht kein Gerät und verträgt sich auch mit häufiger Wiederholung. Bäuchlings Arme und Beine gleichzeitig anheben, zwei Sekunden halten, Blick zum Boden. Häufigster Fehler: den Kopf in den Nacken werfen; der Hals bleibt in Verlängerung der Wirbelsäule.",
+  "Tisch-Rudern":"Das Zug-Gegenstück zum Liegestütz ohne Geräte — über die Fußstellung lässt sich die Last stufenlos einstellen. Unter eine stabile Kante legen, Körper gerade, Brust zur Kante ziehen. Häufigster Fehler: die Hüfte hängen lassen und nur mit den Armen ziehen; der Körper bleibt ein Brett.",
+  "Klimmzüge":"Die stärkste Zugübung mit dem eigenen Gewicht: Sie trainiert den breiten Rückenmuskel und den Bizeps zugleich und ist der Maßstab für Zugkraft. Aus dem vollen Hang starten, Schulterblätter zuerst nach unten ziehen, Kinn über die Stange. Häufigster Fehler: nur den halben Weg nach unten — der Hang unten gehört zur Übung.",
+  "Negativ-Klimmzüge":"Nur die Absenkphase: der übliche Weg zum ersten Klimmzug, weil man beim Bremsen deutlich mehr Kraft hat als beim Ziehen. Oben starten, 3 bis 5 Sekunden herablassen, wieder hochsteigen. Häufigster Fehler: unten einfach abfallen lassen; die letzten Zentimeter sind der schwerste und wichtigste Teil.",
+  "Hängendes Beinheben":"Trainiert den unteren Bauch und nebenbei die Griffkraft, weil der Körper die ganze Zeit an der Stange hängt. Beine kontrolliert anheben, das Becken am Ende leicht einrollen, langsam ablassen. Häufigster Fehler: Schwung holen und pendeln — dann arbeitet die Hüfte statt des Bauchs.",
+  "Band-Rudern":"Rudern gegen ein Gummiband: Es passt in jede Tasche und ist die einfachste Art, den Rücken ohne Gerät zu trainieren. Band auf Brusthöhe befestigen, Ellbogen dicht am Körper zurückziehen, Schulterblätter zusammenführen. Häufigster Fehler: den Oberkörper nach hinten kippen, um mehr Weg zu bekommen.",
+  "Band-Bizeps-Curls":"Curls mit steigendem Widerstand — oben, wo der Bizeps stark ist, zieht das Band am härtesten. Ellbogen fest am Körper, die Spannung auch beim Ablassen halten. Häufigster Fehler: das Band zurückschnellen lassen; die Absenkphase ist die halbe Übung.",
+  "Band-Face-Pulls":"Die wichtigste Ausgleichsübung für alle, die viel drücken oder am Schreibtisch sitzen: Sie stärkt hintere Schulter und oberen Rücken. Band auf Gesichtshöhe zu den Ohren ziehen, Ellbogen bleiben hoch. Häufigster Fehler: zum Bauch statt zum Gesicht ziehen — dann wird daraus normales Rudern.",
+  "KH-Rudern":"Einarmiges Rudern mit Kurzhantel: Die freie Hand stützt, dadurch bleibt der untere Rücken entlastet und man kann trotzdem schwer arbeiten. Rücken gerade, Hantel zur Hüfte ziehen, oben kurz halten. Häufigster Fehler: den Oberkörper mitdrehen und das Gewicht hochreißen.",
+  "KH-Bizeps-Curls":"Die klassische Bizepsübung mit freier Hand — sie erlaubt es, die Hantel beim Hochführen mitzudrehen, was den Muskel am Ende zusätzlich anspannt. Ellbogen fest am Körper, ohne Schwung hoch, langsam ab. Häufigster Fehler: mit dem Rücken nachhelfen, sobald es schwer wird.",
+  "KH-Reverse-Flys":"Trifft die hintere Schulter, die bei fast allen anderen Übungen leer ausgeht — die Gegenspielerin zum vielen Drücken. Vorgebeugt, Arme leicht gebeugt seitlich heben, Schulterblätter zusammen. Häufigster Fehler: zu schwer wählen und die Arme hochschwingen; hier reichen sehr kleine Gewichte.",
+  "KH-Shrugs":"Isoliert den Nackenmuskel über eine einzige kurze Bewegung, die sich mit viel Gewicht ausführen lässt. Schultern gerade nach oben ziehen, oben eine Sekunde halten, kontrolliert senken. Häufigster Fehler: die Schultern kreisen lassen; das belastet das Gelenk, ohne mehr zu bringen.",
+  "LH-Rudern":"Die schwerste freie Ruderübung: Der Oberkörper steht vorgebeugt im Raum, der gesamte Rücken hält die Position, während die Arme ziehen. Rücken gerade, Stange zum Bauch, Hüfte fest. Häufigster Fehler: sich im Laufe des Satzes immer weiter aufrichten — der Winkel bleibt gleich.",
+  "LH-Bizeps-Curls":"Curls mit der Stange erlauben mehr Gewicht als Kurzhanteln, weil beide Arme gemeinsam arbeiten. Ellbogen fest, Stange ohne Schwung hoch, kontrolliert ab. Häufigster Fehler: den Körper zum Schwungholen nach hinten werfen — dann zieht der Rücken mit.",
+  "Latzug":"Der Klimmzug in dosierbar: Das Gewicht ist frei wählbar, deshalb ist er der Einstieg in den Zug von oben und die Vorbereitung auf den ersten Klimmzug. Stange zur oberen Brust, Schulterblätter nach unten und hinten. Häufigster Fehler: die Stange in den Nacken ziehen; vor der Brust ist schulterschonender.",
+  "Kabel-Rudern":"Rudern im Sitzen am Kabel: Der Rücken muss den Oberkörper nicht zusätzlich halten, dadurch bleibt mehr Kraft für den eigentlichen Zug. Aufrecht sitzen, Griff zum Bauch, Brust raus. Häufigster Fehler: mit dem Oberkörper vor und zurück pendeln.",
+  "Face-Pulls am Kabel":"Wie die Band-Variante, nur mit gleichmäßigem Widerstand und feiner Gewichtswahl — die Standardübung gegen nach vorn gezogene Schultern. Seil auf Gesichtshöhe zu den Ohren, Ellbogen hoch. Häufigster Fehler: zu schweres Gewicht; dann übernehmen der breite Rückenmuskel und der Nacken.",
+  "Rudermaschine":"Rudern mit Brustpolster: Der Oberkörper ist fixiert, der untere Rücken kann nicht ausweichen — die sicherste Ruderform bei Rückenproblemen. Griffe zurückziehen, Schulterblätter zusammen, kontrolliert vorlassen. Häufigster Fehler: die Brust vom Polster lösen, um mehr Gewicht zu bewegen.",
+  "Schlingen-Rudern":"Rudern am Schlingentrainer: Über den Fußabstand zur Verankerung lässt sich die Last stufenlos einstellen — vom leichten Einstieg bis waagerecht. Körper gerade, Brust zu den Griffen ziehen. Häufigster Fehler: die Hüfte absacken lassen; der Rumpf hält die Linie.",
+  "Kettlebell-Rudern":"Rudern mit der Kugel: Sie hängt tiefer als eine Kurzhantel, dadurch wird der Weg länger und die Dehnung unten größer. Rücken gerade, Kugel zur Hüfte, kontrolliert ablassen. Häufigster Fehler: die Kugel zwischen den Wiederholungen absetzen und dabei den Rücken runden.",
+  "Scott-Curls":"Die Oberarme liegen auf dem Pult, dadurch ist jeder Schwung ausgeschlossen — der Bizeps arbeitet vollständig allein. Voller Umfang bis fast zur Streckung, langsam ablassen. Häufigster Fehler: unten ruckartig aus der Streckung starten; dort ist die Sehne am empfindlichsten.",
+  "Klimmzüge mit Weste":"Die Steigerung, wenn saubere Klimmzüge zweistellig werden: Zusatzgewicht statt immer mehr Wiederholungen. Technik unverändert, in kleinen Schritten zulegen. Häufigster Fehler: mit Gewicht den Bewegungsumfang verkürzen — lieber weniger Last und ganz durch.",
+  "Crosstrainer":"Ausdauertraining mit Armen und Beinen zugleich und ohne Stoßbelastung — die gelenkschonende Alternative zum Laufen. Aufrecht bleiben, Arme aktiv mitschieben und ziehen, gleichmäßiges Tempo. Häufigster Fehler: sich auf die Griffe stützen und nur die Beine arbeiten lassen.",
+  "Enges Rudern Maschine":"Der enge Griff führt die Ellbogen dicht am Körper vorbei und trifft vor allem die Mitte des Rückens. Griffe zum Bauch, Schulterblätter zusammen, oben kurz halten. Häufigster Fehler: nur mit den Armen ziehen — die Bewegung beginnt mit den Schulterblättern.",
+  "Breites Rudern Maschine":"Der breite Griff führt die Ellbogen weit außen und betont den oberen Rücken und die hintere Schulter. Etwas leichter wählen als beim engen Griff, dafür sauber ausführen. Häufigster Fehler: die Schultern zu den Ohren ziehen statt sie nach hinten zu führen.",
+  "Rack Pulls":"Kreuzheben aus erhöhter Position: Der Weg beginnt erst ab Kniehöhe, dadurch lässt sich sehr schwer arbeiten und der obere Rücken bekommt den Hauptreiz. Rücken neutral, mit der Hüfte durchstrecken. Häufigster Fehler: das Gewicht so hoch wählen, dass der Rücken rundet — die hohe Ablage ist kein Freibrief.",
+  "Reverse Butterfly":"Die geführte Übung für die hintere Schulter: Sie braucht keine Balance und lässt sich in kleinen Schritten steigern. Arme nach hinten öffnen, Ellbogen leicht gebeugt auf Schulterhöhe. Häufigster Fehler: die Ellbogen absinken lassen, dann übernimmt der breite Rückenmuskel.",
+  "Bizeps-Curls am Kabel":"Der Zug bleibt über den ganzen Weg gleich, auch ganz unten, wo freie Gewichte den Muskel entlasten. Ellbogen fest, gleichmäßig hoch, oben kurz halten. Häufigster Fehler: einen Schritt zu weit vom Turm weg stehen; dann zieht das Kabel den Arm nach hinten.",
+  "Scott-Curls Kurzhantel":"Scott-Curls einarmig: Jede Seite arbeitet für sich, Unterschiede zwischen links und rechts fallen sofort auf. Oberarm satt aufs Pult, sauber curlen, beide Seiten gleich oft. Häufigster Fehler: die Schulter vom Pult heben, um die letzten Zentimeter zu schaffen.",
+  "Smith-Rudern":"Rudern mit geführter Stange: Die Bahn liegt fest, dadurch kann man sich ganz auf den Zug und die Rückenhaltung konzentrieren. Vorgebeugt stehen, Stange zum Bauch ziehen. Häufigster Fehler: zu nah oder zu weit vor der Schiene stehen; die Stange muss senkrecht über dem Bauch laufen.",
+  "Renegade Rows":"Rudern aus der Liegestützposition: Rücken und Rumpf arbeiten gleichzeitig, weil der Körper die Drehung aushalten muss. Füße breit aufstellen, abwechselnd eine Hantel zur Hüfte ziehen, Hüfte ruhig halten. Häufigster Fehler: das Becken bei jedem Zug mitdrehen — lieber leichter und stabil."
 };
 
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl

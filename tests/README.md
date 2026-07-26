@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test142.js` | Übungs-Beschreibungen — **Etappen-Register**: oben eine Liste der fertigen Kategorien (`kat`/`version`/`anzahl`), darunter die Prüfungen darüber (Kategorie vollständig, Anzahl stimmt, jeder Text nennt den häufigsten Fehler) plus die allgemeinen Substanz-Prüfungen. Neue Etappe = eine Zeile im Register, keine neue Datei |
 | `test141.js` | Übungs-Beschreibungen Etappe 2: Kategorie **druck** vollständig (33 Übungen), Bein-Etappe unversehrt, jeder Druck-Text nennt den häufigsten Fehler, plus die Substanz-Prüfungen aus `test138` |
 | `test140.js` | Muskelkarte für Sportart-Drills: `uebungMuskeln` findet Drills (exakt + normalisiert, Primär/Sekundär, richtige Figur-Seite), Kraftübungen unverändert, absichtlich nicht zugeordnete Drills bleiben figurlos + Integrität von `SPORT_MUSKELN` (keine Leichen, nur bekannte Muskeln) |
 | `test139.js` | Muskelkarte austauschbar + Sekundärmuskeln: Alias-Schicht gegen eine KÜNSTLICHE feinere Karte (aufgeteilter Muskel, unbekannter verschwindet), `uebungMuskelSatz` (beide Datenformen), Integrität der aktiven Karte (Name/Seite je Muskel, keine Leichen, ≤255, gültige Zuordnungen) — zugleich der Aufnahme-Test für eine künftige Karte |
@@ -105,6 +106,7 @@ VS Codes Electron springt ein):
     & $code tests\test139.js index.html
     & $code tests\test140.js index.html
     & $code tests\test141.js index.html
+    & $code tests\test142.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
