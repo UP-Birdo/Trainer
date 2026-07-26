@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.139
+
+- Die Muskelkarte kann jetzt mehr: Bei den großen Grundübungen siehst du neben den
+  Hauptmuskeln auch die MITBELASTETEN — sie werden blasser eingefärbt, und in der
+  Bibliothek stehen sie als eigene Zeile darunter. Die Figuren sind außerdem etwas
+  heller und ruhiger gezeichnet. Unter der Haube ist die Karte so umgebaut, dass
+  eine feinere Muskelkarte später einfach eingesetzt werden kann, ohne dass eine
+  einzige Übungs-Zuordnung neu geschrieben werden muss.
+
 ## 0.138
 
 - Die Übungs-Bibliothek bekommt echte Beschreibungen: zu jeder Übung zwei bis drei

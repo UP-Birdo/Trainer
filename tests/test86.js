@@ -32,8 +32,16 @@ function grabConst(name){
 const heatMax = (src.match(/HEAT_MAX_ALPHA\s*=\s*(\d+)/) || [])[1] || "235";
 
 const code = [
-  grabConst("MUSKEL_ORDER"), grabConst("MUSKEL_INFO"), grabConst("MUSKEL_SEITE"),
+  // v139: Karten-Definition + abgeleitete Kurznamen (wie in der App), dazu die
+  // Alias-Schicht und die Satz-Auflösung, die uebungMuskeln jetzt benutzt.
+  grabConst("MUSKELKARTEN"),
+  "const MUSKELKARTE_AKTIV = 'standard';",
+  grabFn("muskelKarteDef"),
+  "const MUSKEL_ORDER = muskelKarteDef().order;",
+  "const MUSKEL_SEITE = muskelKarteDef().seite;",
+  grabConst("MUSKEL_INFO"),
   grabConst("KAT_MUSKELN"), grabConst("UEBUNGEN_DB"), grabConst("UEBUNG_MUSKELN"),
+  grabFn("muskelAufKarte"), grabFn("muskelnAufKarte"), grabFn("uebungMuskelSatz"),
   grabFn("normName"), grabFn("uebungMuskeln"),
   grabFn("tagDifferenz"), grabFn("trainierteMuskeln"),
   "const HEAT_MAX_ALPHA = " + heatMax + ";", grabFn("heatAlpha"),
@@ -48,11 +56,15 @@ const T = modul.exports;
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
-/* 1) Vollstaendigkeit + Integritaet der feinen Zuordnung */
+/* 1) Vollstaendigkeit + Integritaet der feinen Zuordnung.
+   v139: Ein Eintrag ist entweder eine Liste (nur primaer) ODER {p,s} mit
+   Sekundaermuskeln — beide Formen muessen hier durchgehen. */
+const primaer = e => Array.isArray(e) ? e : ((e && e.p) || []);
+const alleMuskeln = e => Array.isArray(e) ? e : ((e && e.p) || []).concat((e && e.s) || []);
 pruefe("Jede DB-Uebung hat eine feine Zuordnung",
-  T.UEBUNGEN_DB.every(u => Array.isArray(T.UEBUNG_MUSKELN[u.name]) && T.UEBUNG_MUSKELN[u.name].length > 0));
+  T.UEBUNGEN_DB.every(u => primaer(T.UEBUNG_MUSKELN[u.name]).length > 0));
 pruefe("Alle Muskel-Schluessel gueltig",
-  Object.values(T.UEBUNG_MUSKELN).every(arr => arr.every(m => T.MUSKEL_ORDER.indexOf(m) >= 0)));
+  Object.values(T.UEBUNG_MUSKELN).every(e => alleMuskeln(e).every(m => T.MUSKEL_ORDER.indexOf(m) >= 0)));
 pruefe("Keine Zuordnungs-Leiche (Name nicht in DB)",
   Object.keys(T.UEBUNG_MUSKELN).every(n => T.UEBUNGEN_DB.some(u => u.name === n)));
 pruefe("MUSKEL_SEITE deckt alle 19 Muskeln (front/back)",

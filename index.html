@@ -558,7 +558,11 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 /* Kleine Fokus-Muskel-Figur (v84): gleiche Technik wie die große Karte, nur
    klein — neben dem Dropdown (Picker) bzw. je Übung in der Vorschau. */
 .mini-figur{position:relative;width:50px;flex:0 0 auto}
-.mini-figur img{display:block;width:100%;height:auto;opacity:.85;-webkit-user-select:none;user-select:none}
+/* v139: Figuren-Linien heller und ruhiger (Nutzer-Wunsch „nicht dicker, aber
+   heller/weniger verpixelt"): volle Deckkraft statt 85 % und weiches Skalieren.
+   Mehr geht erst mit höher aufgelösten Karten — die Auflösung steckt in den PNGs. */
+.mini-figur img{display:block;width:100%;height:auto;opacity:1;image-rendering:auto;-webkit-user-select:none;user-select:none}
+.muskel-figur img,.muskel-figur canvas{image-rendering:auto}
 .mini-figur canvas{position:absolute;inset:0;width:100%;height:100%}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
 .picker-muskel:empty{display:none}
@@ -2249,7 +2253,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 138;
+const APP_VERSION = 139;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4384,6 +4388,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.139", punkte:[
+    "Die Muskelkarte kann jetzt mehr: Bei den großen Grundübungen siehst du neben den Hauptmuskeln auch die MITBELASTETEN — sie werden blasser eingefärbt, und in der Bibliothek stehen sie als eigene Zeile darunter. Die Figuren sind außerdem etwas heller und ruhiger gezeichnet. Unter der Haube ist die Karte so umgebaut, dass eine feinere Muskelkarte später einfach eingesetzt werden kann, ohne dass eine einzige Übungs-Zuordnung neu geschrieben werden muss."
+  ]},
   { stand:"0.138", punkte:[
     "Die Übungs-Bibliothek bekommt echte Beschreibungen: zu jeder Übung zwei bis drei Sätze — was sie trainiert, wie sie sauber läuft und welcher Fehler der häufigste ist. Den Anfang machen alle 40 Bein-Übungen; die übrigen Kategorien kommen nach und nach dazu. Der bisherige Kurz-Tipp bleibt darüber stehen: er ist der Merksatz fürs Gym, der Text die Erklärung zum Nachlesen."
   ]},
@@ -5724,7 +5731,46 @@ function verlaufOeffnen(){
    muskeln/. In der Index-Karte trägt jeder Pixel im ROT-Kanal die Muskel-Nummer
    (1..19 = Position in MUSKEL_ORDER, 0 = kein Muskel). So genügen 2 Bilder je
    Ansicht statt 24 Einzelmasken. Nichts hiervon wandert ins Konto (reine Anzeige). */
-const MUSKEL_ORDER = ["neck","trapezius","deltoid","infraspinatus","latissimus","lowerback","pectoral","serratus","biceps","triceps","forearm","abs","obliques","glutes","adductors","quadriceps","hamstrings","tibialis","calves"];
+/* ============================================================
+   v139: EINE Karten-Definition statt vier lose Konstanten.
+   Alles, was zu genau EINER Muskelkarte gehört — Bilder, Index-Karten, die
+   Muskel-Reihenfolge (sie IST die Nummer im Rot-Kanal der Index-Karte), Namen
+   und Seiten — steht jetzt in einem Eintrag. Eine neue, feinere Karte ist damit
+   ein ZWEITER Eintrag plus ein geänderter `MUSKELKARTE_AKTIV`; nichts anderes
+   muss angefasst werden.
+
+   Der `alias`-Block ist der Grund, warum ein Wechsel die vorhandenen Daten nicht
+   entwertet: Zerlegt eine neue Karte z. B. `pectoral` in Ober- und Unterbrust,
+   trägt sie `alias:{ pectoral:["pectoral_oben","pectoral_unten"] }` — alle
+   bestehenden Übungs-Zuordnungen (UEBUNG_MUSKELN, KAT_MUSKELN) zeigen dann
+   automatisch auf die neuen Teile, ohne dass 147 Einträge neu geschrieben werden.
+   ============================================================ */
+const MUSKELKARTEN = {
+  standard: {
+    name: "Standard (19 Muskeln)",
+    views: {
+      front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086 },
+      back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786 }
+    },
+    // Reihenfolge = Nummer im Rot-Kanal (Index + 1). NIE umsortieren, ohne die
+    // Index-Karten neu zu erzeugen — sonst färbt sich der falsche Muskel.
+    order: ["neck","trapezius","deltoid","infraspinatus","latissimus","lowerback","pectoral","serratus",
+            "biceps","triceps","forearm","abs","obliques","glutes","adductors","quadriceps","hamstrings",
+            "tibialis","calves"],
+    seite: {
+      neck:"front", trapezius:"back", deltoid:"front", infraspinatus:"back", latissimus:"back",
+      lowerback:"back", pectoral:"front", serratus:"front", biceps:"front", triceps:"back",
+      forearm:"front", abs:"front", obliques:"front", glutes:"back", adductors:"front",
+      quadriceps:"front", hamstrings:"back", tibialis:"front", calves:"back"
+    },
+    alias: {}   // die Standard-Karte ist die Referenz, sie braucht keine Übersetzung
+  }
+};
+/** Welche Karte gilt? EIN Wort umstellen = neue Karte in der ganzen App. */
+const MUSKELKARTE_AKTIV = "standard";
+function muskelKarteDef(){ return MUSKELKARTEN[MUSKELKARTE_AKTIV] || MUSKELKARTEN.standard; }
+
+const MUSKEL_ORDER = muskelKarteDef().order;   // v139: kommt aus der aktiven Karte
 const MUSKEL_INFO = {
   neck:{name:"Kopfwender (Hals)",latin:"M. sternocleidomastoideus",region:"Hals",ex:["Nacken-Isometrie","Nackenrotation","Shrugs"]},
   trapezius:{name:"Kapuzenmuskel (Trapez)",latin:"M. trapezius",region:"Schultern",ex:["Shrugs","Rudern","Face Pulls"]},
@@ -5746,10 +5792,13 @@ const MUSKEL_INFO = {
   tibialis:{name:"Schienbeinmuskel",latin:"M. tibialis anterior",region:"Beine",ex:["Zehenheben","Fersengang","Reverse Wadenheben"]},
   calves:{name:"Wadenmuskel",latin:"M. gastrocnemius / soleus",region:"Beine",ex:["Wadenheben stehend","Wadenheben sitzend","Sprünge"]}
 };
-const MUSKEL_VIEWS = {
-  front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086 },
-  back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786 }
-};
+/* v139: Die Namens-Tabelle gehört zur Karte — sie steht nur der Lesbarkeit halber
+   für sich (sie ist lang) und wird hier an die Definition gehängt. Eine neue Karte
+   bringt ihre eigene Tabelle mit und hängt sie genauso an. */
+MUSKELKARTEN.standard.info = MUSKEL_INFO;
+/* Abgeleitete Kurznamen — der übrige Code (Zeichnen, Treffer, Heatmap) arbeitet
+   unverändert damit weiter; er muss von der Karten-Verwaltung nichts wissen. */
+const MUSKEL_VIEWS = muskelKarteDef().views;
 let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"erkunden" };   // modus: erkunden | trainiert (v86)
 const muskelDaten = {};   // je Ansicht { hit:Uint8Array, pixel:{gid:Int32Array} } — einmal geladen
 
@@ -5857,15 +5906,23 @@ function muskelCanvasFuer(ansicht){
 /** Färbt die gegebenen Muskeln einer Ansicht auf einem Canvas-Kontext (Signalgelb).
     Gemeinsame Basis der großen Karte (muskelMalen) und der kleinen Fokus-Figur
     (miniMuskelFigur) — EINE Mal-Routine, damit beide nie auseinanderlaufen. */
-function muskelnAufCanvas(cx, ansicht, muskeln, alpha){
+function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer){
   cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
   const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
   const [r,g,b] = muskelSignalRgb();
   const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
-  for(const key of muskeln){
-    const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
-    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=alpha; }
-  }
+  const malen = (liste, a) => {
+    for(const key of (liste || [])){
+      const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
+      for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
+    }
+  };
+  // v139: Sekundärmuskeln ZUERST und blasser (45 %) — sie sind der Kontext,
+  // die primären die Aussage. Zuerst gemalt, damit eine Überschneidung (die
+  // uebungMuskelSatz zwar herausfiltert, ein neuer Datensatz aber wieder
+  // einschleppen könnte) am Ende in der kräftigen Farbe endet.
+  malen(sekundaer, Math.round(alpha * 0.45));
+  malen(muskeln, alpha);
   cx.putImageData(bild, 0, 0);
 }
 
@@ -5911,19 +5968,31 @@ function planFigurenHtml(plan){
     dieselbe Schleife an vier Stellen (Bibliothek, Editor, Vorschau, Plan-Liste). */
 function miniFigurenZeichnen(selektor){
   document.querySelectorAll(selektor + " .mini-figur[data-mf-ansicht]").forEach(el =>
-    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean)));
+    // v139: `data-mf-sek` trägt die Sekundärmuskeln (optional, blasser gemalt).
+    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean),
+                    (el.dataset.mfSek || "").split(",").filter(Boolean)));
+}
+
+/** v139: Ein `.mini-figur`-Element als HTML — EINE Quelle für alle Stellen
+    (Bibliothek, Editor, Vorschau, Plan-Karte), damit das Datenformat der
+    Attribute nicht an fünf Orten gepflegt werden muss. */
+function miniFigurHtml(info, extraKlasse){
+  if(!info || !info.muskeln || !info.muskeln.length) return "";
+  return '<div class="mini-figur' + (extraKlasse ? " " + extraKlasse : "") + '" data-mf-ansicht="' + info.ansicht +
+    '" data-mf-muskeln="' + info.muskeln.join(",") + '"' +
+    (info.sekundaer && info.sekundaer.length ? ' data-mf-sek="' + info.sekundaer.join(",") + '"' : "") + '></div>';
 }
 
 /** Kleine Fokus-Muskel-Figur in ein .mini-figur-Element zeichnen: Figur-PNG +
     Canvas-Overlay, gefärbt wie die große Karte. Die Index-Karte wird bei Bedarf
     einmalig geladen (danach aus muskelDaten). */
-function miniMuskelFigur(ziel, ansicht, muskeln){
+function miniMuskelFigur(ziel, ansicht, muskeln, sekundaer){
   const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
   ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
     '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
   const cv = ziel.querySelector("canvas");
   muskelKarteLaden(ansicht).then(() => {
-    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln, 205);
+    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln, 205, sekundaer);
   });
 }
 
@@ -6656,33 +6725,57 @@ const KAT_MUSKELN = {
    die grobe KAT_MUSKELN: Übungen ohne feinen Eintrag fallen auf die Kategorie
    zurück. Reine Anzeige — nichts wandert ins Konto. */
 const UEBUNG_MUSKELN = {
+  /* v139: Grundübungen mit SEKUNDÄRmuskeln — Form { p:[…], s:[…] }.
+     Sie stehen bewusst zuerst und überschreiben die schlichten Listen weiter
+     unten NICHT (doppelte Schlüssel im Objekt-Literal: der LETZTE gewinnt), darum
+     sind die betroffenen Übungen unten entfernt. Wo kein `s` steht, bleibt es bei
+     den Primärmuskeln — die Tabelle darf schrittweise wachsen (v138-Prinzip). */
+  "Kniebeugen":        { p:["quadriceps","glutes"],               s:["hamstrings","lowerback","abs"] },
+  "LH-Kniebeugen":     { p:["quadriceps","glutes"],               s:["hamstrings","lowerback","abs","trapezius"] },
+  "LH-Frontkniebeugen":{ p:["quadriceps","glutes"],               s:["abs","lowerback","deltoid"] },
+  "LH-Kreuzheben":     { p:["hamstrings","glutes","lowerback"],   s:["trapezius","latissimus","forearm","quadriceps"] },
+  "Rumän. Kreuzheben": { p:["hamstrings","glutes"],               s:["lowerback","forearm"] },
+  "Beinpresse":        { p:["quadriceps","glutes"],               s:["hamstrings","calves"] },
+  "Bulgarische Kniebeuge":{ p:["quadriceps","glutes"],            s:["hamstrings","abs"] },
+  "Kettlebell-Swings": { p:["glutes","hamstrings"],               s:["lowerback","abs","deltoid","forearm"] },
+  "Liegestütze":       { p:["pectoral","triceps"],                s:["deltoid","abs","serratus"] },
+  "LH-Bankdrücken":    { p:["pectoral","triceps"],                s:["deltoid"] },
+  "Schrägbankdrücken KH":{ p:["pectoral","deltoid"],              s:["triceps"] },
+  "KH-Bankdrücken":    { p:["pectoral","triceps"],                s:["deltoid","serratus"] },
+  "LH-Schulterdrücken":{ p:["deltoid","triceps"],                 s:["trapezius","abs"] },
+  "KH-Schulterdrücken":{ p:["deltoid","triceps"],                 s:["trapezius","abs"] },
+  "Dips am Barren":    { p:["triceps","pectoral"],                s:["deltoid","serratus"] },
+  "Klimmzüge":         { p:["latissimus","biceps"],               s:["trapezius","infraspinatus","forearm","abs"] },
+  "Latzug":            { p:["latissimus","biceps"],               s:["trapezius","infraspinatus","forearm"] },
+  "LH-Rudern":         { p:["latissimus","trapezius"],            s:["biceps","infraspinatus","lowerback","forearm"] },
+  "KH-Rudern":         { p:["latissimus","trapezius"],            s:["biceps","infraspinatus","forearm"] },
+  "Kabel-Rudern":      { p:["latissimus","trapezius"],            s:["biceps","infraspinatus","forearm"] },
+  "Plank":             { p:["abs","obliques"],                    s:["deltoid","glutes","lowerback"] },
   // -- Beine --
-  "Kniebeugen":["quadriceps","glutes"], "Ausfallschritte":["quadriceps","glutes"],
+  "Ausfallschritte":["quadriceps","glutes"],
   "Glute Bridge":["glutes","hamstrings"], "Wadenheben":["calves"], "Wandsitzen":["quadriceps"],
   "Einbeinige Kniebeuge":["quadriceps","glutes"], "Step-ups":["quadriceps","glutes"],
-  "Bulgarische Kniebeuge":["quadriceps","glutes"], "Box Jumps":["quadriceps","glutes"],
+  "Box Jumps":["quadriceps","glutes"],
   "Goblet Squats":["quadriceps","glutes"], "KH-Ausfallschritte":["quadriceps","glutes"],
   "KH-Wadenheben":["calves"], "KH-Kreuzheben":["hamstrings","glutes","lowerback"],
-  "Kettlebell-Swings":["glutes","hamstrings"], "Kettlebell-Goblet-Squat":["quadriceps","glutes"],
-  "LH-Kniebeugen":["quadriceps","glutes"], "Rumän. Kreuzheben":["hamstrings","glutes"],
-  "LH-Kreuzheben":["hamstrings","glutes","lowerback"], "LH-Hip-Thrust":["glutes","hamstrings"],
-  "Smith-Kniebeugen":["quadriceps","glutes"], "Beinpresse":["quadriceps","glutes"],
+  "Kettlebell-Goblet-Squat":["quadriceps","glutes"],
+  "LH-Hip-Thrust":["glutes","hamstrings"],
+  "Smith-Kniebeugen":["quadriceps","glutes"],
   "Beinbeuger":["hamstrings"], "Beinstrecker":["quadriceps"], "Wadenheben Maschine":["calves"],
   "Adduktoren":["adductors"], "Abduktoren":["glutes"], "Rack-Kniebeugen":["quadriceps","glutes"],
   "Band-Kniebeugen":["quadriceps","glutes"], "Schlingen-Kniebeuge":["quadriceps","glutes"],
   "Einbeinige Beinpresse":["quadriceps","glutes"], "Wadenpresse (Beinpresse)":["calves"],
   "Sitzendes Wadenheben":["calves"], "Sitzender Beinbeuger":["hamstrings"],
-  "Frontkniebeugen im Rack":["quadriceps","glutes"], "LH-Frontkniebeugen":["quadriceps","glutes"],
+  "Frontkniebeugen im Rack":["quadriceps","glutes"],
   "LH-Good-Mornings":["hamstrings","lowerback","glutes"], "Kettlebell-Ausfallschritte":["quadriceps","glutes"],
   "Wall Balls":["quadriceps","glutes"], "Kniebeugen mit Weste":["quadriceps","glutes"],
   "Bank-Step-ups":["quadriceps","glutes"],
   // -- Drücken --
-  "Liegestütze":["pectoral","triceps"], "Pike Push-ups":["deltoid","triceps"],
-  "Enge Liegestütze":["triceps","pectoral"], "Stuhl-Dips":["triceps"], "Dips am Barren":["triceps","pectoral"],
-  "Erhöhte Liegestütze":["pectoral","triceps"], "KH-Bankdrücken":["pectoral","triceps"],
-  "KH-Schulterdrücken":["deltoid","triceps"], "KH-Seitheben":["deltoid"], "KH-Trizepsdrücken":["triceps"],
-  "Schrägbankdrücken KH":["pectoral","deltoid"], "LH-Bankdrücken":["pectoral","triceps"],
-  "LH-Schulterdrücken":["deltoid","triceps"], "Kettlebell-Drücken":["deltoid","triceps"],
+  "Pike Push-ups":["deltoid","triceps"],
+  "Enge Liegestütze":["triceps","pectoral"], "Stuhl-Dips":["triceps"],
+  "Erhöhte Liegestütze":["pectoral","triceps"],
+  "KH-Seitheben":["deltoid"], "KH-Trizepsdrücken":["triceps"],
+  "Kettlebell-Drücken":["deltoid","triceps"],
   "Brustpresse":["pectoral","triceps"], "Butterfly":["pectoral"],
   "Schulterpresse Maschine":["deltoid","triceps"], "Trizeps am Kabel":["triceps"],
   "Smith-Bankdrücken":["pectoral","triceps"], "Liegestütze mit Weste":["pectoral","triceps"],
@@ -6694,12 +6787,12 @@ const UEBUNG_MUSKELN = {
   "KH-Fliegende":["pectoral"], "Trizeps-Dips an der Bank":["triceps"], "Negativ-Dips":["triceps","pectoral"],
   // -- Ziehen --
   "Superman":["lowerback","glutes"], "Tisch-Rudern":["latissimus","biceps"],
-  "Klimmzüge":["latissimus","biceps"], "Negativ-Klimmzüge":["latissimus","biceps"],
+  "Negativ-Klimmzüge":["latissimus","biceps"],
   "Hängendes Beinheben":["abs"], "Band-Rudern":["latissimus","biceps"], "Band-Bizeps-Curls":["biceps"],
-  "Band-Face-Pulls":["deltoid","trapezius"], "KH-Rudern":["latissimus","biceps"],
+  "Band-Face-Pulls":["deltoid","trapezius"],
   "KH-Bizeps-Curls":["biceps"], "KH-Reverse-Flys":["deltoid","trapezius"], "KH-Shrugs":["trapezius"],
-  "LH-Rudern":["latissimus","biceps"], "LH-Bizeps-Curls":["biceps"], "Latzug":["latissimus","biceps"],
-  "Kabel-Rudern":["latissimus","biceps"], "Face-Pulls am Kabel":["deltoid","trapezius"],
+  "LH-Bizeps-Curls":["biceps"],
+  "Face-Pulls am Kabel":["deltoid","trapezius"],
   "Rudermaschine":["latissimus","biceps"], "Schlingen-Rudern":["latissimus","biceps"],
   "Kettlebell-Rudern":["latissimus","biceps"], "Scott-Curls":["biceps"],
   "Klimmzüge mit Weste":["latissimus","biceps"], "Crosstrainer":["quadriceps","glutes"],
@@ -6708,7 +6801,7 @@ const UEBUNG_MUSKELN = {
   "Bizeps-Curls am Kabel":["biceps"], "Scott-Curls Kurzhantel":["biceps"], "Smith-Rudern":["latissimus","biceps"],
   "Renegade Rows":["latissimus","biceps"],
   // -- Rumpf --
-  "Plank":["abs"], "Seitstütz":["obliques"], "Crunches":["abs"], "Beinheben an der Matte":["abs"],
+  "Seitstütz":["obliques"], "Crunches":["abs"], "Beinheben an der Matte":["abs"],
   "Hüftheben":["glutes","abs"], "Vierfüßler-Diagonale":["lowerback","glutes"], "Bauchmaschine":["abs"],
   "Rückenstrecker":["lowerback"], "L-Sit an Parallettes":["abs"], "Beinheben liegend":["abs"],
   "Bergsteiger":["abs"], "Russian Twist":["obliques"], "Hollow Hold":["abs"], "Käfer (Dead Bug)":["abs"],
@@ -6722,7 +6815,6 @@ const UEBUNG_MUSKELN = {
   "Double Unders":["calves"], "Crosstrainer-Intervalle":["quadriceps","glutes"],
   "Intervall-Läufe":["quadriceps","hamstrings","calves"]
 };
-
 /* Kurze Info/Ausführungs-Tipp je Übung (v89, für die Karteikarten-Bibliothek).
    Schlüssel = Name aus UEBUNGEN_DB. Ein knapper Kernhinweis je Übung — die
    ausführlichen Beschreibungen (2–3 Sätze) sind ein eigener späterer Content-
@@ -6927,29 +7019,66 @@ const UEBUNG_TEXT = {
 
 /* Auf welcher Figur-Seite ist ein Muskel hauptsächlich sichtbar (für die Wahl
    der Ansicht der kleinen Fokus-Figur). Die große Muskelkarte färbt beide Seiten. */
-const MUSKEL_SEITE = {
-  neck:"front", trapezius:"back", deltoid:"front", infraspinatus:"back", latissimus:"back",
-  lowerback:"back", pectoral:"front", serratus:"front", biceps:"front", triceps:"back",
-  forearm:"front", abs:"front", obliques:"front", glutes:"back", adductors:"front",
-  quadriceps:"front", hamstrings:"back", tibialis:"front", calves:"back"
-};
+const MUSKEL_SEITE = muskelKarteDef().seite;   // v139: kommt aus der aktiven Karte
+
+/* ============================================================
+   v139: Die Alias-Schicht — sie macht einen Kartenwechsel schmerzfrei.
+   Jede Übungs-Zuordnung (UEBUNG_MUSKELN, KAT_MUSKELN, Sportart-Drills) nennt
+   Muskeln in IHREN Schlüsseln. Diese Funktionen übersetzen sie auf die Muskeln,
+   die die AKTIVE Karte wirklich kennt: unverändert, wenn es den Schlüssel gibt;
+   über `alias` aufgeteilt, wenn eine feinere Karte ihn zerlegt hat; und sonst
+   still verworfen — eine unbekannte Nummer würde sonst gar nichts oder (schlimmer)
+   den falschen Muskel einfärben.
+   ============================================================ */
+function muskelAufKarte(key){
+  const k = muskelKarteDef();
+  if(!key) return [];
+  if(k.order.indexOf(key) >= 0) return [key];
+  const teile = k.alias && k.alias[key];
+  return teile ? teile.filter(t => k.order.indexOf(t) >= 0) : [];
+}
+/** Eine ganze Liste übersetzen — ohne Doppelte, Reihenfolge bleibt erhalten. */
+function muskelnAufKarte(keys){
+  const raus = [];
+  (keys || []).forEach(key => muskelAufKarte(key).forEach(t => { if(raus.indexOf(t) < 0) raus.push(t); }));
+  return raus;
+}
 
 /** Fokus-Muskeln einer Übung: erst die feine Tabelle (echte Muskeln + beste
     Ansicht + Regions-Label), sonst die grobe Kategorie (KAT_MUSKELN); Freitext-
     /Drill-Übung ohne DB-Eintrag → null (dann nichts zeigen). */
+/** v139: Ein Eintrag in UEBUNG_MUSKELN darf zwei Formen haben — die alte
+    (nur eine Liste = Primärmuskeln) und die neue mit Sekundärmuskeln:
+      "Kniebeugen": ["quadriceps","glutes"]
+      "Kniebeugen": { p:["quadriceps","glutes"], s:["hamstrings","lowerback"] }
+    Beide werden hier auf dieselbe Form gebracht — so konnte die Tabelle
+    schrittweise wachsen, ohne alle 147 Einträge auf einmal umzuschreiben. */
+function uebungMuskelSatz(eintrag){
+  if(!eintrag) return { p:[], s:[] };
+  if(Array.isArray(eintrag)) return { p: muskelnAufKarte(eintrag), s: [] };
+  const p = muskelnAufKarte(eintrag.p || []);
+  // Ein Muskel ist entweder primär ODER sekundär — nie beides (sonst würde er
+  // zweimal übermalt und sähe kräftiger aus, als er ist).
+  const s = muskelnAufKarte(eintrag.s || []).filter(m => p.indexOf(m) < 0);
+  return { p, s };
+}
+
 function uebungMuskeln(name){
   if(!name) return null;
   let t = UEBUNGEN_DB.find(u => u.name === name);
   if(!t){ const n = normName(name); t = UEBUNGEN_DB.find(u => normName(u.name) === n); }
   if(!t) return null;
-  const fein = UEBUNG_MUSKELN[t.name];
-  if(fein && fein.length){
+  const satz = uebungMuskelSatz(UEBUNG_MUSKELN[t.name]);
+  if(satz.p.length){
     // Ansicht = Seite des PRIMÄR-Muskels (erster Eintrag), damit z. B. Klimmzüge
     // (Latissimus) die Rückseite zeigen, nicht die Vorderseite (Bizeps).
-    const regionen = [...new Set(fein.map(m => (MUSKEL_INFO[m] || {}).region).filter(Boolean))];
-    return { ansicht: MUSKEL_SEITE[fein[0]] === "back" ? "back" : "front", muskeln: fein, label: regionen.join(", ") };
+    const regionen = [...new Set(satz.p.map(m => (MUSKEL_INFO[m] || {}).region).filter(Boolean))];
+    return { ansicht: MUSKEL_SEITE[satz.p[0]] === "back" ? "back" : "front",
+             muskeln: satz.p, sekundaer: satz.s, label: regionen.join(", ") };
   }
-  return KAT_MUSKELN[t.kat] || null;
+  const kat = KAT_MUSKELN[t.kat];
+  // v139: auch die grobe Kategorie läuft durch die Alias-Schicht.
+  return kat ? { ansicht:kat.ansicht, muskeln: muskelnAufKarte(kat.muskeln), sekundaer: [], label:kat.label } : null;
 }
 
 /* ============================================================
@@ -8288,15 +8417,18 @@ function bibKarteHtml(u){
       '<span class="meta">' + text(BIB_KAT_NAME[u.kat] || u.kat) + '</span></div>' +
     '<div class="meta">' + text(geraet) + ' · ' + modus + (region ? ' · ' + text(region) : "") + '</div>';
   if(bibZustand.offen !== u.name) return '<div class="karte">' + kopf + '</div>';
-  const figur = (info && info.muskeln && info.muskeln.length)
-    ? '<div class="mini-figur" data-mf-ansicht="' + info.ansicht + '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' : "";
+  const figur = miniFigurHtml(info);   // v139: eine Quelle, kennt auch Sekundärmuskeln
   const muskelNamen = (info && info.muskeln) ? info.muskeln.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
+  // v139: Sekundärmuskeln benennen — die Figur zeigt sie blass, die Zeile macht klar, welche es sind.
+  const sekNamen = (info && info.sekundaer && info.sekundaer.length)
+    ? info.sekundaer.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
   const tip = UEBUNG_INFO[u.name] || "";
   const beschreibung = UEBUNG_TEXT[u.name] || "";   // v138: 2–3 Sätze, wo schon geschrieben
   return '<div class="karte">' + kopf +
     '<div class="zeile abstand" style="align-items:flex-start;gap:12px">' + figur +
       '<div>' +
         (muskelNamen ? '<div class="meta"><strong style="color:var(--chalk)">Muskeln:</strong> ' + text(muskelNamen) + '</div>' : "") +
+        (sekNamen ? '<div class="meta">Mitbelastet: ' + text(sekNamen) + '</div>' : "") +
         (tip ? '<div class="meta" style="margin-top:6px">' + text(tip) + '</div>' : "") +
         // v138: Die ausführliche Beschreibung steht UNTER dem Kurz-Tipp — der Tipp
         // ist der Merksatz fürs Gym, der Text die Erklärung fürs Nachlesen.
@@ -9101,9 +9233,7 @@ function editorZeichnen(){
     // Perf: ein Plan hat eine Handvoll Übungen; die Bedenken aus v91 galten dem
     // Picker mit 50+ Karten, nicht dieser Liste (Bilder liegen ohnehin im Cache).
     const info = uebungMuskeln(u.name);
-    const kopfFigur = (info && info.muskeln && info.muskeln.length)
-      ? '<div class="mini-figur uebung-mini" data-mf-ansicht="' + info.ansicht +
-        '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' : "";
+    const kopfFigur = miniFigurHtml(info, "uebung-mini");   // v139
     const kopf = '<div class="uebung-kopf" onclick="editorUebungToggle(' + i + ')">' +
         kopfFigur +
         '<span class="uebung-titel"><strong>' + titel + '</strong><small>' + zusammen + '</small></span>' +
@@ -9113,8 +9243,7 @@ function editorZeichnen(){
 
     // Aufgeklappt: die volle Muskel-Map + die Bearbeitung.
     const figur = (info && info.muskeln && info.muskeln.length)
-      ? '<div class="uebung-figur"><div class="mini-figur" data-mf-ansicht="' + info.ansicht +
-        '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>' +
+      ? '<div class="uebung-figur">' + miniFigurHtml(info) +   // v139
         (info.label ? '<span class="meta">' + text(info.label) + '</span>' : "") + '</div>' : "";
 
     let basis, mehr = "";
@@ -10390,7 +10519,7 @@ function vorschauZeichnen(){
       const info = uebungMuskeln(u.name);
       if(info && info.muskeln.length && !mfGesehen.has(schritt.uebungIndex)){
         mfGesehen.add(schritt.uebungIndex);
-        figur = '<div class="mini-figur" data-mf-ansicht="' + info.ansicht + '" data-mf-muskeln="' + info.muskeln.join(",") + '"></div>';
+        figur = miniFigurHtml(info);   // v139
       }
     }
     return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +

@@ -28,9 +28,15 @@ function grabConst(name){
 }
 
 const code = [
-  grabConst("MUSKEL_ORDER"),
+  // v139: Die Karte steht in EINER Definition; die Kurznamen leiten sich daraus
+  // ab (in der App wie hier). grabConst auf die abgeleiteten Zeilen ginge daneben,
+  // weil dort keine Klammer steht.
+  grabConst("MUSKELKARTEN"),
+  "const MUSKELKARTE_AKTIV = 'standard';",
+  grabFn("muskelKarteDef"),
+  "const MUSKEL_ORDER = muskelKarteDef().order;",
+  "const MUSKEL_VIEWS = muskelKarteDef().views;",
   grabConst("MUSKEL_INFO"),
-  grabConst("MUSKEL_VIEWS"),
   "let muskelStatus = { ansicht:'front', gewaehlt:[] };",
   "let muskelDaten = {};",
   "function muskelMalen(){}",

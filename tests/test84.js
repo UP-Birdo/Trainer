@@ -19,7 +19,9 @@ function grabConst(name){
 }
 
 const code = [
-  grabConst("MUSKEL_ORDER"),
+  // v139: MUSKEL_ORDER kommt jetzt aus der Karten-Definition.
+  grabConst("MUSKELKARTEN"),
+  "const MUSKEL_ORDER = MUSKELKARTEN.standard.order;",
   grabConst("KAT_MUSKELN"),
   grabConst("UEBUNGEN_DB"),
   "module.exports = { MUSKEL_ORDER, KAT_MUSKELN, UEBUNGEN_DB };"

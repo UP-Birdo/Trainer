@@ -75,7 +75,10 @@ pruefe("die Wache baut sich selbst ab",
 /* 4) Muskel-Map an der gelisteten (eingeklappten) Uebung. */
 pruefe("Kopf-Figur wird gebaut", src.includes("const kopfFigur ="));
 pruefe("Kopf-Figur steckt im Kopf", /const kopf = '<div class="uebung-kopf"[\s\S]{0,120}kopfFigur/.test(src));
-pruefe("nur bei erkannten Muskeln", /kopfFigur = \(info && info\.muskeln && info\.muskeln\.length\)/.test(src));
+// v139: Die Wache steckt jetzt im gemeinsamen Bauer miniFigurHtml.
+pruefe("nur bei erkannten Muskeln",
+  /kopfFigur = miniFigurHtml\(info, "uebung-mini"\)/.test(src) &&
+  grabFn("miniFigurHtml").includes("!info.muskeln.length"));
 pruefe("eigene Groesse im Kopf", /\.uebung-kopf \.uebung-mini\{width:\d+px\}/.test(src));
 pruefe("aufgeklappte Figur groesser als vorher (60px)",
   /\.uebung-figur \.mini-figur\{width:(6[1-9]|[7-9]\d|\d{3})px\}/.test(src));
