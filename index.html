@@ -67,6 +67,15 @@ body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
   padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 /* Scrollender Inhaltsbereich; die Nav-Leiste liegt als Flex-Geschwister darunter. */
 #inhalt{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
+/* v130 (Bug): Das `hidden`-Attribut MUSS immer gewinnen. Der Browser setzt dafür
+   nur `[hidden]{display:none}` mit niedrigster Priorität — jede eigene Regel, die
+   `display` setzt (z. B. `#nav button{display:flex}`, `.einst-zeile`, `.stepper`),
+   hebelt es aus, und das Element bleibt trotz `hidden=true` sichtbar. Genau so
+   stand auf Stufe 3 der Statistik-Tab in der Leiste, obwohl der Code ihn längst
+   versteckt hatte. Diese eine Regel repariert alle Fälle auf einmal; das
+   `!important` ist hier ausnahmsweise richtig — „versteckt" ist keine
+   Geschmacksfrage, die eine spätere Regel überstimmen dürfte. */
+[hidden]{display:none !important}
 .view{display:none;padding:20px 16px 32px;max-width:640px;margin:0 auto}
 .view.aktiv{display:block}
 h1{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0}
@@ -314,6 +323,14 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    App-Store-Leiste). Greift nur bei body.sys-ios (System = iPhone).
    ============================================================ */
 body.sys-ios #nav{ background:transparent; border-top:0; box-shadow:none; }
+/* v130 (Bug): Im HELLEN Modus braucht die Leiste ihren Hintergrund zurück. Ohne
+   ihn scheint der helle Grund durch, und die Leiste verschwimmt mit dem Inhalt
+   darüber — auf Dunkel fällt das nicht auf, auf Hell schon (Nutzer-Meldung:
+   „man sieht die Tabellen vor der Tab-Leiste"). Der iOS-Pill-Look bleibt. */
+html.hell body.sys-ios #nav{
+  background:var(--panel); border-top:2px solid var(--line);
+  box-shadow:0 -2px 8px rgba(0,0,0,0.06);
+}
 body.sys-ios #nav button{ z-index:0; }                 /* Stapelkontext, damit das Pill DAHINTER liegt */
 body.sys-ios #nav button::before{
   /* aus dem 26x3-Balken oben wird ein Pill hinter Icon + Text */
@@ -422,6 +439,13 @@ body:not(.nav-an) #nav{display:none}
 /* v128: Mehrfach-Auswahl — das Kästchen ist die Aussage, der Rahmen bestätigt sie. */
 .karte.plan-gewaehlt{border-color:var(--signal)}
 .plan-haken{color:var(--signal);font-weight:400}
+/* v132: Plan-Karte = Text links, die zwei Muskel-Figuren des ganzen Plans rechts.
+   Klein gehalten: sie sind ein Überblick, kein Bild. */
+.plan-kopfzeile{display:flex;gap:12px;align-items:flex-start}
+.plan-text{flex:1;min-width:0}
+.plan-figuren{display:flex;gap:6px;flex:0 0 auto}
+.plan-figuren .mini-figur{width:30px}
+#editor-muskeln .plan-figuren .mini-figur{width:40px}
 /* Vorschau — das Inhaltsverzeichnis vor dem Training */
 .vs-zeile{display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--panel);
   border:2px solid var(--line);border-radius:6px;margin-bottom:5px;transition:var(--transition)}
@@ -1123,12 +1147,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <input id="plan-name" placeholder="z. B. Oberkörper">
     <label class="abstand">Sportart</label>
     <div id="plan-sportart" class="wahl-raster"></div>
-    <!-- v126: Wochentage + Takt starten ZUGEKLAPPT — beim Plan-Anlegen standen
-         hier ~120 px Einstellungen, bevor man die erste Übung sah. Die Zeile zeigt
-         den Stand („Mo, Do · alle 2 Wochen"), ein Tipp klappt die Auswahl auf. -->
-    <button class="breit einst-zeile abstand" onclick="editorTageUmschalten()">
-      <span id="plan-tage-stand">Wochentage</span><span class="meta" id="plan-tage-pfeil">›</span></button>
-    <div id="plan-tage-block" hidden>
+    <!-- v126/v131: ALLE Grundeinstellungen des Plans liegen hinter EINER Zeile und
+         starten zugeklappt — beim Anlegen standen hier sonst Wochentage, Takt,
+         Reihenfolge, Bonus bzw. Dauer/Strecke/Ziel im Weg, bevor man die erste
+         Übung sah. Die Zeile zeigt den Stand („Mo, Do · Zirkel · Aufwärmen"),
+         ein Tipp klappt alles auf. -->
+    <button class="breit einst-zeile abstand" onclick="editorEinstUmschalten()">
+      <span id="plan-einst-stand">Einstellungen</span><span class="meta" id="plan-einst-pfeil">›</span></button>
+    <div id="editor-einst-block" hidden>
       <div class="zeile abstand"><label style="margin:0">Wochentage — keiner = immer sichtbar</label>
         <button class="info-knopf" onclick="infoUmschalten('info-tag')" aria-label="Info">i</button></div>
       <div id="info-tag" class="meta info-text" hidden>Mehrfachauswahl — derselbe Plan darf z. B. Montag <em>und</em> Donnerstag laufen. Ein Plan mit Wochentagen erscheint in der Liste nur an diesen Tagen und färbt sie im Kalender. <strong style="color:var(--chalk)">Ohne Tag</strong> ist der Plan immer sichtbar — ein Training daraus zählt als Sondertraining.</div>
@@ -1141,9 +1167,42 @@ button.gewaehlt{background:var(--signal);color:#16181C}
           <button id="takt-2" onclick="planTaktSetzen(2)">Alle 2 Wochen</button>
         </div>
       </div>
-    </div>
     <!-- Nur bei Aktivitäten: eine Dauer, optional eine Strecke. Keine Übungen, keine Sätze. -->
     <div id="editor-aktivitaet" hidden>
+      <!-- v133: Bei Sportarten mit Runden-Training (intervall:true) hier umschalten —
+           statt nur über den eigenen Anlege-Weg. „Runden" ersetzt Dauer/Strecke:
+           die Dauer ergibt sich aus Runden × (Belastung + Pause). -->
+      <div id="akt-art-block" hidden>
+        <label>Art</label>
+        <div class="umschalter">
+          <button id="akt-art-dauer" onclick="planIntervallSetzen(false)">Dauer</button>
+          <button id="akt-art-runden" onclick="planIntervallSetzen(true)">Runden</button>
+        </div>
+      </div>
+      <div id="akt-intervall-felder" hidden>
+        <div class="raster abstand">
+          <div><label>Runden</label>
+            <div class="stepper">
+              <button onclick="editorIvStufe('runden',-1)" aria-label="weniger">−</button>
+              <input id="akt-iv-runden" type="number" inputmode="numeric" onchange="editorIvSetzen('runden',this.value)">
+              <button onclick="editorIvStufe('runden',1)" aria-label="mehr">+</button>
+            </div></div>
+          <div><label>Belastung (s)</label>
+            <div class="stepper">
+              <button onclick="editorIvStufe('belastung',-1)" aria-label="weniger">−</button>
+              <input id="akt-iv-belastung" type="number" inputmode="numeric" onchange="editorIvSetzen('belastung',this.value)">
+              <button onclick="editorIvStufe('belastung',1)" aria-label="mehr">+</button>
+            </div></div>
+        </div>
+        <div class="abstand"><label>Pause (s)</label>
+          <div class="stepper">
+            <button onclick="editorIvStufe('pause',-1)" aria-label="weniger">−</button>
+            <input id="akt-iv-pause" type="number" inputmode="numeric" onchange="editorIvSetzen('pause',this.value)">
+            <button onclick="editorIvStufe('pause',1)" aria-label="mehr">+</button>
+          </div></div>
+        <div class="meta abstand" id="akt-iv-vorschau"></div>
+      </div>
+      <div id="akt-dauer-block">
       <div class="raster abstand">
         <div><label>Dauer</label>
           <div class="stepper">
@@ -1173,6 +1232,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         </div>
         <select id="akt-mass-select" onchange="aktMassSetzen(this.value)" hidden></select>
       </div>
+      </div><!-- /akt-dauer-block -->
       <div class="meta" id="akt-hinweis" style="margin-top:10px"></div>
     </div>
 
@@ -1193,6 +1253,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div class="umschalter"><button id="sw-dehnen" onclick="bonusUmschalten('dehnen')">Dehnen</button></div>
     </div>
     </div>
+    </div><!-- /editor-einst-block -->
+  </div>
+  <!-- v132: Muskel-Map des ganzen Plans — wächst dynamisch mit jeder Übung, die
+       du hinzufügst. Steht über der Übungsliste, damit man beim Bauen sieht,
+       was der Plan schon abdeckt und was fehlt. -->
+  <div id="editor-muskeln" class="karte" hidden>
+    <div class="zeile"><span class="meta" id="editor-muskeln-text">Trifft diese Muskeln</span>
+      <span id="editor-muskeln-figuren"></span></div>
   </div>
   <div id="uebung-liste"></div>
   <div id="uebung-picker"></div>
@@ -2154,7 +2222,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 129;
+const APP_VERSION = 133;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3523,12 +3591,16 @@ function planListeZeichnen(){
     const gewaehlt = planAuswahl.has(p.id);
     const haken = planAuswahlModus ? '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span> ' : "";
     return '<div class="karte stat-tap' + (gewaehlt ? " plan-gewaehlt" : "") + '" data-plan="' + p.id + '" onclick="planTippen(\'' + p.id + '\')">' +
+      // v132: rechts die Muskel-Map des GANZEN Plans (vorne + hinten) — so sieht
+      // man von außen, was der Plan trifft, ohne ihn zu öffnen.
+      '<div class="plan-kopfzeile"><div class="plan-text">' +
       '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' +
       '<h2>' + haken + text(p.name) + '</h2>' +
       '<div class="meta">' +
         (istAkt ? (p.intervall ? intervallText(p) : planZielText(p))   // v121: planZielText trägt auch das Messgrößen-Ziel
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
         (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
+      '</div>' + planFigurenHtml(p) + '</div>' +
       (planAuswahlModus ? "" :
       '<div class="knopfreihe">' +
         '<button class="primaer breit" onclick="event.stopPropagation();trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>' +
@@ -3581,6 +3653,7 @@ function planListeZeichnen(){
   // v128: Im Auswahl-Modus steht die Leiste (gewählt / Löschen / Abbrechen) OBEN —
   // dort sucht man sie, und sie bleibt ohne Scrollen erreichbar.
   ziel.innerHTML = (planAuswahlModus ? planAuswahlLeisteHtml() : "") + html;
+  miniFigurenZeichnen("#plan-liste");   // v132: Plan-Muskelkarten nachzeichnen
   langdruckEinrichten();
 }
 
@@ -4270,6 +4343,18 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.133", punkte:[
+    "Runden-Training gibt es jetzt direkt im Plan-Editor: Bei Sportarten, die Intervalle können (Laufen, Kampfsport), steht in den Einstellungen ein Umschalter „Dauer / Runden“. Auf „Runden“ stellst du Runden, Belastung und Pause ein — die Gesamtdauer rechnet die App daraus. So wird aus einem bestehenden Plan mit zwei Tipps ein Intervall-Plan (und zurück); der eigene Anlege-Weg über das „+“ bleibt daneben bestehen."
+  ]},
+  { stand:"0.132", punkte:[
+    "Jeder Plan zeigt jetzt seine Muskel-Map: vorne und hinten, aus ALLEN Übungen des Plans zusammengerechnet. Im Tab „Pläne“ steht sie klein rechts auf der Karte — du siehst also von außen, was ein Plan abdeckt. Und beim Bearbeiten wächst sie live mit: Jede Übung, die du hinzufügst, färbt sofort die passenden Muskeln ein, so erkennst du auf einen Blick, was noch fehlt."
+  ]},
+  { stand:"0.131", punkte:[
+    "Der Plan-Editor ist jetzt aufgeräumt: Oben stehen nur noch Name und Sportart — alles andere (Wochentage, Wiederholung, Reihenfolge, Aufwärmen/Dehnen bzw. Dauer, Strecke und Ziel) liegt hinter EINER Zeile „Einstellungen“, die den aktuellen Stand anzeigt („Mo, Do · Zirkel · Aufwärmen“). Ein Tipp klappt sie auf. So siehst du deine Übungen sofort, statt erst an den Einstellungen vorbeizuscrollen."
+  ]},
+  { stand:"0.130", punkte:[
+    "Zwei Fehler behoben: Auf Einfachheits-Stufe 3 stand der Statistik-Tab noch in der Leiste, obwohl es dort keine Statistik gibt — er ist jetzt weg (und mit ihm ein paar weitere Elemente, die sich hartnäckig zeigten, obwohl sie versteckt sein sollten: der Profil-Eintrag unter „Mehr“ auf niedrigen Stufen und das Zahlenfeld beim Kletter-Grad). Und in der hellen Darstellung hatte die Tab-Leiste keinen eigenen Hintergrund, sodass der Inhalt durchschien — sie ist jetzt wieder sauber abgesetzt."
+  ]},
   { stand:"0.129", punkte:[
     "Aufgeräumt unter „Pläne“: Solange noch kein Plan da ist, steht dort nur noch die eine Aktion (Trainingsplanung). Alle anderen Wege zum Anlegen — eigener Plan, Beispielplan, Intervall-Plan und Training nachtragen — findest du gebündelt im gelben „+“ unten rechts. Auch der feste Intervall-Knopf unter der Liste ist dorthin gewandert."
   ]},
@@ -5599,6 +5684,41 @@ function muskelMalen(ansicht){
     const cv = muskelCanvasFuer(a); if(!cv) return;
     muskelnAufCanvas(cv.getContext("2d"), a, muskelStatus.gewaehlt, 165);
   });
+}
+
+/** v132: Welche Muskeln trifft ein GANZER Plan? Sammelt über alle Übungen und
+    sortiert je Muskel nach seiner Seite (`MUSKEL_SEITE`) — nicht nach der
+    „besten Ansicht" der einzelnen Übung, denn ein Plan zeigt beide Figuren, und
+    jeder Muskel gehört genau auf eine davon. Übungen ohne Treffer (Freitext,
+    Nicht-Kraft-Drills) zählen nicht mit. Rein/testbar. */
+function planMuskeln(plan){
+  const front = [], back = [];
+  ((plan && plan.uebungen) || []).forEach(u => {
+    const info = uebungMuskeln(u && u.name);
+    if(!info || !info.muskeln) return;
+    info.muskeln.forEach(m => {
+      const ziel = MUSKEL_SEITE[m] === "back" ? back : front;
+      if(!ziel.includes(m)) ziel.push(m);
+    });
+  });
+  return { front, back };
+}
+
+/** v132: Die zwei Plan-Figuren als HTML (leer, wenn nichts erkannt wurde —
+    raten wäre unehrlich). Gezeichnet werden sie wie überall per Post-Pass. */
+function planFigurenHtml(plan){
+  const m = planMuskeln(plan);
+  if(!m.front.length && !m.back.length) return "";
+  const figur = (ansicht, liste) =>
+    '<div class="mini-figur" data-mf-ansicht="' + ansicht + '" data-mf-muskeln="' + liste.join(",") + '"></div>';
+  return '<div class="plan-figuren">' + figur("front", m.front) + figur("back", m.back) + '</div>';
+}
+
+/** v132: Post-Pass für alle Mini-Figuren unter einem Container — vorher stand
+    dieselbe Schleife an vier Stellen (Bibliothek, Editor, Vorschau, Plan-Liste). */
+function miniFigurenZeichnen(selektor){
+  document.querySelectorAll(selektor + " .mini-figur[data-mf-ansicht]").forEach(el =>
+    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean)));
 }
 
 /** Kleine Fokus-Muskel-Figur in ein .mini-figur-Element zeichnen: Figur-PNG +
@@ -7938,8 +8058,7 @@ function bibKartenZeichnen(){
   document.getElementById("bib-status").textContent = liste.length + (liste.length === 1 ? " Übung" : " Übungen");
   document.getElementById("bib-liste").innerHTML = liste.map(bibKarteHtml).join("");
   // Figur der OFFENEN Karte nachzeichnen (Canvas + async Bild-/Kartenladung).
-  document.querySelectorAll("#bib-liste .mini-figur[data-mf-ansicht]").forEach(el =>
-    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
+  miniFigurenZeichnen("#bib-liste");
 }
 /* #endregion Übungs-Bibliothek */
 
@@ -8399,7 +8518,7 @@ let pickerOffen = false;   // v92: Übungs-Karten erst nach Klick ins Suchfeld z
 function planAnlegen(){
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
-  editorTageOffen = false;    // v126: Wochentage zugeklappt starten
+  editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
   pickerOffen = false;
   editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
                  aufwaermen:true, dehnen:true, sportart:"", typ:"", tage:[],
@@ -8416,7 +8535,7 @@ function planAnlegen(){
 function editorOeffnen(planId){
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
-  editorTageOffen = false;    // v126: Wochentage zugeklappt starten
+  editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
   pickerOffen = false;
   editorPlan = JSON.parse(JSON.stringify(sitzung.daten.plaene.find(p => p.id === planId)));
   document.getElementById("editor-menue-knopf").hidden = false;
@@ -8440,8 +8559,26 @@ function planTageText(plan){
          ((plan.wochenTakt || 1) === 2 ? " · alle 2 Wochen" : "");
 }
 
-let editorTageOffen = false;   // v126: Wochentage/Takt starten zugeklappt
-function editorTageUmschalten(){ editorTageOffen = !editorTageOffen; editorZeichnen(); }
+/** v131: Der Stand ALLER Grundeinstellungen in einer Zeile — Tage/Takt plus, je
+    nach Plan-Typ, die Aktivitäts-Ziele bzw. Reihenfolge und Bonus. Rein/testbar;
+    setzt auf `planTageText` (v126) und `planZielText` (v121) auf, statt deren
+    Formulierungen zu wiederholen. */
+function planEinstText(plan){
+  const teile = [planTageText(plan)];
+  if(plan.typ === "aktivitaet"){
+    // v133: Ein Runden-Plan beschreibt sich über seine Phasen, nicht über die Uhr.
+    const ziel = plan.intervall ? intervallText(plan) : planZielText(plan);
+    if(ziel) teile.push(ziel);
+  } else {
+    if(plan.reihenfolge === "zirkel") teile.push("Zirkel");
+    if(plan.aufwaermen) teile.push("Aufwärmen");
+    if(plan.dehnen) teile.push("Dehnen");
+  }
+  return teile.join(" · ");
+}
+
+let editorEinstOffen = false;   // v126/v131: Grundeinstellungen starten zugeklappt
+function editorEinstUmschalten(){ editorEinstOffen = !editorEinstOffen; editorZeichnen(); }
 
 let editorMehr = {};   // uebungIndex -> sind die Feinheiten aufgeklappt?
 let editorUebungOffen = null;   // v105: welche Übungs-Karteikarte ist aufgeklappt (Index oder null)
@@ -8474,13 +8611,67 @@ function planSportartSetzen(id){
     // v121: dasselbe für die Messgröße — ein Kletter-Grad hat in einem Yoga-Plan
     // nichts verloren. Ohne `mass` bleibt das Feld leer (additiv, sparsam).
     editorPlan.massZiel = sportart(id).mass ? sportart(id).mass.start : null;
+    // v133: Runden-Training gibt es nur bei Sportarten mit `intervall` — beim
+    // Wechsel auf eine andere Sportart fällt es weg (sonst hinge ein Timer an
+    // einem Plan, der ihn gar nicht anbietet).
+    if(!sportart(id).intervall) editorPlan.intervall = null;
   }
   editorZeichnen();
+}
+
+/* v133: Runden-Training direkt im Editor — der Umschalter „Dauer / Runden" steht
+   bei jeder Sportart mit `intervall:true`. „Runden" ersetzt Dauer und Strecke:
+   die Dauer ist dann das ERGEBNIS der Phasen (dieselbe Rechnung wie der Timer),
+   kein eigenes Feld. Ohne Intervall bleibt der Plan, was er war. */
+const IV_GRENZEN = { runden:[1,60], belastung:[5,600], pause:[0,600] };
+
+function planIntervallSetzen(an){
+  if(an){
+    if(!editorPlan.intervall) editorPlan.intervall = { runden:8, belastung:30, pause:15 };
+    editorIvDauerNachziehen();
+  } else {
+    editorPlan.intervall = null;   // zurück zum normalen Aktivitäts-Plan
+  }
+  editorZeichnen();
+}
+/** Die Plan-Dauer folgt IMMER den Phasen — sonst liefen Plan und Timer auseinander. */
+function editorIvDauerNachziehen(){
+  const iv = editorPlan.intervall; if(!iv) return;
+  editorPlan.dauer = intervallGesamt(intervallPhasen(iv.runden, iv.belastung, iv.pause));
+}
+function editorIvSetzen(feld, wert){
+  if(!editorPlan.intervall) return;
+  const [min, max] = IV_GRENZEN[feld];
+  editorPlan.intervall[feld] = begrenzen(Math.round(parseFloat(wert) || 0), min, max);
+  editorIvDauerNachziehen();
+  editorZeichnen();
+}
+function editorIvStufe(feld, richtung){
+  if(!editorPlan.intervall) return;
+  const schritt = feld === "runden" ? 1 : 5;   // Sekunden in 5er-Schritten, Runden einzeln
+  editorIvSetzen(feld, (editorPlan.intervall[feld] || 0) + richtung * schritt);
 }
 
 function aktivitaetsFelderZeichnen(){
   const p = editorPlan;
   const sp = sportart(p.sportart);
+  // v133: Umschalter nur bei Sportarten mit Runden-Training; er entscheidet,
+  // welche Felder darunter stehen.
+  const istIv = !!p.intervall;
+  document.getElementById("akt-art-block").hidden = !sp.intervall;
+  document.getElementById("akt-art-dauer").classList.toggle("gewaehlt", !istIv);
+  document.getElementById("akt-art-runden").classList.toggle("gewaehlt", istIv);
+  document.getElementById("akt-intervall-felder").hidden = !istIv;
+  document.getElementById("akt-dauer-block").hidden = istIv;
+  if(istIv){
+    document.getElementById("akt-iv-runden").value = p.intervall.runden;
+    document.getElementById("akt-iv-belastung").value = p.intervall.belastung;
+    document.getElementById("akt-iv-pause").value = p.intervall.pause;
+    document.getElementById("akt-iv-vorschau").textContent = intervallText(p);
+    document.getElementById("akt-hinweis").textContent =
+      "Der Timer führt dich Runde für Runde durch; die Gesamtdauer ergibt sich daraus.";
+    return;
+  }
   document.getElementById("akt-dauer").value = inEinheit(p.dauer, p.zeitEinheit);
   document.getElementById("akt-einheit").innerHTML = ZEITEINHEITEN.map(z =>
     '<option value="' + z.id + '"' + (z.id === p.zeitEinheit ? " selected" : "") + '>' + z.name + '</option>').join("");
@@ -8620,10 +8811,11 @@ function editorZeichnen(){
       '<button class="' + (editorPlan.tage.includes(i+1) ? "gewaehlt" : "") +
       '" onclick="planTagUmschalten(' + (i+1) + ')">' + w.slice(0,2) + '</button>').join("");
 
-  // v126: Der Wochentag-Block ist eine aufklappbare Zeile; sie trägt den Stand.
-  document.getElementById("plan-tage-stand").textContent = "Wochentage: " + planTageText(editorPlan);
-  document.getElementById("plan-tage-pfeil").textContent = editorTageOffen ? "⌄" : "›";
-  document.getElementById("plan-tage-block").hidden = !editorTageOffen;
+  // v131: EINE aufklappbare Zeile für alle Grundeinstellungen; sie trägt den Stand.
+  // Ohne Sportart gibt es noch nichts einzustellen — dann bleibt sie weg.
+  document.getElementById("plan-einst-stand").textContent = "Einstellungen: " + planEinstText(editorPlan);
+  document.getElementById("plan-einst-pfeil").textContent = editorEinstOffen ? "⌄" : "›";
+  document.getElementById("editor-einst-block").hidden = !editorEinstOffen;
 
   // D2: Wiederholungs-Umschalter nur bei festen Tagen zeigen.
   const hatTage = editorPlan.tage.length > 0;
@@ -8707,8 +8899,12 @@ function editorZeichnen(){
       '</div></div>';
   }).join("");
   // v105: Muskel-Figuren der offenen Karte nachzeichnen (wie in der Bibliothek).
-  document.querySelectorAll("#uebung-liste .mini-figur[data-mf-ansicht]").forEach(el =>
-    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
+  miniFigurenZeichnen("#uebung-liste");
+  // v132: Muskel-Map des ganzen Plans über der Liste (nur, wenn etwas erkannt wurde).
+  const planFiguren = planFigurenHtml(editorPlan);
+  document.getElementById("editor-muskeln").hidden = !planFiguren;
+  document.getElementById("editor-muskeln-figuren").innerHTML = planFiguren;
+  miniFigurenZeichnen("#editor-muskeln");
   // v124: Langdruck-Menü an die frisch gezeichneten Übungs-Karten binden
   // (innerHTML hat die alten samt Listenern ersetzt — wie bei den Plan-Karten).
   langdruckEinrichten();
@@ -9800,8 +9996,7 @@ function vorschauZeichnen(){
            '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span>' + figur + '</div>';
   }).join("");
   // v84: Figuren nachträglich zeichnen (Canvas + async Bild-/Kartenladung).
-  document.querySelectorAll("#vorschau-liste .mini-figur[data-mf-ansicht]").forEach(el =>
-    miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",")));
+  miniFigurenZeichnen("#vorschau-liste");
 }
 
 /** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */

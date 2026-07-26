@@ -39,6 +39,10 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test133.js` | Runden-Umschalter im Editor: `planIntervallSetzen` (an/aus, Standardwerte), `editorIvSetzen`/`editorIvStufe` (Grenzen aus `IV_GRENZEN`, Runden +1 / Sekunden +5), Plan-Dauer folgt immer den Phasen, Guards ohne Intervall + Verdrahtung |
+| `test132.js` | Muskel-Map des ganzen Plans: `planMuskeln` (sammelt über alle Übungen, jeder Muskel auf SEINE Seite — auch bei gemischten Übungen —, keine Doppelten, kaputte Pläne werfen nicht) + `planFigurenHtml` + Verdrahtung (Plan-Karte, Editor-Block, gemeinsamer Post-Pass) |
+| `test131.js` | Grundeinstellungen hinter einer Zeile: `planEinstText` (Tage + Zirkel/Bonus bei Kraft, Ziel bei Aktivität; Normalfälle bleiben stumm) + Struktur (alle drei Blöcke im Aufklapper, Name/Sportart davor, Übungsliste danach) |
+| `test130.js` | Zwei Fehler: globale `[hidden]`-Regel (schlägt eigene `display`-Regeln — sonst blieb der Statistik-Tab auf Stufe 3 stehen) + `navTabsFuerStufe` als Regression + heller iOS-Nav-Hintergrund, dunkler bleibt transparent |
 
 ## Ausführen
 
@@ -81,6 +85,10 @@ VS Codes Electron springt ein):
     & $code tests\test127.js index.html
     & $code tests\test128.js index.html
     & $code tests\test129.js index.html
+    & $code tests\test130.js index.html
+    & $code tests\test131.js index.html
+    & $code tests\test132.js index.html
+    & $code tests\test133.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

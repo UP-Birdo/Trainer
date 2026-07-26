@@ -79,8 +79,9 @@ pruefe("nur bei erkannten Muskeln", /kopfFigur = \(info && info\.muskeln && info
 pruefe("eigene Groesse im Kopf", /\.uebung-kopf \.uebung-mini\{width:\d+px\}/.test(src));
 pruefe("aufgeklappte Figur groesser als vorher (60px)",
   /\.uebung-figur \.mini-figur\{width:(6[1-9]|[7-9]\d|\d{3})px\}/.test(src));
+// v132: Der Post-Pass liegt jetzt im gemeinsamen Helfer miniFigurenZeichnen.
 pruefe("Zeichner erfasst alle Figuren der Liste",
-  src.includes('querySelectorAll("#uebung-liste .mini-figur[data-mf-ansicht]")'));
+  grabFn("editorZeichnen").includes('miniFigurenZeichnen("#uebung-liste")'));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

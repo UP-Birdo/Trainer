@@ -61,8 +61,10 @@ pruefe("Helfer langdruckBinden existiert", src.includes("function langdruckBinde
 pruefe("Plan-Karten nutzen ihn", /querySelectorAll\("\[data-plan\]"\)[\s\S]{0,120}langdruckBinden/.test(src));
 pruefe("Uebungs-Karten nutzen ihn", /uebung-liste \[data-uebung\][\s\S]{0,120}langdruckBinden/.test(src));
 pruefe("Uebungs-Karte traegt ihren Index", src.includes('data-uebung="\' + i + \'"'));
+// Nicht den Abstand im Quelltext messen (der waechst mit jedem neuen Block),
+// sondern die Aussage: editorZeichnen bindet den Langdruck neu an.
 pruefe("Editor bindet nach dem Zeichnen neu",
-  /miniMuskelFigur\(el[\s\S]{0,400}langdruckEinrichten\(\);/.test(src));
+  grabFn("editorZeichnen").includes("langdruckEinrichten()"));
 pruefe("kurzes Antippen klappt weiter auf (v105 unberuehrt)",
   src.includes('onclick="editorUebungToggle('));
 

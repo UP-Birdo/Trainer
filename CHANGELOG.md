@@ -3,6 +3,41 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.133
+
+- Runden-Training gibt es jetzt direkt im Plan-Editor: Bei Sportarten, die
+  Intervalle können (Laufen, Kampfsport), steht in den Einstellungen ein Umschalter
+  „Dauer / Runden". Auf „Runden" stellst du Runden, Belastung und Pause ein — die
+  Gesamtdauer rechnet die App daraus. So wird aus einem bestehenden Plan mit zwei
+  Tipps ein Intervall-Plan (und zurück); der eigene Anlege-Weg über das „+" bleibt
+  daneben bestehen.
+
+## 0.132
+
+- Jeder Plan zeigt jetzt seine Muskel-Map: vorne und hinten, aus ALLEN Übungen des
+  Plans zusammengerechnet. Im Tab „Pläne" steht sie klein rechts auf der Karte — du
+  siehst also von außen, was ein Plan abdeckt. Und beim Bearbeiten wächst sie live
+  mit: Jede Übung, die du hinzufügst, färbt sofort die passenden Muskeln ein, so
+  erkennst du auf einen Blick, was noch fehlt.
+
+## 0.131
+
+- Der Plan-Editor ist jetzt aufgeräumt: Oben stehen nur noch Name und Sportart —
+  alles andere (Wochentage, Wiederholung, Reihenfolge, Aufwärmen/Dehnen bzw. Dauer,
+  Strecke und Ziel) liegt hinter EINER Zeile „Einstellungen", die den aktuellen
+  Stand anzeigt („Mo, Do · Zirkel · Aufwärmen"). Ein Tipp klappt sie auf. So siehst
+  du deine Übungen sofort, statt erst an den Einstellungen vorbeizuscrollen.
+
+## 0.130
+
+- Zwei Fehler behoben: Auf Einfachheits-Stufe 3 stand der Statistik-Tab noch in der
+  Leiste, obwohl es dort keine Statistik gibt — er ist jetzt weg (und mit ihm ein
+  paar weitere Elemente, die sich hartnäckig zeigten, obwohl sie versteckt sein
+  sollten: der Profil-Eintrag unter „Mehr" auf niedrigen Stufen und das Zahlenfeld
+  beim Kletter-Grad). Und in der hellen Darstellung hatte die Tab-Leiste keinen
+  eigenen Hintergrund, sodass der Inhalt durchschien — sie ist jetzt wieder sauber
+  abgesetzt.
+
 ## 0.129
 
 - Aufgeräumt unter „Pläne": Solange noch kein Plan da ist, steht dort nur noch die

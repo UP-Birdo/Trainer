@@ -43,14 +43,16 @@ pruefe("Original-Liste bleibt unsortiert-unberuehrt", (() => {
   const p = { tage: [4, 1] }; planTageText(p); return p.tage[0] === 4;
 })());
 
-/* 2) Wochentage-Block: eigene Zeile, zugeklappt, Zustand + Pfeil. */
-pruefe("Aufklapp-Zeile vorhanden", src.includes('onclick="editorTageUmschalten()"'));
-pruefe("Block startet versteckt", src.includes('<div id="plan-tage-block" hidden>'));
-pruefe("Zeile traegt den Stand", src.includes('"Wochentage: " + planTageText(editorPlan)'));
-pruefe("Umschalter + Startwert zu", src.includes("function editorTageUmschalten()") &&
-  /let editorTageOffen = false/.test(src));
-pruefe("planAnlegen startet zugeklappt", grabFn("planAnlegen").includes("editorTageOffen = false"));
-pruefe("editorOeffnen startet zugeklappt", grabFn("editorOeffnen").includes("editorTageOffen = false"));
+/* 2) Aufklapp-Block: eigene Zeile, zugeklappt, Zustand + Pfeil.
+      v131 hat den Block von „nur Wochentage" auf ALLE Grundeinstellungen
+      erweitert — die Namen heissen seither einst statt tage. */
+pruefe("Aufklapp-Zeile vorhanden", src.includes('onclick="editorEinstUmschalten()"'));
+pruefe("Block startet versteckt", src.includes('<div id="editor-einst-block" hidden>'));
+pruefe("Zeile traegt den Stand", src.includes('"Einstellungen: " + planEinstText(editorPlan)'));
+pruefe("Umschalter + Startwert zu", src.includes("function editorEinstUmschalten()") &&
+  /let editorEinstOffen = false/.test(src));
+pruefe("planAnlegen startet zugeklappt", grabFn("planAnlegen").includes("editorEinstOffen = false"));
+pruefe("editorOeffnen startet zugeklappt", grabFn("editorOeffnen").includes("editorEinstOffen = false"));
 
 /* 3) Uebungen erst nach der Sportart-Wahl (+ Vorauswahl bei genau einer). */
 pruefe("Liste und Picker haengen an der Sportart",
