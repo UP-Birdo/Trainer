@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.156
+
+- Die Einfachheits-Stufen erklären sich jetzt andersherum — so, wie sie gedacht
+  sind: Wer neu anfängt, will alles sehen und kennenlernen; wer lange dabei ist,
+  braucht am Ende nur noch einen Block für seine Zahlen. Deshalb steht in der
+  Auswahl bei jeder Stufe, für wen sie ist, und die Liste beginnt oben mit dem
+  Vollausbau. Die Nummern sind aus der Auswahl verschwunden — sie hätten
+  rückwärts dagestanden und nur verwirrt. An deiner Einstellung ändert sich
+  nichts.
+
 ## 0.155
 
 - Der Notizblock versteht dich jetzt, ohne dass du ein Muster kennen musst:

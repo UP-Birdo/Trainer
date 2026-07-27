@@ -2359,7 +2359,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 155;
+const APP_VERSION = 156;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3128,14 +3128,45 @@ function navTabsFuerStufe(s){
   return ["nav-start","nav-plaene","nav-statistik","nav-einst"];          // 5 = alles
 }
 
-/* --- Die fünf Stufen: Titel + eine Klartext-Zeile je Stufe (Abschnitt 3). --- */
+/* --- Die fünf Stufen: Titel, FÜR WEN und was sie zeigt (Abschnitt 3).
+   v156 (Nutzer-Gedanke): Die Stufen sind andersherum gedacht, als die Nummer
+   vermuten lässt. Wer NEU ist, will den vollen Umfang sehen und kennenlernen,
+   was es gibt; wer fortgeschritten ist, braucht am Ende nur noch einen Block,
+   in den er seine Zahlen schreibt. Die Auswahl sagt das jetzt ausdrücklich
+   (`fuer`) und ist in dieser Richtung sortiert (SIMPELHEIT_REIHENFOLGE).
+   Die gespeicherte Zahl 1..5 bleibt, wie sie ist — sie steht in jedem Konto
+   (`einrichtung.simpelheit`) und in der ganzen Doku; sie umzudrehen hieße,
+   bestehende Daten umzuschreiben (additiver Datenvertrag). Die Nummer ist
+   damit eine interne Kennung und steht nicht mehr in der Auswahl. --- */
 const SIMPELHEIT_STUFEN = [
-  { n:1, titel:"Notizblock",          text:"Nur eine Seite mit Abschnitten und Freitext. Kein Training, keine Zahlen." },
-  { n:2, titel:"Notizblock + Zahlen", text:"Wie 1, plus je Zeile Übungsname und Wiederholungen." },
-  { n:3, titel:"Plan + Training",     text:"Echte Pläne mit Sätzen × Wdh × Gewicht, „letztes Mal“, Pause-Timer und Protokoll." },
-  { n:4, titel:"+ Auswertung",        text:"Zusätzlich die volle Statistik: Kalender, Volumen, Gewichtskurve, Fortschritt." },
-  { n:5, titel:"Vollausbau",          text:"Alles: Trainingsplanung-Assistent, Sportarten, Ziele, Kalender-Wiederholungen, Ansagen." }
+  { n:1, titel:"Notizblock",
+    fuer:"Für Erfahrene, die nur festhalten wollen, was war.",
+    text:"Eine Seite, eine Übung je Zeile. Kein geführtes Training." },
+  { n:2, titel:"Notizblock + Zahlen",
+    fuer:"Wenn du keinen Plan brauchst, aber deine Zahlen willst.",
+    text:"Wie Notizblock, plus Sätze und Wiederholungen je Zeile." },
+  { n:3, titel:"Plan + Training",
+    fuer:"Wenn du weißt, was du tust, und nur die Führung willst.",
+    text:"Echte Pläne, geführtes Training mit Pause-Timer, Protokoll." },
+  { n:4, titel:"+ Auswertung",
+    fuer:"Wenn du sehen willst, wie es über die Wochen läuft.",
+    text:"Zusätzlich Kalender, Volumen, Gewichtskurve, Fortschritt." },
+  { n:5, titel:"Vollausbau",
+    fuer:"Für den Anfang — hier siehst du alles, was die App kann.",
+    text:"Zusätzlich Trainingsplanung, Sportarten, Ziele, Ansagen." }
 ];
+
+/** Reihenfolge in der AUSWAHL: von „viel Anleitung" nach „wenig". Wer neu ist,
+    findet oben, was er sucht; wer nur noch mitschreibt, unten. Bewusst die
+    umgekehrte Richtung der internen Nummer — die Liste folgt dem Gedanken,
+    nicht der Zählweise. */
+const SIMPELHEIT_REIHENFOLGE = [5, 4, 3, 2, 1];
+
+/** Die Stufen in Anzeige-Reihenfolge. Rein/testbar; einzige Quelle für die
+    Auswahl, damit Reihenfolge und Inhalt nie auseinanderlaufen. */
+function simpelheitListe(){
+  return SIMPELHEIT_REIHENFOLGE.map(n => SIMPELHEIT_STUFEN.find(s => s.n === n)).filter(Boolean);
+}
 
 let simpelheitErstmalig = false;   // Ersteinrichtung (true) vs. Umschalten im Betrieb (false)
 
@@ -3143,8 +3174,11 @@ let simpelheitErstmalig = false;   // Ersteinrichtung (true) vs. Umschalten im B
     andere Überschrift, danach in die passende Startansicht). */
 function simpelheitFrageOeffnen(erstmalig){
   simpelheitErstmalig = !!erstmalig;
+  /* v156: „Wie einfach soll die App sein?" legte nahe, dass wenig = für Neue
+     ist. Gefragt ist aber, wie viel man sehen WILL — und wer neu ist, will
+     meist viel. */
   document.getElementById("simpelheit-titel").textContent =
-    erstmalig ? "Wie einfach soll die App sein?" : "Einfachheit ändern";
+    erstmalig ? "Wie viel soll die App dir zeigen?" : "Einfachheit ändern";
   document.getElementById("simpelheit-zurueck").hidden = erstmalig;   // im Erst-Flow kein Rückweg
   // v122: der eine Erklärsatz — beim ersten Mal mit dem Hinweis, wo man ihn
   // später wiederfindet; danach nur noch die Beruhigung „nichts geht verloren".
@@ -3157,11 +3191,16 @@ function simpelheitFrageOeffnen(erstmalig){
 
 function simpelheitFrageZeichnen(){
   const jetzt = simpelheitErstmalig ? 0 : stufe();   // im Erst-Flow nichts vorwählen
+  /* v156: Ohne die Nummer — sie ist eine interne Kennung und stünde hier
+     rückwärts (5,4,3,2,1), was mehr verwirrt als hilft. Zuerst „für wen",
+     dann was die Stufe zeigt: Man wählt nach der eigenen Lage, nicht nach
+     einer Funktionsliste. */
   document.getElementById("simpelheit-inhalt").innerHTML =
-    SIMPELHEIT_STUFEN.map(s =>
+    simpelheitListe().map(s =>
       '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
-        '<strong>' + s.n + ' · ' + text(s.titel) + '</strong>' +
-        '<div class="meta" style="margin-top:4px;white-space:normal">' + text(s.text) + '</div>' +
+        '<strong>' + text(s.titel) + '</strong>' +
+        '<div class="meta" style="margin-top:4px;white-space:normal">' + text(s.fuer) + '</div>' +
+        '<div class="meta" style="margin-top:2px;white-space:normal;opacity:.75">' + text(s.text) + '</div>' +
       '</button>').join("");
 }
 
@@ -3189,8 +3228,9 @@ function simpelheitWaehlen(n){
 function simpelheitZeileZeichnen(){
   const el = document.getElementById("mehr-einfachheit-label");
   if(!el) return;
+  // v156: ohne die Nummer — in der Auswahl steht sie auch nicht mehr.
   const s = SIMPELHEIT_STUFEN.find(x => x.n === stufe()) || SIMPELHEIT_STUFEN[4];
-  el.textContent = "Einfachheit: Stufe " + s.n + " · " + s.titel;
+  el.textContent = "Einfachheit: " + s.titel;
 }
 
 /* Übungs-Erkennung beim Hochstufen (Abschnitt 5): Angebot, nie automatisch.
@@ -4520,6 +4560,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.156", punkte:[
+    "Die Einfachheits-Stufen erklären sich jetzt andersherum — so, wie sie gedacht sind: Wer neu anfängt, will alles sehen und kennenlernen; wer lange dabei ist, braucht am Ende nur noch einen Block für seine Zahlen. Deshalb steht in der Auswahl bei jeder Stufe, für wen sie ist, und die Liste beginnt oben mit dem Vollausbau. Die Nummern sind aus der Auswahl verschwunden — sie hätten rückwärts dagestanden und nur verwirrt. An deiner Einstellung ändert sich nichts."
+  ]},
   { stand:"0.155", punkte:[
     "Der Notizblock versteht dich jetzt, ohne dass du ein Muster kennen musst: Schreib „Bankdrücken 3 10“ — die App macht daraus Sätze und Wiederholungen. Auch verkehrt herum: Aus „Bankdrücken 10 3“ wird dasselbe, denn die kleinere Zahl sind die Sätze. Mit x geht es genauso („3x10“), und Zahlen im Namen bleiben, wo sie sind („500-m-Intervalle 3 10“). Sobald du das Feld verlässt, steht die aufgeräumte Zeile da.",
     "Aufgeräumt: Das Feld „Getan“ unter dem Notizblock ist weg, und das „i“ oben auch — das Muster musst du ja nicht mehr kennen. Schon notierte Einträge bleiben erhalten und stehen ab Stufe 4 im Verlauf."

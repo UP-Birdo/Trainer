@@ -51,7 +51,10 @@ pruefe("CSS für zwei Figuren nebeneinander", /\.muskel-figuren\.muskel-doppelt/
       Erklärtext in der Auswahl statt auf der Mehr-Seite. */
 pruefe("Einfachheit ist eine einst-zeile",
   /class="breit einst-zeile" onclick="simpelheitFrageOeffnen\(false\)"/.test(src));
-pruefe("Label trägt die Stufe", src.includes('"Einfachheit: Stufe " + s.n'));
+/* v156: Die NUMMER ist aus der Zeile raus — sie stünde in der Auswahl rückwärts
+   und ist nur noch eine interne Kennung. Der v122-Kern bleibt: Die Zeile trägt
+   den aktuellen Stand IM Namen, nicht in einer zusätzlichen Zeile darunter. */
+pruefe("Label trägt den aktuellen Stand", src.includes('"Einfachheit: " + s.titel'));
 pruefe("Zeilen-Zeichner ersetzt die Karte",
   src.includes("function simpelheitZeileZeichnen(") && !src.includes("simpelheitKarteZeichnen"));
 pruefe("alter Info-Block der Mehr-Seite weg",
