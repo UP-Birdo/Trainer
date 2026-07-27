@@ -42,6 +42,9 @@ function grabAnweisung(start, ende){
 const code = [
   "const SPORTARTEN = " + grabLiteral("SPORTARTEN") + ";",
   "const WOCHENTAGE = " + grabLiteral("WOCHENTAGE") + ";",
+  "const SPORT_UEBUNGEN = " + grabLiteral("SPORT_UEBUNGEN") + ";",
+  grabFn("sportUebungen"),
+  grabFn("zahlKurz"),
   grabFn("kraftGewaehlt"),
   grabAnweisung("const WIZARD_FRAGEN = ", "let wzSchritt"),
   "let wzSichtbar = [];",

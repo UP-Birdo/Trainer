@@ -2319,7 +2319,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 149;
+const APP_VERSION = 150;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4458,6 +4458,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.150", punkte:[
+    "Der Assistent behandelt jetzt alle Sportarten gleich. Bisher bekam Krafttraining acht Fragen und als Einziges einen Plan mit Übungen darin — alles andere wurde nur nach Tag und Dauer gefragt und landete als leerer Zeit-Plan. Neu wird jede Sportart nach dem gefragt, was sie wirklich messen kann: nach der Strecke, wo es eine gibt (Laufen, Rad, Wandern, Schwimmen, Rudern), nach deinem Ziel, wo es eine Messgröße gibt (Beweglichkeit bei Yoga, Schwierigkeitsgrad beim Klettern) — und überall nach den Übungen, die du machen willst. Die stehen danach im Plan und führen dich durchs Training, genau wie beim Krafttraining. Nichts auszuwählen bleibt erlaubt: dann entsteht wie bisher ein Plan mit reiner Dauer. Absichtlich wird niemand nach Dingen gefragt, die es bei seiner Sportart nicht gibt — beim Tischtennis kommt keine Frage nach Kilometern."
+  ]},
   { stand:"0.149", punkte:[
     "Der Trainingsplan-Assistent ist aufgeräumt. Der Erklärtext zu jeder Frage stand bisher immer offen da — bei acht Fragen war das vor allem eine Textwand. Jetzt liegt er hinter dem „i“ neben der Frage. Und wenn du mehrere Sportarten machst, arbeitet der Assistent sie nacheinander ab statt durcheinander: Über jeder Frage steht, welche Sportart gerade dran ist (mit ihrer Farbe) und die wievielte ihrer Fragen es ist. Die Zeile ganz unten zählt jetzt auch wirklich mit."
   ]},
@@ -6394,6 +6397,12 @@ function aktivitaetsFelderVorbereiten(e){
   SPORTARTEN.filter(s => s.planTyp === "aktivitaet").forEach(s => {
     if(!Array.isArray(e["tage_" + s.id])) e["tage_" + s.id] = [];
     if(!e["dauer_" + s.id]) e["dauer_" + s.id] = 3600;
+    // v150: Vorbelegung aus der Sportart selbst — dieselben Startwerte, die ein
+    // Plan sonst bekommt. Die Übungs-Auswahl startet LEER: nichts zu wählen ist
+    // eine gültige Antwort (Plan mit reiner Dauer, wie bis v149).
+    if(s.strecke && !e["strecke_" + s.id]) e["strecke_" + s.id] = s.strecke.start;
+    if(s.mass && e["ziel_" + s.id] == null) e["ziel_" + s.id] = s.mass.start;
+    if(!Array.isArray(e["drills_" + s.id])) e["drills_" + s.id] = [];
   });
   return e;
 }
@@ -6483,15 +6492,15 @@ const SPORTARTEN = [
   // Ausdauer: Strecke UND Zeit -> daraus rechnet die App die Pace. Nie speichern,
   // was sich ausrechnen lässt, sonst laufen zwei Wahrheiten auseinander.
   { id:"laufen",    name:"Laufen",    farbe:"#6FBF73", planTyp:"aktivitaet", intervall:true, fortschritt:"ausdauer",
-    strecke:{ einheit:"km", schritt:0.5, start:3 },  paceJe:1,   einheiten:"km · Zeit · Pace (min/km)" },
+    strecke:{ einheit:"km", schritt:0.5, start:3, presets:[3,5,10,21] },  paceJe:1,   einheiten:"km · Zeit · Pace (min/km)" },
   { id:"radfahren", name:"Radfahren", farbe:"#2FA8A0", planTyp:"aktivitaet", fortschritt:"ausdauer",
-    strecke:{ einheit:"km", schritt:1, start:10 },   paceJe:null, einheiten:"km · Zeit · km/h" },
+    strecke:{ einheit:"km", schritt:1, start:10, presets:[10,20,40,80] },   paceJe:null, einheiten:"km · Zeit · km/h" },
   { id:"wandern",   name:"Wandern",   farbe:"#A98150", planTyp:"aktivitaet", fortschritt:"ausdauer",
-    strecke:{ einheit:"km", schritt:1, start:8 },    paceJe:null, einheiten:"km · Zeit" },
+    strecke:{ einheit:"km", schritt:1, start:8, presets:[5,10,15,25] },    paceJe:null, einheiten:"km · Zeit" },
   { id:"schwimmen", name:"Schwimmen", farbe:"#56C7E8", planTyp:"aktivitaet", fortschritt:"ausdauer",
-    strecke:{ einheit:"m", schritt:50, start:500 },  paceJe:100, einheiten:"Meter · Zeit · Pace (min/100 m)" },
+    strecke:{ einheit:"m", schritt:50, start:500, presets:[400,800,1500,3000] },  paceJe:100, einheiten:"Meter · Zeit · Pace (min/100 m)" },
   { id:"rudern",    name:"Rudern",    farbe:"#7A8CD9", planTyp:"aktivitaet", fortschritt:"ausdauer",
-    strecke:{ einheit:"m", schritt:100, start:1000 },paceJe:500, einheiten:"Meter · Zeit · Split (min/500 m)" },
+    strecke:{ einheit:"m", schritt:100, start:1000, presets:[500,1000,2000,5000] },paceJe:500, einheiten:"Meter · Zeit · Split (min/500 m)" },
 
   // Ohne sinnvolles STRECKEN-Maß: Hier gibt es die Trainingszeit — und, wo es
   // etwas anderes Messbares gibt, seit v115/v117 eine `mass` (Grad, Schwierigkeit).
@@ -6499,7 +6508,9 @@ const SPORTARTEN = [
     // v117 (Nicht-Kraft, Etappe 2): Schwierigkeit als Ordinalskala (franz. Sportkletter-
     // Grade) statt Zahl — `skala` statt `einheit`/`schritt`. Gewählte Standard-Skala; bei
     // Bedarf leicht austauschbar (UIAA, Bouldern …).
-    mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a" }, einheiten:"Zeit · Schwierigkeit" },
+    // presets (v150): vier Stützpunkte für die Wizard-Frage — nicht die ganze
+    // Skala, die wäre als Auswahl unbrauchbar. Feiner stellt man im Editor.
+    mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a", presets:["4","5c","6b","7a"] }, einheiten:"Zeit · Schwierigkeit" },
   { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, fortschritt:"kampf", einheiten:"Zeit · Runden" },
@@ -6509,7 +6520,7 @@ const SPORTARTEN = [
     // eine schlichte Zahl mit Einheit (hier Beweglichkeit in Grad). Ziel und
     // Fortschritt dazu seit v121 (Etappe 4); `max` ist die Sanity-Grenze eines
     // Gelenkwinkels, damit der Schritt-Knopf nicht ins Unendliche zählt.
-    mass:{ label:"Beweglichkeit", einheit:"°", schritt:5, start:30, max:180 }, einheiten:"Zeit · Beweglichkeit (°)" }
+    mass:{ label:"Beweglichkeit", einheit:"°", schritt:5, start:30, max:180, presets:[30,45,60,90] }, einheiten:"Zeit · Beweglichkeit (°)" }
 ];
 
 /** Plan-Typ folgt IMMER der Sportart — Krafttraining hat Übungen und Sätze,
@@ -7890,9 +7901,20 @@ const WIZARD_FRAGEN = [
       ["dehnen","Dehnen danach (ca. 3 Min)","Statisch: je 30 s halten, wenn die Muskeln warm sind"]
     ]}
 ]
-/* Für JEDE gewählte Sportart außer Krafttraining zwei Fragen: wann und wie lange.
-   Erzeugt statt getippt — sonst müsste jede neue Sportart an drei Stellen
-   nachgetragen werden. nurWenn blendet aus, was nicht gewählt ist. */
+/* Für JEDE gewählte Sportart außer Krafttraining ihre eigenen Fragen. Erzeugt
+   statt getippt — sonst müsste jede neue Sportart an mehreren Stellen nachgetragen
+   werden. nurWenn blendet aus, was nicht gewählt ist.
+
+   v150: Bis v149 waren es genau ZWEI Fragen (wann, wie lange) — während
+   Krafttraining acht bekam und als einziges einen Plan mit Inhalt. Genau das war
+   der Nutzer-Wunsch „Krafttraining soll nicht bevorzugt werden". Jede Sportart
+   fragt jetzt nach dem, was sie wirklich messen kann:
+     STRECKE  nur wo es ein Streckenmaß gibt (Laufen, Rad, Wandern, Schwimmen, Rudern),
+     ZIEL     nur wo es eine Messgröße gibt (Yoga: Grad, Klettern: Schwierigkeit),
+     ÜBUNGEN  überall — das ist das Gegenstück zu den Kraft-Übungen im Plan.
+   Bewusst NICHT für jede Sportart alles: Eine Frage nach der Strecke beim
+   Tischtennis wäre eine Frage ohne Antwort. Wer nur Yoga macht, sieht vier
+   Fragen statt zwei — kein aufgeblähter Wizard, aber ein Plan mit Inhalt. */
 .concat(...SPORTARTEN.filter(s => s.planTyp === "aktivitaet").map(s => [
   { id:"tage_" + s.id, typ:"multi", raster:true, sportBezug:s.id,
     frage:"Wann trainierst du " + s.name + "?",
@@ -7906,7 +7928,28 @@ const WIZARD_FRAGEN = [
     // v100: 4 statt 5 Presets -> sauberes 2×2-Raster (5 gaben eine schiefe letzte Reihe).
     // Zwischenwerte (z. B. 1,5 Std) gehen weiter über „Eigene Zeit".
     optionen: [[1800,"30 min"],[3600,"1 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
-]));
+].concat(
+  // v150: Strecke — nur wo die Sportart eine hat.
+  s.strecke ? [{ id:"strecke_" + s.id, typ:"single", raster:true, sportBezug:s.id,
+    frage:"Wie weit ist eine Einheit " + s.name + "?",
+    hilfe:"Das Ziel deines Plans. Es wächst später von selbst mit, wenn dir eine Einheit zu leicht war — feiner einstellen kannst du es jederzeit im Plan.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: s.strecke.presets.map(v => [v, zahlKurz(v) + " " + s.strecke.einheit]) }] : []
+).concat(
+  // v150: Messgrößen-Ziel — nur wo die Sportart eine Messgröße hat.
+  s.mass ? [{ id:"ziel_" + s.id, typ:"single", raster:true, sportBezug:s.id,
+    frage:"Welches Ziel setzt du dir bei " + s.name + "?",
+    hilfe:"Dein " + s.mass.label + "-Ziel. Erreichst du es und war die Einheit zu leicht, hebt die App es auf Nachfrage einen Schritt an.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: s.mass.presets.map(v => [v, s.mass.einheit ? v + " " + s.mass.einheit : String(v)]) }] : []
+).concat(
+  // v150: Übungen — das Gegenstück zur Übungsliste eines Kraft-Plans.
+  [{ id:"drills_" + s.id, typ:"multi", raster:true, sportBezug:s.id,
+    frage:"Was übst du bei " + s.name + "?",
+    hilfe:"Mehrfachauswahl, alles freiwillig. Ausgewählte Übungen stehen später im Plan und führen dich durchs Training — nichts auszuwählen ergibt einen Plan mit reiner Dauer, wie bisher.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: sportUebungen(s.id).map(v => [v.name, v.name, v.art === "technik" ? "Technik" : "Kondition"]) }]
+)));
 
 let wzSchritt = 0;
 let wzSichtbar = [];   // Fragen, die nach den bisherigen Antworten dran sind
@@ -7933,6 +7976,13 @@ function einrichtungOeffnen(){
   sitzung.daten.plaene.filter(p => p.typ === "aktivitaet").forEach(p => {
     einrichtung["tage_" + p.sportart] = p.tage.slice();
     einrichtung["dauer_" + p.sportart] = p.dauer;
+    // v150: Auch Strecke, Ziel und die Übungen des bestehenden Plans übernehmen —
+    // sonst fragte der Wizard Dinge neu, die längst eingestellt sind.
+    if(p.strecke > 0) einrichtung["strecke_" + p.sportart] = p.strecke;
+    if(p.massZiel != null && p.massZiel !== "") einrichtung["ziel_" + p.sportart] = p.massZiel;
+    if(Array.isArray(p.uebungen) && p.uebungen.length){
+      einrichtung["drills_" + p.sportart] = p.uebungen.map(u => u.name);
+    }
   });
   wzSchritt = 0;
   wzZeichnen();
@@ -8037,10 +8087,24 @@ function wzZeichnen(){
 /* Einfachauswahl markiert nur (Umfärbung) — weiter geht es bewusst erst über
    den „Weiter“-Knopf, damit man eine Auswahl in Ruhe ändern kann. wzWeiter
    verlangt, dass etwas gewählt wurde. */
+/** v150: Speichert diese Wizard-Frage eine ZAHL? Rein und testbar — die Antwort
+    entscheidet, ob aus „6b" versehentlich NaN wird. */
+function wzZahlFeld(id){
+  if(id.indexOf("dauer_") === 0 || id.indexOf("strecke_") === 0) return true;
+  if(id.indexOf("ziel_") === 0){
+    const m = sportart(id.slice(5)).mass;
+    return !!(m && !m.skala);   // Zahl mit Einheit ja, Ordinalskala nein
+  }
+  return false;
+}
+
 function wzSingle(id, wert){
-  // Aktivitäts-Dauer (dauer_lauf etc.) sind Sekunden und müssen Zahlen sein;
-  // der Kraft-"dauer"-Schlüssel (kurz/mittel/…) und alle anderen bleiben Strings.
-  einrichtung[id] = id.indexOf("dauer_") === 0 ? Number(wert) : wert;
+  /* Aktivitäts-Dauer (dauer_lauf etc.) sind Sekunden und müssen Zahlen sein;
+     der Kraft-"dauer"-Schlüssel (kurz/mittel/…) und alle anderen bleiben Strings.
+     v150: Dasselbe gilt für die Strecke — und für das Messgrößen-Ziel, ABER nur
+     wo die Messgröße eine Zahl ist. Kletter-Grade („6b") sind Ränge einer Skala
+     und müssen Strings bleiben, sonst wird `massVergleich` zu NaN. */
+  einrichtung[id] = wzZahlFeld(id) ? Number(wert) : wert;
   // Ortswechsel: Geräte auf sinnvolle Vorauswahl setzen und Unpassendes entfernen
   if(id === "ort"){
     if(!einrichtung.geraeteProOrt) einrichtung.geraeteProOrt = {};
@@ -8148,11 +8212,22 @@ function wzZusammenfassung(){
   };
   const sportarten = einrichtung.sportarten.map(s => sportartName(s)).join(", ");
 
-  // Zeile je Aktivität: "Tischtennis: Di, Do · 1,5 Std"
+  /* Zeile je Aktivität: "Tischtennis: Di, Do · 1,5 Std · 4 Übungen".
+     v150: Strecke, Ziel und Übungszahl stehen mit drin — es wird jetzt danach
+     gefragt, also muss die Zusammenfassung auch zeigen, was daraus wird.
+     Weggelassen wird, was die Sportart nicht kennt (keine Strecke beim Yoga). */
   const aktZeilen = einrichtung.sportarten.filter(id => planTypFuer(id) === "aktivitaet").map(id => {
+    const sp = sportart(id);
     const tage = einrichtung["tage_" + id] || [];
-    return sportartName(id) + ": " + (tage.length ? tage.slice().sort().map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag") +
-           " · " + zeitKurz(einrichtung["dauer_" + id] || 3600, "h");
+    const drills = (einrichtung["drills_" + id] || []).length;
+    const teile = [
+      tage.length ? tage.slice().sort().map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag",
+      zeitKurz(einrichtung["dauer_" + id] || 3600, "h")
+    ];
+    if(sp.strecke) teile.push(zahlKurz(einrichtung["strecke_" + id] || sp.strecke.start) + " " + sp.strecke.einheit);
+    if(sp.mass) teile.push(massText(id, einrichtung["ziel_" + id]));
+    if(drills) teile.push(drills + (drills === 1 ? " Übung" : " Übungen"));
+    return sportartName(id) + ": " + teile.filter(Boolean).join(" · ");
   });
 
   if(!kraftGewaehlt(einrichtung)){
@@ -8292,14 +8367,24 @@ function uebungBauen(vorlage, werte, koerperKg){
 function aktivitaetsPlaeneBauen(){
   return einrichtung.sportarten.filter(id => planTypFuer(id) === "aktivitaet").map(id => {
     const sp = sportart(id);
+    /* v150: Die im Wizard gewählten Übungen landen jetzt WIRKLICH im Plan —
+       vorher entstand jeder Aktivitäts-Plan leer, egal was gefragt wurde.
+       Reihenfolge wie im Katalog (SPORT_UEBUNGEN), damit Technik vor Kondition
+       steht und der Plan nicht der Tipp-Reihenfolge des Nutzers folgt. */
+    const gewaehlt = einrichtung["drills_" + id] || [];
+    const uebungen = sportUebungen(id).filter(v => gewaehlt.includes(v.name)).map(sportUebungBauen);
+    // v150: Strecke und Ziel kommen aus dem Wizard; fehlt die Antwort, greift
+    // weiterhin der Startwert der Sportart (Verhalten bis v149).
+    const strecke = einrichtung["strecke_" + id];
+    const ziel = einrichtung["ziel_" + id];
     return { id:neueId(), name: sp.name, quelle:"assistent", sportart:id, typ:"aktivitaet",
              tage: (einrichtung["tage_" + id] || []).slice().sort((a,b) => a-b),
              dauer: einrichtung["dauer_" + id] || 3600,
              zeitEinheit: (einrichtung["dauer_" + id] || 3600) >= 3600 ? "h" : "min",
-             strecke: sp.strecke ? sp.strecke.start : 0,
-             massZiel: sp.mass ? sp.mass.start : null,   // v121: Startziel der Messgröße (Grad, Schwierigkeit …)
+             strecke: sp.strecke ? (strecke > 0 ? strecke : sp.strecke.start) : 0,
+             massZiel: sp.mass ? (ziel != null && ziel !== "" ? ziel : sp.mass.start) : null,
              steigerung: { woche:null, stufen:0, vorEntlastung:0 },
-             reihenfolge:"klassisch", aufwaermen:false, dehnen:false, uebungen:[] };
+             reihenfolge:"klassisch", aufwaermen:false, dehnen:false, uebungen };
   });
 }
 

@@ -16,6 +16,24 @@ function grabFn(name){
   }
   throw new Error("Klammern unausgeglichen: " + name);
 }
+/* v150: Die Kletter-Pruefung liest jetzt die ECHTE Tabelle statt mit einer
+   Zeichen-Abstands-Regex im Quelltext zu suchen — ein zusaetzliches Feld an der
+   Sportart (hier `presets`) darf sie nicht umwerfen (Lehre aus v136/v144). */
+function grabLiteral(name){
+  const decl = "const " + name + " = ";
+  const i = src.indexOf(decl);
+  if(i < 0) throw new Error("Konstante nicht gefunden: " + name);
+  let start = i + decl.length;
+  while(start < src.length && src[start] !== "{" && src[start] !== "[") start++;
+  const auf = src[start], zu = auf === "{" ? "}" : "]";
+  let tiefe = 0;
+  for(let k = start; k < src.length; k++){
+    if(src[k] === auf) tiefe++;
+    else if(src[k] === zu){ tiefe--; if(tiefe === 0) return src.slice(start, k + 1); }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
+const SPORTARTEN_ECHT = eval("(" + grabLiteral("SPORTARTEN") + ")");
 
 const code = [
   "const SPORTS = { yoga:{ mass:{ label:'Beweglichkeit', einheit:'°' } }, " +
@@ -44,7 +62,9 @@ pruefe("Yoga 0 -> leer", massText("yoga", 0) === "");
 pruefe("Sportart ohne mass -> leer", massText("laufen", 5) === "");
 
 /* 3) Verdrahtung im Quelltext. */
-pruefe("Klettern trägt Skala", /id:"klettern"[\s\S]{0,400}skala:\[/.test(src));
+const klettern = SPORTARTEN_ECHT.find(s => s.id === "klettern");
+pruefe("Klettern trägt Skala",
+  !!(klettern && klettern.mass && Array.isArray(klettern.mass.skala) && klettern.mass.skala.length > 5));
 pruefe("Auswahl-Feld ein-mass-select vorhanden", src.includes('id="ein-mass-select"'));
 pruefe("Helfer massFeldAufbauen da", src.includes("function massFeldAufbauen("));
 pruefe("Helfer massEingabe da", src.includes("function massEingabe("));

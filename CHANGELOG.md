@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.150
+
+- Der Assistent behandelt jetzt alle Sportarten gleich. Bisher bekam
+  Krafttraining acht Fragen und als Einziges einen Plan mit Übungen darin — alles
+  andere wurde nur nach Tag und Dauer gefragt und landete als leerer Zeit-Plan.
+  Neu wird jede Sportart nach dem gefragt, was sie wirklich messen kann: nach der
+  Strecke, wo es eine gibt (Laufen, Rad, Wandern, Schwimmen, Rudern), nach deinem
+  Ziel, wo es eine Messgröße gibt (Beweglichkeit bei Yoga, Schwierigkeitsgrad
+  beim Klettern) — und überall nach den Übungen, die du machen willst. Die stehen
+  danach im Plan und führen dich durchs Training, genau wie beim Krafttraining.
+  Nichts auszuwählen bleibt erlaubt: dann entsteht wie bisher ein Plan mit reiner
+  Dauer. Absichtlich wird niemand nach Dingen gefragt, die es bei seiner Sportart
+  nicht gibt — beim Tischtennis kommt keine Frage nach Kilometern.
+
 ## 0.149
 
 - Der Trainingsplan-Assistent ist aufgeräumt. Der Erklärtext zu jeder Frage stand
