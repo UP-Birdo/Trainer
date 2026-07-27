@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.151
+
+- Auch die Sportart-Übungen bekommen jetzt richtige Beschreibungen — zwei bis
+  drei Sätze, so wie es die Kraftübungen längst haben: was der Drill trainiert,
+  wie er sauber läuft und welcher Fehler der häufigste ist. Den Anfang machen die
+  Ausdauer-Sportarten: Laufen, Radfahren, Wandern, Schwimmen und Rudern, zusammen
+  34 Übungen. Du findest sie unter der jeweiligen Sportart im Profil, unter dem
+  kurzen Merksatz. Die übrigen Sportarten kommen nach und nach dazu.
+
 ## 0.150
 
 - Der Assistent behandelt jetzt alle Sportarten gleich. Bisher bekam

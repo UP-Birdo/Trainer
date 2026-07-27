@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test151.js` | Drill-Beschreibungen — **Etappen-Register** (wie `test142`, nur für `SPORT_TEXT`): oben die Liste der fertigen Sportarten, darunter Vollständigkeit je Etappe, „häufigster Fehler" in jedem Text, keine Karteileichen, Substanz-Prüfungen + `drillText` erbt aus `UEBUNG_TEXT` (Klimmzüge) und die Beschreibung steht unter dem Tipp |
 | `test150.js` | Wizard Teil 2 — alle Sportarten gleich tief: welche Fragen eine Sportart bekommt (Strecke/Ziel **genau dort**, wo es sie gibt — in beide Richtungen geprüft, Übungen überall), Stützpunkte vorhanden, `wzZahlFeld` (Kletter-Grade bleiben Text, sonst wäre `massVergleich` NaN) + `aktivitaetsPlaeneBauen` (Antworten landen im Plan, Reihenfolge nach Katalog, Rückfall auf die Startwerte) |
 | `test149.js` | Wizard entschlackt + nach Sportarten geordnet: jede Frage trägt ihre Sportart, `wzAktualisiereSichtbar` gruppiert sie in `SPORTARTEN`-Reihenfolge (jede Gruppe zusammenhängend, nicht Gewähltes fällt weg), `wzGruppenStand` (die wievielte Frage ihrer Sportart) + Hilfetext hinter dem „i" und eine Schritt-Anzeige, die wirklich mitzählt |
 | `test148.js` | Übungs-Suche als eigene Ansicht: `pickerKandidaten` mit Bereichs-, Geräte- und Art-Filter (einzeln, kombiniert, plus Suchtext, Plan-Übungen fallen raus), `pickerFilterHtml` (zwei Reihen bei Kraft, eine bei Aktivität, keine ohne Sportart, kein `<select>` mehr) + Aufbau der Ansicht (Eigene Übung ganz unten, Hinweistext weg) und die beiden Rückwege |
@@ -121,6 +122,7 @@ VS Codes Electron springt ein):
     & $code tests\test148.js index.html
     & $code tests\test149.js index.html
     & $code tests\test150.js index.html
+    & $code tests\test151.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

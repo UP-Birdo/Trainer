@@ -2319,7 +2319,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 150;
+const APP_VERSION = 151;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4458,6 +4458,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.151", punkte:[
+    "Auch die Sportart-Übungen bekommen jetzt richtige Beschreibungen — zwei bis drei Sätze, so wie es die Kraftübungen längst haben: was der Drill trainiert, wie er sauber läuft und welcher Fehler der häufigste ist. Den Anfang machen die Ausdauer-Sportarten: Laufen, Radfahren, Wandern, Schwimmen und Rudern, zusammen 34 Übungen. Du findest sie unter der jeweiligen Sportart im Profil, unter dem kurzen Merksatz. Die übrigen Sportarten kommen nach und nach dazu."
+  ]},
   { stand:"0.150", punkte:[
     "Der Assistent behandelt jetzt alle Sportarten gleich. Bisher bekam Krafttraining acht Fragen und als Einziges einen Plan mit Übungen darin — alles andere wurde nur nach Tag und Dauer gefragt und landete als leerer Zeit-Plan. Neu wird jede Sportart nach dem gefragt, was sie wirklich messen kann: nach der Strecke, wo es eine gibt (Laufen, Rad, Wandern, Schwimmen, Rudern), nach deinem Ziel, wo es eine Messgröße gibt (Beweglichkeit bei Yoga, Schwierigkeitsgrad beim Klettern) — und überall nach den Übungen, die du machen willst. Die stehen danach im Plan und führen dich durchs Training, genau wie beim Krafttraining. Nichts auszuwählen bleibt erlaubt: dann entsteht wie bisher ein Plan mit reiner Dauer. Absichtlich wird niemand nach Dingen gefragt, die es bei seiner Sportart nicht gibt — beim Tischtennis kommt keine Frage nach Kilometern."
   ]},
@@ -7644,6 +7647,65 @@ function drillTipp(name){
 }
 
 /* ============================================================
+   v151: Drill-BESCHREIBUNGEN — das Gegenstück zu UEBUNG_TEXT (v138–v143)
+   für die Sportart-Übungen. Zwei bis drei Sätze je Drill, gleicher Aufbau:
+   WAS er trainiert und wozu er gut ist, WIE er sauber läuft, WELCHER Fehler
+   der häufigste ist. Der Kurz-Tipp aus SPORT_INFO bleibt darüber stehen — er
+   ist der Merksatz fürs Training, der Text die Erklärung zum Nachlesen.
+   Wieder in ETAPPEN gefüllt, deshalb LÜCKENHAFT erlaubt: wo nichts steht,
+   bleibt es beim Tipp. `test151` führt Buch (Etappen-Register wie test142).
+   Etappe 1 (v151): die fünf Ausdauer-Sportarten.
+   ============================================================ */
+const SPORT_TEXT = {
+  // ---------- Laufen ----------
+  "Lauf-ABC (Skippings, Anfersen)":"Die Grundschule des Laufens: Die Bewegungen zerlegen den Laufschritt in seine Teile und schulen den Fußaufsatz. Auf kurzer Strecke sauber und betont ausführen, dann locker zurücktraben. Häufigster Fehler: zu schnell und zu weit machen — hier zählt die Form, nicht das Tempo.",
+  "Steigerungsläufe":"Die Brücke zwischen lockerem Laufen und schnellem Laufen: Das Tempo wächst über die Strecke, statt aus dem Stand zu explodieren. Locker anlaufen, gleichmäßig bis fast Vollgas steigern, sauber austrudeln. Häufigster Fehler: zu früh Vollgas geben und dann verkrampfen; das Schnelle soll leicht aussehen.",
+  "Trittfrequenz (Kadenz halten)":"Trainiert kürzere, schnellere Schritte — sie senken die Belastung je Schritt und beugen dem Überschreiten vor. Kleine Schritte, etwa 180 pro Minute, Fuß unter dem Körper aufsetzen. Häufigster Fehler: die Schrittfrequenz über größere Schritte erhöhen wollen; die Beine bleiben kurz, das Tempo kommt später.",
+  "Hopserlauf (Fußgelenkskraft)":"Ein Sprungdrill für Wade, Achillessehne und Fußgelenk — genau die Strukturen, die beim Laufen federn. Betont hoch abdrücken, weich landen, Arme aktiv mitschwingen. Häufigster Fehler: hart auf die Ferse landen; der Fuß setzt über den Ballen auf und gibt nach.",
+  "Intervall-Läufe (hart/locker)":"Der wirksamste Reiz für die Ausdauer, wenn die Grundlage steht: harte Abschnitte im Wechsel mit echter Erholung. Im harten Teil wirklich hart, im lockeren wirklich locker laufen. Häufigster Fehler: die Pausen verkürzen — dann wird aus dem Intervall ein mittelmäßiges Dauertempo ohne Reiz.",
+  "Bergsprints":"Kurz, steil und maximal: Das trainiert Schnellkraft und Laufform zugleich, weil der Berg eine saubere Haltung erzwingt. Voller Einsatz bergauf, gehend zurück, vollständig erholen. Häufigster Fehler: zu lange Wiederholungen; über 20 Sekunden wird daraus Kraftausdauer statt Schnellkraft.",
+  "Tempodauerlauf (Schwelle)":"Läuft dicht an der Grenze, an der die Belastung gerade noch dauerhaft tragbar ist — das hebt genau diese Grenze an. Zügig, aber kontrolliert; Sprechen geht nur in kurzen Sätzen. Häufigster Fehler: zu schnell starten und in der zweiten Hälfte einbrechen.",
+  "Ruhiger Dauerlauf (Grundlage)":"Die wichtigste Einheit überhaupt und die, die am häufigsten fehlt: langsam, lange, ohne Ehrgeiz. So langsam, dass Reden möglich bleibt. Häufigster Fehler: aus dem lockeren Lauf ein mittelschnelles machen — dann ist er weder Erholung noch Reiz.",
+  // ---------- Radfahren ----------
+  "Trittfrequenz-Drill (hohe Kadenz)":"Schult den runden Tritt: Bei hoher Kadenz fällt jede Unsauberkeit sofort auf, weil das Rad zu hoppeln beginnt. Kleiner Gang, hohe Kadenz, Oberkörper ruhig. Häufigster Fehler: im Sattel wippen — dann ist die Kadenz höher als die Technik trägt.",
+  "Einbeiniges Treten":"Der schärfste Technik-Drill fürs Rad: Ohne das zweite Bein gibt es keinen toten Punkt zu verstecken. Ein Bein aushängen, gleichmäßig durchtreten, dann wechseln. Häufigster Fehler: zu großer Gang; einbeinig wird bewusst leicht gefahren.",
+  "Wiegetritt am Berg":"Trainiert das Fahren im Stehen — die Haltung, die am Berg Kraft spart und den Sitzmuskeln eine Pause gibt. Aus dem Sattel, Rad ruhig unter dem Körper, gleichmäßiger Rhythmus. Häufigster Fehler: das Rad hin und her reißen; die Bewegung bleibt klein.",
+  "Berg-Intervalle":"Der Berg hält das Tempo von selbst hoch und macht die Belastung gut dosierbar — Kraftausdauer ohne Sprint-Risiko. Gleichmäßig hart hoch, locker zurückrollen. Häufigster Fehler: im Sitzen mit zu großem Gang würgen; lieber leichter und runder treten.",
+  "Sprint-Intervalle":"Kurze maximale Belastungen für die Spitzenleistung — sie wirken nur mit echter Erholung dazwischen. Voll antreten, danach wirklich ausruhen, bis der Atem ruhig ist. Häufigster Fehler: zu viele Wiederholungen; nach dem dritten schwachen Sprint ist die Einheit vorbei.",
+  "Tempodauerfahrt (Schwelle)":"Fahren an der Grenze des dauerhaft Tragbaren — die Einheit, die aus Grundlagenausdauer Tempo macht. Zügig und gleichmäßig, Kadenz halten, nicht überziehen. Häufigster Fehler: an jeder Steigung das Tempo hochreißen; die Belastung soll gleichmäßig bleiben.",
+  "Grundlagenfahrt (ruhig)":"Die lange ruhige Ausfahrt ist die Basis, auf der Intervalle überhaupt erst wirken — und der Grund, warum Radfahren so gut trainierbar ist. Ruhiges Tempo über lange Zeit, gleichmäßig treten. Häufigster Fehler: sie zu schnell fahren und dadurch nie richtig erholt in die harte Einheit gehen.",
+  // ---------- Wandern ----------
+  "Balance auf unebenem Grund":"Trainiert die kleinen Stabilisatoren in Fuß und Sprunggelenk — sie entscheiden, ob ein Fehltritt ein Fehltritt bleibt oder eine Verletzung wird. Bewusst über Wurzeln und Steine gehen, Blick voraus. Häufigster Fehler: auf die eigenen Füße starren; der Blick geht ein paar Schritte nach vorn.",
+  "Bergab-Technik (kurze Schritte)":"Bergab ist die eigentliche Belastung beim Wandern: Der Oberschenkel bremst bei jedem Schritt. Kleine Schritte, Knie weich, Gewicht mittig über dem Fuß. Häufigster Fehler: mit langen Schritten in die Ferse bremsen — das schlägt in Knie und Rücken.",
+  "Bergauf-Intervalle":"Bringt Kraftausdauer für lange Anstiege, ohne dass es ein Lauftraining braucht. Gleichmäßig steil hoch, die Atmung an den Schritt koppeln. Häufigster Fehler: zu schnell anfangen und oben stehen bleiben müssen; das Tempo soll bis zum Schluss halten.",
+  "Ausfallschritte (Trittsicherheit)":"Übt genau die Bewegung, die am Berg über hohe Stufen führt — ein Bein trägt, der Rumpf hält das Gleichgewicht. Großer Schritt, hinteres Knie tief, Oberkörper aufrecht. Häufigster Fehler: zu kurzer Schritt, dann schiebt das Knie weit über den Fuß.",
+  "Treppen-Intervalle":"Der Ersatz für den Berg, wenn keiner in der Nähe ist: gleiche Muskeln, gleiche Belastung, im Treppenhaus verfügbar. Ganzen Fuß aufsetzen, über die Ferse drücken, ruhig zurückgehen. Häufigster Fehler: auf den Zehenspitzen hochtippeln; die Wade macht dann alles allein.",
+  "Marsch mit Rucksack (Grundlage)":"Die Einheit, die einer echten Tour am nächsten kommt — Gewicht, Dauer und Gleichmaß statt Tempo. Gewicht dicht am Rücken, gleichmäßiges Tempo, früh trinken. Häufigster Fehler: das Rucksackgewicht zu schnell steigern; die Schultern und Füße brauchen Wochen, nicht Tage.",
+  // ---------- Schwimmen ----------
+  "Beinschlag mit Brett":"Isoliert die Beine und verbessert damit die Wasserlage — schwache Beine lassen die Hüfte absinken und bremsen mehr als alles andere. Aus der Hüfte schlagen, Beine lang, Füße locker. Häufigster Fehler: aus dem Knie strampeln; der Schlag kommt von oben, nicht vom Unterschenkel.",
+  "Einarm-Kraul-Drill":"Ein Arm nach dem anderen — dadurch lässt sich der Zug bewusst spüren und korrigieren, was im normalen Wechsel untergeht. Ein Arm führt, der andere ruht vorn, ganze Länge nutzen. Häufigster Fehler: den ruhenden Arm sinken lassen; er bleibt lang und trägt die Wasserlage.",
+  "Wasserlage (Streamline)":"Der Widerstand im Wasser wächst überproportional — eine gute Wasserlage bringt mehr als jede Kraftsteigerung. Nach dem Abstoß lang machen, Arme am Kopf, Körper wie ein Pfeil. Häufigster Fehler: den Kopf heben; der Blick geht nach unten, sonst kippt die Hüfte ab.",
+  "Armzug mit Pull-Buoy":"Schaltet die Beine ab, damit die Arme die ganze Arbeit machen — Krafttraining im Wasser mit sauberer Lage. Beine ruhig, nur der Armzug arbeitet, Hand vorn lang lassen. Häufigster Fehler: den Zug hektisch machen; die Kraft entsteht in der Mitte des Zugs, nicht am Anfang.",
+  "Atem-Rhythmus (3er-Zug)":"Beidseitiges Atmen hält die Lage symmetrisch — wer immer zur selben Seite atmet, schwimmt mit der Zeit schief. Alle drei Züge atmen, der Kopf bleibt tief im Wasser. Häufigster Fehler: den Kopf zum Atmen heben statt ihn zu drehen; ein Auge bleibt im Wasser.",
+  "Sprint-Bahnen":"Kurze maximale Bahnen für Tempo und Technik unter Druck — Fehler in der Lage zeigen sich hier sofort. Kurze Bahnen maximal, dazwischen wirklich ausruhen. Häufigster Fehler: die Pause zu kurz halten; ohne Erholung schwimmt man nur müde statt schnell.",
+  "Lockere Dauerbahnen":"Die ruhige Dauerbelastung baut Grundlage auf und gibt Zeit, an der Technik zu arbeiten, statt sie im Tempo zu verlieren. Gleichmäßig schwimmen, ruhig atmen, auf saubere Züge achten. Häufigster Fehler: aus Langeweile das Tempo anziehen; hier ist Gleichmaß der Zweck.",
+  // ---------- Rudern ----------
+  "Ruderschlag-Technik (Beine-Rumpf-Arme)":"Der ganze Rudersport hängt an dieser Reihenfolge: Die Beine liefern die Kraft, der Rumpf überträgt sie, die Arme holen den Rest. Erst Beine, dann Rumpf, zuletzt Arme — und rückwärts genauso. Häufigster Fehler: zu früh mit den Armen ziehen; dann arbeitet der schwächste Teil der Kette zuerst.",
+  "Nur-Arme-Ziehen (Technik)":"Isoliert das Ende des Schlags, das im vollen Zug meist zu kurz kommt. Beine still, nur die Arme ziehen, Griff zum unteren Rippenbogen. Häufigster Fehler: die Schultern hochziehen; sie bleiben tief, die Ellbogen führen nach hinten.",
+  "500-m-Intervalle":"Die klassische Rudereinheit: lang genug, um wehzutun, kurz genug, um das Tempo zu halten. Gleichmäßiges Tempo über die ganze Distanz, nicht zu schnell starten. Häufigster Fehler: die ersten hundert Meter verschenken oder überziehen — der Split soll fast konstant sein.",
+  "Pyramiden-Intervalle":"Die Belastungen werden länger und wieder kürzer — das trainiert, das Tempo unabhängig von der Dauer zu halten. Intervalle wachsen und schrumpfen, das Tempo bleibt gleich. Häufigster Fehler: bei den kurzen Stücken schneller werden; genau das soll die Übung abtrainieren.",
+  "Kraftausdauer (niedrige Schlagzahl)":"Wenige, sehr kräftige Schläge: Das trainiert den Druck aus den Beinen, den man bei hoher Schlagzahl nicht spürt. Niedrige Schlagzahl, voller Druck, sauber durchziehen. Häufigster Fehler: die Schlagzahl heimlich steigen lassen, sobald es anstrengend wird.",
+  "Lockeres Dauerrudern (Grundlage)":"Die lange ruhige Einheit — auf der Rudermaschine besonders wertvoll, weil sie den ganzen Körper belastet, ohne die Gelenke zu stoßen. Ruhige Schlagzahl, saubere Technik, lange Strecke. Häufigster Fehler: die Technik über die Dauer verfallen lassen; der letzte Schlag soll aussehen wie der erste."
+};
+
+/** Beschreibung zu einem Drill ODER einer Kraftübung — eine Quelle für beide
+    Welten, genau wie `drillTipp`. Leer, wo noch keine Etappe geschrieben ist. */
+function drillText(name){
+  if(!name) return "";
+  return SPORT_TEXT[name] || UEBUNG_TEXT[name] || "";
+}
+
+/* ============================================================
    v140: Muskel-Zuordnung für die SPORTART-DRILLS.
    Bisher fanden nur Kraftübungen (UEBUNGEN_DB) eine Figur — bei einem Topspin
    oder Sonnengruß blieb sie leer. Recherchiert je Drill: welche Muskeln die
@@ -9090,11 +9152,16 @@ function bibliothekHtml(sportId){
                 (v.modus === "zeit" ? "Zeit" : "Wdh");
     const figur = miniFigurHtml(uebungMuskeln(v.name), "uebung-mini");
     const tipp = drillTipp(v.name);
+    // v151: unter dem Merksatz die ausführliche Beschreibung — dieselbe
+    // Reihenfolge wie in der Kraft-Bibliothek (Tipp fürs Training, Text zum
+    // Nachlesen). Wo noch keine Etappe geschrieben ist, bleibt es beim Tipp.
+    const beschreibung = drillText(v.name);
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">' +
       figur +
       '<div style="flex:1;min-width:0"><strong>' + text(v.name) + '</strong>' +
       '<div class="meta">' + text(art) + '</div>' +
       (tipp ? '<div class="meta" style="margin-top:4px">' + text(tipp) + '</div>' : "") +
+      (beschreibung ? '<div class="meta" style="margin-top:6px">' + text(beschreibung) + '</div>' : "") +
       '</div></div>';
   }).join("");
   return '<div class="karte"><div class="zeile"><h2>Übungen</h2>' +
