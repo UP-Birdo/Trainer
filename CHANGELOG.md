@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.153
+
+- Klappst du im Plan eine Übung auf, siehst du jetzt BEIDE Körperseiten, wenn die
+  Übung beide trifft — vorher zeigte die Figur nur die Seite des Hauptmuskels,
+  und die Rückseite blieb unsichtbar. Die Muskel-Namen stehen weiter rechts
+  daneben in einer Reihe. Trifft eine Übung nur eine Seite, bleibt es bei einer
+  Figur.
+- Markierst du einen Tag als Ruhetag und trainierst dann doch, verschwindet die
+  Markierung von selbst — ohne Nachfrage und ohne Meldung.
+- Löschst du ein Training, geht der Fortschritt jetzt überall mit: Flamme,
+  Heute-Karte, Kalender und Statistiken rechnen sofort neu. Bisher blieben sie
+  auf dem alten Stand, bis du die App neu geladen hast. Holst du das Training
+  zurück, zählt es sofort wieder.
+
 ## 0.152
 
 - Fertig: Jetzt hat jede der 81 Sportart-Übungen ihre Beschreibung. Zum Abschluss

@@ -108,6 +108,10 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
 /* v125: aufgeklappt größer (die Map soll man wirklich sehen), im Kopf der
    gelisteten Übung klein — sie steht dort neben Name und Kurz-Info. */
 .uebung-figur .mini-figur{width:84px}
+/* v153: Trifft die Übung beide Seiten, stehen zwei Figuren nebeneinander — dann
+   etwas kleiner, damit die Muskel-Namen rechts in EINER Reihe daneben passen
+   und nicht darunter rutschen. */
+.uebung-figur.zwei .mini-figur{width:66px}
 .uebung-kopf .uebung-mini{width:28px}
 /* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
    einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
@@ -1869,7 +1873,7 @@ function papierkorbWiederherstellen(id){
   }
   korb.splice(i, 1);
   speichern();
-  statistikAktualisieren();
+  fortschrittNeuZeichnen();   // v153: ein zurückgeholtes Training zählt sofort wieder mit
   papierkorbZeichnen();
   zeigenToast("Wiederhergestellt", "erfolg");
 }
@@ -2200,7 +2204,39 @@ async function sitzungSpeichern(){
   eintrag.paket = await gcmVerschluesseln(sitzung.datenSchluessel, bytes);
   Speicher.schreiben(tresor);
 }
-function speichern(){ sitzungSpeichern().catch(e => meldung("Speichern fehlgeschlagen: " + e.message)); }
+/** v153: EINE Invariante, an EINER Stelle durchgesetzt — ein Tag, an dem
+    trainiert wurde, ist kein Ruhetag. Der Nutzer darf einen Tag als Ruhetag
+    markieren und trotzdem trainieren; die Markierung fällt dann **still** weg
+    (kein Hinweis, keine Rückfrage — Nutzer-Wunsch). Rein und testbar, damit die
+    Regel nicht in fünf Eintrage-Pfaden einzeln nachgepflegt werden muss. */
+function ruhetageOhneTrainingstage(ruhetage, protokoll){
+  const trainiert = new Set((protokoll || []).map(e => e.datum));
+  return (ruhetage || []).filter(d => !trainiert.has(d));
+}
+
+function speichern(){
+  /* Die Invariante wird beim SPEICHERN durchgesetzt, nicht an den einzelnen
+     Stellen, die ein Training anlegen: So gilt sie auch für Wege, die es heute
+     noch nicht gibt (Nachtragen, Import, künftige Eintrags-Arten). Kostet einen
+     Durchlauf durchs Protokoll je Speichern — bei dieser Datenmenge nichts. */
+  if(sitzung && sitzung.daten){
+    const sauber = ruhetageOhneTrainingstage(sitzung.daten.ruhetage, sitzung.daten.protokoll);
+    if(sauber.length !== (sitzung.daten.ruhetage || []).length) sitzung.daten.ruhetage = sauber;
+  }
+  sitzungSpeichern().catch(e => meldung("Speichern fehlgeschlagen: " + e.message));
+}
+
+/** v153: Alles neu zeichnen, was aus dem Protokoll abgeleitet ist — Flamme,
+    Heute-Karte, Kalender und die Statistiken. Wird gebraucht, wenn ein Training
+    nachträglich verschwindet oder zurückkommt: Der Fortschritt rechnet sich zwar
+    immer aus dem Protokoll, aber die schon gezeichneten Ansichten wussten davon
+    nichts (Nutzer-Wunsch: „dann soll der Fortschritt überall raus"). */
+function fortschrittNeuZeichnen(){
+  statistikAktualisieren();   // Kennzahlen, Kalender, Kurven, Bestwerte, Protokoll
+  flammeZeichnen();
+  heuteKarteZeichnen();
+  zieleStartZeichnen();
+}
 
 /* ============================================================
    #region Anmeldung, Kontoanlage, Wiederherstellung
@@ -2319,7 +2355,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 152;
+const APP_VERSION = 153;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4458,6 +4494,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.153", punkte:[
+    "Klappst du im Plan eine Übung auf, siehst du jetzt BEIDE Körperseiten, wenn die Übung beide trifft — vorher zeigte die Figur nur die Seite des Hauptmuskels, und die Rückseite blieb unsichtbar. Die Muskel-Namen stehen weiter rechts daneben in einer Reihe. Trifft eine Übung nur eine Seite, bleibt es bei einer Figur.",
+    "Markierst du einen Tag als Ruhetag und trainierst dann doch, verschwindet die Markierung von selbst — ohne Nachfrage und ohne Meldung.",
+    "Löschst du ein Training, geht der Fortschritt jetzt überall mit: Flamme, Heute-Karte, Kalender und Statistiken rechnen sofort neu. Bisher blieben sie auf dem alten Stand, bis du die App neu geladen hast. Holst du das Training zurück, zählt es sofort wieder."
+  ]},
   { stand:"0.152", punkte:[
     "Fertig: Jetzt hat jede der 81 Sportart-Übungen ihre Beschreibung. Zum Abschluss kamen Klettern, Tischtennis, Tennis, Kampfsport, Fußball und Yoga dazu — vom Eindrehen an der Wand über den dritten Ball bis zum Sonnengruß. Damit ist jede Übung in der App erklärt, egal ob Krafttraining oder Sportart: oben der Merksatz fürs Training, darunter der Text zum Nachlesen."
   ]},
@@ -6088,6 +6129,22 @@ function miniFigurenZeichnen(selektor){
 /** v139: Ein `.mini-figur`-Element als HTML — EINE Quelle für alle Stellen
     (Bibliothek, Editor, Vorschau, Plan-Karte), damit das Datenformat der
     Attribute nicht an fünf Orten gepflegt werden muss. */
+/** v153: BEIDE Seiten zeigen, wenn die Übung beide trifft. `muskelSatzAnzeige`
+    wählt eine Ansicht — die des Hauptmuskels —, und damit blieb die Rückseite
+    unsichtbar, obwohl sie mitarbeitet (Nutzer-Wunsch). Gezeichnet wird nur, was
+    wirklich vorkommt: eine Übung rein für die Vorderseite bekommt weiter genau
+    eine Figur. Die Muskel-Liste geht ungefiltert an beide Seiten — die
+    Index-Karte der jeweiligen Seite kennt die fremden Muskeln nicht und lässt
+    sie einfach weg. */
+function muskelFigurenHtml(info, extraKlasse){
+  if(!info || !info.muskeln || !info.muskeln.length) return "";
+  const alle = info.muskeln.concat(info.sekundaer || []);
+  const seiten = ["front","back"].filter(s =>
+    alle.some(m => (MUSKEL_SEITE[m] === "back" ? "back" : "front") === s));
+  return seiten.map(s => miniFigurHtml(
+    { ansicht:s, muskeln:info.muskeln, sekundaer:info.sekundaer }, extraKlasse)).join("");
+}
+
 function miniFigurHtml(info, extraKlasse){
   if(!info || !info.muskeln || !info.muskeln.length) return "";
   return '<div class="mini-figur' + (extraKlasse ? " " + extraKlasse : "") + '" data-mf-ansicht="' + info.ansicht +
@@ -6320,14 +6377,16 @@ function eintragLoeschen(id){
     sitzung.daten.protokoll.splice(idx, 1);
     const korbId = inPapierkorb("eintrag", datumKurz(e.datum) + " · " + (e.plan || "Training"), e);   // v96
     speichern();
-    statistikAktualisieren();
+    // v153: nicht nur die Statistik — auch Flamme und Heute-Karte hingen sonst
+    // am alten Stand, bis man zufällig neu lud.
+    fortschrittNeuZeichnen();
     verlaufOeffnen();
     zeigenToast("Eintrag gelöscht", "info", () => {
       sitzung.daten.protokoll.push(e);
       sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
       papierkorbEntfernen(korbId);   // sofort zurück -> raus aus dem Papierkorb
       speichern();
-      statistikAktualisieren();
+      fortschrittNeuZeichnen();
       verlaufOeffnen();
       zeigenToast("Wiederhergestellt", "erfolg");
     });
@@ -10103,8 +10162,12 @@ function editorZeichnen(){
     if(!offen) return '<div class="karte uebung-karte" data-uebung="' + i + '">' + kopf + '</div>';
 
     // Aufgeklappt: die volle Muskel-Map + die Bearbeitung.
-    const figur = (info && info.muskeln && info.muskeln.length)
-      ? '<div class="uebung-figur">' + miniFigurHtml(info) +   // v139
+    // v153: beide Seiten, wenn die Übung beide trifft (Nutzer-Wunsch) — die
+    // Namen stehen rechts daneben in einer Reihe.
+    const figuren = muskelFigurenHtml(info);
+    const zweiSeiten = (figuren.match(/mini-figur/g) || []).length > 1;
+    const figur = figuren
+      ? '<div class="uebung-figur' + (zweiSeiten ? " zwei" : "") + '">' + figuren +
         (info.label ? '<span class="meta">' + text(info.label) + '</span>' : "") + '</div>' : "";
 
     let basis, mehr = "";
