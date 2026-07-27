@@ -436,6 +436,9 @@ body:not(.nav-an) #nav{display:none}
   color:var(--muted);white-space:nowrap;transition:var(--transition)}
 .filter-reihe button.gewaehlt{border-color:var(--chalk);color:var(--chalk);font-weight:600}
 .filter-titel{font-size:12px;color:var(--muted);margin-top:10px}
+/* v157: Die Vorschlags-Reihe im Notizblock nutzt denselben Chip-Look wie die
+   Filter der Übungs-Suche — ein Muster für „waagerechte Auswahl zum Wischen". */
+.notiz-vorschlaege{margin-top:6px}
 .wahl-gruppe{margin:14px 0 6px}
 /* Wochentage in einer Zeile, wie die Kopfzeile des Kalenders.
    minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
@@ -2359,7 +2362,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 156;
+const APP_VERSION = 157;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3349,6 +3352,99 @@ function notizTextWachsen(el){
   el.style.height = (el.scrollHeight + 4) + "px";
 }
 
+/* ------------------------------------------------------------
+   v157: Vorschläge beim Tippen im Notizblock.
+   Die Autokorrektur (v155) nimmt einem das Muster ab; hier kommt der zweite
+   Teil des Wunsches — die App bietet an, was man gerade schreiben will. Alle
+   drei Bausteine sind rein und testbar; nur das Einsetzen fasst das Feld an.
+   ------------------------------------------------------------ */
+
+/** Welche Zeile steht unter dem Cursor? Liefert Anfang, Ende und Text. Rein. */
+function notizAktuelleZeile(wert, pos){
+  const w = String(wert || "");
+  const p = Math.max(0, Math.min(typeof pos === "number" ? pos : w.length, w.length));
+  const start = w.lastIndexOf("\n", p - 1) + 1;
+  let ende = w.indexOf("\n", p);
+  if(ende < 0) ende = w.length;
+  return { start, ende, text: w.slice(start, ende) };
+}
+
+/** Vorschläge zum angefangenen Namen. Mengen in der Zeile stören nicht — es
+    zählt der Name-Teil (dieselbe Deutung wie beim Speichern). Treffer am
+    ANFANG stehen vorn: Wer „ban" tippt, meint eher Bankdrücken als
+    Kabel-Bankdrücken. Wer den Namen schon fertig getippt hat, bekommt nichts
+    mehr angeboten. Rein/testbar. */
+function notizVorschlaege(zeile, namen, max){
+  const d = notizZeileDeuten(zeile);
+  const roh = d ? d.name : String(zeile || "").trim();
+  const s = normName(roh);
+  if(s.length < 2) return [];                  // ein Buchstabe schlägt alles vor
+  const beginnt = [], enthaelt = [];
+  (namen || []).forEach(n => {
+    const nn = normName(n);
+    if(nn === s) return;                       // schon fertig — nichts vorzuschlagen
+    if(nn.startsWith(s)) beginnt.push(n);
+    else if(nn.includes(s)) enthaelt.push(n);
+  });
+  return beginnt.concat(enthaelt).slice(0, max || 5);
+}
+
+/** Den NAMEN einer Zeile ersetzen, ohne die Mengen zu verlieren — das Ergebnis
+    ist gleich die kanonische Muster-Zeile. Ohne Mengen bleibt der Name allein
+    stehen (v79: der Name genügt). Rein/testbar. */
+function notizZeileMitName(zeile, name){
+  const d = notizZeileDeuten(zeile);
+  if(!d) return name;
+  return d.modus === "zeit"
+    ? "Sätze " + d.saetze + " Zeit " + d.wert + " " + name
+    : "Sätze " + d.saetze + " Wdh " + d.wert + " " + name;
+}
+
+/** Alle Namen, die die App kennt: Kraftübungen, Sportart-Drills und die
+    eigenen des Nutzers. Einmal je Tastendruck gebaut — bei gut 200 Namen
+    billiger als ein Zwischenspeicher, der veralten kann. */
+function alleUebungsNamen(){
+  const menge = new Set(UEBUNGEN_DB.map(u => u.name));
+  Object.keys(SPORT_UEBUNGEN).forEach(id => sportUebungen(id).forEach(v => menge.add(v.name)));
+  const eigene = (sitzung && sitzung.daten && sitzung.daten.eigeneUebungen) || {};
+  Object.keys(eigene).forEach(sp => (eigene[sp] || []).forEach(v => menge.add(v.name)));
+  return [...menge];
+}
+
+/** Beim Tippen: Feld mitwachsen lassen und die Vorschläge nachziehen. */
+function notizTippen(el, planId){
+  notizTextWachsen(el);
+  const zeile = notizAktuelleZeile(el.value, el.selectionStart).text;
+  const treffer = notizVorschlaege(zeile, alleUebungsNamen(), 5);
+  const ziel = document.getElementById("notiz-vorschlag-" + planId);
+  if(!ziel) return;
+  /* `onmousedown` mit preventDefault hält den Fokus im Textfeld: Ohne das
+     verlöre die Textarea beim Antippen den Fokus, `onchange` würde den
+     angefangenen Namen sofort als Übung anlegen — und der Vorschlag käme zu
+     spät. Der Klick selbst bleibt davon unberührt. */
+  ziel.innerHTML = treffer.map(n =>
+    '<button onmousedown="event.preventDefault()" onclick="notizVorschlagWaehlen(\'' + planId +
+    '\', \'' + n.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + '\')">' + text(n) + '</button>').join("");
+  ziel.hidden = treffer.length === 0;
+}
+
+/** Einen Vorschlag übernehmen: Name in der aktuellen Zeile ersetzen, Cursor
+    dahinter, Vorschläge schließen. Gespeichert wird wie immer beim Verlassen
+    des Feldes — hier wird nur geschrieben, was der Nutzer gewählt hat. */
+function notizVorschlagWaehlen(planId, name){
+  const feld = document.querySelector('.karte[data-plan="' + planId + '"] .notiz-text');
+  if(!feld) return;
+  const z = notizAktuelleZeile(feld.value, feld.selectionStart);
+  const neu = notizZeileMitName(z.text, name);
+  feld.value = feld.value.slice(0, z.start) + neu + feld.value.slice(z.ende);
+  const cursor = z.start + neu.length;
+  feld.focus();
+  feld.setSelectionRange(cursor, cursor);
+  notizTextWachsen(feld);
+  const ziel = document.getElementById("notiz-vorschlag-" + planId);
+  if(ziel){ ziel.innerHTML = ""; ziel.hidden = true; }
+}
+
 function notizAbschnittHtml(p, s){
   const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
@@ -3359,9 +3455,12 @@ function notizAbschnittHtml(p, s){
     // zurück (v79: JEDE nicht-leere Zeile ist eine Übung). oninput lässt das
     // Feld mitwachsen, statt intern zu scrollen.
     // v123: kurzer Platzhalter — das volle Muster erklärt das „i" im Kopf.
+    // v157: `oninput` zieht zusätzlich die Vorschläge nach; die Chip-Reihe
+    // darunter bleibt leer, solange nichts passt.
     koerper = '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
-      'oninput="notizTextWachsen(this)" ' +
-      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>';
+      'oninput="notizTippen(this, \'' + p.id + '\')" ' +
+      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>' +
+      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>';
   } else {
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
@@ -4560,6 +4659,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.157", punkte:[
+    "Der Notizblock schlägt dir jetzt Übungen vor: Sobald du zwei Buchstaben getippt hast, erscheint unter dem Feld eine Reihe passender Namen zum Antippen — aus allen Kraftübungen, allen Sportart-Übungen und deinen eigenen. Ein Tipp setzt den Namen ein und behält deine Zahlen: Aus „bankdr 10 3“ wird „Sätze 3 Wdh 10 LH-Bankdrücken“."
+  ]},
   { stand:"0.156", punkte:[
     "Die Einfachheits-Stufen erklären sich jetzt andersherum — so, wie sie gedacht sind: Wer neu anfängt, will alles sehen und kennenlernen; wer lange dabei ist, braucht am Ende nur noch einen Block für seine Zahlen. Deshalb steht in der Auswahl bei jeder Stufe, für wen sie ist, und die Liste beginnt oben mit dem Vollausbau. Die Nummern sind aus der Auswahl verschwunden — sie hätten rückwärts dagestanden und nur verwirrt. An deiner Einstellung ändert sich nichts."
   ]},

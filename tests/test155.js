@@ -79,8 +79,12 @@ pruefe("das Feld bekommt die aufgeraeumte Fassung zurueck",
   setzen.includes("if(feld) feld.value = abschnittTextErzeugen(p)"));
 pruefe("die Textarea reicht sich selbst durch",
   grabFn("notizAbschnittHtml").includes("abschnittTextSetzen(\\'' + p.id + '\\', this.value, this)"));
+/* v157: `oninput` heisst jetzt `notizTippen` (waechst UND schlaegt vor). Der
+   Kern der v155-Zusage bleibt: Beim Tippen wird der Text NICHT umgeschrieben —
+   sonst spraenge der Cursor. Geprueft wird deshalb die Wirkung, nicht der Name. */
 pruefe("beim Tippen wird NICHT umgeschrieben (Cursor)",
-  grabFn("notizAbschnittHtml").includes('oninput="notizTextWachsen(this)"'));
+  !grabFn("notizTippen").includes("abschnittTextSetzen") &&
+  grabFn("notizTippen").includes("notizTextWachsen(el)"));
 
 /* ---------- 6) Getan und das i sind weg ---------- */
 pruefe("die Getan-Karte ist entfallen", !src.includes("function notizGetanHtml("));

@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.157
+
+- Der Notizblock schlägt dir jetzt Übungen vor: Sobald du zwei Buchstaben
+  getippt hast, erscheint unter dem Feld eine Reihe passender Namen zum
+  Antippen — aus allen Kraftübungen, allen Sportart-Übungen und deinen eigenen.
+  Ein Tipp setzt den Namen ein und behält deine Zahlen: Aus „bankdr 10 3“ wird
+  „Sätze 3 Wdh 10 LH-Bankdrücken“.
+
 ## 0.156
 
 - Die Einfachheits-Stufen erklären sich jetzt andersherum — so, wie sie gedacht
