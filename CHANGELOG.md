@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.155
+
+- Der Notizblock versteht dich jetzt, ohne dass du ein Muster kennen musst:
+  Schreib „Bankdrücken 3 10“ — die App macht daraus Sätze und Wiederholungen.
+  Auch verkehrt herum: Aus „Bankdrücken 10 3“ wird dasselbe, denn die kleinere
+  Zahl sind die Sätze. Mit x geht es genauso („3x10“), und Zahlen im Namen
+  bleiben, wo sie sind („500-m-Intervalle 3 10“). Sobald du das Feld verlässt,
+  steht die aufgeräumte Zeile da.
+- Aufgeräumt: Das Feld „Getan“ unter dem Notizblock ist weg, und das „i“ oben
+  auch — das Muster musst du ja nicht mehr kennen. Schon notierte Einträge
+  bleiben erhalten und stehen ab Stufe 4 im Verlauf.
+
 ## 0.154
 
 - Ein Durchgang durch die Einfachheits-Stufen: Unter „Darstellung & Bedienung“

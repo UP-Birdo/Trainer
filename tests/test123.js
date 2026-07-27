@@ -32,11 +32,14 @@ pruefe("Leer-Zustand ohne Plus-Erklärung",
   src.includes('<div class="leer">Noch nichts notiert.</div>'));
 pruefe("Getan-Untertitel entfernt", !src.includes("Kurz festhalten, was du gemacht hast."));
 
-/* 2) Das „i" gibt es NUR auf Stufe 1 und klappt beim Stufenwechsel zu. */
+/* 2) Das „i" im Notizblock-Kopf.
+   v155: Es ist GANZ entfallen — seit der Autokorrektur (notizZeileDeuten) muss
+   niemand mehr ein Schreibmuster kennen, also gibt es auch nichts zu erklären.
+   Die v123-Zusage („nur auf Stufe 1, klappt beim Stufenwechsel zu") ist damit
+   überholt; geprüft wird jetzt, dass es auf KEINER Stufe erscheint. */
 const kopf = grabFn("notizblockKopfSetzen");
-pruefe("Info-Knopf nur auf Stufe 1", /info\.hidden = stufe\(\) > 1/.test(kopf));
-pruefe("aufgeklappter Text wird beim Stufenwechsel eingeklappt",
-  /text && stufe\(\) > 1/.test(kopf) && kopf.includes("text.hidden = true"));
+pruefe("Info-Knopf erscheint auf keiner Stufe mehr", kopf.includes("info.hidden = true"));
+pruefe("und sein Text bleibt zugeklappt", kopf.includes("text.hidden = true"));
 pruefe("Titel/Mehr-Verhalten unverändert (Regression)",
   kopf.includes('einfach ? "Notizblock" : "Pläne"') && kopf.includes("mehr.hidden = !einfach"));
 

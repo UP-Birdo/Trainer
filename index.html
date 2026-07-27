@@ -2359,7 +2359,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 154;
+const APP_VERSION = 155;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3262,8 +3262,11 @@ function notizblockKopfSetzen(){
   const text  = document.getElementById("info-notizblock");
   if(titel) titel.textContent = einfach ? "Notizblock" : "Pläne";
   if(mehr)  mehr.hidden = !einfach;
-  if(info)  info.hidden = stufe() > 1;
-  if(text && stufe() > 1) text.hidden = true;
+  /* v155 (Nutzer-Wunsch): Das „i" im Kopf ist entfallen. Es erklärte das
+     Schreibmuster — seit der Autokorrektur (notizZeileDeuten) muss man es nicht
+     mehr kennen: Name und zwei Zahlen genügen, die App sortiert sie selbst. */
+  if(info) info.hidden = true;
+  if(text) text.hidden = true;
 }
 
 function findePlan(id){ return sitzung.daten.plaene.find(p => p.id === id); }
@@ -3284,11 +3287,13 @@ function notizblockZeichnen(){
   // v79: Jede Zeile IST eine Übung (Nutzer-Ansage). v123: Der Muster-Hinweis
   // steht nicht mehr über der Liste, sondern hinter dem „i" im Kopf — auf der
   // einfachsten Stufe soll am wenigsten Text dauerhaft sichtbar sein.
-  let html = (plaene.length === 0
+  /* v155 (Nutzer-Wunsch): Die Schnellnotiz „Getan" ist entfallen. Sie stand als
+     zweite Eingabe unter dem Block und wurde nicht gebraucht — der Notizblock
+     ist der Block, nicht Block plus Tagebuch. Schon eingetragene Notizen bleiben
+     im Protokoll (additiver Datenvertrag) und stehen ab Stufe 4 im Verlauf. */
+  ziel.innerHTML = (plaene.length === 0
     ? '<div class="leer">Noch nichts notiert.</div>'
     : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
-  html += notizGetanHtml();   // Schnellnotiz „was ich getan habe" (Entscheidung 9.2)
-  ziel.innerHTML = html;
   // v79: Textfelder an den Inhalt anpassen (Enter dehnt den Abschnitt aus,
   // statt intern zu scrollen) + Langdruck-Menü auf den Abschnitts-Karten
   // (Duplizieren/Verschieben/Löschen — der große Löschen-Knopf ist weg).
@@ -3316,7 +3321,7 @@ function notizAbschnittHtml(p, s){
     // v123: kurzer Platzhalter — das volle Muster erklärt das „i" im Kopf.
     koerper = '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
       'oninput="notizTextWachsen(this)" ' +
-      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value)">' + text(abschnittTextErzeugen(p)) + '</textarea>';
+      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>';
   } else {
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
@@ -3388,6 +3393,41 @@ function abschnittNameSetzen(id, wert){
    nicht mehr (nur doppelte Namen bleiben Text); Notizen gehören in „Getan".
    ------------------------------------------------------------ */
 const NOTIZ_MUSTER = /^s(?:ä|ae)tze\s+(\d+)\s+(wdh|zeit)\s+(\d+)\s+(.+)$/i;
+/* v155: Die KURZFORM, die man beim Tippen wirklich benutzt — Name und zwei
+   Zahlen, in beliebiger Reihenfolge, mit oder ohne x dazwischen. Gesucht wird
+   ein ZAHLENPAAR irgendwo in der Zeile; was übrig bleibt, ist der Name. Damit
+   überlebt „500-m-Intervalle 3 10" seine eigene Zahl und „Kurzhantel 20 kg 3 10"
+   behält sein Gewicht im Namen.
+   Zwischen den beiden Zahlen MUSS etwas stehen — ein Leerzeichen oder ein x.
+   Ohne diese Bedingung zerlegt der Ausdruck eine einzelne Zahl in zwei Hälften
+   („500" wird zu 50 und 0) und erfindet damit Mengen, die niemand getippt hat. */
+const NOTIZ_PAAR = /(\d+)(?:\s*[x×*]\s*|\s+)(\d+)/;
+
+/** v155: Eine Notizblock-Zeile deuten — Muster ODER Kurzform.
+    Rückgabe `{name, saetze, modus, wert}` oder `null`, wenn die Zeile keine
+    Mengen nennt (dann zählt weiterhin nur der Name, v79).
+    **Die kleinere Zahl ist die Satzzahl.** „3 10" und „10 3" meinen beide
+    3 Sätze à 10 Wiederholungen — zehn Sätze à drei Wiederholungen wäre die
+    seltene Ausnahme, und die schreibt man dann ausdrücklich als Muster.
+    Die Kurzform legt immer WDH an; eine Zeit-Übung verlangt weiter das
+    ausdrückliche Muster („Sätze 3 Zeit 45 Plank") — aus „3 45" zu raten, ob
+    Sekunden oder Wiederholungen gemeint sind, wäre geraten. */
+function notizZeileDeuten(zeile){
+  const t = String(zeile || "").trim();
+  if(!t) return null;
+  const m = t.match(NOTIZ_MUSTER);
+  if(m) return { name: m[4].trim(), saetze: parseInt(m[1], 10),
+                 modus: m[2].toLowerCase() === "zeit" ? "zeit" : "wdh",
+                 wert: parseInt(m[3], 10) };
+  const paar = t.match(NOTIZ_PAAR);
+  if(!paar) return null;
+  const name = (t.slice(0, paar.index) + " " + t.slice(paar.index + paar[0].length))
+    .replace(/\s+/g, " ").trim();
+  if(!name) return null;                       // nackte Zahlen sind keine Übung
+  const a = parseInt(paar[1], 10), b = parseInt(paar[2], 10);
+  if(!(a > 0) || !(b > 0)) return null;
+  return { name, saetze: Math.min(a, b), modus:"wdh", wert: Math.max(a, b) };
+}
 
 /** Eine Übung als Muster-Zeile für den Stufe-1-Text. Zeit immer in Sekunden —
     eine Einheit in der Zeile („30 min“) müsste der Parser mitschleppen. */
@@ -3414,15 +3454,15 @@ function abschnittTextErzeugen(p){
     Schreibweise; gewichtSchritt 0 — Heben erfindet keine Gewichte). Übungen,
     deren Zeile fehlt, werden entfernt (Zeile gelöscht = Übung gelöscht, wie
     im Stufe-5-Editor). Zeilen-Reihenfolge = Übungs-Reihenfolge. */
-function abschnittTextSetzen(id, wert){
+function abschnittTextSetzen(id, wert, feld){
   const p = findePlan(id); if(!p) return;
   const pool = p.uebungen.slice();   // bisherige Übungen — Name-Matching statt Neuaufbau
   const uebungen = [], rest = [], frisch = [];
   String(wert).split(/\r?\n/).forEach(zeile => {
     const t = zeile.trim();
     if(!t) return;                               // Leerzeilen sind nur Optik
-    const m = t.match(NOTIZ_MUSTER);
-    let name = m ? m[4].trim() : t;              // ohne Muster ist die ganze Zeile der Name
+    const m = notizZeileDeuten(t);               // v155: Muster ODER Kurzform
+    let name = m ? m.name : t;                   // ohne Mengen ist die ganze Zeile der Name
     // Doppelter Name in den Zeilen: die zweite bleibt Text (ein Plan führt
     // jede Übung nur einmal — wie der Duplikat-Schutz im Editor-Picker).
     if(!name || uebungen.some(u => normName(u.name) === normName(name))){ rest.push(zeile); return; }
@@ -3439,10 +3479,10 @@ function abschnittTextSetzen(id, wert){
       u.gewicht = 0; u.gewichtSchritt = 0;       // kein erfundenes Startgewicht (goldene Regel)
       frisch.push(name);
     }
-    if(m){                                       // nur ein Muster ändert Werte
-      u.saetze = begrenzen(parseInt(m[1], 10) || 1, 1, 20);
-      const zahl = parseInt(m[3], 10) || 0;
-      if(m[2].toLowerCase() === "zeit"){
+    if(m){                                       // nur genannte Mengen ändern Werte
+      u.saetze = begrenzen(m.saetze || 1, 1, 20);
+      const zahl = m.wert || 0;
+      if(m.modus === "zeit"){
         u.modus = "zeit";
         u.dauer = begrenzen(zahl || 30, 5, MAX_DAUER_S);
       } else {
@@ -3461,8 +3501,13 @@ function abschnittTextSetzen(id, wert){
   p.uebungen = uebungen;
   p.freitext = rest.join("\n");
   speichern();
-  // Kein Neuzeichnen (Fokus/Scroll bleiben, wie beim Namensfeld) —
-  // Rückmeldung über Toasts; die normalisierte Sicht kommt beim nächsten Rendern.
+  /* v155: Das Feld bekommt die AUFGERÄUMTE Fassung zurück — genau die
+     Autokorrektur, um die es geht: Aus „bankdrücken 10 3" wird
+     „Sätze 3 Wdh 10 LH-Bankdrücken". Das ist sicher, weil `onchange` erst beim
+     Verlassen des Feldes feuert; beim Tippen (`oninput`) wird nichts angefasst,
+     sonst spränge der Cursor. Der Rest der Ansicht wird weiterhin NICHT neu
+     gezeichnet (Scroll-Position bleibt). */
+  if(feld) feld.value = abschnittTextErzeugen(p);
   const weg = pool.filter(u => u.name && u.name.trim());
   if(frisch.length) zeigenToast("Als Übung erkannt: " + frisch.join(", "), "erfolg");
   if(weg.length) zeigenToast("Übung entfernt: " + weg.map(u => u.name).join(", "), "info");
@@ -3509,42 +3554,12 @@ function notizZeileLoeschen(planId, uId){
   notizblockZeichnen();
 }
 
-/* Stufe-1/2-Logging (Entscheidung 9.2): schnell festhalten, was man getan hat.
-   Legt einen Protokolleintrag mit freitext an — als „Sonder"-Eintrag ohne Sätze,
-   genau wie „Training nachtragen ohne Sätze" (v70): färbt den Kalender + zählt die
-   Serie, fließt aber nicht ins Volumen. Auf höheren Stufen erscheint er ehrlich
-   im Verlauf (Heben erfindet nie Daten). */
-function notizGetanHtml(){
-  const letzte = sitzung.daten.protokoll.filter(e => e.freitext).slice(-5).reverse();
-  const liste = letzte.map(e =>
-    '<div class="zeile" style="padding:6px 0;border-top:1px solid var(--line)">' +
-      '<div><strong>' + datumKurz(e.datum) + '</strong> · ' + text(e.freitext) + '</div>' +
-      '<button class="rund" aria-label="Eintrag löschen" onclick="notizGetanLoeschen(\'' + e.id + '\')">×</button>' +
-    '</div>').join("");
-  // v123: Der erklärende Untertitel ist raus — Überschrift + Platzhalter sagen
-  // dasselbe (dieselbe Linie wie die schlanken Kachel-Überschriften aus v120).
-  return '<div class="karte"><h2>Getan</h2>' +
-    '<textarea id="notiz-getan" class="abstand" placeholder="z. B. „30 Min spazieren“" style="min-height:56px"></textarea>' +
-    '<div class="knopfreihe abstand"><button class="primaer schmal" onclick="notizGetanEintragen()">Eintragen</button></div>' +
-    liste + '</div>';
-}
-function notizGetanEintragen(){
-  const feld = document.getElementById("notiz-getan");
-  const txt = (feld.value || "").trim();
-  if(!txt){ meldung("Bitte kurz eintragen, was du getan hast."); return; }
-  sitzung.daten.protokoll.push({
-    id:neueId(), datum:heuteAlsText(), plan:"", planId:null,
-    sportart:"kraft", typ:"kraft", sonder:true, saetze:[], notiz:"", freitext:txt
-  });
-  speichern();
-  zeigenToast("Notiert", "info");
-  notizblockZeichnen();
-}
-function notizGetanLoeschen(id){
-  sitzung.daten.protokoll = sitzung.daten.protokoll.filter(e => e.id !== id);
-  speichern();
-  notizblockZeichnen();
-}
+/* v155: Die Schnellnotiz „Getan" (Entscheidung 9.2, Stufe 1/2) ist auf
+   Nutzer-Wunsch ersatzlos entfallen — samt ihren Handlern. Der Notizblock ist
+   der Block, nicht Block plus Tagebuch; das Feld darunter wurde nicht gebraucht.
+   Das Datenfeld `freitext` am Protokoll-Eintrag BLEIBT (additiver Vertrag):
+   bereits notierte Einträge sind unangetastet und stehen ab Stufe 4 im Verlauf.
+   Wer sie löschen will, tut das dort. */
 
 function zeige(id){
   // v76: Der Sicht-Filter als zentrales Sicherheitsnetz (Doku: „ein Filter, den
@@ -4505,6 +4520,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.155", punkte:[
+    "Der Notizblock versteht dich jetzt, ohne dass du ein Muster kennen musst: Schreib „Bankdrücken 3 10“ — die App macht daraus Sätze und Wiederholungen. Auch verkehrt herum: Aus „Bankdrücken 10 3“ wird dasselbe, denn die kleinere Zahl sind die Sätze. Mit x geht es genauso („3x10“), und Zahlen im Namen bleiben, wo sie sind („500-m-Intervalle 3 10“). Sobald du das Feld verlässt, steht die aufgeräumte Zeile da.",
+    "Aufgeräumt: Das Feld „Getan“ unter dem Notizblock ist weg, und das „i“ oben auch — das Muster musst du ja nicht mehr kennen. Schon notierte Einträge bleiben erhalten und stehen ab Stufe 4 im Verlauf."
+  ]},
   { stand:"0.154", punkte:[
     "Ein Durchgang durch die Einfachheits-Stufen: Unter „Darstellung & Bedienung“ standen zwei Einstellungen, die auf niedrigen Stufen gar nichts bewirken konnten. Die Auswahl, welche Statistiken erscheinen, gibt es jetzt erst ab Stufe 4 — darunter gibt es den Statistik-Bereich nämlich nicht. Und den Ton-Test erst ab Stufe 3, weil Ansagen zum geführten Training gehören. Deine Einstellungen bleiben gespeichert und greifen sofort, wenn du hochstufst."
   ]},

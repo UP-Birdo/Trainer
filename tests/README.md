@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test155.js` | Notizblock-Autokorrektur: `notizZeileDeuten` (Muster unverändert; Kurzform „Name 3 10" in jeder Reihenfolge, mit `x`, kleinere Zahl = Sätze; Zahlen IM Namen überleben — „500-m-Intervalle 3 10", „Kurzhantel 20 kg 3 10"; eine Zahl allein oder nackte Zahlen ergeben nichts) + Rückschreibung ins Feld und der Beleg, dass „Getan" und das „i" ganz weg sind, das Datenfeld `freitext` aber bleibt |
 | `test154.js` | **Stufen-Register**: jede `<section id="view-…">` braucht eine Entscheidung — Mindeststufe in `VIEW_MIN_STUFE` **oder** ausdrücklicher Eintrag „gilt ab Stufe 1"; keine Karteileichen in beide Richtungen, `viewErlaubt`/`navTabsFuerStufe` je Stufe, kein Tab auf eine gesperrte Ansicht, jede Stufe hat ein Zuhause + die stufenabhängigen Blöcke (Audio ab 3, Statistik-Auswahl ab 4, Profil ab 5, Ziele ab 5) |
 | `test153.js` | Drei Ideen-Box-Wünsche: `muskelFigurenHtml` (beide Seiten nur, wo beide getroffen werden — Reihenfolge vorne/hinten, gleiche Muskel-Liste an beiden, Extra-Klasse durchgereicht), `ruhetageOhneTrainingstage` (rein, Reihenfolge bleibt, leere Eingaben) + Verdrahtung: Invariante im `speichern()` **ohne Meldung**, `fortschrittNeuZeichnen` beim Löschen, Rückgängig und Papierkorb |
 | `test151.js` | Drill-Beschreibungen — **Etappen-Register** (wie `test142`, nur für `SPORT_TEXT`): oben die Liste der Sportarten, darunter Vollständigkeit je Etappe, „häufigster Fehler" in jedem Text, keine Karteileichen, Substanz-Prüfungen + `drillText` erbt aus `UEBUNG_TEXT` (Klimmzüge) und die Beschreibung steht unter dem Tipp. **Seit v152 vollständig:** jeder Drill braucht einen Text, das Register muss alle Sportarten kennen |
@@ -127,6 +128,7 @@ VS Codes Electron springt ein):
     & $code tests\test151.js index.html
     & $code tests\test153.js index.html
     & $code tests\test154.js index.html
+    & $code tests\test155.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

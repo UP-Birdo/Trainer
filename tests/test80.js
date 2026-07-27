@@ -60,6 +60,8 @@ const code = [
   grabFn("wocheSeitEpoche"),
   grabFn("planAmTag"),
   grabLine("const NOTIZ_MUSTER"),
+  grabLine("const NOTIZ_PAAR"),
+  grabFn("notizZeileDeuten"),
   grabFn("uebungAlsZeile"),
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),
