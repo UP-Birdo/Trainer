@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.154
+
+- Ein Durchgang durch die Einfachheits-Stufen: Unter „Darstellung & Bedienung“
+  standen zwei Einstellungen, die auf niedrigen Stufen gar nichts bewirken
+  konnten. Die Auswahl, welche Statistiken erscheinen, gibt es jetzt erst ab
+  Stufe 4 — darunter gibt es den Statistik-Bereich nämlich nicht. Und den
+  Ton-Test erst ab Stufe 3, weil Ansagen zum geführten Training gehören. Deine
+  Einstellungen bleiben gespeichert und greifen sofort, wenn du hochstufst.
+
 ## 0.153
 
 - Klappst du im Plan eine Übung auf, siehst du jetzt BEIDE Körperseiten, wenn die

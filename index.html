@@ -1083,12 +1083,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <h2>Darstellung</h2>
     <div id="darstellung-wahl" class="wahl-raster abstand"></div>
   </div>
-  <div class="karte">
+  <!-- v154: Ton und Ansagen gibt es nur im geführten Training — das beginnt mit
+       Stufe 3. Auf 1/2 war der Testknopf eine Einstellung ohne Wirkung. -->
+  <div class="karte" id="darst-audio-karte">
     <h2>Audio</h2>
     <div class="knopfreihe"><button class="schmal" onclick="tonTesten()">Ton &amp; Ansage testen</button></div>
   </div>
-  <!-- v106: welche Statistiken in der Statistik erscheinen (Kalender + Zuletzt trainiert sind fest). -->
-  <div class="karte">
+  <!-- v106: welche Statistiken in der Statistik erscheinen (Kalender + Zuletzt trainiert sind fest).
+       v154: erst ab Stufe 4 — darunter gibt es den Statistik-Tab gar nicht, die
+       Auswahl führte also ins Leere. -->
+  <div class="karte" id="darst-statistik-karte">
     <h2>Statistiken</h2>
     <div class="meta abstand">Welche Statistiken angezeigt werden. Kalender und „Zuletzt trainiert" sind immer dabei.</div>
     <div id="stat-auswahl" class="wahl-raster"></div>
@@ -2355,7 +2359,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 153;
+const APP_VERSION = 154;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4224,6 +4228,13 @@ function einstellungenOeffnen(){
 function einstDarstellungOeffnen(){
   darstellungKarteZeichnen();
   statAuswahlZeichnen();   // v106: Statistik-Auswahl
+  /* v154: Nur zeigen, was die Stufe auch hat. Beides waren Einstellungen ohne
+     Wirkung: Ansagen gibt es erst mit dem geführten Training (Stufe 3), den
+     Statistik-Tab erst ab Stufe 4 — wer dort Statistiken anwählte, bekam sie
+     nirgends zu sehen. Die Werte bleiben gespeichert; beim Hochstufen greifen
+     sie sofort (Stufe = Ansicht, nicht Format). */
+  document.getElementById("darst-audio-karte").hidden = stufe() < 3;
+  document.getElementById("darst-statistik-karte").hidden = stufe() < 4;
   zeige("view-einst-darstellung");
 }
 /** Untermenü „Werkzeuge" (Scheibenrechner + Bibliothek + Papierkorb), ab Stufe 3. */
@@ -4494,6 +4505,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.154", punkte:[
+    "Ein Durchgang durch die Einfachheits-Stufen: Unter „Darstellung & Bedienung“ standen zwei Einstellungen, die auf niedrigen Stufen gar nichts bewirken konnten. Die Auswahl, welche Statistiken erscheinen, gibt es jetzt erst ab Stufe 4 — darunter gibt es den Statistik-Bereich nämlich nicht. Und den Ton-Test erst ab Stufe 3, weil Ansagen zum geführten Training gehören. Deine Einstellungen bleiben gespeichert und greifen sofort, wenn du hochstufst."
+  ]},
   { stand:"0.153", punkte:[
     "Klappst du im Plan eine Übung auf, siehst du jetzt BEIDE Körperseiten, wenn die Übung beide trifft — vorher zeigte die Figur nur die Seite des Hauptmuskels, und die Rückseite blieb unsichtbar. Die Muskel-Namen stehen weiter rechts daneben in einer Reihe. Trifft eine Übung nur eine Seite, bleibt es bei einer Figur.",
     "Markierst du einen Tag als Ruhetag und trainierst dann doch, verschwindet die Markierung von selbst — ohne Nachfrage und ohne Meldung.",
