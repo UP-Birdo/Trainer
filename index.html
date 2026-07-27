@@ -373,6 +373,18 @@ body:not(.nav-an) #nav{display:none}
 .wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
 .wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
 .wz-hilfe{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+/* v149: Kopfzeile über der Frage — WELCHE Sportart wird gerade eingestellt und
+   die wievielte ihrer Fragen. Bei mehreren Sportarten war ohne sie nicht zu
+   erkennen, wo man ist (Nutzer-Wunsch). Der Punkt trägt die Sportart-Farbe,
+   dieselbe wie im Kalender und in der Plan-Liste. */
+.wz-sport{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+  color:var(--chalk);margin-bottom:10px}
+.wz-sport .meta{margin-left:auto;font-weight:400;font-size:12px}
+.wz-sport-punkt{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+/* Die Frage trägt ihr „i" rechts daneben — der Hilfetext startet zugeklappt. */
+.wz-kopf{display:flex;align-items:flex-start;gap:10px}
+.wz-kopf .wz-frage{flex:1;min-width:0}
+.wz-kopf .info-knopf{flex:0 0 auto;margin-top:4px}
 .wz-optionen{display:flex;flex-direction:column;gap:8px}
 .wz-opt{width:100%;text-align:left;background:var(--panel);border:2px solid var(--line);
   padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35;border-radius:6px;
@@ -755,7 +767,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="primaer" id="wz-weiter" onclick="wzWeiter()" style="flex:2">Weiter</button>
   </div>
   <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
-    <span id="wz-schritt-anzeige">Schritt 1/7</span>
+    <!-- v149: Der Text kommt aus wzZeichnen — vorher stand hier fest „Schritt 1/7",
+         egal wie viele Fragen tatsächlich anstanden. -->
+    <span id="wz-schritt-anzeige"></span>
   </div>
 </section>
 
@@ -2305,7 +2319,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 148;
+const APP_VERSION = 149;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4444,6 +4458,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.149", punkte:[
+    "Der Trainingsplan-Assistent ist aufgeräumt. Der Erklärtext zu jeder Frage stand bisher immer offen da — bei acht Fragen war das vor allem eine Textwand. Jetzt liegt er hinter dem „i“ neben der Frage. Und wenn du mehrere Sportarten machst, arbeitet der Assistent sie nacheinander ab statt durcheinander: Über jeder Frage steht, welche Sportart gerade dran ist (mit ihrer Farbe) und die wievielte ihrer Fragen es ist. Die Zeile ganz unten zählt jetzt auch wirklich mit."
+  ]},
   { stand:"0.148", punkte:[
     "Die Übungs-Suche ist ein eigener Bildschirm geworden. Im Plan steht nur noch der Knopf „Übung hinzufügen“; dahinter hast du die ganze Seite für die Suche. Neu sind übergeordnete Filter zum Antippen: bei Krafttraining nach Bereich (Beine, Drücken, Ziehen, Rumpf, Cardio) und nach Gerät — mit „Körpergewicht“ als eigenem Filter. Bei den anderen Sportarten filterst du nach Technik oder Kondition. Die Geräte-Auswahl ist kein Systemfeld mehr, sondern eine Reihe zum Wischen. Eine gewählte Übung landet sofort im Plan und du bleibst in der Suche — so nimmst du mehrere hintereinander auf. „Eigene Übung schreiben“ steht ganz unten, wo man landet, wenn die Suche nichts hergab."
   ]},
@@ -7811,7 +7828,7 @@ const WIZARD_FRAGEN = [
     hilfe:"Mehrfachauswahl. Pläne baut die App bisher nur für Krafttraining — die anderen merkt sie sich schon, damit du sie später nicht erneut angeben musst.",
     raster:true,
     optionen: SPORTARTEN.map(s => [s.id, s.name, s.einheiten])},
-  { id:"ort", typ:"single", frage:"Wo trainierst du?",
+  { id:"ort", typ:"single", sportBezug:"kraft", frage:"Wo trainierst du?",
     hilfe:"Danach richtet sich, welche Übungen überhaupt vorkommen.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7819,13 +7836,13 @@ const WIZARD_FRAGEN = [
       ["gym","Im Gym","Volle Auswahl an Geräten"],
       ["eigene","Eigene Auswahl","Ich lege die Geräte selbst fest"]
     ]},
-  { id:"geraete", typ:"multi", frage:"Was hast du zur Verfügung?",
+  { id:"geraete", typ:"multi", sportBezug:"kraft", frage:"Was hast du zur Verfügung?",
     hilfe:"Mehrfachauswahl — es werden nur Geräte gezeigt, die es an deinem Trainingsort geben kann. Nichts ausgewählt ist völlig in Ordnung: dann gibt es reine Körpergewichtsübungen.",
     raster:true,
     nurWenn: kraftGewaehlt,
     dynamisch:true,   // Optionen kommen aus GERAETE, gefiltert nach Ort
     optionen:[]},
-  { id:"erfahrung", typ:"single", frage:"Wie viel Erfahrung hast du?",
+  { id:"erfahrung", typ:"single", sportBezug:"kraft", frage:"Wie viel Erfahrung hast du?",
     hilfe:"Bestimmt die Startgewichte. Im Zweifel die niedrigere Stufe — zu leicht korrigiert die App nach 2–3 Trainings selbst.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7833,7 +7850,7 @@ const WIZARD_FRAGEN = [
       ["wieder","Wiedereinstieg","War mal fit, längere Pause"],
       ["fortgeschritten","Fortgeschritten","Trainiere seit Jahren regelmäßig"]
     ]},
-  { id:"ziel", typ:"single", frage:"Was ist dein Ziel?",
+  { id:"ziel", typ:"single", sportBezug:"kraft", frage:"Was ist dein Ziel?",
     hilfe:"Legt Wiederholungsbereich und Pausenlänge fest.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7842,12 +7859,12 @@ const WIZARD_FRAGEN = [
       ["kraft","Kraft","6–10 Wdh · 120 s Pause"],
       ["ausdauer","Kraftausdauer","15–25 Wdh · 30 s Pause"]
     ]},
-  { id:"wochentage", typ:"multi", frage:"An welchen Tagen trainierst du?",
+  { id:"wochentage", typ:"multi", sportBezug:"kraft", frage:"An welchen Tagen trainierst du?",
     hilfe:"Bis zu 6 Tage. Muskeln wachsen an den Ruhetagen — mehr ist nicht besser. Ohne Tag entsteht ein Ganzkörper-Plan ohne festen Tag, den du einträgst, wenn er passiert ist.",
     raster:true,
     nurWenn: kraftGewaehlt,
     optionen:[[1,"Montag"],[2,"Dienstag"],[3,"Mittwoch"],[4,"Donnerstag"],[5,"Freitag"],[6,"Samstag"],[7,"Sonntag"]]},
-  { id:"dauer", typ:"single", frage:"Wie lange hast du pro Einheit?",
+  { id:"dauer", typ:"single", sportBezug:"kraft", frage:"Wie lange hast du pro Einheit?",
     hilfe:"Bestimmt, wie viele Übungen pro Tag eingeplant werden.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7856,7 +7873,7 @@ const WIZARD_FRAGEN = [
       ["lang","45–60 Minuten","5 Übungen"],
       ["xl","Über 60 Minuten","6 Übungen"]
     ]},
-  { id:"fokus", typ:"single", frage:"Gibt es einen Schwerpunkt?",
+  { id:"fokus", typ:"single", sportBezug:"kraft", frage:"Gibt es einen Schwerpunkt?",
     hilfe:"Der Schwerpunkt bekommt eine Übung mehr, der Rest bleibt ausgewogen.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7865,7 +7882,7 @@ const WIZARD_FRAGEN = [
       ["beine","Beine & Po",""],
       ["rumpf","Rumpf & Core",""]
     ]},
-  { id:"bonus", typ:"schalter", frage:"Aufwärmen und Dehnen?",
+  { id:"bonus", typ:"schalter", sportBezug:"kraft", frage:"Aufwärmen und Dehnen?",
     hilfe:"Empfehlung: dynamisch aufwärmen vor dem Training, statisch dehnen danach. Pro Plan später einzeln abschaltbar.",
     nurWenn: kraftGewaehlt,
     optionen:[
@@ -7922,8 +7939,29 @@ function einrichtungOeffnen(){
   zeige("view-wizard");
 }
 
+/* v149: Die Fragen laufen jetzt SPORTART FÜR SPORTART durch statt „erst alles
+   zu Kraft, dann die Reste". Bei drei Sportarten sprang der Wizard vorher
+   zwischen den Themen hin und her, ohne je zu sagen, worum es gerade geht
+   (Nutzer-Wunsch). Reihenfolge der Gruppen = Reihenfolge in SPORTARTEN, damit
+   sie überall gleich ist (Kalender, Plan-Liste, Profil). Die Auftaktfrage
+   („Welche Sportarten?") gehört zu keiner Gruppe und bleibt vorn. */
 function wzAktualisiereSichtbar(){
-  wzSichtbar = WIZARD_FRAGEN.filter(f => !f.nurWenn || f.nurWenn(einrichtung));
+  const sichtbar = WIZARD_FRAGEN.filter(f => !f.nurWenn || f.nurWenn(einrichtung));
+  const rang = id => { const i = SPORTARTEN.findIndex(s => s.id === id); return i < 0 ? 99 : i; };
+  wzSichtbar = sichtbar
+    .map((f, i) => ({ f, i }))                       // stabil sortieren: Position als zweiter Schlüssel
+    .sort((a, b) => (a.f.sportBezug ? rang(a.f.sportBezug) : -1) -
+                    (b.f.sportBezug ? rang(b.f.sportBezug) : -1) || a.i - b.i)
+    .map(x => x.f);
+}
+
+/** v149: Die wievielte Frage IHRER Sportart ist das — und wie viele hat sie?
+    Rein und testbar; die Kopfzeile über der Frage liest daraus ihre Zahlen. */
+function wzGruppenStand(fragen, index){
+  const f = fragen[index];
+  if(!f || !f.sportBezug) return null;
+  const gruppe = fragen.filter(x => x.sportBezug === f.sportBezug);
+  return { sport: f.sportBezug, nummer: gruppe.indexOf(f) + 1, gesamt: gruppe.length };
 }
 
 function wzZeichnen(){
@@ -7968,15 +8006,32 @@ function wzZeichnen(){
       (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
   }
 
-  document.getElementById("wz-buehne").innerHTML =
-    '<h2 class="wz-frage">' + f.frage + '</h2>' +
-    '<div class="wz-hilfe">' + f.hilfe + '</div>' +
+  /* v149: Kopfzeile — welche Sportart, die wievielte ihrer Fragen. */
+  const stand = wzGruppenStand(wzSichtbar, wzSchritt);
+  const kopfzeile = stand
+    ? '<div class="wz-sport"><span class="wz-sport-punkt" style="background:' + sportart(stand.sport).farbe + '"></span>' +
+      text(sportart(stand.sport).name) +
+      '<span class="meta">Frage ' + stand.nummer + " von " + stand.gesamt + '</span></div>'
+    : "";
+
+  /* v149: Der Hilfetext liegt hinter dem „i" (laufendes Haus-Prinzip: weniger
+     Text). Er stand vorher auf JEDER Frage offen da — bei acht Fragen war der
+     Wizard damit vor allem eine Textwand (Nutzer-Wunsch: zu aufgebläht).
+     Zugeklappt startet er von selbst, weil die Bühne neu gezeichnet wird. */
+  document.getElementById("wz-buehne").innerHTML = kopfzeile +
+    '<div class="wz-kopf"><h2 class="wz-frage">' + f.frage + '</h2>' +
+      '<button class="info-knopf" onclick="infoUmschalten(\'wz-hilfe\')" aria-label="Erklärung">i</button></div>' +
+    '<div class="wz-hilfe" id="wz-hilfe" hidden>' + f.hilfe + '</div>' +
     '<div class="' + (f.raster ? "wz-raster" : "wz-optionen") + '">' + optionenHtml + '</div>' +
     (f.zeitCustom ? wzZeitCustomHtml(f) : "");
 
   document.getElementById("wz-zurueck").textContent = wzSchritt === 0 ? "Abbrechen" : "Zurück";
   document.getElementById("wz-weiter").textContent = "Weiter";
   document.getElementById("wz-weiter").disabled = false;
+  // v149: Die Schritt-Anzeige stand seit jeher fest auf „Schritt 1/7" — sie
+  // zählt jetzt wirklich mit.
+  document.getElementById("wz-schritt-anzeige").textContent =
+    "Schritt " + (wzSchritt + 1) + " von " + wzSichtbar.length;
 }
 
 /* Einfachauswahl markiert nur (Umfärbung) — weiter geht es bewusst erst über
@@ -8084,6 +8139,7 @@ function wzZusammenfassung(){
   wzAktualisiereSichtbar();
   document.getElementById("wz-fortschritt").innerHTML =
     wzSichtbar.map(() => '<div class="wz-punkt erledigt"></div>').join("") + '<div class="wz-punkt jetzt"></div>';
+  document.getElementById("wz-schritt-anzeige").textContent = "Zusammenfassung";   // v149
 
   const beschriften = (id, wert) => {
     const f = WIZARD_FRAGEN.find(x => x.id === id);

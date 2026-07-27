@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.149
+
+- Der Trainingsplan-Assistent ist aufgeräumt. Der Erklärtext zu jeder Frage stand
+  bisher immer offen da — bei acht Fragen war das vor allem eine Textwand. Jetzt
+  liegt er hinter dem „i“ neben der Frage. Und wenn du mehrere Sportarten machst,
+  arbeitet der Assistent sie nacheinander ab statt durcheinander: Über jeder
+  Frage steht, welche Sportart gerade dran ist (mit ihrer Farbe) und die
+  wievielte ihrer Fragen es ist. Die Zeile ganz unten zählt jetzt auch wirklich
+  mit.
+
 ## 0.148
 
 - Die Übungs-Suche ist ein eigener Bildschirm geworden. Im Plan steht nur noch
