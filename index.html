@@ -2319,7 +2319,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 151;
+const APP_VERSION = 152;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4458,6 +4458,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.152", punkte:[
+    "Fertig: Jetzt hat jede der 81 Sportart-Übungen ihre Beschreibung. Zum Abschluss kamen Klettern, Tischtennis, Tennis, Kampfsport, Fußball und Yoga dazu — vom Eindrehen an der Wand über den dritten Ball bis zum Sonnengruß. Damit ist jede Übung in der App erklärt, egal ob Krafttraining oder Sportart: oben der Merksatz fürs Training, darunter der Text zum Nachlesen."
+  ]},
   { stand:"0.151", punkte:[
     "Auch die Sportart-Übungen bekommen jetzt richtige Beschreibungen — zwei bis drei Sätze, so wie es die Kraftübungen längst haben: was der Drill trainiert, wie er sauber läuft und welcher Fehler der häufigste ist. Den Anfang machen die Ausdauer-Sportarten: Laufen, Radfahren, Wandern, Schwimmen und Rudern, zusammen 34 Übungen. Du findest sie unter der jeweiligen Sportart im Profil, unter dem kurzen Merksatz. Die übrigen Sportarten kommen nach und nach dazu."
   ]},
@@ -7652,9 +7655,14 @@ function drillTipp(name){
    WAS er trainiert und wozu er gut ist, WIE er sauber läuft, WELCHER Fehler
    der häufigste ist. Der Kurz-Tipp aus SPORT_INFO bleibt darüber stehen — er
    ist der Merksatz fürs Training, der Text die Erklärung zum Nachlesen.
-   Wieder in ETAPPEN gefüllt, deshalb LÜCKENHAFT erlaubt: wo nichts steht,
-   bleibt es beim Tipp. `test151` führt Buch (Etappen-Register wie test142).
+   In ETAPPEN gefüllt; `test151` führt Buch (Etappen-Register wie test142).
    Etappe 1 (v151): die fünf Ausdauer-Sportarten.
+   Etappe 2 (v152): Klettern, Tischtennis, Tennis — und im selben Zug der Rest
+   (Kampfsport, Fußball, Yoga). Damit ist die Tabelle VOLLSTÄNDIG: jeder Drill
+   aus SPORT_UEBUNGEN hat einen Text, die Lücken-Erlaubnis ist gefallen (wie bei
+   UEBUNG_TEXT in v143). Wer einen Drill aufnimmt, schreibt den Text mit.
+   Eine Ausnahme bleibt und ist gewollt: „Klimmzüge" steht hier NICHT — der
+   Drill erbt den Text der gleichnamigen Kraftübung über `drillText`.
    ============================================================ */
 const SPORT_TEXT = {
   // ---------- Laufen ----------
@@ -7695,7 +7703,61 @@ const SPORT_TEXT = {
   "500-m-Intervalle":"Die klassische Rudereinheit: lang genug, um wehzutun, kurz genug, um das Tempo zu halten. Gleichmäßiges Tempo über die ganze Distanz, nicht zu schnell starten. Häufigster Fehler: die ersten hundert Meter verschenken oder überziehen — der Split soll fast konstant sein.",
   "Pyramiden-Intervalle":"Die Belastungen werden länger und wieder kürzer — das trainiert, das Tempo unabhängig von der Dauer zu halten. Intervalle wachsen und schrumpfen, das Tempo bleibt gleich. Häufigster Fehler: bei den kurzen Stücken schneller werden; genau das soll die Übung abtrainieren.",
   "Kraftausdauer (niedrige Schlagzahl)":"Wenige, sehr kräftige Schläge: Das trainiert den Druck aus den Beinen, den man bei hoher Schlagzahl nicht spürt. Niedrige Schlagzahl, voller Druck, sauber durchziehen. Häufigster Fehler: die Schlagzahl heimlich steigen lassen, sobald es anstrengend wird.",
-  "Lockeres Dauerrudern (Grundlage)":"Die lange ruhige Einheit — auf der Rudermaschine besonders wertvoll, weil sie den ganzen Körper belastet, ohne die Gelenke zu stoßen. Ruhige Schlagzahl, saubere Technik, lange Strecke. Häufigster Fehler: die Technik über die Dauer verfallen lassen; der letzte Schlag soll aussehen wie der erste."
+  "Lockeres Dauerrudern (Grundlage)":"Die lange ruhige Einheit — auf der Rudermaschine besonders wertvoll, weil sie den ganzen Körper belastet, ohne die Gelenke zu stoßen. Ruhige Schlagzahl, saubere Technik, lange Strecke. Häufigster Fehler: die Technik über die Dauer verfallen lassen; der letzte Schlag soll aussehen wie der erste.",
+
+  // ---------- Klettern ----------
+  // („Klimmzüge" fehlt hier bewusst: Der Drill erbt seinen Text von der
+  //  gleichnamigen Kraftübung — zwei Fassungen würden auseinanderlaufen.)
+  "Fußtechnik-Drill (leise Füße)":"Klettern ist Fußarbeit: Wer die Tritte genau belastet, spart die Kraft, die sonst in den Armen verbrennt. Den Fuß bewusst setzen und dann wirklich darauf stehen, ohne Nachrutschen. Häufigster Fehler: den Blick zu früh nach oben nehmen — der Fuß wird gesetzt, solange man ihn noch sieht.",
+  "Hüfte eindrehen (Eindrehtechnik)":"Mit eingedrehter Hüfte kommt die Schulter näher an die Wand und der Arm reicht weiter — derselbe Zug mit deutlich weniger Kraft. Hüfte zur Wand drehen, die Außenkante des Fußes belasten. Häufigster Fehler: frontal an der Wand hängen und den fehlenden Weg mit dem Arm ausgleichen.",
+  "Antritt / Deadpoint":"Trainiert den dynamischen Zug zum nächsten Griff: Im höchsten Punkt der Bewegung ist der Körper für einen Moment schwerelos, und genau dort greift man zu. Aus der Bewegung heraus zupacken statt zu springen. Häufigster Fehler: zu spät greifen, wenn der Körper schon wieder fällt.",
+  "Fingerhang am Board":"Die Finger sind beim Klettern das schwächste Glied und brauchen am längsten, um sich anzupassen — deshalb kurz, gezielt und mit viel Pause. Schultern aktiv nach unten, kurze Hänge, lange Pausen. Häufigster Fehler: zu früh damit anfangen; ohne ein bis zwei Jahre Klettererfahrung schadet es mehr, als es nützt.",
+  "Core / Beinheben":"Sobald es überhängt, hält der Rumpf die Füße an der Wand — ohne ihn rutschen sie ab und die Arme tragen alles allein. Becken leicht einrollen, nicht pendeln. Häufigster Fehler: Schwung nehmen; die Übung wirkt über die Kontrolle, nicht über die Zahl.",
+  "Boulder im Grenzbereich":"Wenige harte Versuche an der eigenen Grenze — so entstehen Maximalkraft und neue Bewegungen zugleich. Wenige maximale Versuche mit langer Pause, Qualität vor Menge. Häufigster Fehler: müde weiterprobieren; jeder Versuch mit schlechter Technik trainiert schlechte Technik.",
+  "Ausdauer-Runden (leichte Route)":"Trainiert die Kraftausdauer der Unterarme — sie entscheidet, wie lange man in einer Route bleiben kann, bevor der Griff aufgeht. Leichte Route mehrfach hintereinander, ruhig atmen, Arme zwischendurch ausschütteln. Häufigster Fehler: eine zu schwere Route wählen; hier zählt die Dauer, nicht der Grad.",
+  // ---------- Tischtennis ----------
+  "Vorhand-Topspin (Übungskorb)":"Der wichtigste Angriffsschlag: Die Rotation bringt den Ball sicher über das Netz und danach steil nach unten. Aus den Beinen beschleunigen, der Schläger streift den Ball von unten nach vorn-oben. Häufigster Fehler: nur mit dem Arm schlagen — die Kraft kommt aus Beinen und Rumpf, der Arm überträgt sie nur.",
+  "Rückhand-Konter":"Der schnelle Schlag über dem Tisch, der Druck macht, ohne Platz zu brauchen. Kurz vor dem Körper abnehmen, Handgelenk stabil, kleine Bewegung. Häufigster Fehler: zu weit ausholen; auf der Rückhand entsteht das Tempo aus dem frühen Treffpunkt, nicht aus dem Schwung.",
+  "Vorhand/Rückhand im Wechsel":"Verbindet beide Seiten mit der Beinarbeit — im Spiel kommt der Ball nie zweimal an dieselbe Stelle. Zwischen den Schlägen die Füße stellen, nicht nur den Arm drehen. Häufigster Fehler: stehen bleiben und mit dem Oberkörper ausgleichen; die Beine bringen den Körper zum Ball.",
+  "Schupf-Sicherheit (Unterschnitt)":"Der kontrollierte kurze Rückschlag hält den Ball flach und nimmt dem Gegner die Angriffsmöglichkeit. Flach über das Netz, Schläger offen, den Ball früh nehmen. Häufigster Fehler: zu hoch spielen — jeder hohe Schupfball ist eine Einladung zum Topspin.",
+  "Aufschlag-Training":"Der einzige Schlag, bei dem niemand stört — und damit der einzige, den man vollständig kontrollieren kann. Immer dieselbe Wurfhöhe, ein Ziel markieren und in Serien darauf spielen. Häufigster Fehler: viele Varianten gleichzeitig üben; erst sitzt eine sauber, dann kommt die nächste.",
+  "Aufschlag und dritter Ball":"Im Spiel entscheidet selten der Aufschlag allein, sondern was danach kommt — beides gehört als eine Einheit geübt. Aufschlag und den geplanten dritten Ball direkt hintereinander spielen. Häufigster Fehler: nach dem Aufschlag stehen bleiben und abwarten; die Bewegung danach gehört dazu.",
+  "Beinarbeit / Footwork":"Die Beinarbeit entscheidet über den Treffpunkt — und der Treffpunkt über alles andere. Kleine Schritte, Gewicht auf den Ballen, nie mit gekreuzten Beinen. Häufigster Fehler: die Füße stehen lassen und mit dem Arm nachgreifen.",
+  "Balleimer-Kondition":"Viele Bälle in kurzer Zeit: Das trainiert Ausdauer im Spieltempo und deckt auf, wo die Technik unter Belastung zerfällt. Hohes Tempo über die volle Zeit halten. Häufigster Fehler: Tempo über Sauberkeit stellen; wer schlampig wird, macht besser Pause als weiter.",
+  // ---------- Tennis ----------
+  "Vorhand cross (Korbübung)":"Der Grundschlag, mit dem die meisten Punkte aufgebaut werden — über die lange Diagonale ist das Netz niedriger und der Platz länger. Früh am Ball, Treffpunkt vor dem Körper, hoch ausschwingen. Häufigster Fehler: den Ball neben oder hinter dem Körper treffen; dann fehlt die Kontrolle über die Richtung.",
+  "Rückhand cross (Korbübung)":"Die Seite, die im Spiel meist angegriffen wird — sie muss darum genauso sicher sein wie die Vorhand. Schulter zum Netz drehen und aus der Drehung schlagen. Häufigster Fehler: nur mit den Armen ziehen; die Rückhand lebt von der Körperdrehung.",
+  "Volley am Netz":"Am Netz bleibt keine Zeit für einen Schwung — der Ball wird geblockt, nicht geschlagen. Kurzer Block, Schlägerkopf über der Hand, Schritt nach vorn hinein. Häufigster Fehler: ausholen; sobald der Schläger hinter den Körper geht, ist der Ball vorbei.",
+  "Return-Training":"Der Return ist nach dem Aufschlag der wichtigste Schlag — und der, der am seltensten geübt wird. Split-Step im Moment des gegnerischen Treffens, kurz und früh zurückspielen. Häufigster Fehler: zu groß schlagen wollen; beim Return zählt zuerst, dass er ins Feld kommt.",
+  "Split-Step / Footwork":"Der kleine Hüpfer vor dem gegnerischen Schlag bringt den Körper in Spannung und macht den ersten Schritt schneller — die wirksamste Kleinigkeit im Tennis. Genau dann hüpfen, wenn der Gegner trifft. Häufigster Fehler: zu früh oder gar nicht; dann startet man flach von den Fersen.",
+  "Shuttle-Sprints (Platzlinien)":"Tennis besteht aus kurzen Antritten und schnellem Abbremsen — genau das trainiert diese Übung, ganz ohne Ball. Linie berühren, sauber abbremsen, sofort wieder los. Häufigster Fehler: das Abbremsen vernachlässigen; es ist die eigentliche Belastung und die häufigste Verletzungsquelle.",
+  "Cross-Longline-Wechsel":"Verbindet Schlagtechnik mit Laufarbeit — der Richtungswechsel ist im Spiel der Moment, in dem die Fehler passieren. Abwechselnd cross und longline, die Beine bestimmen den Schlag. Häufigster Fehler: longline zu flach spielen; über der höheren Netzkante braucht der Ball mehr Luft.",
+
+  // ---------- Kampfsport ----------
+  "Schattenboxen":"Das Grundtraining jeder Kampfsportart: Bewegung, Deckung und Kombinationen ohne Partner und ohne Gerät. Den Gegner vorstellen, Deckung oben, die Bewegung nie ganz stoppen. Häufigster Fehler: die Arme nach dem Schlag hängen lassen — jeder Schlag endet dort, wo er begonnen hat.",
+  "Kick-Technik (beidseitig)":"Tritte kommen aus Hüfte und Standbein, nicht aus dem Bein, das sich bewegt. Beidseitig geübt, weil im Kampf keine Seite ausfällt. Standbein drehen, Hüfte mitnehmen, Deckung bleibt oben. Häufigster Fehler: nur die starke Seite üben; die schwache bleibt dann für immer schwach.",
+  "Pratzentraining (mit Partner)":"Der Partner gibt Ziel und Zeitpunkt vor — dadurch trainiert man Reaktion und Genauigkeit, die am Sack fehlen. Auf Ansage schlagen, sauber statt hart, sofort zurück in die Deckung. Häufigster Fehler: fest draufhauen statt genau zu treffen; die Pratze ist ein Ziel, kein Kraftmesser.",
+  "Beinarbeit und Distanz":"Die Distanz entscheidet den Kampf, bevor der erste Schlag fällt — wer sie hält und bricht, bestimmt, was überhaupt möglich ist. Distanz halten und brechen, die Füße bleiben unter dem Körper. Häufigster Fehler: die Beine kreuzen; in dem Moment steht man auf einem Bein und kann nichts.",
+  "Verteidigung (Blocks, Ausweichen)":"Verteidigung wird seltener geübt als der Angriff und entscheidet häufiger. Klein machen, den Kopf aus der Linie nehmen, den Blick am Gegner lassen. Häufigster Fehler: die Augen schließen oder wegsehen — man weicht nur dem aus, was man sieht.",
+  "Sacktraining (Kombinationen)":"Am Sack entstehen das Gefühl für den Treffer und die Ausdauer für ganze Runden. Feste Kombinationen schlagen, sauber ausatmen, Handgelenke gerade halten. Häufigster Fehler: mit abgeknicktem Handgelenk treffen — der häufigste Weg zu einer Verletzung, die Wochen kostet.",
+  "Seilspringen (Kondition)":"Im Kampfsport das klassische Aufwärmen: Es bringt Puls, Fußarbeit und Rhythmus in einem. Aus den Handgelenken drehen, kleine Sprünge, gleichmäßiger Rhythmus. Häufigster Fehler: zu hoch springen; nach drei Minuten entscheidet die Ökonomie, nicht die Kraft.",
+  // ---------- Fußball ----------
+  "Dribbling-Parcours":"Trainiert die enge Ballführung unter Richtungswechseln — den Ball auch im Tempo bei sich zu behalten. Ball eng am Fuß, Blick hoch, das Tempo erst am Ende steigern. Häufigster Fehler: auf den Ball starren; der Blick nach oben ist der eigentliche Zweck der Übung.",
+  "Passgenauigkeit (an die Wand)":"Der Pass ist die häufigste Aktion im Spiel — und die, die sich am einfachsten allein trainieren lässt. Innenseite, Standbein neben den Ball, ein Ziel markieren. Häufigster Fehler: zu hart spielen; ein Pass ist so scharf, dass der Mitspieler ihn noch verarbeiten kann.",
+  "Ballan- und -mitnahme":"Der erste Kontakt entscheidet, ob danach Zeit bleibt — er ist wichtiger als der zweite. Den Ball mit dem ersten Kontakt dorthin mitnehmen, wo du hinwillst. Häufigster Fehler: den Ball stoppen statt ihn mitzunehmen; damit verschenkt man den ganzen Vorsprung.",
+  "Torschuss-Training":"Der Abschluss lebt von Technik und Wiederholung — im Spiel gibt es davon zu wenige, um ihn dort zu lernen. Standbein neben den Ball, Spann treffen, Körper über dem Ball. Häufigster Fehler: sich zurücklehnen; dann geht der Ball über das Tor.",
+  "Flanken (beidfüßig)":"Die Hereingabe verlangt Genauigkeit über Distanz und wird fast nur mit dem starken Fuß geübt — genau darum beidfüßig. Vor dem Schlag aufblicken, beide Seiten gleich oft. Häufigster Fehler: aus vollem Lauf schlagen, ohne den letzten Schritt zu setzen.",
+  "Kopfball-Training":"Der Kopfball kommt aus dem Rumpf, nicht aus dem Hals — und er will geübt sein, bevor er im Spiel gebraucht wird. Aus dem Rumpf arbeiten, Augen auf, mit der Stirn treffen. Häufigster Fehler: den Ball auf sich zukommen lassen; man geht zum Ball, nicht umgekehrt.",
+  "1 gegen 1 (Dribbling)":"Die Situation, die Spiele entscheidet: ein Gegner, ein Ball, wenig Platz. Tempowechsel und Körpertäuschung, dann am Gegner vorbei. Häufigster Fehler: mit gleichbleibendem Tempo antäuschen — ohne Tempowechsel wirkt keine Finte.",
+  // ---------- Yoga ----------
+  "Sonnengruß (Flow)":"Die Grundsequenz des Yoga: Sie wärmt den ganzen Körper, mobilisiert die Wirbelsäule und verbindet Bewegung mit Atem. Eine Bewegung, ein Atemzug — im gleichen Rhythmus bleiben. Häufigster Fehler: schneller werden als der Atem; dann wird aus dem Flow eine Gymnastikübung.",
+  "Krieger-Sequenz":"Kräftigt Beine und Gesäß im Stand und schult dabei Ausrichtung und Standfestigkeit. Vorderes Knie über dem Fuß, Becken gerade, Schultern tief. Häufigster Fehler: das vordere Knie nach innen fallen lassen — es zeigt in Richtung der Zehen.",
+  "Balance-Halten (Baum)":"Gleichgewicht ist trainierbar wie Kraft und im Alltag mindestens so nützlich. Blick auf einen festen Punkt, der Fuß kommt über oder unter das Knie, nie darauf. Häufigster Fehler: den Fuß direkt aufs Knie setzen; das Gelenk verträgt seitlichen Druck schlecht.",
+  "Herabschauender Hund (Halten)":"Die bekannteste Haltung überhaupt: Sie dehnt die ganze Rückseite und stärkt zugleich Schultern und Rumpf. Gesäß hoch, Rücken lang — die Fersen dürfen den Boden ruhig verfehlen. Häufigster Fehler: die Fersen erzwingen und dafür den Rücken runden; der lange Rücken ist wichtiger.",
+  "Hüftöffner (Taube)":"Öffnet die Hüfte und löst den Bereich, der bei viel Sitzen als Erstes fest wird. Langsam hineinsinken, ruhig atmen, beide Seiten gleich lang halten. Häufigster Fehler: in den Schmerz hineindrücken; Dehnung wirkt über die Zeit, nicht über die Intensität.",
+  "Drehsitz (Wirbelsäule)":"Die Rotation hält die Wirbelsäule beweglich — es ist die Richtung, die im Alltag am seltensten vorkommt. Erst aufrichten, dann drehen, nie andersherum. Häufigster Fehler: sich am Knie in die Drehung ziehen; die Bewegung kommt aus dem Rumpf, der Arm hält nur.",
+  "Atemübung (Pranayama)":"Bewusstes Atmen senkt Puls und Anspannung — der Teil des Yoga, der nach dem Training am meisten bringt. Ruhig durch die Nase, das Ausatmen länger als das Einatmen. Häufigster Fehler: zu tief und zu schnell atmen; ruhig und klein wirkt besser als groß.",
+  "Tiefe Vorbeuge (Dehnung)":"Dehnt die gesamte Rückseite von der Wade bis in den unteren Rücken. Knie leicht gebeugt lassen, aus der Hüfte falten, nicht wippen. Häufigster Fehler: die Knie mit Gewalt strecken; dann rundet der Rücken und die Dehnung landet an der falschen Stelle."
 };
 
 /** Beschreibung zu einem Drill ODER einer Kraftübung — eine Quelle für beide

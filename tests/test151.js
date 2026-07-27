@@ -9,13 +9,22 @@ const src = fs.readFileSync(process.argv[2], "utf8");
 
 /* ---- Register: Sportart -> seit welcher Version vollstaendig beschrieben ---- */
 const ETAPPEN = [
-  { sport:"laufen",    version:"v151" },
-  { sport:"radfahren", version:"v151" },
-  { sport:"wandern",   version:"v151" },
-  { sport:"schwimmen", version:"v151" },
-  { sport:"rudern",    version:"v151" }
-  // offen: klettern, tischtennis, tennis, kampfsport, fussball, yoga
+  { sport:"laufen",      version:"v151" },
+  { sport:"radfahren",   version:"v151" },
+  { sport:"wandern",     version:"v151" },
+  { sport:"schwimmen",   version:"v151" },
+  { sport:"rudern",      version:"v151" },
+  { sport:"klettern",    version:"v152" },
+  { sport:"tischtennis", version:"v152" },
+  { sport:"tennis",      version:"v152" },
+  { sport:"kampfsport",  version:"v152" },
+  { sport:"fussball",    version:"v152" },
+  { sport:"yoga",        version:"v152" }
 ];
+
+/* Seit v152 sind ALLE Sportarten durch — ab hier wird Vollstaendigkeit hart
+   geprueft: ein neuer Drill ohne Text faellt sofort auf. */
+const VOLLSTAENDIG_SEIT = "v152";
 
 function grabFn(name){
   const i = src.indexOf("function " + name + "(");
@@ -101,7 +110,12 @@ pruefe("Klimmzuege erben ihren Text aus der Kraft-Bibliothek",
   drillText("Klimmzüge") === UEBUNG_TEXT["Klimmzüge"] && !!UEBUNG_TEXT["Klimmzüge"]);
 pruefe("ein Drill mit eigenem Text nimmt seinen eigenen",
   drillText("Bergsprints") === SPORT_TEXT["Bergsprints"]);
-pruefe("unbeschriebene Drills geben leer zurueck", drillText("Volley am Netz") === "");
+/* Seit v152: KEIN Drill ohne Text — auch kein spaeter hinzugefuegter. */
+const ohneText = [...alleDrills].filter(n => !drillText(n));
+pruefe("seit " + VOLLSTAENDIG_SEIT + " hat jeder Drill einen Text" + (ohneText.length ? " (fehlt: " + ohneText.join(", ") + ")" : ""),
+  ohneText.length === 0);
+pruefe("Register deckt alle Sportarten ab (" + ETAPPEN.length + " von " + Object.keys(SPORT_UEBUNGEN).length + ")",
+  ETAPPEN.length === Object.keys(SPORT_UEBUNGEN).length);
 pruefe("ohne Namen leer", drillText("") === "" && drillText(null) === "");
 pruefe("der Kurz-Tipp bleibt davon unberuehrt", drillTipp("Bergsprints") === SPORT_INFO["Bergsprints"]);
 

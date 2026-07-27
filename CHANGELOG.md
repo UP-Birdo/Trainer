@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.152
+
+- Fertig: Jetzt hat jede der 81 Sportart-Übungen ihre Beschreibung. Zum Abschluss
+  kamen Klettern, Tischtennis, Tennis, Kampfsport, Fußball und Yoga dazu — vom
+  Eindrehen an der Wand über den dritten Ball bis zum Sonnengruß. Damit ist jede
+  Übung in der App erklärt, egal ob Krafttraining oder Sportart: oben der
+  Merksatz fürs Training, darunter der Text zum Nachlesen.
+
 ## 0.151
 
 - Auch die Sportart-Übungen bekommen jetzt richtige Beschreibungen — zwei bis
