@@ -2429,7 +2429,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 166;
+const APP_VERSION = 167;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5072,6 +5072,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.167", punkte:[
+    "Dein Schlaf zählt jetzt in der Belastungs-Rechnung mit. Trägst du in einer Woche mindestens drei Nächte ein, geht der Schnitt in die Rechnung ein: Unter 6 Stunden senkt er deine Richtwerte um 10 Prozent, bis 7 Stunden um 5, zwischen 7 und 8,5 ändert sich nichts, darüber gibt es 3 Prozent dazu. Trägst du nichts oder zu wenig ein, ändert Schlaf gar nichts — fehlende Werte fließen nie ein. Die Wirkung ist bewusst klein: Dass Schlafmangel die Erholung stört, ist belegt, eine genaue Formel dafür gibt es nicht.",
+    "Neu auf der Muskelkarte: eine Zeile, die sagt, worauf die Einschätzung überhaupt beruht — etwa „Grundlage: 14 Trainings · Erfahrung · Alter. Ohne Schlaf.“ So siehst du, was die Rechnung genauer machen würde, statt es raten zu müssen. Dort steht auch offen, wenn die App ohne deine Erfahrungsangabe mit „Wiedereinsteiger“ rechnet.",
+    "Und die App urteilt nicht mehr, bevor sie dich kennt: Die Sätze und Richtwerte stehen von Anfang an da — die sind gezählt, nicht geschätzt. Aber die Warnung „deutlich über dem Richtwert“ und die rote Einfärbung kommen erst ab fünf protokollierten Trainings. Vorher steht dort ehrlich, dass die Basis dafür noch fehlt."
+  ]},
   { stand:"0.166", punkte:[
     "Neue Statistik-Kachel „Tageswerte“ mit Schlaf und Befinden — aufgebaut wie das Körpergewicht: Plus antippen, Wert und Datum eintragen, ein Tipp auf die Kurve zeigt alle Einträge, jeder einzeln oder mehrere auf einmal löschbar. Schlaf in Stunden (halbe Stunden reichen), Befinden von 1 bis 5. Ein zweiter Eintrag am selben Tag korrigiert den ersten, statt die Kurve zu verdoppeln, und Vertipper werden auf den erlaubten Bereich begrenzt. Über der Kurve steht der Schnitt der letzten sieben Einträge — bei Schlaf und Befinden sagt eine einzelne Nacht ohnehin wenig. Anschalten kannst du die Kachel in Darstellung, wie jede andere Statistik auch."
   ]},
@@ -6823,8 +6828,12 @@ function lastFarbe(quote, signal, warn){
     zwanzig Übungen zwanzigmal durch. */
 function auslastungsQuoten(){
   if(!sitzung || !sitzung.daten) return {};
+  // v167: Auch die rote Einfärbung ist ein Urteil. Ohne ausreichende Basis
+  // bleibt sie aus — die Figuren zeigen dann die gewohnte Signalfarbe.
+  if(!basisReicht(sitzung.daten.protokoll)) return {};
   const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
-                             sitzung.daten.einrichtung, heuteAlsText());
+                             sitzung.daten.einrichtung, heuteAlsText(),
+                             sitzung.daten.tageswerte);
   const q = {};
   Object.keys(a).forEach(m => { q[m] = a[m].quote; });
   return q;
@@ -7112,10 +7121,56 @@ function alterJahre(profil, heute){
   return (alter > 0 && alter < 120) ? alter : null;
 }
 
+/* v167: SCHLAF IN DER BELASTUNGS-RECHNUNG.
+   Nutzer-Ansage: „wenn man keine Daten eingibt, soll es nicht mit einfließen in
+   die Rechnung — genauso sollen alle anderen Werte, die nicht vorhanden sind,
+   nicht einfließen." Das ist ab jetzt die Regel: KEIN WERT, KEIN EFFEKT.
+
+   Für Schlaf heißt das mehr als „fehlt = 1.0": Eine EINZELNE Nacht ist kein
+   Schlafverhalten. Erst ab `SCHLAF_MINDEST` Einträgen im Fenster wird gerechnet,
+   darunter zählt Schlaf gar nicht — lieber gar keine Aussage als eine aus einem
+   Datenpunkt.
+
+   Die Wirkung ist bewusst klein und gedeckelt (höchstens ±10 %): Dass
+   Schlafmangel die Erholung stört, ist gut belegt; eine belastbare FORMEL dafür
+   gibt es nicht. Dieselbe Zurückhaltung wie bei Alter und Geschlecht. */
+const SCHLAF_TAGE    = 7;   // dasselbe Fenster wie die Last — sonst vergleicht man zwei Zeiträume
+const SCHLAF_MINDEST = 3;   // so viele Einträge braucht es, sonst zählt Schlaf gar nicht
+const SCHLAF_STUFEN = [
+  { bis: 6,   faktor: 0.90, text: "wenig Schlaf" },
+  { bis: 7,   faktor: 0.95, text: "eher wenig Schlaf" },
+  { bis: 8.5, faktor: 1.00, text: "genug Schlaf" },
+  { bis: 24,  faktor: 1.03, text: "viel Schlaf" }
+];
+
+/** Schlaf-Schnitt der letzten Tage — `null`, wenn zu wenige Einträge da sind.
+    Rein/testbar. */
+function schlafSchnitt(tageswerte, heute, tage, mindestens){
+  const fenster = tage || SCHLAF_TAGE;
+  const grenze = mindestens === undefined ? SCHLAF_MINDEST : mindestens;
+  const treffer = (tageswerte || []).filter(e => {
+    if(!e || e.art !== "schlaf" || !(e.wert >= 0) || !e.datum) return false;
+    const d = tagDifferenz(e.datum, heute);
+    return d >= 0 && d <= fenster;
+  });
+  if(treffer.length < grenze) return null;
+  return treffer.reduce((s, e) => s + e.wert, 0) / treffer.length;
+}
+
+/** Wirkung des Schlaf-Schnitts auf die Kapazität. 1 = kein Effekt (auch bei
+    fehlenden Daten — das ist der ganze Punkt). Rein/testbar. */
+function schlafFaktor(schnitt){
+  if(schnitt === null || schnitt === undefined || !isFinite(schnitt)) return 1;
+  const stufe = SCHLAF_STUFEN.find(s => schnitt <= s.bis);
+  return stufe ? stufe.faktor : SCHLAF_STUFEN[SCHLAF_STUFEN.length - 1].faktor;
+}
+
 /** Persönlicher Faktor auf die Kapazität. Erfahrung ist der belegte Anteil,
     Alter und Geschlecht sind schwach gewichtete Heuristiken, Aufwärmen/Dehnen
-    ein kleiner Bonus für die verträglichere Einheit. Rein/testbar. */
-function kapazitaetsFaktor(profil, einrichtung, heute){
+    ein kleiner Bonus für die verträglichere Einheit, Schlaf seit v167.
+    `tageswerte` ist optional — ohne sie rechnet die Funktion wie vor v167.
+    Rein/testbar. */
+function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte){
   const e = einrichtung || {};
   let f = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
   const alter = alterJahre(profil, heute);
@@ -7124,13 +7179,14 @@ function kapazitaetsFaktor(profil, einrichtung, heute){
   const bonus = (e.bonus || []);
   if(bonus.includes("aufwaermen")) f *= 1.05;
   if(bonus.includes("dehnen"))     f *= 1.02;
+  f *= schlafFaktor(schlafSchnitt(tageswerte, heute));                      // v167, 1 ohne Daten
   return Math.round(f * 100) / 100;
 }
 
 /** Kapazität eines Muskels für DIESEN Nutzer. Rein/testbar. */
-function muskelKapazitaet(muskel, profil, einrichtung, heute){
+function muskelKapazitaet(muskel, profil, einrichtung, heute, tageswerte){
   const basis = MUSKEL_KAPAZITAET[muskel] || KAPAZITAET_STANDARD;
-  return Math.max(4, Math.round(basis * kapazitaetsFaktor(profil, einrichtung, heute) * 10) / 10);
+  return Math.max(4, Math.round(basis * kapazitaetsFaktor(profil, einrichtung, heute, tageswerte) * 10) / 10);
 }
 
 /* v161: NICHT JEDER SATZ WIEGT GLEICH.
@@ -7199,12 +7255,64 @@ function muskelLast(protokoll, heute, tage){
   return last;
 }
 
+/* v167: DAS MINDESTMASS — und was es NICHT ist.
+   Nutzer-Wunsch: „die Rechnung soll erst stattfinden, wenn ein Mindestmaß an
+   Daten vorhanden ist." Umgesetzt als Variante B (Entscheidung an Claude
+   delegiert), und die Unterscheidung ist der Kern:
+
+   Die SÄTZE der letzten 7 Tage sind GEMESSEN — sie kommen aus dem Protokoll,
+   nicht aus einer Schätzung. Die werden immer gezeigt. Eine Sperre darauf würde
+   echte Daten verstecken, weil optionale fehlen — und wer nie Schlaf einträgt,
+   sähe die Muskelkarte nie wieder.
+
+   Gesperrt wird nur das URTEIL („deutlich über dem Richtwert"). Dafür muss die
+   App den Nutzer ein Stück weit kennen. Gemessen wird das an der Zahl der
+   protokollierten Trainings INSGESAMT, nicht im 7-Tage-Fenster: Wer zweimal die
+   Woche trainiert, käme im Fenster nie über zwei und bekäme nie eine Warnung. */
+const WARNUNG_MINDEST_TRAININGS = 5;
+
+/** Kennt die App den Nutzer gut genug für ein scharfes Urteil? Rein/testbar. */
+function basisReicht(protokoll){
+  return (protokoll || []).filter(e => e && e.datum).length >= WARNUNG_MINDEST_TRAININGS;
+}
+
+/** Worauf die Einschätzung beruht — und was fehlt. „Wer es genauer will, gibt
+    mehr Daten her" kann nur wirken, wenn der Nutzer SIEHT, was fehlt; eine
+    stille Sperre sagt ihm das nie. Rein/testbar. */
+function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
+  const e = einrichtung || {}, p = profil || {};
+  const trainings = (protokoll || []).filter(x => x && x.datum).length;
+  const hat = [], fehlt = [];
+  // Erfahrung: der einzige belegte Anteil — und die einzige Stelle, an der die
+  // App bisher STILL etwas annahm (0.8 = „Wiedereinsteiger"). Das gehört
+  // sichtbar, sonst widerspricht es „kein Wert, kein Effekt".
+  (e.erfahrung ? hat : fehlt).push("Erfahrung");
+  (alterJahre(p, heute) ? hat : fehlt).push("Alter");
+  (schlafSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Schlaf");
+  return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
+           annahme: !e.erfahrung };
+}
+
+/** Die Grundlagen-Zeile als Text. Rein/testbar. */
+function grundlageText(g){
+  if(!g) return "";
+  const teile = ["Grundlage: " + g.trainings + " Training" + (g.trainings === 1 ? "" : "s")];
+  if(g.hat.length)   teile.push(g.hat.join(" · "));
+  const satz = teile.join(" · ") + ".";
+  const ohne = g.fehlt.length ? " Ohne " + g.fehlt.join(", ") + "." : "";
+  const genauer = g.fehlt.length ? " Damit würde die Einschätzung genauer." : "";
+  const hinweis = g.annahme ? " Ohne Erfahrungsangabe rechnet die App mit „Wiedereinsteiger“." : "";
+  const zuwenig = g.reicht ? "" :
+    " Für eine Warnung fehlen noch Trainings (ab " + WARNUNG_MINDEST_TRAININGS + ").";
+  return satz + ohne + genauer + hinweis + zuwenig;
+}
+
 /** Auslastung je Muskel: Sätze, Kapazität, Quote und Erholung. Rein/testbar. */
-function muskelAuslastung(protokoll, profil, einrichtung, heute){
+function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte){
   const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
   const raus = {};
   Object.keys(roh).forEach(m => {
-    const kap = muskelKapazitaet(m, profil, einrichtung, heute);
+    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte);
     raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
                 quote: Math.round((roh[m].saetze / kap) * 100) / 100,
                 erholt: roh[m].tageSeit >= ERHOLUNG_TAGE };
@@ -7239,12 +7347,17 @@ function leistungFaellt(plaene){
 }
 
 /** Ein Satz Klartext zur Stufe — was heißt das für heute? Rein/testbar. */
-function auslastungText(muskel, a){
+function auslastungText(muskel, a, reicht){
   const name = (MUSKEL_INFO[muskel] || {}).name || muskel;
   if(!a) return name + ": diese Woche noch nicht trainiert.";
   const kern = name + ": " + zahlKurz(a.saetze) + " von etwa " + zahlKurz(a.kapazitaet) +
                " Sätzen diese Woche";
-  switch(auslastungStufe(a)){
+  const stufe = auslastungStufe(a);
+  // v167: Die ZAHLEN stehen immer da — sie sind gezählt. Zurückgehalten wird nur
+  // das Urteil, solange die App den Nutzer zu wenig kennt.
+  if(reicht === false && (stufe === "zuviel" || stufe === "hoch"))
+    return kern + " — ob das viel ist, kann die App noch nicht sagen: dafür fehlen ihr Trainings.";
+  switch(stufe){
     case "zuviel": return kern + " — deutlich über dem Richtwert. Gib ihm ein paar Tage.";
     case "hoch":   return kern + " — am Richtwert. Mehr bringt diese Woche wenig.";
     case "gut":    return kern + (a.erholt ? " — erholt und bereit."
@@ -7407,15 +7520,18 @@ function muskelAuswahlZeichnen(){
          wegen der man den Muskel antippt („kann ich den heute nochmal?"). Die
          Farbe des Balkens folgt der Stufe, nicht der Trainings-Häufigkeit. */
       const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
-                                 sitzung.daten.einrichtung, heuteAlsText())[key];
-      const stufe = auslastungStufe(a);
+                                 sitzung.daten.einrichtung, heuteAlsText(),
+                                 sitzung.daten.tageswerte)[key];
+      // v167: Ohne ausreichende Basis kein scharfes Urteil — auch nicht farblich.
+      const reicht = basisReicht(sitzung.daten.protokoll);
+      const stufe = reicht ? auslastungStufe(a) : "gut";
       const farbe = stufe === "zuviel" ? "var(--warn)" : stufe === "hoch" ? "var(--signal)" : "var(--rest)";
       // v161: Fällt bei diesem Muskel zusätzlich die Leistung, steht das als
       // eigener Satz daneben — es ist eine andere Aussage als „viel Umfang".
       const faellt = leistungFaellt(sitzung.daten.plaene).has(key)
         ? " Zuletzt bliebst du hier unter deinem Soll — ein Zeichen, dass die Erholung nicht reicht." : "";
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a) + faellt) + '</div>';
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt) + '</div>';
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
@@ -7433,22 +7549,37 @@ function muskelAuswahlZeichnen(){
   }).join("");
 }
 
+/** v167: Die Grundlagen-Zeile unter der Statuszeile — sie steht auf der
+    Muskelkarte immer, egal ob etwas gewählt ist. Sie ist die sichtbare Antwort
+    auf „wer es genauer will, gibt mehr Daten her". */
+function grundlagenZeileHtml(){
+  const g = rechnungsGrundlage(sitzung.daten.protokoll, sitzung.daten.profil,
+                               sitzung.daten.einrichtung, sitzung.daten.tageswerte, heuteAlsText());
+  return '<div class="meta" style="margin-top:6px;opacity:.8">' + text(grundlageText(g)) + '</div>';
+}
+
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
-      el.textContent = "Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.";
+      el.innerHTML = text("Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.") +
+                     grundlagenZeileHtml();
       return;
     }
     /* v160: Ohne Auswahl steht hier die WARNUNG, wenn es eine gibt — man soll
        sie sehen, ohne erst den richtigen Muskel zu erraten. */
     const alle = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
-                                  sitzung.daten.einrichtung, heuteAlsText());
-    const heiss = Object.keys(alle).filter(m => auslastungStufe(alle[m]) === "zuviel")
-      .map(m => (MUSKEL_INFO[m] || {}).name || m);
-    el.textContent = heiss.length
+                                  sitzung.daten.einrichtung, heuteAlsText(),
+                                  sitzung.daten.tageswerte);
+    // v167: Die Warnung braucht eine Basis — die Zahlen darunter nicht.
+    const heiss = basisReicht(sitzung.daten.protokoll)
+      ? Object.keys(alle).filter(m => auslastungStufe(alle[m]) === "zuviel")
+          .map(m => (MUSKEL_INFO[m] || {}).name || m)
+      : [];
+    el.innerHTML = text(heiss.length
       ? "Über dem Richtwert: " + heiss.join(", ") + ". Tippe an für Einzelheiten."
-      : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.";
+      : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.") +
+      grundlagenZeileHtml();
     return;
   }
   // v146: Es ist immer höchstens einer gewählt — der Mehrzahl-Fall ist entfallen.

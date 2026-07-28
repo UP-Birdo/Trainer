@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test167.js` | Schlaf in der Belastungs-Rechnung + Mindestmaß: `schlafSchnitt`/`schlafFaktor` (Fenster, Mindest-Einträge, gedeckelte Wirkung) und die harte Zusage **„kein Wert, kein Effekt"** — fehlende/zu wenige Daten dürfen den Kapazitätsfaktor **exakt** unverändert lassen; dazu `basisReicht` (zählt Trainings insgesamt, **nicht** im 7-Tage-Fenster), `rechnungsGrundlage`/`grundlageText` (was fehlt, sichtbare Wiedereinsteiger-Annahme) und dass Zahlen immer, Urteil und rote Einfärbung nur mit Basis erscheinen |
 | `test166.js` | Tageswerte (Schlaf, Befinden): läuft über das **echte Register** `TAGESWERTE` (ein neuer Wert wird automatisch mitgeprüft) — `werteReihe`/`werteSetzen` (eine Zeile je Tag UND Art), `tageswertPruefen` (Schrittweite, Bereichsgrenzen, Komma, Null bleibt gültig), `tageswertSchnitt` (letzte N **Einträge**), `tageswertText` + die Verdrahtung in Statistik-Auswahl, Stufen-Filter und Mehrfach-Löschen |
 | `test165.js` | Aufwärmen/Dehnen nach Schwerpunkt: `bonusAuswahl` (allgemeine zuerst, Sortierung nach Trefferzahl, Obergrenze statt Soll, Rückfall auf die alte Grundfolge, rein und wiederholbar) + **Katalog-Vertrag**: echte Muskel-Schlüssel, keine Dubletten, **jede** Region in **beiden** Katalogen abgedeckt |
 | `test164.js` | Zurück-Wischen von der linken Kante: `wischZurueck` (Kante, Mindestweg, erlaubte Schräge, Gegenrichtung, Randfälle) + der **Vertrag im HTML** — jede Ansicht mit Zurück-Knopf ist markiert (`data-zurueck`), und Editor/Training/Bewertung/Ergebnis sind es bewusst **nicht**; dazu die vier Wachen im `touchstart`, „Zurück" links im Kopf und „Abbrechen" im Aktionsmenü |
@@ -151,6 +152,7 @@ VS Codes Electron springt ein):
     & $code tests\test164.js index.html
     & $code tests\test165.js index.html
     & $code tests\test166.js index.html
+    & $code tests\test167.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

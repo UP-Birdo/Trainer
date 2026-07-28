@@ -48,6 +48,14 @@ const code = [
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
   grabFn("alterJahre"),
+  /* v167: kapazitaetsFaktor rechnet jetzt Schlaf mit ein. Hier wird ohne
+     Tageswerte aufgerufen — dann ist der Schlaf-Faktor 1 und alle Zusagen
+     dieses Tests gelten unveraendert weiter. Genau das ist die Zusage
+     „kein Wert, kein Effekt"; geprueft wird sie in test167. */
+  "const SCHLAF_TAGE = 7; const SCHLAF_MINDEST = 3;",
+  grabFn("schlafSchnitt"),
+  grabFn("schlafFaktor"),
+  "const SCHLAF_STUFEN = " + grabLiteral("SCHLAF_STUFEN") + ";",
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
@@ -160,7 +168,8 @@ const fort = muskelAuslastung(viel, jung, { erfahrung:"fortgeschritten" }, HEUTE
 pruefe("gleicher Umfang, unterschiedliche Auslastung", anf.quote > fort.quote);
 
 /* ---------- 6) Verdrahtung ---------- */
-pruefe("die Detail-Karte zeigt die Auslastung", grabFn("muskelAuswahlZeichnen").includes("auslastungText(key, a)"));
+// v167: Der Aufruf traegt jetzt die Basis-Angabe mit (Urteil nur mit genug Trainings).
+pruefe("die Detail-Karte zeigt die Auslastung", grabFn("muskelAuswahlZeichnen").includes("auslastungText(key, a, reicht)"));
 pruefe("die Statuszeile warnt ohne Auswahl", grabFn("muskelStatusText").includes('auslastungStufe(alle[m]) === "zuviel"'));
 pruefe("die Farbe folgt der Stufe", src.includes('stufe === "zuviel" ? "var(--warn)"'));
 

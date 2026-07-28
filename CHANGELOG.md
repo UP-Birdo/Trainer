@@ -3,6 +3,26 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.167
+
+- Dein Schlaf zählt jetzt in der Belastungs-Rechnung mit. Trägst du in einer
+  Woche mindestens drei Nächte ein, geht der Schnitt in die Rechnung ein: Unter 6
+  Stunden senkt er deine Richtwerte um 10 Prozent, bis 7 Stunden um 5, zwischen 7
+  und 8,5 ändert sich nichts, darüber gibt es 3 Prozent dazu. Trägst du nichts
+  oder zu wenig ein, ändert Schlaf gar nichts — fehlende Werte fließen nie ein.
+  Die Wirkung ist bewusst klein: Dass Schlafmangel die Erholung stört, ist
+  belegt, eine genaue Formel dafür gibt es nicht.
+- Neu auf der Muskelkarte: eine Zeile, die sagt, worauf die Einschätzung überhaupt
+  beruht — etwa „Grundlage: 14 Trainings · Erfahrung · Alter. Ohne Schlaf.“ So
+  siehst du, was die Rechnung genauer machen würde, statt es raten zu müssen.
+  Dort steht auch offen, wenn die App ohne deine Erfahrungsangabe mit
+  „Wiedereinsteiger“ rechnet.
+- Und die App urteilt nicht mehr, bevor sie dich kennt: Die Sätze und Richtwerte
+  stehen von Anfang an da — die sind gezählt, nicht geschätzt. Aber die Warnung
+  „deutlich über dem Richtwert“ und die rote Einfärbung kommen erst ab fünf
+  protokollierten Trainings. Vorher steht dort ehrlich, dass die Basis dafür
+  noch fehlt.
+
 ## 0.166
 
 - Neue Statistik-Kachel „Tageswerte“ mit Schlaf und Befinden — aufgebaut wie das
