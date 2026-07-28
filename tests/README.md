@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test159.js` | Gewicht im Training + Plan zieht nach: `sollVerfehlt` (zu wenig Wdh **oder** zu wenig Gewicht, Dropsätze/Körpergewicht/Zeit ausgenommen), `effektiveNote` mit Gewicht, `progressionAnwenden` (einmal ändert nichts, zweimal übernimmt Wdh + Gewicht, Zähler-Reset, `wdhMin` als Boden, Deload hat Vortritt, ohne Angabe alte Progression) + `gewichtSchrittFuer`/`hatGewicht` und die Verdrahtung |
 | `test158.js` | Sollwerte zählen nicht als Leistung: `echteSaetze`/`istSollEintrag` (rein, kaputte Eingaben, `soll:false` gilt als echt, alte Einträge ohne Feld bleiben gemessen) + die Trennlinie in **beide** Richtungen — Bestwerte/Rekord/Fortschritt/„letztes Mal" filtern, Volumen/Heatmap/Serie/Kalender **nicht** — und die Kennzeichnung im Verlauf |
 | `test157.js` | Tipp-Vorschläge im Notizblock: `notizAktuelleZeile` (Zeile unter dem Cursor, Ränder geklemmt), `notizVorschlaege` (ab 2 Zeichen, Anfangs-Treffer zuerst, fertiger Name schlägt sich nicht selbst vor, Mengen stören nicht), `notizZeileMitName` (Name ersetzen, Mengen behalten, verdrehte Zahlen gerade ziehen) + Verdrahtung inkl. `onmousedown`-Fokus-Trick und „gespeichert wird erst beim Verlassen" |
 | `test156.js` | Stufen-Auswahl in der Denkrichtung: die gespeicherten Nummern 1..5 bleiben **unverändert** (Datenvertrag), jede Stufe nennt ihre Zielgruppe (`fuer`, alle verschieden, Vollausbau = für den Anfang, Notizblock = für Erfahrene), `simpelheitListe` sortiert 5→1 und enthält jede genau einmal + Verdrahtung (keine Nummer im Knopf und in der Mehr-Zeile, Zielgruppe über der Funktionsliste, Erst-Frage nach dem Umfang) |
@@ -135,6 +136,7 @@ VS Codes Electron springt ein):
     & $code tests\test156.js index.html
     & $code tests\test157.js index.html
     & $code tests\test158.js index.html
+    & $code tests\test159.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

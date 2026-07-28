@@ -1550,6 +1550,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" id="plus-knopf" onclick="zeitAendern(30)">+ 30 s</button>
     <button class="schmal" id="minus-knopf" onclick="zeitAendern(-15)">− 15 s</button>
   </div>
+  <!-- v159: Gewicht im Training anpassen. Bis v158 ließ sich nur die
+       Wiederholungszahl verstellen — wer spontan leichter oder schwerer
+       arbeitete, konnte das nirgends festhalten, und protokolliert wurde
+       stur das Plan-Gewicht. Die Reihe erscheint nur bei Übungen, die
+       überhaupt ein Gewicht haben (Körpergewicht bleibt aufgeräumt). -->
+  <div class="knopfreihe" id="gewicht-reihe" hidden>
+    <button class="schmal" id="gew-minus" onclick="gewichtAendern(-1)">− kg</button>
+    <button class="schmal" id="gew-plus"  onclick="gewichtAendern(1)">+ kg</button>
+  </div>
   <div class="knopfreihe">
     <button class="schmal gefahr" onclick="trainingAbbrechen()" style="opacity:.65">Training abbrechen</button>
   </div>
@@ -2362,7 +2371,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 158;
+const APP_VERSION = 159;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3011,10 +3020,18 @@ document.addEventListener("visibilitychange", () => {
    ============================================================ */
 function begrenzen(w, min, max){ return Math.min(max, Math.max(min, w)); }
 
-function progressionAnwenden(uebung, note){
+function progressionAnwenden(uebung, note, verfehlt){
   const u = Object.assign({}, uebung);
   u.notenHistorie = (uebung.notenHistorie || []).concat(note).slice(-3);
   u.deload = false;
+  u.nachgezogen = false;
+  /* v159: Wie oft in Folge wurde das Soll verfehlt? Ein einzelner schlechter
+     Tag schreibt den Plan NICHT um (Entscheidung v113: die Ist-Werte bremsen
+     die Note, sie ersetzen sie nicht) — beim ZWEITEN Mal hintereinander zieht
+     der Plan aber auf das wirklich Geschaffte nach. Sonst stünde monatelang
+     eine Zahl im Plan, die nie erreicht wird, und die Progression klebte an
+     „nur Pause verlängern". Soll gehalten -> Zähler zurück auf 0. */
+  u.verfehltFolge = verfehlt ? (uebung.verfehltFolge || 0) + 1 : 0;
 
   // Deload: 3x Note 5 hintereinander -> deutlich runter, Historie leeren
   if(u.notenHistorie.length === 3 && u.notenHistorie.every(n => n === 5)){
@@ -3027,6 +3044,23 @@ function progressionAnwenden(uebung, note){
       if(u.gewichtSchritt > 0) u.gewicht = Math.max(0, Math.round((u.gewicht - u.gewichtSchritt)*4)/4);
     }
     u.pause = begrenzen(u.pause + 30, 30, 300);
+    return u;
+  }
+
+  /* v159: Zweimal in Folge das Soll verfehlt -> der Plan übernimmt, was du
+     wirklich geschafft hast (Wiederholungen UND Gewicht). Danach beginnt die
+     normale Steigerung von dort aus neu; der Zähler startet bei 0. Die Grenzen
+     wdhMin/wdhMax bleiben gültig — der Plan rutscht nicht unter sein eigenes
+     Minimum. Steht NACH dem Deload: Drei Fünfen hintereinander sind das
+     stärkere Signal und behalten den Vortritt. */
+  if(u.verfehltFolge >= 2 && u.modus === "wdh"){
+    u.wdh = begrenzen(verfehlt.minWdh, u.wdhMin || 1, Math.max(u.wdhMax || verfehlt.minWdh, verfehlt.minWdh));
+    if((u.gewicht || 0) > 0 && verfehlt.minGewicht < u.gewicht){
+      u.gewicht = Math.max(0, Math.round(verfehlt.minGewicht * 4) / 4);
+    }
+    u.verfehltFolge = 0;
+    u.nachgezogen = true;
+    u.pause = begrenzen(u.pause + 15, 30, 300);
     return u;
   }
 
@@ -3067,6 +3101,24 @@ function progressionAnwenden(uebung, note){
    manuelle RPE-Note; wer darunter bleibt, kann nicht „leicht" gewesen sein und wird
    höchstens gehalten (4), unter dem Wdh-Minimum sogar zurückgestuft (5). Gilt nur für
    Wdh-Übungen mit protokollierten Sätzen — Zeit-/Halteübungen behalten ihre Note. */
+/** v159: Wurde das Soll verfehlt — und was wurde statt dessen geschafft?
+    Seit das Gewicht im Training anpassbar ist, gibt es ZWEI Arten, das Soll zu
+    verfehlen: zu wenige Wiederholungen ODER zu wenig Gewicht. Bis v158 zählte
+    nur die Wiederholungszahl; wer mit halbem Gewicht die vollen Wdh schaffte,
+    bekam dafür eine Steigerung. Rein/testbar; `null` heißt „Soll gehalten".
+    Dropsätze bleiben außen vor (v137) — sie tragen absichtlich weniger. */
+function sollVerfehlt(u, saetze){
+  if(!u || u.modus !== "wdh") return null;
+  const eigene = (saetze || []).filter(s => s.uebungId === u.id && typeof s.wdh === "number" && !s.drop);
+  if(eigene.length === 0) return null;
+  const minWdh = Math.min(...eigene.map(s => s.wdh));
+  const minGewicht = Math.min(...eigene.map(s => s.gewicht || 0));
+  const zuWenigWdh = minWdh < u.wdh;
+  const zuWenigGewicht = (u.gewicht || 0) > 0 && minGewicht < u.gewicht;
+  if(!zuWenigWdh && !zuWenigGewicht) return null;
+  return { minWdh, minGewicht };
+}
+
 function effektiveNote(u, manuelleNote, saetze){
   if(u.modus !== "wdh") return manuelleNote;
   // v137: Dropsätze zählen hier NICHT mit. Sie tragen bewusst weniger Gewicht und
@@ -3076,7 +3128,8 @@ function effektiveNote(u, manuelleNote, saetze){
   if(eigene.length === 0) return manuelleNote;
   const minWdh = Math.min(...eigene.map(s => s.wdh));
   if(u.wdhMin > 0 && minWdh < u.wdhMin) return Math.max(manuelleNote, 5);   // unter dem Minimum: Rückschritt
-  if(minWdh < u.wdh) return Math.max(manuelleNote, 4);                      // unter dem Soll: halten statt steigern
+  // v159: „unter Soll" umfasst jetzt auch zu wenig Gewicht (s. sollVerfehlt).
+  if(sollVerfehlt(u, saetze)) return Math.max(manuelleNote, 4);             // unter dem Soll: halten statt steigern
   return manuelleNote;
 }
 
@@ -4659,6 +4712,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.159", punkte:[
+    "Du kannst das Gewicht jetzt IM Training ändern. Bisher ließ sich nur die Wiederholungszahl anpassen — wer spontan leichter oder schwerer arbeitete, konnte das nirgends festhalten, und protokolliert wurde stur das Plan-Gewicht. Unter der Uhr stehen zwei neue Knöpfe in der Schrittweite deiner Übung. Bei reinen Körpergewichts-Übungen bleiben sie weg.",
+    "Und dein Plan zieht nach: Verfehlst du das Soll ZWEIMAL hintereinander, übernimmt er, was du wirklich geschafft hast — Wiederholungen und Gewicht. Einmal reicht bewusst nicht; ein schlechter Tag soll den Plan nicht umschreiben. Als „unter Soll“ zählt ab jetzt auch, wenn du die vollen Wiederholungen mit weniger Gewicht machst. Im Ergebnis nach dem Training steht, was sich geändert hat."
+  ]},
   { stand:"0.158", punkte:[
     "Wenn du einen Plan mit „Erledigt“ abhakst, trägt die App die geplanten Zahlen ein — du sagst damit „ich habe das gemacht“, nicht „ich habe genau diese Zahlen geschafft“. Bisher wurden daraus trotzdem Bestwerte, Rekord-Meldungen und Punkte auf deiner Fortschrittskurve. Das ist behoben: Solche Einträge zählen weiter für Kalender, Serie, Volumen und die Muskelkarte — aber nicht mehr als Leistung. Im Verlauf steht jetzt „Sollwerte“ dahinter, damit du sie erkennst. Deine bisherigen Einträge bleiben, wie sie sind."
   ]},
@@ -11793,14 +11850,16 @@ function satzProtokollieren(schritt, istSekunden){
   if(u.modus === "zeit") eintrag.dauer = istSekunden;
   // E2: die WIRKLICH geschafften Wiederholungen (per +/- im Training angepasst),
   // Rückfall auf die geplante Zahl, falls nichts verstellt wurde.
-  else { eintrag.wdh = (lauf.istWdh != null ? lauf.istWdh : u.wdh); eintrag.gewicht = u.gewicht; }
+  /* v159: auch das GEWICHT kommt jetzt aus dem Lauf — es ist im Training
+     anpassbar. Rückfall auf das Plan-Gewicht, falls nichts verstellt wurde.
+     Damit steckt das Gewicht eines Aufwärm- oder Dropsatzes schon drin
+     (schrittBetreten setzt `istGewicht` auf dessen Wert). */
+  else { eintrag.wdh = (lauf.istWdh != null ? lauf.istWdh : u.wdh);
+         eintrag.gewicht = (lauf.istGewicht != null ? lauf.istGewicht : u.gewicht); }
   // v137: Ein Dropsatz zählt als Arbeit (Volumen, Verlauf) — mit SEINEM Gewicht
   // und als solcher markiert. Die Markierung ist wichtig: `effektiveNote` (v113)
   // darf ihn nicht als „Soll verfehlt" lesen, er hat ja bewusst weniger Gewicht.
-  if(schritt && schritt.drop){
-    eintrag.drop = true;
-    if(schritt.dropWert) eintrag.gewicht = schritt.dropWert.gewicht;
-  }
+  if(schritt && schritt.drop) eintrag.drop = true;
   // v127: Vergleich VOR dem Anhängen ziehen — sonst wäre der Satz sein eigener Rekord.
   const vorher = lauf.saetze.slice();
   lauf.saetze.push(eintrag);
@@ -11865,6 +11924,11 @@ function schrittBetreten(){
   // irreführend (der Pause-Schritt trägt den Index der VORIGEN Übung).
   document.getElementById("uhr-letztes").textContent = s.typ === "pause" ? "" : letztesMalText(u);
 
+  // v159: Die Gewichts-Reihe gehört nur zum Wdh-Satz — jeder andere Schritt
+  // (Pause, Zeit-Satz, Bereitmachen) blendet sie wieder aus.
+  const gewReihe = document.getElementById("gewicht-reihe");
+  if(gewReihe) gewReihe.hidden = true;
+
   if(s.typ === "satz-wdh"){
     // v135: Ein Aufwärmsatz zeigt SEINE Werte (leichter, weniger Wdh) und sagt
     // klar, dass er einer ist — sonst hielte man ihn für den ersten Arbeitssatz.
@@ -11877,8 +11941,11 @@ function schrittBetreten(){
     lauf.istWdh = r ? r.wdh : u.wdh;              // E2: Ist-Wdh, per +/- anpassbar
     zahl.textContent = lauf.istWdh;
     zahl.className = "uhr-zahl";
-    const gew = r ? r.gewicht : u.gewicht;
-    label.textContent = "WIEDERHOLUNGEN" + (gew > 0 ? "  ·  " + gew + " KG" : "");
+    // v159: Ist-Gewicht, ebenfalls per +/- anpassbar. Aufwärm- und Dropsätze
+    // starten mit IHREM Gewicht — die Anzeige zeigt immer das, was gleich
+    // protokolliert wird.
+    lauf.istGewicht = r ? r.gewicht : u.gewicht;
+    gewichtReiheZeichnen(u);
     knopf.textContent = "Satz fertig";
     plus.disabled  = false; plus.textContent  = "+1"; plus.onclick  = () => wdhAendern(1);
     minus.disabled = false; minus.textContent = "−1"; minus.onclick = () => wdhAendern(-1);
@@ -12012,6 +12079,44 @@ function wdhAendern(delta){
   if(!s || s.typ !== "satz-wdh") return;
   lauf.istWdh = Math.max(0, (lauf.istWdh != null ? lauf.istWdh : 0) + delta);
   document.getElementById("uhr-zahl").textContent = lauf.istWdh;
+}
+
+/** v159: Schrittweite fürs Gewicht — die der Übung, sonst 2,5 kg (die kleinste
+    Scheibe, die es in jedem Studio gibt). Rein/testbar. */
+function gewichtSchrittFuer(u){
+  return (u && u.gewichtSchritt > 0) ? u.gewichtSchritt : 2.5;
+}
+
+/** v159: Trägt die Übung überhaupt Gewicht? Nur dann gibt es die Reihe — bei
+    reinen Körpergewichts-Übungen wären zwei Knöpfe ohne Sinn. Rein/testbar. */
+function hatGewicht(u){
+  return !!u && u.modus === "wdh" && ((u.gewicht > 0) || (u.gewichtSchritt > 0));
+}
+
+/** Zeichnet Label und Gewichts-Reihe passend zum aktuellen Satz. */
+function gewichtReiheZeichnen(u){
+  const label  = document.getElementById("uhr-label");
+  const reihe  = document.getElementById("gewicht-reihe");
+  const zeigen = hatGewicht(u);
+  const gew    = lauf.istGewicht || 0;
+  if(label) label.textContent = "WIEDERHOLUNGEN" + (gew > 0 ? "  ·  " + zahlKurz(gew) + " KG" : "");
+  if(!reihe) return;
+  reihe.hidden = !zeigen;
+  if(!zeigen) return;
+  const schritt = zahlKurz(gewichtSchrittFuer(u));
+  document.getElementById("gew-minus").textContent = "− " + schritt + " kg";
+  document.getElementById("gew-plus").textContent  = "+ " + schritt + " kg";
+}
+
+/** v159: Gewicht des laufenden Satzes ändern. Nie unter 0; die Anzeige zieht
+    mit, damit sichtbar bleibt, was protokolliert wird. */
+function gewichtAendern(richtung){
+  const s = lauf.ablauf && lauf.ablauf[lauf.index];
+  const u = s ? lauf.plan.uebungen[s.uebungIndex] : null;
+  if(!u) return;
+  const schritt = gewichtSchrittFuer(u);
+  lauf.istGewicht = Math.max(0, Math.round(((lauf.istGewicht || 0) + richtung * schritt) * 4) / 4);
+  gewichtReiheZeichnen(u);
 }
 
 /** Verlängert (+) oder verkürzt (−) den laufenden Countdown.
@@ -12346,7 +12451,9 @@ function bewertungAnwenden(){
     plan.uebungen = plan.uebungen.map(alt => {
       const manuelle = bewertung[alt.id];
       const note = effektiveNote(alt, manuelle, gemachteSaetze);
-      const neu = progressionAnwenden(alt, note);
+      // v159: Beim zweiten verfehlten Soll in Folge zieht der Plan nach —
+      // dafür braucht die Progression die wirklich geschafften Werte.
+      const neu = progressionAnwenden(alt, note, sollVerfehlt(alt, gemachteSaetze));
       zeilen.push({ name:alt.name, alt, neu, gebremst: note > manuelle });
       return neu;
     });
@@ -12376,7 +12483,10 @@ function bewertungAnwenden(){
     zeilen.map(z => {
     const teile = [];
     if(z.neu.deload)                    teile.push("DELOAD — dreimal Note 5: eine Stufe zurück, dann neuer Anlauf");
-    if(z.gebremst)                      teile.push("weniger Wdh als geplant — diesmal gehalten");
+    // v159: Der Plan zieht nach — das muss dastehen, sonst wundert man sich,
+    // warum die Zahl im Plan plötzlich eine andere ist.
+    if(z.neu.nachgezogen)               teile.push("zweimal unter Soll — der Plan zieht auf dein Ergebnis nach");
+    else if(z.gebremst)                 teile.push("unter Soll — diesmal gehalten");
     if(z.neu.wdh !== z.alt.wdh)         teile.push(z.alt.wdh + " → " + z.neu.wdh + " Wdh");
     if(z.neu.dauer !== z.alt.dauer)     teile.push(z.alt.dauer + " → " + z.neu.dauer + " s");
     if(z.neu.gewicht !== z.alt.gewicht) teile.push(z.alt.gewicht + " → " + z.neu.gewicht + " kg");

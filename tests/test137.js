@@ -30,7 +30,8 @@ new Function("module", "exports", [
   grabZeile("RAMPEN"), grabZeile("DROPS"),
   "function zeitAnsage(){ return 'zeit'; }",
   grabFn("aufwaermSaetze"), grabFn("dropSaetze"), grabFn("superBloecke"),
-  grabFn("klassischerAblauf"), grabFn("effektiveNote"),
+  // v159: `effektiveNote` fragt `sollVerfehlt` (dort steckt seither auch das Gewicht).
+  grabFn("klassischerAblauf"), grabFn("sollVerfehlt"), grabFn("effektiveNote"),
   "module.exports = { dropSaetze, klassischerAblauf, effektiveNote };"
 ].join("\n"))(modul, modul.exports);
 const { dropSaetze, klassischerAblauf, effektiveNote } = modul.exports;
@@ -83,8 +84,13 @@ pruefe("nur Dropsaetze -> keine Bewertungsgrundlage, Note bleibt",
 /* 5) Verdrahtung. */
 pruefe("Drop wird protokolliert und markiert",
   grabFn("satzProtokollieren").includes("eintrag.drop = true"));
+/* v159: Das Drop-Gewicht läuft jetzt über `lauf.istGewicht` — `schrittBetreten`
+   setzt es auf den Drop-Wert, `satzProtokollieren` schreibt genau das weg. Damit
+   zeigt die Anzeige immer, was gleich protokolliert wird, und der Sonderfall im
+   Protokollieren entfällt. Die Zusage ist dieselbe, der Weg ein anderer. */
 pruefe("Drop protokolliert SEIN Gewicht",
-  grabFn("satzProtokollieren").includes("eintrag.gewicht = schritt.dropWert.gewicht"));
+  grabFn("schrittBetreten").includes("lauf.istGewicht = r ? r.gewicht : u.gewicht") &&
+  grabFn("satzProtokollieren").includes("lauf.istGewicht != null ? lauf.istGewicht : u.gewicht"));
 pruefe("kein Rekord auf dem Dropsatz", grabFn("rekordPruefen").includes("schritt.drop"));
 pruefe("Anzeige kennt den Dropsatz", src.includes('s.drop  ? "Drop-Satz · nach Satz "'));
 pruefe("Editor-Feld nur mit Gewicht", src.includes('zahlfeld(i,"drop","Dropsätze"'));

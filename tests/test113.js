@@ -18,7 +18,9 @@ function grabFn(name){
   throw new Error("Klammern unausgeglichen: " + name);
 }
 
-const code = [ grabFn("effektiveNote"), "module.exports = { effektiveNote };" ].join("\n");
+// v159: `effektiveNote` fragt `sollVerfehlt` (dort steckt seither auch das Gewicht).
+const code = [ grabFn("sollVerfehlt"), grabFn("effektiveNote"),
+               "module.exports = { effektiveNote };" ].join("\n");
 const modul = { exports: {} };
 new Function("module", "exports", code)(modul, modul.exports);
 const effektiveNote = modul.exports.effektiveNote;

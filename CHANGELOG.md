@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.159
+
+- Du kannst das Gewicht jetzt IM Training ändern. Bisher ließ sich nur die
+  Wiederholungszahl anpassen — wer spontan leichter oder schwerer arbeitete,
+  konnte das nirgends festhalten, und protokolliert wurde stur das Plan-Gewicht.
+  Unter der Uhr stehen zwei neue Knöpfe in der Schrittweite deiner Übung. Bei
+  reinen Körpergewichts-Übungen bleiben sie weg.
+- Und dein Plan zieht nach: Verfehlst du das Soll ZWEIMAL hintereinander,
+  übernimmt er, was du wirklich geschafft hast — Wiederholungen und Gewicht.
+  Einmal reicht bewusst nicht; ein schlechter Tag soll den Plan nicht
+  umschreiben. Als „unter Soll“ zählt ab jetzt auch, wenn du die vollen
+  Wiederholungen mit weniger Gewicht machst. Im Ergebnis nach dem Training
+  steht, was sich geändert hat.
+
 ## 0.158
 
 - Wenn du einen Plan mit „Erledigt“ abhakst, trägt die App die geplanten Zahlen
