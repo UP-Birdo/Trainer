@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.166
+
+- Neue Statistik-Kachel „Tageswerte“ mit Schlaf und Befinden — aufgebaut wie das
+  Körpergewicht: Plus antippen, Wert und Datum eintragen, ein Tipp auf die Kurve
+  zeigt alle Einträge, jeder einzeln oder mehrere auf einmal löschbar. Schlaf in
+  Stunden (halbe Stunden reichen), Befinden von 1 bis 5. Ein zweiter Eintrag am
+  selben Tag korrigiert den ersten, statt die Kurve zu verdoppeln, und Vertipper
+  werden auf den erlaubten Bereich begrenzt. Über der Kurve steht der Schnitt der
+  letzten sieben Einträge — bei Schlaf und Befinden sagt eine einzelne Nacht
+  ohnehin wenig. Anschalten kannst du die Kachel in Darstellung, wie jede andere
+  Statistik auch.
+
 ## 0.165
 
 - Aufwärmen und Dehnen richten sich jetzt nach dem, was du trainierst. Bisher

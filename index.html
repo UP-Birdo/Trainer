@@ -921,6 +921,24 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="koerpermass-diagramm" class="abstand stat-tap" onclick="koerpermassDetailsOeffnen()"></div>
   </div>
 
+  <!-- v166: Tageswerte — Schlaf und Befinden über dieselbe Auswahl. Bauart
+       bewusst wie die Körpermaße: eine Kachel, ein Plus, Werte mit Datum. -->
+  <div class="karte stat-karte" id="stat-tageswert" hidden>
+    <div class="zeile"><h2>Tageswerte</h2>
+      <button class="rund klein" onclick="tageswertFormularZeigen()" aria-label="Tageswert eintragen">+</button></div>
+    <select id="tageswert-art" class="abstand" onchange="tageswertArtSetzen(this.value)"></select>
+    <div id="tageswert-formular" hidden>
+      <div class="raster abstand">
+        <div><label for="tageswert-wert" id="tageswert-label">Wert</label>
+          <input id="tageswert-wert" type="number" inputmode="decimal"></div>
+        <div><label for="tageswert-datum">Datum</label><input id="tageswert-datum" type="date"></div>
+      </div>
+      <div class="meta abstand" id="tageswert-hinweis"></div>
+      <div class="knopfreihe"><button class="primaer schmal" onclick="tageswertEintragen()">Eintragen</button></div>
+    </div>
+    <div id="tageswert-diagramm" class="abstand stat-tap" onclick="tageswertDetailsOeffnen()"></div>
+  </div>
+
   <div class="karte stat-karte" id="stat-volumen" hidden>
     <h2 id="volumen-titel">Volumen</h2>
     <div id="volumen-diagramm" class="abstand"></div>
@@ -1639,6 +1657,18 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="gewicht-info" class="meta abstand"></div>
     <h2>Einträge</h2>
     <div id="gewicht-liste" class="abstand"></div>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- v166: Einträge eines Tageswerts (Tipp auf die Kurve) — wie view-koerpermasse. -->
+<section id="view-tageswert" class="view">
+  <div class="kopf"><h1 id="tageswert-titel">Tageswert</h1>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
+  <div class="karte">
+    <div id="tageswert-info" class="meta abstand"></div>
+    <h2>Einträge</h2>
+    <div id="tageswert-liste" class="abstand"></div>
   </div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -2399,7 +2429,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 165;
+const APP_VERSION = 166;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2408,6 +2438,9 @@ function datenNachruesten(daten){
   // v134: Körpermaße (Umfänge in cm) — dieselbe Bauart wie `gewichte`, nur mit
   // einer `art` je Zeile. Additiv, damit alte Sicherungen weiter laden.
   if(!Array.isArray(daten.koerpermasse)) daten.koerpermasse = [];
+  // v166: Tageswerte (Schlaf, Befinden) — von Hand eingetragen, gleiche Bauart
+  // wie `koerpermasse`: eine Zeile je Tag UND Art. Additiv wie alles hier.
+  if(!Array.isArray(daten.tageswerte)) daten.tageswerte = [];
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
@@ -3196,6 +3229,7 @@ const VIEW_MIN_STUFE = {
   "view-einst-werkzeuge": 3,                         // Untermenü „Werkzeuge" (v102)
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-koerpermasse": 4,   // v134
+  "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5, "view-ziele": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -4403,6 +4437,18 @@ const LISTEN_TYPEN = {
     korb:     null,
     zeichnen: () => koerpermassZeichnen()
   },
+  // v166: Die neuen Tageswerte bekommen das Mehrfach-Löschen geschenkt —
+  // genau dafür wurde v163 als Register gebaut.
+  tageswert: {
+    ansicht:  "view-tageswert", ziel: "tageswert-liste",
+    einzahl:  "Eintrag", mehrzahl: "Einträge",
+    liste:    () => sitzung.daten.tageswerte,
+    setzen:   l => { sitzung.daten.tageswerte = l; },
+    sichtbar: () => sitzung.daten.tageswerte.filter(e => e.art === tageswertArt),
+    kennung:  e => e.art + "|" + e.datum,
+    korb:     null,
+    zeichnen: () => tageswertZeichnen()
+  },
   verlauf: {
     ansicht:  "view-verlauf", ziel: "verlauf-liste",
     einzahl:  "Eintrag", mehrzahl: "Einträge",
@@ -4854,6 +4900,7 @@ function statistikOeffnen(){
   volumenZeichnen();
   gewichtStatistikZeichnen();
   koerpermassZeichnen();     // v134: Körpermaße
+  tageswertZeichnen();       // v166: Schlaf, Befinden
   fortschrittZeichnen();
   ausdauerZeichnen();
   messwerteZeichnen();       // v121: Verlauf der Messgrößen (Beweglichkeit, Schwierigkeit …)
@@ -4869,6 +4916,7 @@ function statistikOeffnen(){
 const STAT_OPTIONEN = [
   ["koerpergewicht", "Körpergewicht",       "stat-koerpergewicht"],
   ["koerpermasse",   "Körpermaße",          "stat-koerpermasse"],   // v134
+  ["tageswert",      "Tageswerte",          "stat-tageswert"],      // v166: Schlaf, Befinden
   ["volumen",        "Volumen",             "stat-volumen"],
   ["ausdauer",       "Ausdauer",            "ausdauer-karte"],
   ["messwerte",      "Messwerte",           "messwerte-karte"],
@@ -4881,7 +4929,8 @@ const STAT_OPTIONEN = [
     Zeichen-Funktion — das Setting darf nur ZUSÄTZLICH ausblenden, nie erzwingen. */
 function statistikSichtbarkeit(){
   const an = new Set(sitzung.daten.einrichtung.statistiken || []);
-  const immerAnzeigbar = new Set(["stat-koerpergewicht", "stat-koerpermasse", "stat-volumen", "stat-trainings"]);
+  const immerAnzeigbar = new Set(["stat-koerpergewicht", "stat-koerpermasse", "stat-tageswert",
+                                  "stat-volumen", "stat-trainings"]);
   STAT_OPTIONEN.forEach(([id, , kartenId]) => {
     const el = document.getElementById(kartenId); if(!el) return;
     if(!an.has(id)) el.hidden = true;
@@ -4896,6 +4945,7 @@ function statHatDaten(id){
   const p = sitzung.daten.protokoll || [];
   if(id === "koerpergewicht") return true;                                  // manuell
   if(id === "koerpermasse")   return true;                                  // v134: manuell, immer wählbar
+  if(id === "tageswert")      return true;                                  // v166: manuell, immer wählbar
   if(id === "trainings")      return p.length > 0;
   if(id === "ausdauer")       return p.some(e => e.typ === "aktivitaet");
   if(id === "messwerte")      return p.some(e => e.messwert != null && e.messwert !== "");   // v121
@@ -5022,6 +5072,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.166", punkte:[
+    "Neue Statistik-Kachel „Tageswerte“ mit Schlaf und Befinden — aufgebaut wie das Körpergewicht: Plus antippen, Wert und Datum eintragen, ein Tipp auf die Kurve zeigt alle Einträge, jeder einzeln oder mehrere auf einmal löschbar. Schlaf in Stunden (halbe Stunden reichen), Befinden von 1 bis 5. Ein zweiter Eintrag am selben Tag korrigiert den ersten, statt die Kurve zu verdoppeln, und Vertipper werden auf den erlaubten Bereich begrenzt. Über der Kurve steht der Schnitt der letzten sieben Einträge — bei Schlaf und Befinden sagt eine einzelne Nacht ohnehin wenig. Anschalten kannst du die Kachel in Darstellung, wie jede andere Statistik auch."
+  ]},
   { stand:"0.165", punkte:[
     "Aufwärmen und Dehnen richten sich jetzt nach dem, was du trainierst. Bisher lief immer dieselbe Sechser-Folge ab: Wer nur Oberkörper trainierte, wärmte trotzdem die Beine auf und dehnte hinterher den Quadrizeps — Brust und Schultern gingen leer aus. Der Katalog ist von 6 auf 16 Aufwärm- und 15 Dehnübungen gewachsen, jede mit den Muskeln hinterlegt, für die sie wirklich etwas bringt. Ausgewählt werden die, die zu den Muskeln deines Plans passen; Marschieren und Hampelmänner bleiben immer dabei, weil der Kreislauf sich von keinem Muskel vertreten lässt. In der Vorschau und im Training steht bei jeder Übung, wofür sie da ist („Für: Brust · Schultern“). Erkennt die App bei einem Plan keine Muskeln, bleibt es bei der bewährten Grundfolge von vorher."
   ]},
@@ -6115,6 +6168,192 @@ function koerpermassSetzen(liste, datum, art, wert){
 function koerpermassTrend(reihe){
   if(!reihe || reihe.length < 2) return null;
   return Math.round((reihe[reihe.length-1].wert - reihe[0].wert) * 10) / 10;
+}
+
+/* ============================================================
+   #region Tageswerte (v166)
+   Von Hand eingetragene Werte MIT DATUM, die kein Training liefert: wie gut
+   geschlafen, wie fühlt sich der Tag an. Nutzer-Wunsch: „genau wie das
+   Körpergewicht aufbauen — Statistik-Kachel mit Plus, Werte mit Datum,
+   einzeln löschbar."
+
+   Gebaut als REGISTER, nicht als zwei Kacheln: „und alles künftig manuell
+   Einzugebende" stand im Wunsch mit dabei. Ein weiterer Wert (Ruhepuls,
+   Muskelkater …) kostet damit eine Zeile in `TAGESWERTE` — keine Kachel, kein
+   Formular, keine Ansicht.
+
+   `werteReihe`/`werteSetzen` sind bewusst allgemein gehalten (nicht an
+   „Tageswert" gebunden): die Körpermaße haben dieselbe Bauart und bekommen
+   dieselben Helfer, sobald dort ohnehin etwas zu tun ist. Umbauen ohne Anlass
+   wäre Risiko ohne Gewinn.
+   ============================================================ */
+const TAGESWERTE = [
+  { id:"schlaf",   name:"Schlaf",   einheit:"h", min:0, max:24, schritt:0.5, nachkomma:1,
+    hinweis:"Stunden geschlafen. Auf die halbe Stunde genau reicht — es geht um den Verlauf, nicht um die Minute." },
+  { id:"befinden", name:"Befinden", einheit:"",  min:1, max:5,  schritt:1,   nachkomma:0,
+    hinweis:"1 = ausgelaugt · 2 = müde · 3 = normal · 4 = gut · 5 = topfit." }
+];
+
+/** Die Beschreibung eines Tageswerts (oder der erste, wenn die Art unbekannt ist). */
+function tageswertDef(id){
+  return TAGESWERTE.find(w => w.id === id) || TAGESWERTE[0];
+}
+
+/** Alle Einträge einer Art, chronologisch. Rein/testbar. */
+function werteReihe(liste, art){
+  return (liste || []).filter(e => e && e.art === art)
+    .slice().sort((a, b) => a.datum < b.datum ? -1 : 1);
+}
+
+/** Wert setzen: EIN Wert je Tag UND Art — ein zweiter Eintrag am selben Tag
+    korrigiert den ersten (wie beim Gewicht), statt die Kurve zu verdoppeln. */
+function werteSetzen(liste, datum, art, wert){
+  const vorhanden = liste.find(e => e.art === art && e.datum === datum);
+  if(vorhanden) vorhanden.wert = wert;
+  else liste.push({ datum, art, wert });
+  liste.sort((a, b) => a.datum < b.datum ? -1 : 1);
+  return liste;
+}
+
+/** Auf den erlaubten Bereich und die Schrittweite bringen. Ein Tippfehler
+    („25" Stunden Schlaf) wird begrenzt statt gespeichert — sonst zieht ein
+    einziger Ausreißer die ganze Kurve platt. Rein/testbar. */
+function tageswertPruefen(def, roh){
+  const zahl = parseFloat(String(roh).replace(",", "."));
+  if(!isFinite(zahl)) return null;
+  const schritt = def.schritt || 1;
+  const gerundet = Math.round(zahl / schritt) * schritt;
+  const begrenzt = Math.min(def.max, Math.max(def.min, gerundet));
+  // Fließkomma-Reste (0.30000000000000004) abschneiden.
+  return Math.round(begrenzt * 100) / 100;
+}
+
+/** „7,5 h" / „4" — eine Quelle für Liste, Kurve und Info-Zeile. */
+function tageswertText(def, wert){
+  return wert.toFixed(def.nachkomma || 0) + (def.einheit ? " " + def.einheit : "");
+}
+
+/** Mittelwert der letzten `tage` Einträge — die Aussage, die bei Schlaf und
+    Befinden zählt (eine einzelne Nacht sagt nichts). Rein/testbar. */
+function tageswertSchnitt(reihe, tage){
+  const letzte = (reihe || []).slice(-(tage || 7));
+  if(!letzte.length) return null;
+  return letzte.reduce((s, e) => s + e.wert, 0) / letzte.length;
+}
+
+let tageswertArt = TAGESWERTE[0].id;
+
+/** Beim Wechsel der Art endet ein offener Auswahl-Modus (wie bei den
+    Körpermaßen, v163) — sonst blieben angehakte Einträge unsichtbar stehen. */
+function tageswertArtSetzen(id){
+  tageswertArt = id;
+  if(listenAuswahlTyp === "tageswert"){ listenAuswahlTyp = null; listenAuswahl.clear(); }
+  tageswertZeichnen();
+}
+
+function tageswertFormularZeigen(){
+  const f = document.getElementById("tageswert-formular");
+  f.hidden = !f.hidden;
+  if(!f.hidden){
+    document.getElementById("tageswert-datum").value = heuteAlsText();
+    document.getElementById("tageswert-wert").focus();
+  }
+}
+
+function tageswertEintragen(){
+  const def = tageswertDef(tageswertArt);
+  const wert = tageswertPruefen(def, document.getElementById("tageswert-wert").value);
+  const datum = document.getElementById("tageswert-datum").value || heuteAlsText();
+  if(wert === null){
+    meldung("Bitte eine Zahl zwischen " + def.min + " und " + def.max + " eingeben.");
+    return;
+  }
+  werteSetzen(sitzung.daten.tageswerte, datum, tageswertArt, wert);
+  speichern();
+  document.getElementById("tageswert-formular").hidden = true;
+  document.getElementById("tageswert-wert").value = "";
+  tageswertZeichnen();
+}
+
+function tageswertLoeschen(datum, art){
+  frage("Eintrag vom " + datum + " löschen?", true, ja => {
+    if(!ja) return;
+    sitzung.daten.tageswerte = sitzung.daten.tageswerte.filter(e => !(e.datum === datum && e.art === art));
+    speichern();
+    tageswertZeichnen();
+  });
+}
+
+function tageswertZeichnen(){
+  const karte = document.getElementById("stat-tageswert");
+  if(!karte) return;
+  const def = tageswertDef(tageswertArt);
+  tageswertArt = def.id;   // unbekannte Art (alter Stand) auf den ersten zurückholen
+
+  document.getElementById("tageswert-art").innerHTML = TAGESWERTE.map(w => {
+    const n = werteReihe(sitzung.daten.tageswerte, w.id).length;
+    return '<option value="' + w.id + '"' + (w.id === tageswertArt ? " selected" : "") + '>' +
+      text(w.name) + (n ? " (" + n + ")" : "") + '</option>';
+  }).join("");
+  document.getElementById("tageswert-label").textContent =
+    def.name + (def.einheit ? " (" + def.einheit + ")" : "");
+  document.getElementById("tageswert-hinweis").textContent = def.hinweis;
+  const feld = document.getElementById("tageswert-wert");
+  feld.min = def.min; feld.max = def.max; feld.step = def.schritt;
+
+  const reihe = werteReihe(sitzung.daten.tageswerte, tageswertArt);
+  const diagramm = document.getElementById("tageswert-diagramm");
+  const liste = document.getElementById("tageswert-liste");
+  const info = document.getElementById("tageswert-info");
+  const titel = document.getElementById("tageswert-titel");
+  if(titel) titel.textContent = def.name;
+
+  if(!reihe.length){
+    diagramm.innerHTML = '<div class="leer">Noch nichts eingetragen. Mit + den ersten Wert erfassen.</div>';
+    if(liste) liste.innerHTML = "";
+    if(info) info.textContent = "";
+    return;
+  }
+
+  const jetzt = reihe[reihe.length - 1];
+  const schnitt = tageswertSchnitt(reihe, 7);
+  if(info) info.textContent = tageswertText(def, jetzt.wert) + " (" + datumKurz(jetzt.datum) + ")" +
+    (reihe.length >= 2 ? "  ·  Schnitt der letzten " + Math.min(7, reihe.length) + ": " +
+      tageswertText(def, schnitt) : "");
+
+  if(reihe.length >= 2){
+    const B = 560, H = 220, rand = 34;
+    const werte = reihe.map(e => e.wert);
+    const min = Math.min(...werte), max = Math.max(...werte);
+    const spanne = (max - min) || 1;
+    const x = i => rand + i * (B - 2*rand) / (reihe.length - 1);
+    const y = w => H - rand - (w - min) / spanne * (H - 2*rand);
+    const linie = reihe.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.wert).toFixed(1)).join(" ");
+    const punkte = reihe.map((e,i) =>
+      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+    diagramm.innerHTML =
+      '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Verlauf ' + text(def.name) + '">' +
+      '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + tageswertText(def, max) + '</text>' +
+      '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + tageswertText(def, min) + '</text>' +
+      '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte + '</svg>';
+  } else {
+    diagramm.innerHTML = '<div class="meta">' + tageswertText(def, jetzt.wert) + ' — ab zwei Einträgen erscheint hier der Verlauf.</div>';
+  }
+
+  if(liste) liste.innerHTML = listenKopfHtml("tageswert") +
+    reihe.slice().reverse().map(e =>
+      listenZeileHtml("tageswert", e.art + "|" + e.datum,
+        '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+        '<span class="meta">' + e.datum + '</span>' +
+        '<span>' + tageswertText(def, e.wert) + ' &nbsp;<button class="schmal gefahr" onclick="tageswertLoeschen(\'' + e.datum + '\',\'' + e.art + '\')" aria-label="Eintrag löschen">×</button></span>' +
+        '</div>')).join("");
+}
+
+/** Einträge des gewählten Tageswerts (Tipp auf die Kurve) — wie beim Gewicht. */
+function tageswertDetailsOeffnen(){
+  if(!viewErlaubt("view-tageswert")) return;
+  tageswertZeichnen();
+  zeige("view-tageswert");
 }
 
 /* ---- Körpermaße: Anzeige (Kurve wie beim Gewicht, bewusst gespiegelt) ---- */
@@ -7291,6 +7530,7 @@ function statistikAktualisieren(){
   volumenZeichnen();
   gewichtStatistikZeichnen();
   koerpermassZeichnen();     // v134: Körpermaße
+  tageswertZeichnen();       // v166: Schlaf, Befinden
   fortschrittZeichnen();
   ausdauerZeichnen();
   messwerteZeichnen();   // v121
