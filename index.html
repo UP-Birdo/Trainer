@@ -2371,7 +2371,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 159;
+const APP_VERSION = 160;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4712,6 +4712,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.160", punkte:[
+    "Die Muskelkarte rechnet jetzt deine Auslastung aus. Tippst du im Modus „Zuletzt trainiert“ einen Muskel an, steht oben, wie viele Sätze er diese Woche bekommen hat und wie viele für dich etwa passen — mit einer Einordnung: erholt und bereit, am Richtwert, oder deutlich darüber. Liegt ein Muskel über dem Richtwert, siehst du das schon ohne Antippen in der Zeile über der Figur. In die Rechnung gehen ein: Sätze der letzten sieben Tage (mitarbeitende Muskeln zählen halb), deine Erfahrung, dein Alter, dein Geschlecht sowie Aufwärmen und Dehnen. Bewusst NICHT: Körpergewicht und BMI — dafür gibt es keinen belegten Zusammenhang."
+  ]},
   { stand:"0.159", punkte:[
     "Du kannst das Gewicht jetzt IM Training ändern. Bisher ließ sich nur die Wiederholungszahl anpassen — wer spontan leichter oder schwerer arbeitete, konnte das nirgends festhalten, und protokolliert wurde stur das Plan-Gewicht. Unter der Uhr stehen zwei neue Knöpfe in der Schrittweite deiner Übung. Bei reinen Körpergewichts-Übungen bleiben sie weg.",
     "Und dein Plan zieht nach: Verfehlst du das Soll ZWEIMAL hintereinander, übernimmt er, was du wirklich geschafft hast — Wiederholungen und Gewicht. Einmal reicht bewusst nicht; ein schlechter Tag soll den Plan nicht umschreiben. Als „unter Soll“ zählt ab jetzt auch, wenn du die vollen Wiederholungen mit weniger Gewicht machst. Im Ergebnis nach dem Training steht, was sich geändert hat."
@@ -6429,6 +6432,146 @@ function miniHeatFigur(ziel, ansicht, zaehler){
    Figur entsprechend. Reine Anzeige aus dem Protokoll — nichts wandert ins Konto. */
 const MUSKEL_HEAT_TAGE = 7;
 
+/* ============================================================
+   v160: BELASTUNGS-MODELL — wie stark ist ein Muskel gerade ausgelastet?
+
+   WAS BELEGT IST (Trainingswissenschaft, breiter Konsens):
+   * Die tragende Größe ist die Zahl harter SÄTZE JE MUSKEL UND WOCHE. Für
+     Muskelaufbau wirken grob 10 Sätze/Woche aufwärts; der Nutzen flacht ab und
+     kippt bei sehr hohem Umfang in mehr Ermüdung ohne mehr Ertrag. Eine
+     allgemeingültige Obergrenze gibt es NICHT — die Streuung zwischen Menschen
+     ist groß. Die Zahlen unten sind deshalb Richtwerte, keine Messwerte.
+   * Ein trainierter Muskel braucht grob 48 Stunden, bis er wieder belastbar
+     ist. Wird derselbe Muskel wiederholt am Folgetag hart belastet, ist das
+     das klassische Überlastungsmuster.
+   * Trainingsalter zählt: Anfänger brauchen und vertragen weniger Umfang als
+     Fortgeschrittene.
+   * Aufwärmen senkt das Verletzungsrisiko. Statisches Dehnen NACH dem Training
+     ist als Verletzungsschutz dagegen schwach belegt (steht so schon im
+     Bonus-Hinweis der App) — es geht hier darum, dass beides zusammen die
+     Einheit verträglicher macht, nicht darum, dass es mehr Sätze erlaubt.
+
+   WAS HEURISTIK IST (bewusst schwach gewichtet, unten einzeln markiert):
+   * Alter: Die Erholung lässt mit den Jahren nach — eine belastbare Zahl je
+     Lebensjahr gibt es nicht.
+   * Geschlecht: Frauen erholen sich zwischen Sätzen im Mittel etwas schneller
+     und vertragen tendenziell etwas mehr Umfang; der Effekt ist klein und die
+     Datenlage gemischt.
+
+   WAS BEWUSST NICHT EINGEHT: Körpergewicht und BMI. Für die Frage, wie viele
+   Sätze ein einzelner Muskel pro Woche verträgt, gibt es dafür keinen belegten
+   Zusammenhang — der BMI vermischt zudem Muskel und Fett und ist bei
+   Trainierenden ohnehin wenig aussagekräftig. Eine Zahl daraus zu bauen wäre
+   erfundene Genauigkeit (goldene Regel: „Heben erfindet nie Daten").
+   ============================================================ */
+
+/** Richtwert: wie viele harte Sätze je Woche verträgt dieser Muskel bei einem
+    fortgeschrittenen Trainierenden? Große Muskeln mehr als kleine. Bewusst
+    grobe Stufen — eine Nachkommastelle wäre hier Scheingenauigkeit. */
+const MUSKEL_KAPAZITAET = {
+  quadriceps:20, latissimus:20, glutes:18, pectoral:18, deltoid:18, hamstrings:16,
+  trapezius:16, biceps:16, triceps:16, abs:16, calves:16, infraspinatus:12,
+  serratus:12, obliques:12, lowerback:12, adductors:12, forearm:12, tibialis:12, neck:8
+};
+const KAPAZITAET_STANDARD = 14;      // unbekannter Muskel (z. B. neue Karte)
+const SEKUNDAER_ANTEIL = 0.5;        // mitarbeitender Muskel zählt halb
+const ERHOLUNG_TAGE = 2;             // ~48 h, bis ein Muskel wieder belastbar ist
+
+/** Alter in Jahren aus dem Profil — oder null, wenn nichts hinterlegt ist.
+    Rein/testbar. */
+function alterJahre(profil, heute){
+  const jahr = profil && Number(profil.geburtsjahr);
+  if(!jahr || jahr < 1900) return null;
+  const heuteJahr = Number(String(heute || heuteAlsText()).slice(0, 4));
+  const alter = heuteJahr - jahr;
+  return (alter > 0 && alter < 120) ? alter : null;
+}
+
+/** Persönlicher Faktor auf die Kapazität. Erfahrung ist der belegte Anteil,
+    Alter und Geschlecht sind schwach gewichtete Heuristiken, Aufwärmen/Dehnen
+    ein kleiner Bonus für die verträglichere Einheit. Rein/testbar. */
+function kapazitaetsFaktor(profil, einrichtung, heute){
+  const e = einrichtung || {};
+  let f = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
+  const alter = alterJahre(profil, heute);
+  if(alter && alter > 30) f *= Math.max(0.75, 1 - (alter - 30) * 0.005);   // Heuristik
+  if(profil && profil.geschlecht === "w") f *= 1.05;                        // Heuristik
+  const bonus = (e.bonus || []);
+  if(bonus.includes("aufwaermen")) f *= 1.05;
+  if(bonus.includes("dehnen"))     f *= 1.02;
+  return Math.round(f * 100) / 100;
+}
+
+/** Kapazität eines Muskels für DIESEN Nutzer. Rein/testbar. */
+function muskelKapazitaet(muskel, profil, einrichtung, heute){
+  const basis = MUSKEL_KAPAZITAET[muskel] || KAPAZITAET_STANDARD;
+  return Math.max(4, Math.round(basis * kapazitaetsFaktor(profil, einrichtung, heute) * 10) / 10);
+}
+
+/** Gewichtete Sätze je Muskel im Fenster + Tage seit dem letzten Reiz.
+    Primärer Muskel zählt 1, mitarbeitender SEKUNDAER_ANTEIL. Soll-Sätze (v158)
+    zählen NICHT — sie wurden nie geleistet. Rein/testbar. */
+function muskelLast(protokoll, heute, tage){
+  const last = {};
+  const fenster = tage || MUSKEL_HEAT_TAGE;
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > fenster) return;
+    echteSaetze(e).forEach(s => {
+      const info = uebungMuskeln(s.name);
+      if(!info) return;
+      const zutun = [].concat((info.muskeln || []).map(m => [m, 1]),
+                              (info.sekundaer || []).map(m => [m, SEKUNDAER_ANTEIL]));
+      zutun.forEach(([m, anteil]) => {
+        if(!last[m]) last[m] = { saetze:0, tageSeit:d };
+        last[m].saetze += anteil;
+        if(d < last[m].tageSeit) last[m].tageSeit = d;
+      });
+    });
+  });
+  Object.keys(last).forEach(m => { last[m].saetze = Math.round(last[m].saetze * 10) / 10; });
+  return last;
+}
+
+/** Auslastung je Muskel: Sätze, Kapazität, Quote und Erholung. Rein/testbar. */
+function muskelAuslastung(protokoll, profil, einrichtung, heute){
+  const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
+  const raus = {};
+  Object.keys(roh).forEach(m => {
+    const kap = muskelKapazitaet(m, profil, einrichtung, heute);
+    raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
+                quote: Math.round((roh[m].saetze / kap) * 100) / 100,
+                erholt: roh[m].tageSeit >= ERHOLUNG_TAGE };
+  });
+  return raus;
+}
+
+/** Vier Stufen statt einer Ja/Nein-Warnung — Belastung ist ein Verlauf, keine
+    Schwelle. Ab 100 % der Richtgröße wird gewarnt, ab 130 % deutlich.
+    Rein/testbar. */
+function auslastungStufe(a){
+  if(!a || !(a.saetze > 0)) return "ruhig";
+  if(a.quote >= 1.3) return "zuviel";
+  if(a.quote >= 1.0) return "hoch";
+  return "gut";
+}
+
+/** Ein Satz Klartext zur Stufe — was heißt das für heute? Rein/testbar. */
+function auslastungText(muskel, a){
+  const name = (MUSKEL_INFO[muskel] || {}).name || muskel;
+  if(!a) return name + ": diese Woche noch nicht trainiert.";
+  const kern = name + ": " + zahlKurz(a.saetze) + " von etwa " + zahlKurz(a.kapazitaet) +
+               " Sätzen diese Woche";
+  switch(auslastungStufe(a)){
+    case "zuviel": return kern + " — deutlich über dem Richtwert. Gib ihm ein paar Tage.";
+    case "hoch":   return kern + " — am Richtwert. Mehr bringt diese Woche wenig.";
+    case "gut":    return kern + (a.erholt ? " — erholt und bereit."
+                                           : " — zuletzt vor " + (a.tageSeit === 0 ? "heute" : a.tageSeit + " Tag" + (a.tageSeit === 1 ? "" : "en")) + " belastet.");
+    default:       return kern + ".";
+  }
+}
+
 /** Zählt je Muskel, wie oft er in den letzten `tage` Tagen trainiert wurde (ein
     Satz = ein Punkt je primärem Muskel). Pure Funktion (testbar). */
 function trainierteMuskeln(protokoll, heute, tage){
@@ -6579,8 +6722,17 @@ function muskelAuswahlZeichnen(){
       const m = MUSKEL_INFO[key], eh = muskelTrainingDetail(key);
       const kopf = '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
         '<span class="meta">' + text(m.region) + '</span></div>';
-      if(!eh.length) return kopf + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
-      return kopf + eh.map(g => {
+      /* v160: Die Auslastung steht ganz oben — sie ist die Antwort auf die Frage,
+         wegen der man den Muskel antippt („kann ich den heute nochmal?"). Die
+         Farbe des Balkens folgt der Stufe, nicht der Trainings-Häufigkeit. */
+      const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
+                                 sitzung.daten.einrichtung, heuteAlsText())[key];
+      const stufe = auslastungStufe(a);
+      const farbe = stufe === "zuviel" ? "var(--warn)" : stufe === "hoch" ? "var(--signal)" : "var(--rest)";
+      const last = '<div class="meta" style="border-left:3px solid ' + farbe +
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a)) + '</div>';
+      if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
+      return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
         return '<div class="meta">' + wann + ": " + text(g.namen.join(", ")) + '</div>';
       }).join("") + '</div>';
@@ -6599,8 +6751,18 @@ function muskelAuswahlZeichnen(){
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
   if(muskelStatus.modus === "trainiert"){
-    el.textContent = muskelStatus.gewaehlt.length
-      ? "Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage."
+    if(muskelStatus.gewaehlt.length){
+      el.textContent = "Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.";
+      return;
+    }
+    /* v160: Ohne Auswahl steht hier die WARNUNG, wenn es eine gibt — man soll
+       sie sehen, ohne erst den richtigen Muskel zu erraten. */
+    const alle = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
+                                  sitzung.daten.einrichtung, heuteAlsText());
+    const heiss = Object.keys(alle).filter(m => auslastungStufe(alle[m]) === "zuviel")
+      .map(m => (MUSKEL_INFO[m] || {}).name || m);
+    el.textContent = heiss.length
+      ? "Über dem Richtwert: " + heiss.join(", ") + ". Tippe an für Einzelheiten."
       : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.";
     return;
   }

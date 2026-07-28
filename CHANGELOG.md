@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.160
+
+- Die Muskelkarte rechnet jetzt deine Auslastung aus. Tippst du im Modus
+  „Zuletzt trainiert“ einen Muskel an, steht oben, wie viele Sätze er diese
+  Woche bekommen hat und wie viele für dich etwa passen — mit einer Einordnung:
+  erholt und bereit, am Richtwert, oder deutlich darüber. Liegt ein Muskel über
+  dem Richtwert, siehst du das schon ohne Antippen in der Zeile über der Figur.
+  In die Rechnung gehen ein: Sätze der letzten sieben Tage (mitarbeitende
+  Muskeln zählen halb), deine Erfahrung, dein Alter, dein Geschlecht sowie
+  Aufwärmen und Dehnen. Bewusst NICHT: Körpergewicht und BMI — dafür gibt es
+  keinen belegten Zusammenhang.
+
 ## 0.159
 
 - Du kannst das Gewicht jetzt IM Training ändern. Bisher ließ sich nur die
