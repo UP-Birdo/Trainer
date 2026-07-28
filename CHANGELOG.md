@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.163
+
+- Mehrere Einträge auf einmal löschen — in allen Listen mit Daten:
+  Körpergewicht, Körpermaße, Trainings-Verlauf und Papierkorb. Oben in der Liste
+  steht „Mehrere löschen“, oder du drückst irgendwo in der Liste lange. Dann
+  bekommt jede Zeile ein Kästchen, „Alle“ hakt auf einen Schlag alles an, und
+  gelöscht wird nach einer Rückfrage — mit einem Rückgängig für die ganze
+  Aktion. Solange du auswählst, zeigt die Gewichts-Liste alle Einträge statt nur
+  der letzten zehn, damit „Alle“ auch wirklich alle meint.
+
 ## 0.162
 
 - Überlastete Muskeln färben sich jetzt rot — und zwar überall dort, wo eine

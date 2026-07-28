@@ -471,6 +471,15 @@ body:not(.nav-an) #nav{display:none}
 /* v128: Mehrfach-Auswahl — das Kästchen ist die Aussage, der Rahmen bestätigt sie. */
 .karte.plan-gewaehlt{border-color:var(--signal)}
 .plan-haken{color:var(--signal);font-weight:400}
+/* v163: Mehrfach-Auswahl in Statistik-Listen. Der Umschlag legt sich NUR im
+   Auswahl-Modus um eine Zeile — außerhalb bleibt jede Liste, wie sie war. */
+.listen-leiste{padding:6px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--line);gap:8px}
+.listen-wahl{display:flex;align-items:center;gap:8px;cursor:pointer}
+.listen-wahl-inhalt{flex:1;min-width:0}
+.listen-wahl.gewaehlt .listen-wahl-inhalt{border-left:2px solid var(--signal);padding-left:6px}
+/* Im Auswahl-Modus sind die Einzel-Knöpfe (× und ✎) stumm: ein Tipp auf die
+   Zeile darf nicht gleichzeitig anhaken UND einen Lösch-Dialog öffnen. */
+.listen-wahl button{pointer-events:none;opacity:.35}
 /* v132: Plan-Karte = Text links, die zwei Muskel-Figuren des ganzen Plans rechts.
    Klein gehalten: sie sind ein Überblick, kein Bild. */
 .plan-kopfzeile{display:flex;gap:12px;align-items:flex-start}
@@ -1863,14 +1872,15 @@ function papierkorbZeichnen(){
     return;
   }
   const typName = t => t === "plan" ? "Plan" : t === "eintrag" ? "Verlaufs-Eintrag" : "Element";
-  ziel.innerHTML = korb.map(x =>
-    '<div class="karte">' +
-      '<div class="meta" style="margin-bottom:4px">' + typName(x.typ) + ' · gelöscht ' + text(x.geloeschtAm || "") + '</div>' +
-      '<h2>' + text(x.name || "—") + '</h2>' +
-      '<div class="knopfreihe">' +
-        '<button class="primaer schmal" onclick="papierkorbWiederherstellen(\'' + x.id + '\')">Wiederherstellen</button>' +
-        '<button class="schmal gefahr" onclick="papierkorbEndgueltig(\'' + x.id + '\')">Endgültig löschen</button>' +
-      '</div></div>').join("");
+  ziel.innerHTML = listenKopfHtml("papierkorb") + korb.map(x =>
+    listenZeileHtml("papierkorb", x.id,
+      '<div class="karte">' +
+        '<div class="meta" style="margin-bottom:4px">' + typName(x.typ) + ' · gelöscht ' + text(x.geloeschtAm || "") + '</div>' +
+        '<h2>' + text(x.name || "—") + '</h2>' +
+        '<div class="knopfreihe">' +
+          '<button class="primaer schmal" onclick="papierkorbWiederherstellen(\'' + x.id + '\')">Wiederherstellen</button>' +
+          '<button class="schmal gefahr" onclick="papierkorbEndgueltig(\'' + x.id + '\')">Endgültig löschen</button>' +
+        '</div></div>')).join("");
 }
 
 /** Einen Eintrag aus dem Papierkorb zurück in die App holen. Der Doppel-Schutz
@@ -2371,7 +2381,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 162;
+const APP_VERSION = 163;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3761,6 +3771,7 @@ function zeige(id){
   // Ansicht „hängen" ließe. Das Ziel von startOeffnen ist immer erlaubt (Stufe 1/2:
   // Notizblock=view-plaene, ab 3: view-start) — keine Rekursion.
   if(!viewErlaubt(id)){ startOeffnen(); return; }
+  listenAuswahlPruefen(id);   // v163: Mehrfach-Auswahl endet mit ihrer Ansicht
   document.querySelectorAll(".view").forEach(v => v.classList.remove("aktiv"));
   document.getElementById(id).classList.add("aktiv");
   document.body.classList.toggle("training-fest", id === "view-training");
@@ -4244,6 +4255,186 @@ function planLoeschenById(planId){
   });
 }
 
+/* ============================================================
+   #region Mehrfach-Auswahl in Listen (v163)
+   Die Listen mit Daten (Körpergewicht, Körpermaße, Trainings-Verlauf,
+   Papierkorb) ließen sich nur Eintrag für Eintrag leeren — nach ein paar
+   Monaten ist das Handarbeit. Die Pläne können das seit v128; hier bekommt
+   es jede Liste, aber NICHT vier eigene Auswahl-Modi (die liefen unweigerlich
+   auseinander), sondern EIN Register: jede Liste sagt nur, wie ihre Einträge
+   heißen, woran man sie erkennt, wo sie stehen und wie neu gezeichnet wird.
+   Leiste, Kästchen, „Alle", Rückfrage und Rückgängig sind geteilt.
+
+   Rückgängig arbeitet mit einer FLACHEN KOPIE der ganzen Liste: sie stellt
+   Inhalt UND Reihenfolge exakt wieder her — ohne die Index-Buchhaltung, die
+   `eintraegeZurueck` für die Pläne braucht.
+   ============================================================ */
+const LISTEN_TYPEN = {
+  gewicht: {
+    ansicht:  "view-gewicht", ziel: "gewicht-liste",
+    einzahl:  "Eintrag", mehrzahl: "Einträge",
+    liste:    () => sitzung.daten.gewichte,
+    setzen:   l => { sitzung.daten.gewichte = l; },
+    sichtbar: () => sitzung.daten.gewichte,
+    kennung:  e => e.datum,
+    korb:     null,
+    zeichnen: () => gewichtStatistikZeichnen()
+  },
+  koerpermass: {
+    ansicht:  "view-koerpermasse", ziel: "koerpermasse-liste",
+    einzahl:  "Eintrag", mehrzahl: "Einträge",
+    liste:    () => sitzung.daten.koerpermasse,
+    setzen:   l => { sitzung.daten.koerpermasse = l; },
+    // Sichtbar ist immer nur das gerade gewählte Maß — „Alle" darf nichts
+    // anhaken, was gar nicht auf dem Schirm steht.
+    sichtbar: () => sitzung.daten.koerpermasse.filter(e => e.art === koerpermassArt),
+    kennung:  e => e.art + "|" + e.datum,
+    korb:     null,
+    zeichnen: () => koerpermassZeichnen()
+  },
+  verlauf: {
+    ansicht:  "view-verlauf", ziel: "verlauf-liste",
+    einzahl:  "Eintrag", mehrzahl: "Einträge",
+    liste:    () => sitzung.daten.protokoll,
+    setzen:   l => { sitzung.daten.protokoll = l; },
+    // Uralte Einträge ohne id lassen sich nicht einzeln ansprechen — die
+    // bleiben außen vor, statt beim Löschen den falschen zu erwischen.
+    sichtbar: () => sitzung.daten.protokoll.filter(e => e.id),
+    kennung:  e => e.id,
+    korb:     e => ({ typ:"eintrag", name: datumKurz(e.datum) + " · " + (e.plan || "Training") }),
+    // v153: Flamme, Heute-Karte und Statistik hängen am Protokoll — die müssen mit.
+    zeichnen: () => { fortschrittNeuZeichnen(); verlaufListeZeichnen(); }
+  },
+  papierkorb: {
+    ansicht:  "view-papierkorb", ziel: "papierkorb-liste",
+    einzahl:  "Eintrag", mehrzahl: "Einträge",
+    liste:    () => sitzung.daten.papierkorb || [],
+    setzen:   l => { sitzung.daten.papierkorb = l; },
+    sichtbar: () => sitzung.daten.papierkorb || [],
+    kennung:  x => x.id,
+    korb:     null,   // was schon im Papierkorb liegt, wandert nicht noch einmal hinein
+    zeichnen: () => papierkorbZeichnen()
+  }
+};
+
+let listenAuswahlTyp = null;      // welche Liste gerade im Auswahl-Modus ist (oder null)
+const listenAuswahl = new Set();  // Kennungen der angehakten Einträge
+
+/** „3 Einträge" / „1 Eintrag" — eine Quelle für Leiste, Rückfrage und Meldung. */
+function listenAuswahlText(typ, n){
+  const d = LISTEN_TYPEN[typ];
+  return n + " " + (!d ? "Einträge" : n === 1 ? d.einzahl : d.mehrzahl);
+}
+
+/** Die Kennungen aller Einträge, die gerade auf dem Schirm stehen. */
+function listenKennungen(typ){
+  const d = LISTEN_TYPEN[typ];
+  return d ? d.sichtbar().map(d.kennung).filter(k => k !== undefined && k !== null) : [];
+}
+
+function listenAuswahlStarten(typ){
+  const d = LISTEN_TYPEN[typ]; if(!d) return;
+  listenAuswahlTyp = typ;
+  listenAuswahl.clear();          // wie bei den Plänen: alle Kästchen starten leer
+  d.zeichnen();
+}
+
+function listenAuswahlBeenden(){
+  const d = LISTEN_TYPEN[listenAuswahlTyp];
+  listenAuswahlTyp = null;
+  listenAuswahl.clear();
+  if(d) d.zeichnen();
+}
+
+function listenAuswahlUmschalten(typ, kennung){
+  if(listenAuswahlTyp !== typ) return;
+  if(listenAuswahl.has(kennung)) listenAuswahl.delete(kennung); else listenAuswahl.add(kennung);
+  LISTEN_TYPEN[typ].zeichnen();
+}
+
+/** Ein Knopf für beides: ist schon alles angehakt, hebt er die Auswahl auf. */
+function listenAuswahlAlle(typ){
+  if(listenAuswahlTyp !== typ) return;
+  const kennungen = listenKennungen(typ);
+  const vollstaendig = kennungen.length > 0 && kennungen.every(k => listenAuswahl.has(k));
+  listenAuswahl.clear();
+  if(!vollstaendig) kennungen.forEach(k => listenAuswahl.add(k));
+  LISTEN_TYPEN[typ].zeichnen();
+}
+
+/** Sammel-Löschung: EINE Rückfrage, EIN Rückgängig für die ganze Aktion. */
+function listenAuswahlLoeschen(typ){
+  const d = LISTEN_TYPEN[typ]; if(!d || listenAuswahlTyp !== typ) return;
+  const gewaehlt = new Set(listenAuswahl);
+  const betroffen = d.liste().filter(e => gewaehlt.has(d.kennung(e)));
+  if(!betroffen.length) return;
+  frage(listenAuswahlText(typ, betroffen.length) + " wirklich löschen?", true, ja => {
+    if(!ja) return;
+    const vorher = d.liste().slice();   // flache Kopie -> Rückgängig ohne Index-Rechnerei
+    const korbIds = d.korb
+      ? betroffen.map(e => { const k = d.korb(e); return inPapierkorb(k.typ, k.name, e); })
+      : [];
+    d.setzen(d.liste().filter(e => !gewaehlt.has(d.kennung(e))));
+    speichern();
+    listenAuswahlBeenden();   // zeichnet neu
+    zeigenToast(listenAuswahlText(typ, betroffen.length) + " gelöscht", "info", () => {
+      d.setzen(vorher);
+      korbIds.forEach(papierkorbEntfernen);   // sofort zurück -> raus aus dem Papierkorb
+      speichern();
+      d.zeichnen();
+      zeigenToast("Wiederhergestellt", "erfolg");
+    });
+  });
+}
+
+/** Der Kopf über einer Liste: im Auswahl-Modus die Leiste, sonst der Einstieg.
+    Beides an EINER Stelle — so kann keine Liste den Ausstieg vergessen. */
+function listenKopfHtml(typ){
+  const d = LISTEN_TYPEN[typ]; if(!d) return "";
+  const gesamt = listenKennungen(typ).length;
+  if(listenAuswahlTyp !== typ){
+    // Unter zwei Einträgen lohnt der Modus nicht — dann reicht das × je Zeile.
+    return gesamt >= 2
+      ? '<div class="knopfreihe" style="margin:0 0 8px"><button class="schmal" ' +
+        'onclick="listenAuswahlStarten(\'' + typ + '\')">Mehrere löschen</button></div>'
+      : "";
+  }
+  const n = listenAuswahl.size;
+  return '<div class="zeile listen-leiste">' +
+    '<strong>' + (n ? listenAuswahlText(typ, n) + " gewählt" : "Einträge antippen") + '</strong>' +
+    '<span class="knopfreihe" style="margin:0">' +
+      '<button class="schmal" onclick="listenAuswahlAlle(\'' + typ + '\')">' +
+        (gesamt > 0 && n >= gesamt ? "Keinen" : "Alle") + '</button>' +
+      (n ? '<button class="schmal gefahr" onclick="listenAuswahlLoeschen(\'' + typ + '\')">Löschen (' + n + ')</button>' : "") +
+      '<button class="schmal" onclick="listenAuswahlBeenden()">Fertig</button>' +
+    '</span></div>';
+}
+
+/** Umschlag um eine Listen-Zeile: im Auswahl-Modus ein Kästchen davor, ein
+    Tipp hakt an. Außerhalb kommt die Zeile unverändert zurück — jede Liste
+    behält ihr eigenes Aussehen. */
+function listenZeileHtml(typ, kennung, innen){
+  if(listenAuswahlTyp !== typ || kennung === undefined || kennung === null) return innen;
+  const gewaehlt = listenAuswahl.has(kennung);
+  return '<div class="listen-wahl' + (gewaehlt ? " gewaehlt" : "") + '" ' +
+    'onclick="listenAuswahlUmschalten(\'' + typ + '\',\'' + text(String(kennung)) + '\')">' +
+    '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span>' +
+    '<div class="listen-wahl-inhalt">' + innen + '</div></div>';
+}
+
+/** Im Auswahl-Modus zeigt die Liste ALLES — sonst wäre „Alle" eine Lüge
+    (die Gewichts-Liste zeigt normalerweise nur die letzten zehn). */
+function listenGrenze(typ, standard){
+  return listenAuswahlTyp === typ ? Infinity : standard;
+}
+
+/** Beim Verlassen der zugehörigen Ansicht endet der Modus (Lehre aus v128:
+    ein Modus, der ungefragt weiterläuft, steht später im Weg). */
+function listenAuswahlPruefen(ansichtId){
+  const d = LISTEN_TYPEN[listenAuswahlTyp];
+  if(d && d.ansicht !== ansichtId){ listenAuswahlTyp = null; listenAuswahl.clear(); }
+}
+
 /** Hängt an jede Plan-Karte die Langdruck-Erkennung. */
 /** v124: Die Langdruck-Mechanik als EIN Helfer — sie hängt jetzt an zwei Sorten
     Karten (Pläne und Übungen im Editor). Zwei Kopien dieser Touch-Logik würden
@@ -4300,6 +4491,14 @@ function langdruckEinrichten(){
   // langes Drücken öffnet Verschieben/Löschen (Nutzer-Wunsch).
   document.querySelectorAll("#uebung-liste [data-uebung]").forEach(karte =>
     langdruckBinden(karte, () => uebungMenue(Number(karte.dataset.uebung))));
+  // v163: Statistik-Listen und Papierkorb — langes Drücken irgendwo in der Liste
+  // startet die Mehrfach-Auswahl. Angebunden wird der Behälter, nicht die
+  // einzelne Zeile: die Zeilen werden bei jedem Zeichnen neu gebaut, der
+  // Behälter steht fest.
+  Object.keys(LISTEN_TYPEN).forEach(typ => {
+    const behaelter = document.getElementById(LISTEN_TYPEN[typ].ziel);
+    if(behaelter) langdruckBinden(behaelter, () => listenAuswahlStarten(typ));
+  });
 }
 
 /** v124: Aktionsmenü einer Übungs-Karteikarte im Editor (langes Drücken).
@@ -4712,6 +4911,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.163", punkte:[
+    "Mehrere Einträge auf einmal löschen — in allen Listen mit Daten: Körpergewicht, Körpermaße, Trainings-Verlauf und Papierkorb. Oben in der Liste steht „Mehrere löschen“, oder du drückst irgendwo in der Liste lange. Dann bekommt jede Zeile ein Kästchen, „Alle“ hakt auf einen Schlag alles an, und gelöscht wird nach einer Rückfrage — mit einem Rückgängig für die ganze Aktion. Solange du auswählst, zeigt die Gewichts-Liste alle Einträge statt nur der letzten zehn, damit „Alle“ auch wirklich alle meint."
+  ]},
   { stand:"0.162", punkte:[
     "Überlastete Muskeln färben sich jetzt rot — und zwar überall dort, wo eine Muskel-Figur steht: an den Übungen im Plan, in der Übungs-Suche, auf den Plan-Karten und auf der Sportart-Seite. Damit siehst du schon beim Aussuchen, dass eine Übung gerade nicht die beste Wahl ist. Die Farbe kippt nicht plötzlich um, sondern wandert langsam: Bis 70 Prozent deiner Richtgröße bleibt sie wie gewohnt, danach geht sie stetig ins Rot über und ist bei 130 Prozent ganz dort."
   ]},
@@ -5798,7 +6000,13 @@ function koerpermassTrend(reihe){
 
 /* ---- Körpermaße: Anzeige (Kurve wie beim Gewicht, bewusst gespiegelt) ---- */
 let koerpermassArt = KOERPERMASSE[0].id;
-function koerpermassArtSetzen(id){ koerpermassArt = id; koerpermassZeichnen(); }
+/** v163: Beim Wechsel des Maßes endet ein offener Auswahl-Modus — sonst blieben
+    angehakte Einträge des vorigen Maßes unsichtbar in der Auswahl stehen. */
+function koerpermassArtSetzen(id){
+  koerpermassArt = id;
+  if(listenAuswahlTyp === "koerpermass"){ listenAuswahlTyp = null; listenAuswahl.clear(); }
+  koerpermassZeichnen();
+}
 function koerpermassFormularZeigen(){
   const f = document.getElementById("koerpermass-formular");
   f.hidden = !f.hidden;
@@ -5879,11 +6087,13 @@ function koerpermassZeichnen(){
     diagramm.innerHTML = '<div class="meta">' + jetzt.wert.toFixed(1) + ' cm — ab zwei Einträgen erscheint hier der Verlauf.</div>';
   }
 
-  if(liste) liste.innerHTML = reihe.slice().reverse().map(e =>
-    '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
-    '<span class="meta">' + e.datum + '</span>' +
-    '<span>' + e.wert.toFixed(1) + ' cm &nbsp;<button class="schmal gefahr" onclick="koerpermassLoeschen(\'' + e.datum + '\',\'' + e.art + '\')" aria-label="Eintrag löschen">×</button></span>' +
-    '</div>').join("");
+  if(liste) liste.innerHTML = listenKopfHtml("koerpermass") +
+    reihe.slice().reverse().map(e =>
+      listenZeileHtml("koerpermass", e.art + "|" + e.datum,
+        '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+        '<span class="meta">' + e.datum + '</span>' +
+        '<span>' + e.wert.toFixed(1) + ' cm &nbsp;<button class="schmal gefahr" onclick="koerpermassLoeschen(\'' + e.datum + '\',\'' + e.art + '\')" aria-label="Eintrag löschen">×</button></span>' +
+        '</div>')).join("");
 }
 
 /** Einträge des gewählten Maßes (Tipp auf die Kurve) — wie beim Gewicht. */
@@ -5962,11 +6172,13 @@ function gewichtStatistikZeichnen(){
     diagramm.innerHTML = '<div class="meta">Ab zwei Einträgen erscheint hier der Verlauf.</div>';
   }
 
-  listeZiel.innerHTML = eintraege.slice().reverse().slice(0,10).map(e =>
-    '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
-    '<span class="meta">' + e.datum + (trainingstage.has(e.datum) ? " · trainiert" : "") + '</span>' +
-    '<span>' + e.kg.toFixed(1) + ' kg &nbsp;<button class="schmal gefahr" onclick="gewichtLoeschen(\'' + e.datum + '\')" aria-label="Gewichtseintrag löschen">×</button></span>' +
-    '</div>').join("");
+  listeZiel.innerHTML = listenKopfHtml("gewicht") +
+    eintraege.slice().reverse().slice(0, listenGrenze("gewicht", 10)).map(e =>
+      listenZeileHtml("gewicht", e.datum,
+        '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
+        '<span class="meta">' + e.datum + (trainingstage.has(e.datum) ? " · trainiert" : "") + '</span>' +
+        '<span>' + e.kg.toFixed(1) + ' kg &nbsp;<button class="schmal gefahr" onclick="gewichtLoeschen(\'' + e.datum + '\')" aria-label="Gewichtseintrag löschen">×</button></span>' +
+        '</div>')).join("");
 }
 
 /* Übungs-Fortschritt: der am häufigsten gewünschte Blick („Bankdrücken über die
@@ -6126,11 +6338,20 @@ function protokollZeichnen(){
       : "");
 }
 
+/** v163: Nur die Liste neu bauen — getrennt vom Öffnen, weil der
+    Auswahl-Modus sie mehrfach neu zeichnet, ohne die Ansicht zu wechseln. */
+function verlaufListeZeichnen(){
+  const ziel = document.getElementById("verlauf-liste"); if(!ziel) return;
+  const p = sitzung.daten.protokoll.slice().reverse();
+  ziel.innerHTML = p.length
+    ? listenKopfHtml("verlauf") +
+      p.map(e => listenZeileHtml("verlauf", e.id, protokollEintragHtml(e, true))).join("")
+    : '<div class="meta">Noch kein Training.</div>';
+}
+
 /** Voller Trainings-Verlauf (alle Einträge, neueste zuerst) auf eigener Seite. */
 function verlaufOeffnen(){
-  const p = sitzung.daten.protokoll.slice().reverse();
-  document.getElementById("verlauf-liste").innerHTML =
-    p.length ? p.map(e => protokollEintragHtml(e, true)).join("") : '<div class="meta">Noch kein Training.</div>';
+  verlaufListeZeichnen();
   zeige("view-verlauf");
 }
 
