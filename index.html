@@ -2399,7 +2399,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 164;
+const APP_VERSION = 165;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5022,6 +5022,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.165", punkte:[
+    "Aufwärmen und Dehnen richten sich jetzt nach dem, was du trainierst. Bisher lief immer dieselbe Sechser-Folge ab: Wer nur Oberkörper trainierte, wärmte trotzdem die Beine auf und dehnte hinterher den Quadrizeps — Brust und Schultern gingen leer aus. Der Katalog ist von 6 auf 16 Aufwärm- und 15 Dehnübungen gewachsen, jede mit den Muskeln hinterlegt, für die sie wirklich etwas bringt. Ausgewählt werden die, die zu den Muskeln deines Plans passen; Marschieren und Hampelmänner bleiben immer dabei, weil der Kreislauf sich von keinem Muskel vertreten lässt. In der Vorschau und im Training steht bei jeder Übung, wofür sie da ist („Für: Brust · Schultern“). Erkennt die App bei einem Plan keine Muskeln, bleibt es bei der bewährten Grundfolge von vorher."
+  ]},
   { stand:"0.164", punkte:[
     "Zurück durch Wischen: Wisch von der linken Bildschirmkante nach rechts, und du bist eine Ebene zurück — so wie in jeder anderen iPhone-App. Der „Zurück“-Knopf bleibt, sitzt aber jetzt links statt rechts, also in Daumenreichweite. Die Geste gilt überall dort, wo es auch einen Zurück-Knopf gibt. Im Plan-Editor, im laufenden Training und in der Bewertung gilt sie bewusst NICHT — dort wäre ein versehentlicher Wisch teuer.",
     "Das Profil hatte als einzige Unter-Ansicht gar keinen Zurück-Weg; auf den einfachen Stufen ohne Tab-Leiste war es damit eine Sackgasse. Jetzt hat es einen wie alle anderen.",
@@ -8841,25 +8844,95 @@ const UEBUNGEN_JE_DAUER = { kurz:3, mittel:4, lang:5, xl:6 };
 /* Aufwärmen (dynamisch, ~4 Min): erst 1–2 Min leichtes Cardio, dann
    kontrollierte dynamische Bewegungen. Statisches Dehnen gehört NICHT
    hierher — auf kalte Muskeln senkt es Kraft und Leistung um 5–10 %. */
+/* v165: Aufwärmen und Dehnen richten sich nach dem SCHWERPUNKT des Trainings.
+   Bis v164 lief immer dieselbe Sechser-Liste ab — wer nur Oberkörper trainierte,
+   wärmte trotzdem Beine auf und dehnte hinterher den Quadrizeps, während Brust
+   und Schultern leer ausgingen. Jeder Eintrag trägt jetzt die Muskeln, für die
+   er wirklich etwas bringt (Schlüssel aus MUSKEL_ORDER); ausgewählt wird gegen
+   die Muskeln des Plans.
+   `allgemein:true` = wirkt unabhängig vom Schwerpunkt und ist IMMER dabei —
+   beim Aufwärmen ist das der Kreislauf, den kein Muskel ersetzt.
+   `standard:true` = gehörte zur festen Sechser-Folge bis v164; sie ist der
+   Rückfall, wenn ein Plan keine erkennbaren Muskeln hat. */
 const AUFWAERMEN = [
-  { name:"Auf der Stelle marschieren", dauer:60 },
-  { name:"Armkreisen",                 dauer:30 },
-  { name:"Hüftkreisen",                dauer:30 },
-  { name:"Beinschwingen",              dauer:40 },
-  { name:"Ausfallschritt mit Drehung", dauer:40 },
-  { name:"Kniebeugen ohne Gewicht",    dauer:40 }
+  { name:"Auf der Stelle marschieren",      dauer:60, allgemein:true, standard:true },
+  { name:"Hampelmänner",                    dauer:40, allgemein:true },
+  { name:"Armkreisen vor und zurück",       dauer:30, standard:true, muskeln:["deltoid","trapezius","pectoral"] },
+  { name:"Wandengel (Arme an der Wand)",    dauer:40, muskeln:["deltoid","trapezius","infraspinatus","serratus"] },
+  { name:"Liegestütze an der Wand",         dauer:30, muskeln:["pectoral","triceps","deltoid","serratus"] },
+  { name:"Arme beugen und strecken",        dauer:30, muskeln:["biceps","triceps","forearm"] },
+  { name:"Handgelenke kreisen",             dauer:20, muskeln:["forearm"] },
+  { name:"Kopf langsam drehen und neigen",  dauer:30, muskeln:["neck","trapezius"] },
+  { name:"Rumpfdrehen im Stand",            dauer:30, muskeln:["obliques","abs","lowerback"] },
+  { name:"Beckenkippen im Stand",           dauer:30, muskeln:["lowerback","abs","glutes"] },
+  { name:"Hüftkreisen",                     dauer:30, standard:true, muskeln:["glutes","lowerback","obliques"] },
+  { name:"Beinschwingen vor und zurück",    dauer:40, standard:true, muskeln:["hamstrings","quadriceps","glutes"] },
+  { name:"Beinschwingen seitlich",          dauer:30, muskeln:["adductors","glutes"] },
+  { name:"Ausfallschritt mit Drehung",      dauer:40, standard:true, muskeln:["quadriceps","glutes","obliques","lowerback"] },
+  { name:"Kniebeugen ohne Gewicht",         dauer:40, standard:true, muskeln:["quadriceps","glutes","adductors"] },
+  { name:"Wadenheben im Stand",             dauer:30, muskeln:["calves","tibialis"] }
 ];
 
 /* Dehnen (statisch, nach dem Training, Muskeln sind warm):
    30 s je Position ist der empfohlene Standardwert. */
 const DEHNEN = [
-  { name:"Brustdehnung an der Wand",   dauer:30 },
-  { name:"Trizeps über Kopf",          dauer:30 },
-  { name:"Oberschenkelrückseite",      dauer:30 },
-  { name:"Quadrizeps im Stehen",       dauer:30 },
-  { name:"Hüftbeuger-Ausfallschritt",  dauer:30 },
-  { name:"Katze-Kuh",                  dauer:30 }
+  { name:"Katze-Kuh",                       dauer:30, allgemein:true, standard:true },
+  { name:"Brustdehnung an der Wand",        dauer:30, standard:true, muskeln:["pectoral","deltoid"] },
+  { name:"Schulter über die Brust ziehen",  dauer:30, muskeln:["deltoid","infraspinatus","trapezius"] },
+  { name:"Trizeps über Kopf",               dauer:30, standard:true, muskeln:["triceps","latissimus"] },
+  { name:"Latissimus am Türrahmen",         dauer:30, muskeln:["latissimus","trapezius","serratus"] },
+  { name:"Unterarme dehnen",                dauer:30, muskeln:["forearm","biceps"] },
+  { name:"Nacken zur Seite neigen",         dauer:30, muskeln:["neck","trapezius"] },
+  { name:"Seitneigung im Stand",            dauer:30, muskeln:["obliques","latissimus","serratus"] },
+  { name:"Bauchdehnung in Bauchlage",       dauer:30, muskeln:["abs","lowerback"] },
+  { name:"Oberschenkelrückseite",           dauer:30, standard:true, muskeln:["hamstrings","lowerback"] },
+  { name:"Quadrizeps im Stehen",            dauer:30, standard:true, muskeln:["quadriceps"] },
+  { name:"Hüftbeuger-Ausfallschritt",       dauer:30, standard:true, muskeln:["quadriceps","glutes"] },
+  { name:"Gesäßdehnung im Sitzen",          dauer:30, muskeln:["glutes","obliques"] },
+  { name:"Innenseite im Sitzen",            dauer:30, muskeln:["adductors"] },
+  { name:"Wadendehnung an der Wand",        dauer:30, muskeln:["calves","tibialis"] }
 ];
+
+/* So viele Bonus-Übungen kommen je Phase in den Ablauf — dieselbe Anzahl wie
+   die feste Liste bis v164 hatte, damit die Vorbereitung nicht länger wird. */
+const BONUS_ANZAHL = 6;
+
+/** Wählt aus einem Bonus-Katalog die Übungen, die zum Schwerpunkt passen.
+    Reihenfolge: erst die allgemeinen (immer dabei), dann die mit den meisten
+    Treffern; bei Gleichstand entscheidet die Reihenfolge im Katalog (stabile
+    Sortierung) — dieselbe Eingabe ergibt also immer denselben Ablauf.
+    Ohne erkannte Muskeln (Freitext-Plan, Sportart-Drills) bleibt es bei der
+    Grundfolge, die bis v164 für alle galt — lieber bewährt als geraten.
+    Rein und testbar — Katalog und Muskeln rein, fertige Liste raus. */
+function bonusAuswahl(katalog, muskeln, anzahl){
+  const gesucht = new Set(muskeln || []);
+  const treffer = b => (b.muskeln || []).filter(m => gesucht.has(m));
+  const allgemein = katalog.filter(b => b.allgemein);
+  const passend = katalog
+    .filter(b => !b.allgemein && treffer(b).length > 0)
+    .sort((a, b) => treffer(b).length - treffer(a).length);
+  const gewaehlt = (passend.length ? allgemein.concat(passend) : katalog.filter(b => b.standard))
+    .slice(0, anzahl || BONUS_ANZAHL);
+  // Kopien: die Kataloge sind Konstanten und dürfen nie eine Ergänzung tragen.
+  return gewaehlt.map(b => ({ name: b.name, dauer: b.dauer, fuer: bonusRegionen(treffer(b)) }));
+}
+
+/** „Brust · Schultern" — die Regionen, für die dieser Eintrag hier steht.
+    Regionen statt Muskelnamen: kurz genug für eine Zeile im Training. */
+function bonusRegionen(muskeln){
+  const namen = [];
+  (muskeln || []).forEach(m => {
+    const r = MUSKEL_INFO[m] && MUSKEL_INFO[m].region;
+    if(r && !namen.includes(r)) namen.push(r);
+  });
+  return namen.join(" · ");
+}
+
+/** Die Muskeln eines Plans als flache Liste (planMuskeln trennt nach Seite). */
+function planMuskelListe(plan){
+  const m = planMuskeln(plan);
+  return m.front.concat(m.back);
+}
 
 /** Nur Krafttraining hat einen Plangenerator. Alles, was danach gefragt wird
     (Ort, Geräte, Startwerte, Split), ergibt ohne Krafttraining keinen Sinn —
@@ -11536,16 +11609,19 @@ async function trainingFortsetzenAnbieten(){
 function bonusSchritte(liste, typ){
   return liste.map((b, i) => ({
     typ: typ, name: b.name, sekunden: b.dauer, nummer: i + 1, gesamt: liste.length,
+    fuer: b.fuer || "",   // v165: wofür diese Übung hier steht („Brust · Schultern")
     ansage: b.name + ", " + b.dauer + " Sekunden."
   }));
 }
 
 function ablaufErzeugen(plan){
   const kern = plan.reihenfolge === "zirkel" ? zirkelAblauf(plan) : klassischerAblauf(plan);
+  // v165: Aufwärmen und Dehnen folgen dem Schwerpunkt DIESES Plans.
+  const muskeln = planMuskelListe(plan);
   let alle = [];
-  if(plan.aufwaermen) alle = alle.concat(bonusSchritte(AUFWAERMEN, "aufwaermen"));
+  if(plan.aufwaermen) alle = alle.concat(bonusSchritte(bonusAuswahl(AUFWAERMEN, muskeln), "aufwaermen"));
   alle = alle.concat(kern);
-  if(plan.dehnen) alle = alle.concat(bonusSchritte(DEHNEN, "dehnen"));
+  if(plan.dehnen) alle = alle.concat(bonusSchritte(bonusAuswahl(DEHNEN, muskeln), "dehnen"));
   return alle;
 }
 
@@ -12343,7 +12419,9 @@ function vorschauZeichnen(){
     let titel, unter, figur = "";
     if(schritt.typ === "aufwaermen" || schritt.typ === "dehnen"){
       titel = schritt.name;
-      unter = (schritt.typ === "aufwaermen" ? "Aufwärmen" : "Dehnen") + " · " + schritt.sekunden + " s";
+      // v165: In der Vorschau steht gleich mit dabei, wofür die Übung gewählt wurde.
+      unter = (schritt.typ === "aufwaermen" ? "Aufwärmen" : "Dehnen") + " · " + schritt.sekunden + " s" +
+              (schritt.fuer ? " · " + schritt.fuer : "");
     } else {
       const u = p.uebungen[schritt.uebungIndex];
       titel = u.name;
@@ -12494,7 +12572,9 @@ function schrittBetreten(){
     document.getElementById("uebungsname").textContent = s.name;
     document.getElementById("strichliste").innerHTML = "";
     document.getElementById("uhr-rekord").hidden = true;
-    document.getElementById("uhr-letztes").textContent = "";   // Bonus-Phasen haben keine Historie
+    // v165: Statt der Historie (die es hier nicht gibt) steht hier, WOFÜR die
+    // Übung ausgewählt wurde — sonst wirkt die Auswahl beliebig.
+    document.getElementById("uhr-letztes").textContent = s.fuer ? "Für: " + s.fuer : "";
     gesamtBalkenZeichnen(0);
     const ph = document.getElementById("phase");
     ph.textContent = (istWarm ? "Aufwärmen · " : "Dehnen · ") + s.nummer + " von " + s.gesamt;

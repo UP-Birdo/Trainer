@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.165
+
+- Aufwärmen und Dehnen richten sich jetzt nach dem, was du trainierst. Bisher
+  lief immer dieselbe Sechser-Folge ab: Wer nur Oberkörper trainierte, wärmte
+  trotzdem die Beine auf und dehnte hinterher den Quadrizeps — Brust und
+  Schultern gingen leer aus. Der Katalog ist von 6 auf 16 Aufwärm- und 15
+  Dehnübungen gewachsen, jede mit den Muskeln hinterlegt, für die sie wirklich
+  etwas bringt. Ausgewählt werden die, die zu den Muskeln deines Plans passen;
+  Marschieren und Hampelmänner bleiben immer dabei, weil der Kreislauf sich von
+  keinem Muskel vertreten lässt. In der Vorschau und im Training steht bei jeder
+  Übung, wofür sie da ist („Für: Brust · Schultern“). Erkennt die App bei einem
+  Plan keine Muskeln, bleibt es bei der bewährten Grundfolge von vorher.
+
 ## 0.164
 
 - Zurück durch Wischen: Wisch von der linken Bildschirmkante nach rechts, und du
