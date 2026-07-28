@@ -2371,7 +2371,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 160;
+const APP_VERSION = 161;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4712,6 +4712,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.161", punkte:[
+    "Die Auslastungs-Rechnung wird genauer — ohne dass du irgendetwas zusätzlich eingeben musst. Sie nutzt jetzt drei Dinge, die längst in deinen Daten stehen: Erstens deine NOTE je Übung — vier schwere Sätze belasten mehr als vier viel zu leichte, bisher zählten beide gleich. Zweitens, wo keine Note vorliegt, das Gewicht im Verhältnis zu deinem Bestwert. Drittens meldet die Muskelkarte, wenn du bei einer Übung zuletzt unter deinem Soll geblieben bist — der deutlichste Hinweis darauf, dass die Erholung nicht reicht. Der Leistungsabfall steht bewusst als eigener Satz da und wird nicht in die Prozentzahl verrührt."
+  ]},
   { stand:"0.160", punkte:[
     "Die Muskelkarte rechnet jetzt deine Auslastung aus. Tippst du im Modus „Zuletzt trainiert“ einen Muskel an, steht oben, wie viele Sätze er diese Woche bekommen hat und wie viele für dich etwa passen — mit einer Einordnung: erholt und bereit, am Richtwert, oder deutlich darüber. Liegt ein Muskel über dem Richtwert, siehst du das schon ohne Antippen in der Zeile über der Figur. In die Rechnung gehen ein: Sätze der letzten sieben Tage (mitarbeitende Muskeln zählen halb), deine Erfahrung, dein Alter, dein Geschlecht sowie Aufwärmen und Dehnen. Bewusst NICHT: Körpergewicht und BMI — dafür gibt es keinen belegten Zusammenhang."
   ]},
@@ -6508,12 +6511,51 @@ function muskelKapazitaet(muskel, profil, einrichtung, heute){
   return Math.max(4, Math.round(basis * kapazitaetsFaktor(profil, einrichtung, heute) * 10) / 10);
 }
 
+/* v161: NICHT JEDER SATZ WIEGT GLEICH.
+   In der Trainingswissenschaft zählen „harte Sätze" — solche nahe am
+   Muskelversagen. Ein Satz mit Note 1 („viel zu leicht") und einer mit Note 5
+   belasten völlig unterschiedlich; bis v160 zählte die Karte beide gleich.
+   Die Note steht seit jeher an jedem protokollierten Satz — sie war da, wurde
+   aber nicht benutzt. Das ist der größte Hebel im ganzen Modell und kostet den
+   Nutzer keine einzige zusätzliche Eingabe. */
+const NOTE_GEWICHT = { 1:0.5, 2:0.75, 3:1, 4:1.2, 5:1.3 };
+
+/** Höchstes je protokolliertes Gewicht je Übungsnamen. Grundlage für die
+    relative Intensität — 10 Wdh mit 40 kg sind etwas anderes als 10 mit 70,
+    wenn der Bestwert bei 75 liegt. Rein/testbar. */
+function maxGewichtJeUebung(protokoll){
+  const max = {};
+  (protokoll || []).forEach(e => echteSaetze(e).forEach(s => {
+    if(!s.name || !(s.gewicht > 0)) return;
+    if(!max[s.name] || s.gewicht > max[s.name]) max[s.name] = s.gewicht;
+  }));
+  return max;
+}
+
+/** Wie schwer wog dieser Satz? Die NOTE ist das bessere Signal, weil sie die
+    tatsächliche Anstrengung misst — sie hat darum Vorrang. Nur wo keine Note
+    vorliegt (nachgetragen, Training vor der Bewertung abgebrochen), springt die
+    relative Intensität ein. Beides zu multiplizieren würde denselben Umstand
+    doppelt bestrafen: Wer leicht hebt, vergibt ohnehin schon Note 1 oder 2.
+    Ohne beides bleibt es beim neutralen 1 — geraten wird nicht. Rein/testbar. */
+function satzGewichtung(satz, maxGewicht){
+  const n = satz && Number(satz.note);
+  if(n >= 1 && n <= 5) return NOTE_GEWICHT[n];
+  if(maxGewicht > 0 && satz && satz.gewicht > 0){
+    const rel = Math.min(1, satz.gewicht / maxGewicht);
+    return Math.round((0.6 + 0.4 * rel) * 100) / 100;
+  }
+  return 1;
+}
+
 /** Gewichtete Sätze je Muskel im Fenster + Tage seit dem letzten Reiz.
-    Primärer Muskel zählt 1, mitarbeitender SEKUNDAER_ANTEIL. Soll-Sätze (v158)
+    Primärer Muskel zählt 1, mitarbeitender SEKUNDAER_ANTEIL; seit v161 wiegt
+    jeder Satz zusätzlich nach Anstrengung (`satzGewichtung`). Soll-Sätze (v158)
     zählen NICHT — sie wurden nie geleistet. Rein/testbar. */
 function muskelLast(protokoll, heute, tage){
   const last = {};
   const fenster = tage || MUSKEL_HEAT_TAGE;
+  const maxGew = maxGewichtJeUebung(protokoll);   // über die GANZE Historie, nicht nur das Fenster
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
@@ -6521,8 +6563,9 @@ function muskelLast(protokoll, heute, tage){
     echteSaetze(e).forEach(s => {
       const info = uebungMuskeln(s.name);
       if(!info) return;
-      const zutun = [].concat((info.muskeln || []).map(m => [m, 1]),
-                              (info.sekundaer || []).map(m => [m, SEKUNDAER_ANTEIL]));
+      const wiegt = satzGewichtung(s, maxGew[s.name] || 0);
+      const zutun = [].concat((info.muskeln || []).map(m => [m, wiegt]),
+                              (info.sekundaer || []).map(m => [m, SEKUNDAER_ANTEIL * wiegt]));
       zutun.forEach(([m, anteil]) => {
         if(!last[m]) last[m] = { saetze:0, tageSeit:d };
         last[m].saetze += anteil;
@@ -6555,6 +6598,22 @@ function auslastungStufe(a){
   if(a.quote >= 1.3) return "zuviel";
   if(a.quote >= 1.0) return "hoch";
   return "gut";
+}
+
+/** v161: Bei welchen Muskeln fällt gerade die LEISTUNG? Der objektivste Marker
+    für Überlastung, den es ohne Gerät gibt — und die App zählt ihn seit v159
+    ohnehin mit (`verfehltFolge` je Übung, gesetzt wenn das Soll verfehlt wurde).
+    Bewusst NICHT in die Auslastungs-Quote eingerechnet: Umfang und
+    Leistungsabfall sind zwei verschiedene Aussagen; sie zu einer Zahl zu
+    verrühren würde beide unschärfer machen. Rein/testbar. */
+function leistungFaellt(plaene){
+  const muskeln = new Set();
+  (plaene || []).forEach(p => (p.uebungen || []).forEach(u => {
+    if(!(u.verfehltFolge >= 1)) return;
+    const info = uebungMuskeln(u.name);
+    (info && info.muskeln ? info.muskeln : []).forEach(m => muskeln.add(m));
+  }));
+  return muskeln;
 }
 
 /** Ein Satz Klartext zur Stufe — was heißt das für heute? Rein/testbar. */
@@ -6729,8 +6788,12 @@ function muskelAuswahlZeichnen(){
                                  sitzung.daten.einrichtung, heuteAlsText())[key];
       const stufe = auslastungStufe(a);
       const farbe = stufe === "zuviel" ? "var(--warn)" : stufe === "hoch" ? "var(--signal)" : "var(--rest)";
+      // v161: Fällt bei diesem Muskel zusätzlich die Leistung, steht das als
+      // eigener Satz daneben — es ist eine andere Aussage als „viel Umfang".
+      const faellt = leistungFaellt(sitzung.daten.plaene).has(key)
+        ? " Zuletzt bliebst du hier unter deinem Soll — ein Zeichen, dass die Erholung nicht reicht." : "";
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a)) + '</div>';
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a) + faellt) + '</div>';
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";

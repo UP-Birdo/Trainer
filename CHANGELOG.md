@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.161
+
+- Die Auslastungs-Rechnung wird genauer — ohne dass du irgendetwas zusätzlich
+  eingeben musst. Sie nutzt jetzt drei Dinge, die längst in deinen Daten stehen:
+  Erstens deine NOTE je Übung — vier schwere Sätze belasten mehr als vier viel zu
+  leichte, bisher zählten beide gleich. Zweitens, wo keine Note vorliegt, das
+  Gewicht im Verhältnis zu deinem Bestwert. Drittens meldet die Muskelkarte, wenn
+  du bei einer Übung zuletzt unter deinem Soll geblieben bist — der deutlichste
+  Hinweis darauf, dass die Erholung nicht reicht. Der Leistungsabfall steht
+  bewusst als eigener Satz da und wird nicht in die Prozentzahl verrührt.
+
 ## 0.160
 
 - Die Muskelkarte rechnet jetzt deine Auslastung aus. Tippst du im Modus

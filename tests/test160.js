@@ -50,6 +50,9 @@ const code = [
   grabFn("alterJahre"),
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
+  "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
+  grabFn("maxGewichtJeUebung"),
+  grabFn("satzGewichtung"),
   grabFn("muskelLast"),
   grabFn("muskelAuslastung"),
   grabFn("auslastungStufe"),
