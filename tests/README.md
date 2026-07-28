@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test164.js` | Zurück-Wischen von der linken Kante: `wischZurueck` (Kante, Mindestweg, erlaubte Schräge, Gegenrichtung, Randfälle) + der **Vertrag im HTML** — jede Ansicht mit Zurück-Knopf ist markiert (`data-zurueck`), und Editor/Training/Bewertung/Ergebnis sind es bewusst **nicht**; dazu die vier Wachen im `touchstart`, „Zurück" links im Kopf und „Abbrechen" im Aktionsmenü |
 | `test163.js` | Mehrfach-Löschen in den Listen mit Daten: läuft über das **echte Register** `LISTEN_TYPEN` (jede Liste wird auf Vollständigkeit geprüft, eine neue kommt automatisch dazu) — Rückfrage vor jedem Löschen, EIN Rückgängig stellt Inhalt **und** Reihenfolge her, „Alle" nimmt nur Sichtbares (Körpermaß-Filter, Zehner-Grenze fällt im Modus weg), Verlauf geht in den Papierkorb, Gewicht nicht, Modus endet mit seiner Ansicht |
 | `test162.js` | Rote Einfärbung überlasteter Muskeln: `lastFarbe` (Signalfarbe bis 70 %, stetiger Übergang, Warnrot ab 130 %, keine Sprünge, Randfälle) + Verdrahtung an **einer** Stelle (`muskelnAufCanvas`) und Quoten genau **einmal** je Zeichenlauf |
 | `test161.js` | Belastungs-Rechnung nutzt Vorhandenes: `satzGewichtung` (Note wiegt den Satz, relative Intensität **nur als Ersatz** — nie beides, ohne beides neutral), `maxGewichtJeUebung`, Wirkung auf `muskelLast` (harte vs. leichte Sätze, auch für Sekundärmuskeln, Regression ohne Noten) + `leistungFaellt` als **eigene** Aussage — geprüft wird, dass die Last-Rechnung `verfehltFolge` gar nicht kennt |
@@ -145,6 +146,7 @@ VS Codes Electron springt ein):
     & $code tests\test161.js index.html
     & $code tests\test162.js index.html
     & $code tests\test163.js index.html
+    & $code tests\test164.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.164
+
+- Zurück durch Wischen: Wisch von der linken Bildschirmkante nach rechts, und du
+  bist eine Ebene zurück — so wie in jeder anderen iPhone-App. Der
+  „Zurück“-Knopf bleibt, sitzt aber jetzt links statt rechts, also in
+  Daumenreichweite. Die Geste gilt überall dort, wo es auch einen Zurück-Knopf
+  gibt. Im Plan-Editor, im laufenden Training und in der Bewertung gilt sie
+  bewusst NICHT — dort wäre ein versehentlicher Wisch teuer.
+- Das Profil hatte als einzige Unter-Ansicht gar keinen Zurück-Weg; auf den
+  einfachen Stufen ohne Tab-Leiste war es damit eine Sackgasse. Jetzt hat es
+  einen wie alle anderen.
+- Jedes Aktionsmenü (langes Drücken auf einen Plan oder eine Übung) hat unten
+  ein „Abbrechen“. Bisher musste man wissen, dass ein Tipp neben das Menü es
+  schließt.
+
 ## 0.163
 
 - Mehrere Einträge auf einmal löschen — in allen Listen mit Daten:

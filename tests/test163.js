@@ -347,10 +347,14 @@ pruefe("Verlauf-Liste und Verlauf-Ansicht sind getrennt",
 pruefe("im Modus sind die Einzel-Knoepfe stumm",
   src.includes(".listen-wahl button{pointer-events:none"));
 
-/* ---------- 20) Version und Neuigkeit ---------- */
-pruefe("APP_VERSION steht auf 163", src.includes("const APP_VERSION = 163;"));
-pruefe("und die Auto-Update-Erkennung findet sie genau einmal",
-  (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);
+/* ---------- 20) Version und Neuigkeit ----------
+   Die Version wird NICHT festgenagelt (das bricht bei jedem Update); geprueft
+   wird, dass sie nicht hinter v163 zurueckfaellt und genau einmal dasteht. */
+const stand = /const APP_VERSION = (\d+);/g;
+pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
+  (src.match(stand) || []).length === 1);
+pruefe("die App ist mindestens auf v163",
+  Number(/const APP_VERSION = (\d+);/.exec(src)[1]) >= 163);
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.163", punkte:['));
 
 console.log(ok + " ok, " + fehler + " Fehler");

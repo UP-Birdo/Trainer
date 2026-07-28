@@ -81,6 +81,14 @@ body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
 h1{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0}
 h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 .kopf{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+/* v164: „Zurück" gehört auf dem iPhone nach LINKS — dorthin, wo auch der
+   Zurück-Wisch beginnt, und in Daumenreichweite. Im HTML steht der Knopf hinter
+   der Überschrift (so gewachsen); `order` dreht das um, statt 23 Stellen
+   umzusortieren. Köpfe OHNE Zurück-Knopf bleiben unangetastet — dort trennt
+   `space-between` weiter Titel und Aktion (z. B. das „⋯" im Editor).
+   Kann ein Browser `:has()` nicht, bleibt einfach der Stand von vorher. */
+.kopf [data-zurueck]{order:-1}
+.kopf:has([data-zurueck]){justify-content:flex-start;gap:12px}
 
 button{font-family:inherit;font-size:16px;border:0;border-radius:6px;padding:14px 16px;
   min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer;
@@ -466,6 +474,9 @@ body:not(.nav-an) #nav{display:none}
   padding:14px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
 #menue h2{margin-bottom:12px}
 #menue button{width:100%;margin-bottom:8px;text-align:left;transition:var(--transition)}
+/* v164: „Abbrechen" steht als Ausweg unter den Aktionen, abgesetzt und mittig —
+   damit es nicht wie eine weitere Aktion aussieht. */
+#menue .menue-abbrechen{margin:10px 0 0;text-align:center;font-weight:600;color:var(--muted)}
 #menue button:hover{background:var(--panel-2)}
 .karte.gedrueckt{border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 /* v128: Mehrfach-Auswahl — das Kästchen ist die Aussage, der Rahmen bestätigt sie. */
@@ -687,7 +698,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="info-merken" class="meta info-text" hidden>Legt den Schlüssel auf diesem Gerät ab — der Schutz ist dann die <span id="text-sperre">Gerätesperre</span>, nicht mehr das App-Passwort. „Abmelden“ in den Einstellungen löscht ihn sofort.</div>
     <div class="knopfreihe">
       <button class="primaer" onclick="anmelden()">Anmelden</button>
-      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+      <button class="schmal" onclick="loginZeichnen()" data-zurueck>Zurück</button>
     </div>
     <div class="knopfreihe">
       <button class="schmal" onclick="wiederherstellungZeigen()">Passwort vergessen?</button>
@@ -705,7 +716,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <input id="wh-passwort2" type="password" autocomplete="new-password">
     <div class="knopfreihe">
       <button class="primaer" onclick="passwortZuruecksetzen()">Zurücksetzen</button>
-      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+      <button class="schmal" onclick="loginZeichnen()" data-zurueck>Zurück</button>
     </div>
   </div>
 
@@ -726,7 +737,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     </div>
     <div class="knopfreihe">
       <button class="primaer" onclick="kontoAnlegen()">Konto anlegen</button>
-      <button class="schmal" onclick="loginZeichnen()">Zurück</button>
+      <button class="schmal" onclick="loginZeichnen()" data-zurueck>Zurück</button>
     </div>
   </div>
 
@@ -762,7 +773,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-simpelheit" class="view">
   <div class="kopf">
     <h1 id="simpelheit-titel">Wie einfach soll die App sein?</h1>
-    <button id="simpelheit-zurueck" class="schmal" hidden onclick="einstellungenOeffnen()">Zurück</button>
+    <button id="simpelheit-zurueck" class="schmal" hidden onclick="einstellungenOeffnen()" data-zurueck>Zurück</button>
   </div>
   <!-- v122: Der Erklärtext steht jetzt HIER (statt als „i" auf der Mehr-Seite) —
        er gehört dorthin, wo man wirklich wählt. Text je nach Weg, siehe
@@ -779,7 +790,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="wz-fortschritt" id="wz-fortschritt"></div>
   <div class="wz-buehne" id="wz-buehne"></div>
   <div class="knopfreihe">
-    <button class="schmal" id="wz-zurueck" onclick="wzZurueck()">Zurück</button>
+    <button class="schmal" id="wz-zurueck" onclick="wzZurueck()" data-zurueck>Zurück</button>
     <button class="primaer" id="wz-weiter" onclick="wzWeiter()" style="flex:2">Weiter</button>
   </div>
   <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
@@ -962,7 +973,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-wissen" class="view">
   <div class="kopf">
     <h1>Gut zu wissen</h1>
-    <button class="schmal" onclick="zeige('view-einstellungen')">Zurück</button>
+    <button class="schmal" onclick="zeige('view-einstellungen')" data-zurueck>Zurück</button>
   </div>
   <div id="wissen-inhalt"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -974,7 +985,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-neuigkeiten" class="view">
   <div class="kopf">
     <h1>Neuigkeiten</h1>
-    <button class="schmal" onclick="zeige('view-einstellungen')">Zurück</button>
+    <button class="schmal" onclick="zeige('view-einstellungen')" data-zurueck>Zurück</button>
   </div>
   <div id="neuigkeiten-inhalt"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -984,7 +995,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Profil
      ============================================================ -->
 <section id="view-profil" class="view">
-  <div class="kopf"><h1>Profil</h1></div>
+  <!-- v164: Das Profil hatte als einzige Unter-Ansicht von „Mehr" KEINEN
+       Zurück-Knopf — auf Stufe 1/2 (ohne Tab-Leiste) war es damit eine
+       Sackgasse. Jetzt wie überall sonst. -->
+  <div class="kopf"><h1>Profil</h1>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
 
   <div class="karte">
     <h2 id="profil-benutzer">–</h2>
@@ -1022,7 +1037,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-ziele" class="view">
   <div class="kopf"><h1>Ziele</h1>
-    <button class="schmal" onclick="startOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="startOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div class="zeile">
       <h2>Deine Ziele</h2>
@@ -1049,8 +1064,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Sportarten — seit v60 eigenes Tab (vorher Teil von Profil)
      ============================================================ -->
 <section id="view-sportarten" class="view">
-  <div class="kopf" style="justify-content:flex-start;gap:12px">
-    <button class="schmal" onclick="sportartenTabZurueck()">‹ Zurück</button>
+  <!-- v164: Diese Ansicht war die einzige, die ihren Zurück-Knopf selbst nach
+       links gestellt und anders beschriftet hat. Jetzt gilt die Kopf-Regel für
+       alle Ansichten gleichermaßen. -->
+  <div class="kopf">
+    <button class="schmal" onclick="sportartenTabZurueck()" data-zurueck>Zurück</button>
     <h1>Sportarten</h1>
     <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info" style="margin-left:auto">i</button></div>
   <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatisch generierte Pläne gibt es nur für Krafttraining</strong> — die anderen Sportarten haben eigene Pläne mit Stoppuhr und Drills: Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel bzw. auf Nachfrage, und die Statistik zeigt km pro Woche.</div>
@@ -1065,7 +1083,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <!-- v76: „Zurück" nur auf Stufe 1/2 sichtbar (dort gibt es keine Nav-Leiste,
        „Mehr" wird über das ⋯ im Notizblock geöffnet). -->
   <div class="kopf"><h1>Mehr</h1>
-    <button id="mehr-zurueck" class="schmal" hidden onclick="startOeffnen()">Zurück</button></div>
+    <button id="mehr-zurueck" class="schmal" hidden onclick="startOeffnen()" data-zurueck>Zurück</button></div>
 
   <!-- v102: „Mehr" in Untermenüs gruppiert (iOS-Settings-Muster) — alle Karten
        bleiben, nur in eigene Ansichten sortiert.
@@ -1090,7 +1108,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-einst-darstellung" class="view">
   <div class="kopf"><h1>Darstellung &amp; Bedienung</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte">
     <h2>Darstellung</h2>
     <div id="darstellung-wahl" class="wahl-raster abstand"></div>
@@ -1114,7 +1132,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-einst-werkzeuge" class="view">
   <div class="kopf"><h1>Werkzeuge</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte" id="mehr-werkzeuge-karte">
     <h2>Scheibenrechner</h2>
     <div class="meta abstand">Welche Hantelscheiben du je Seite auflegst, um ein Zielgewicht zu erreichen.</div>
@@ -1139,7 +1157,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-einst-konto" class="view">
   <div class="kopf"><h1>Konto &amp; Sicherheit</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div class="zeile"><h2>Gerät</h2>
       <button class="info-knopf" onclick="infoUmschalten('info-system')" aria-label="Info">i</button></div>
@@ -1180,7 +1198,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-einst-hilfe" class="view">
   <div class="kopf"><h1>Hilfe &amp; Feedback</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte">
     <h2>Hilfe</h2>
     <div class="knopfreihe"><button class="schmal" onclick="wissenOeffnen()">Gut zu wissen &amp; Regelwerk</button></div>
@@ -1360,7 +1378,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-uebung-picker" class="view">
   <div class="kopf"><h1>Übung hinzufügen</h1>
-    <button class="schmal" onclick="pickerZurueck()">Fertig</button></div>
+    <button class="schmal" onclick="pickerZurueck()" data-zurueck>Fertig</button></div>
   <!-- v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer). -->
   <div id="picker-wartet" class="karte" hidden></div>
   <div id="picker-suchkarte" class="karte">
@@ -1532,7 +1550,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="primaer breit" onclick="trainingLosgehts()">Los geht's</button>
   </div>
   <div class="knopfreihe">
-    <button class="breit" onclick="zeige('view-plaene')">Zurück</button>
+    <button class="breit" onclick="zeige('view-plaene')" data-zurueck>Zurück</button>
   </div>
 </section>
 
@@ -1607,7 +1625,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-verlauf" class="view">
   <div class="kopf"><h1>Trainings-Verlauf</h1>
-    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
 </section>
 
@@ -1616,7 +1634,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-gewicht" class="view">
   <div class="kopf"><h1>Körpergewicht</h1>
-    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div id="gewicht-info" class="meta abstand"></div>
     <h2>Einträge</h2>
@@ -1628,7 +1646,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <!-- v134: Einträge eines Körpermaßes (Tipp auf die Kurve) — wie view-gewicht. -->
 <section id="view-koerpermasse" class="view">
   <div class="kopf"><h1 id="koerpermasse-titel">Körpermaß</h1>
-    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div id="koerpermasse-info" class="meta abstand"></div>
     <h2>Einträge</h2>
@@ -1642,7 +1660,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-kalender" class="view">
   <div class="kopf"><h1>Kalender</h1>
-    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div class="karte">
     <!-- v80: Monats-Navigation — vorher war nur der aktuelle Monat erreichbar -->
     <div class="zeile" style="margin-top:2px">
@@ -1662,7 +1680,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-muskeln" class="view">
   <div class="kopf"><h1>Muskelkarte</h1>
-    <button class="schmal" onclick="zeige('view-statistik')">Zurück</button></div>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div class="muskel-tabs zeile" style="margin-bottom:10px">
       <button id="muskel-modus-info" class="muskel-tab muskel-an" onclick="muskelModus('erkunden')">Erkunden</button>
@@ -1686,7 +1704,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-bibliothek" class="view">
   <div class="kopf"><h1>Übungs-Bibliothek</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <input id="bib-suche" placeholder="Übung suchen …" autocomplete="off" oninput="bibKartenZeichnen()" style="margin-bottom:8px">
   <div id="bib-filter" class="muskel-tabs zeile" style="flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
   <div id="bib-status" class="meta abstand"></div>
@@ -1699,7 +1717,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-papierkorb" class="view">
   <div class="kopf"><h1>Papierkorb</h1>
-    <button class="schmal" onclick="einstellungenOeffnen()">Zurück</button></div>
+    <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div id="papierkorb-liste"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -1713,7 +1731,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1 id="sportsetup-titel">Sportart einrichten</h1></div>
   <div id="sportsetup-inhalt"></div>
   <div class="knopfreihe abstand">
-    <button class="schmal" onclick="sportSetupZurueck()">Zurück</button>
+    <button class="schmal" onclick="sportSetupZurueck()" data-zurueck>Zurück</button>
     <button class="primaer" id="sportsetup-weiter" onclick="sportSetupWeiter()" style="flex:2">Weiter</button>
   </div>
 </section>
@@ -2381,7 +2399,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 163;
+const APP_VERSION = 164;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4086,7 +4104,11 @@ function aktionsMenue(titel, aktionen){
   menueAktionen = aktionen;
   document.getElementById("menue-titel").textContent = titel;
   document.getElementById("menue-knoepfe").innerHTML = aktionen.map((a, i) =>
-    '<button class="' + (a.stil || "") + '" onclick="menueKlick(' + i + ')">' + text(a.text) + '</button>').join("");   // v119: Nutzertext (Plan-Namen) escapen
+    '<button class="' + (a.stil || "") + '" onclick="menueKlick(' + i + ')">' + text(a.text) + '</button>').join("") +   // v119: Nutzertext (Plan-Namen) escapen
+    // v164: Wie jedes Aktionsmenü auf dem iPhone endet auch dieses mit
+    // „Abbrechen". Der Tipp neben das Menü schließt weiterhin — aber den
+    // sieht man nicht, und er war bisher der einzige Ausweg.
+    '<button class="menue-abbrechen" onclick="menueSchliessen()">Abbrechen</button>';
   document.getElementById("menue-hintergrund").classList.add("offen");
 }
 function menueKlick(i){
@@ -4253,6 +4275,95 @@ function planLoeschenById(planId){
       zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
+}
+
+/* ============================================================
+   #region Zurück-Wischen (v164)
+   Auf dem iPhone verlässt man einen Bildschirm mit einem Wisch von der
+   LINKEN KANTE nach rechts. Eine zum Home-Bildschirm hinzugefügte PWA
+   bekommt diese Geste NICHT geschenkt — Safaris eigene Zurück-Geste ist
+   dort abgeschaltet. Übrig blieb der „Zurück"-Knopf oben rechts, also der
+   am schlechtesten erreichbare Punkt eines großen iPhones.
+
+   Die Geste erfindet keinen zweiten Weg zurück: sie drückt den Zurück-Knopf
+   der sichtbaren Ansicht (`data-zurueck`). Damit gibt es nur EINE Wahrheit
+   darüber, wohin „zurück" führt — und Ansichten ohne diesen Knopf reagieren
+   gar nicht.
+
+   Bewusst NICHT markiert, weil ein versehentlicher Wisch dort teuer wäre:
+   Plan-Editor, laufendes Training, Bewertung und Ergebnis. Die verlässt man
+   weiter bewusst über ihre eigenen Knöpfe.
+   ============================================================ */
+const WISCH_KANTE   = 30;   // nur ein Start dicht an der linken Kante zählt
+const WISCH_WEG     = 70;   // so weit muss der Finger nach rechts
+const WISCH_SCHRAEG = 45;   // so weit darf er dabei nach oben/unten wandern
+
+/** Zählt dieser Wisch als „zurück"? Reine Rechnung, darum testbar. */
+function wischZurueck(start, ende){
+  if(!start || !ende) return false;
+  if(start.x > WISCH_KANTE) return false;                       // nicht an der Kante begonnen
+  if(ende.x - start.x < WISCH_WEG) return false;                // zu kurz
+  if(Math.abs(ende.y - start.y) > WISCH_SCHRAEG) return false;  // eher gescrollt als gewischt
+  return true;
+}
+
+/** Der Zurück-Knopf der sichtbaren Ansicht — oder null. Ein ausgeblendeter
+    Knopf zählt nicht: was die Ansicht nicht anbietet, darf auch die Geste
+    nicht auslösen (Wizard und Simpelheits-Auswahl blenden ihn aus). */
+function zurueckKnopfDerAnsicht(){
+  const ansicht = document.querySelector(".view.aktiv");
+  const knopf = ansicht ? ansicht.querySelector("[data-zurueck]") : null;
+  return (knopf && !knopf.hidden) ? knopf : null;
+}
+
+/** Liegt ein Dialog oder ein Aktionsmenü darüber, gehört die Geste nicht
+    der Ansicht dahinter. */
+function ueberlagerungOffen(){
+  return ["dialog-hintergrund", "menue-hintergrund"].some(id => {
+    const e = document.getElementById(id);
+    return !!e && e.classList.contains("offen");
+  });
+}
+
+/** Steckt der Startpunkt in einer waagerecht scrollenden Reihe (Filter-Chips,
+    Wizard-Seiten)? Dort bedeutet derselbe Wisch „in der Reihe blättern".
+    Gefragt wird die Seite selbst, nicht eine Liste von Klassennamen — so
+    stimmt es auch für Reihen, die es noch nicht gibt. */
+function inWaagerechterReihe(el){
+  for(let k = el; k && k !== document.body; k = k.parentElement){
+    if(k.scrollWidth - k.clientWidth > 4){
+      const richtung = getComputedStyle(k).overflowX;
+      if(richtung === "auto" || richtung === "scroll") return true;
+    }
+  }
+  return false;
+}
+
+function wischZurueckEinrichten(){
+  const inhalt = document.getElementById("inhalt");
+  if(!inhalt || inhalt.dataset.wisch) return;
+  inhalt.dataset.wisch = "1";
+  let start = null;
+  inhalt.addEventListener("touchstart", e => {
+    start = null;
+    if(e.touches.length !== 1) return;              // zwei Finger sind Zoomen, kein Wisch
+    const b = e.touches[0];
+    if(b.clientX > WISCH_KANTE) return;
+    const ziel = e.target;
+    if(!ziel || !ziel.closest) return;
+    if(ziel.closest("input,textarea,select")) return;   // dort gehört der Druck der Eingabe
+    if(inWaagerechterReihe(ziel)) return;
+    start = { x: b.clientX, y: b.clientY };
+  }, { passive:true });
+  inhalt.addEventListener("touchend", e => {
+    const anfang = start; start = null;
+    if(!anfang || ueberlagerungOffen()) return;
+    const b = e.changedTouches[0];
+    if(!wischZurueck(anfang, { x: b.clientX, y: b.clientY })) return;
+    const knopf = zurueckKnopfDerAnsicht();
+    if(knopf) knopf.click();
+  }, { passive:true });
+  inhalt.addEventListener("touchcancel", () => { start = null; }, { passive:true });
 }
 
 /* ============================================================
@@ -4911,6 +5022,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.164", punkte:[
+    "Zurück durch Wischen: Wisch von der linken Bildschirmkante nach rechts, und du bist eine Ebene zurück — so wie in jeder anderen iPhone-App. Der „Zurück“-Knopf bleibt, sitzt aber jetzt links statt rechts, also in Daumenreichweite. Die Geste gilt überall dort, wo es auch einen Zurück-Knopf gibt. Im Plan-Editor, im laufenden Training und in der Bewertung gilt sie bewusst NICHT — dort wäre ein versehentlicher Wisch teuer.",
+    "Das Profil hatte als einzige Unter-Ansicht gar keinen Zurück-Weg; auf den einfachen Stufen ohne Tab-Leiste war es damit eine Sackgasse. Jetzt hat es einen wie alle anderen.",
+    "Jedes Aktionsmenü (langes Drücken auf einen Plan oder eine Übung) hat jetzt unten ein „Abbrechen“. Bisher musste man wissen, dass ein Tipp neben das Menü es schließt."
+  ]},
   { stand:"0.163", punkte:[
     "Mehrere Einträge auf einmal löschen — in allen Listen mit Daten: Körpergewicht, Körpermaße, Trainings-Verlauf und Papierkorb. Oben in der Liste steht „Mehrere löschen“, oder du drückst irgendwo in der Liste lange. Dann bekommt jede Zeile ein Kästchen, „Alle“ hakt auf einen Schlag alles an, und gelöscht wird nach einer Rückfrage — mit einem Rückgängig für die ganze Aktion. Solange du auswählst, zeigt die Gewichts-Liste alle Einträge statt nur der letzten zehn, damit „Alle“ auch wirklich alle meint."
   ]},
@@ -13046,6 +13162,7 @@ document.addEventListener("visibilitychange", () => {
    ============================================================ */
 wasserzeichenZeichnen();
 systemTexteAnwenden();   // Texte auf iPhone/Android einstellen, bevor irgendetwas sichtbar wird
+wischZurueckEinrichten();   // v164: Wisch von der linken Kante = zurück (iPhone-Geste)
 
 /* v82: Beim ALLERERSTEN Start zeigt die App, was sie anders macht — danach nie
    wieder. Geräte-Merker (localStorage), kein Konto-Bezug: die Seite kommt VOR
