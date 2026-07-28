@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test162.js` | Rote Einfärbung überlasteter Muskeln: `lastFarbe` (Signalfarbe bis 70 %, stetiger Übergang, Warnrot ab 130 %, keine Sprünge, Randfälle) + Verdrahtung an **einer** Stelle (`muskelnAufCanvas`) und Quoten genau **einmal** je Zeichenlauf |
 | `test161.js` | Belastungs-Rechnung nutzt Vorhandenes: `satzGewichtung` (Note wiegt den Satz, relative Intensität **nur als Ersatz** — nie beides, ohne beides neutral), `maxGewichtJeUebung`, Wirkung auf `muskelLast` (harte vs. leichte Sätze, auch für Sekundärmuskeln, Regression ohne Noten) + `leistungFaellt` als **eigene** Aussage — geprüft wird, dass die Last-Rechnung `verfehltFolge` gar nicht kennt |
 | `test160.js` | Belastungs-Modell der Muskelkarte: `alterJahre`, `kapazitaetsFaktor` (Erfahrung/Alter/Geschlecht/Bonus — und **hart geprüft, dass Körpergewicht und BMI NICHT eingehen**), `muskelKapazitaet`, `muskelLast` (Fenster, Sekundär zählt halb, Soll-Sätze raus, Tage seit dem letzten Reiz), `muskelAuslastung`/`auslastungStufe` + Verdrahtung in Detail-Karte und Statuszeile |
 | `test159.js` | Gewicht im Training + Plan zieht nach: `sollVerfehlt` (zu wenig Wdh **oder** zu wenig Gewicht, Dropsätze/Körpergewicht/Zeit ausgenommen), `effektiveNote` mit Gewicht, `progressionAnwenden` (einmal ändert nichts, zweimal übernimmt Wdh + Gewicht, Zähler-Reset, `wdhMin` als Boden, Deload hat Vortritt, ohne Angabe alte Progression) + `gewichtSchrittFuer`/`hatGewicht` und die Verdrahtung |
@@ -141,6 +142,7 @@ VS Codes Electron springt ein):
     & $code tests\test159.js index.html
     & $code tests\test160.js index.html
     & $code tests\test161.js index.html
+    & $code tests\test162.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

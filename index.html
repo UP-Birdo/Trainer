@@ -2371,7 +2371,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 161;
+const APP_VERSION = 162;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4712,6 +4712,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.162", punkte:[
+    "Überlastete Muskeln färben sich jetzt rot — und zwar überall dort, wo eine Muskel-Figur steht: an den Übungen im Plan, in der Übungs-Suche, auf den Plan-Karten und auf der Sportart-Seite. Damit siehst du schon beim Aussuchen, dass eine Übung gerade nicht die beste Wahl ist. Die Farbe kippt nicht plötzlich um, sondern wandert langsam: Bis 70 Prozent deiner Richtgröße bleibt sie wie gewohnt, danach geht sie stetig ins Rot über und ist bei 130 Prozent ganz dort."
+  ]},
   { stand:"0.161", punkte:[
     "Die Auslastungs-Rechnung wird genauer — ohne dass du irgendetwas zusätzlich eingeben musst. Sie nutzt jetzt drei Dinge, die längst in deinen Daten stehen: Erstens deine NOTE je Übung — vier schwere Sätze belasten mehr als vier viel zu leichte, bisher zählten beide gleich. Zweitens, wo keine Note vorliegt, das Gewicht im Verhältnis zu deinem Bestwert. Drittens meldet die Muskelkarte, wenn du bei einer Übung zuletzt unter deinem Soll geblieben bist — der deutlichste Hinweis darauf, dass die Erholung nicht reicht. Der Leistungsabfall steht bewusst als eigener Satz da und wird nicht in die Prozentzahl verrührt."
   ]},
@@ -6214,6 +6217,39 @@ function themeRgb(name, fallback){
 }
 /** Signalgelb als [r,g,b] (für die Muskel-Einfärbung). */
 function muskelSignalRgb(){ return themeRgb("--signal", "F4C74E"); }
+function muskelWarnRgb(){ return themeRgb("--warn", "D95C47"); }
+
+/* ============================================================
+   v162: ÜBERLASTETE MUSKELN WERDEN LANGSAM ROT — überall.
+   Nutzer-Wunsch: „färbe die, die zu sehr angesprochen werden, langsam rot ein,
+   sodass man bei der Übungs-Auswahl schon sieht: die sollte ich jetzt nicht
+   einbauen." Umgesetzt an EINER Stelle — in `muskelnAufCanvas` —, damit es
+   automatisch für JEDE kleine Figur gilt: Übungs-Karten im Editor, Karten in
+   der Übungs-Suche, Plan-Karten, Sportart-Seite. Kein Aufrufer muss etwas
+   wissen.
+   „Langsam" wörtlich genommen: keine Schwelle, sondern ein Übergang. Bis 70 %
+   der Richtgröße bleibt die gewohnte Signalfarbe, danach wandert sie stetig ins
+   Warnrot und ist bei 130 % ganz dort — dieselben Grenzen wie die Stufen
+   „hoch" und „zu viel" (v160), nur stufenlos gezeichnet.
+   ============================================================ */
+
+/** Mischfarbe nach Auslastung. Rein/testbar. */
+function lastFarbe(quote, signal, warn){
+  const t = Math.max(0, Math.min(1, ((quote || 0) - 0.7) / 0.6));
+  return [0, 1, 2].map(i => Math.round(signal[i] + (warn[i] - signal[i]) * t));
+}
+
+/** Auslastungs-Quote je Muskel für die Einfärbung. Einmal je Zeichenlauf
+    berechnet — nicht je Figur, sonst liefe das Protokoll bei einer Liste mit
+    zwanzig Übungen zwanzigmal durch. */
+function auslastungsQuoten(){
+  if(!sitzung || !sitzung.daten) return {};
+  const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
+                             sitzung.daten.einrichtung, heuteAlsText());
+  const q = {};
+  Object.keys(a).forEach(m => { q[m] = a[m].quote; });
+  return q;
+}
 
 /** Index-Karte einer Ansicht einmalig laden → Treffer-Array + Pixel-Listen. */
 function muskelKarteLaden(v){
@@ -6311,14 +6347,17 @@ function muskelCanvasFuer(ansicht){
 /** Färbt die gegebenen Muskeln einer Ansicht auf einem Canvas-Kontext (Signalgelb).
     Gemeinsame Basis der großen Karte (muskelMalen) und der kleinen Fokus-Figur
     (miniMuskelFigur) — EINE Mal-Routine, damit beide nie auseinanderlaufen. */
-function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer){
+function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer, quoten){
   cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
   const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
-  const [r,g,b] = muskelSignalRgb();
+  const signal = muskelSignalRgb(), warn = muskelWarnRgb();
   const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
   const malen = (liste, a) => {
     for(const key of (liste || [])){
       const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
+      // v162: Die Farbe hängt an der Auslastung DIESES Muskels. Ohne Quoten
+      // (z. B. Bibliothek ohne Konto) bleibt alles bei der Signalfarbe.
+      const [r,g,b] = lastFarbe(quoten && quoten[key], signal, warn);
       for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
     }
   };
@@ -6372,10 +6411,14 @@ function planFigurenHtml(plan){
 /** v132: Post-Pass für alle Mini-Figuren unter einem Container — vorher stand
     dieselbe Schleife an vier Stellen (Bibliothek, Editor, Vorschau, Plan-Liste). */
 function miniFigurenZeichnen(selektor){
+  // v162: Die Auslastung EINMAL je Zeichenlauf holen und an alle Figuren
+  // durchreichen — dadurch färben sich überlastete Muskeln überall dort rot,
+  // wo eine Figur steht, ohne dass ein Aufrufer etwas dazutun muss.
+  const quoten = auslastungsQuoten();
   document.querySelectorAll(selektor + " .mini-figur[data-mf-ansicht]").forEach(el =>
     // v139: `data-mf-sek` trägt die Sekundärmuskeln (optional, blasser gemalt).
     miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean),
-                    (el.dataset.mfSek || "").split(",").filter(Boolean)));
+                    (el.dataset.mfSek || "").split(",").filter(Boolean), quoten));
 }
 
 /** v139: Ein `.mini-figur`-Element als HTML — EINE Quelle für alle Stellen
@@ -6407,13 +6450,13 @@ function miniFigurHtml(info, extraKlasse){
 /** Kleine Fokus-Muskel-Figur in ein .mini-figur-Element zeichnen: Figur-PNG +
     Canvas-Overlay, gefärbt wie die große Karte. Die Index-Karte wird bei Bedarf
     einmalig geladen (danach aus muskelDaten). */
-function miniMuskelFigur(ziel, ansicht, muskeln, sekundaer){
+function miniMuskelFigur(ziel, ansicht, muskeln, sekundaer, quoten){
   const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
   ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
     '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
   const cv = ziel.querySelector("canvas");
   muskelKarteLaden(ansicht).then(() => {
-    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln, 205, sekundaer);
+    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln, 205, sekundaer, quoten);
   });
 }
 

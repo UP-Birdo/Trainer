@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.162
+
+- Überlastete Muskeln färben sich jetzt rot — und zwar überall dort, wo eine
+  Muskel-Figur steht: an den Übungen im Plan, in der Übungs-Suche, auf den
+  Plan-Karten und auf der Sportart-Seite. Damit siehst du schon beim Aussuchen,
+  dass eine Übung gerade nicht die beste Wahl ist. Die Farbe kippt nicht
+  plötzlich um, sondern wandert langsam: Bis 70 Prozent deiner Richtgröße bleibt
+  sie wie gewohnt, danach geht sie stetig ins Rot über und ist bei 130 Prozent
+  ganz dort.
+
 ## 0.161
 
 - Die Auslastungs-Rechnung wird genauer — ohne dass du irgendetwas zusätzlich
