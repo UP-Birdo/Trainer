@@ -68,6 +68,8 @@ const code = [
   grabFn("abschnittNameSetzen"),
   grabFn("planSchieben"),
   grabFn("beispielplan"),
+  grabFn("echteSaetze"),      // v158: „letztes Mal" überspringt Soll-Sätze
+  grabFn("istSollEintrag"),   // v158: der Verlauf kennzeichnet Soll-Einträge
   grabFn("letztesMal"),
   grabFn("letztesMalText"),
   grabFn("kraftErledigt"),

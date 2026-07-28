@@ -2362,7 +2362,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 157;
+const APP_VERSION = 158;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4659,6 +4659,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.158", punkte:[
+    "Wenn du einen Plan mit „Erledigt“ abhakst, trägt die App die geplanten Zahlen ein — du sagst damit „ich habe das gemacht“, nicht „ich habe genau diese Zahlen geschafft“. Bisher wurden daraus trotzdem Bestwerte, Rekord-Meldungen und Punkte auf deiner Fortschrittskurve. Das ist behoben: Solche Einträge zählen weiter für Kalender, Serie, Volumen und die Muskelkarte — aber nicht mehr als Leistung. Im Verlauf steht jetzt „Sollwerte“ dahinter, damit du sie erkennst. Deine bisherigen Einträge bleiben, wie sie sind."
+  ]},
   { stand:"0.157", punkte:[
     "Der Notizblock schlägt dir jetzt Übungen vor: Sobald du zwei Buchstaben getippt hast, erscheint unter dem Feld eine Reihe passender Namen zum Antippen — aus allen Kraftübungen, allen Sportart-Übungen und deinen eigenen. Ein Tipp setzt den Namen ein und behält deine Zahlen: Aus „bankdr 10 3“ wird „Sätze 3 Wdh 10 LH-Bankdrücken“."
   ]},
@@ -5661,7 +5664,8 @@ function bestwerteZeichnen(){
   const karte = document.getElementById("bestwerte-karte");
   if(!karte) return;
   const best = {};   // Name -> { wert, txt }
-  sitzung.daten.protokoll.forEach(e => (e.saetze || []).forEach(s => {
+  // v158: Sollwerte sind kein Bestwert — sie wurden nie gemessen.
+  sitzung.daten.protokoll.forEach(e => echteSaetze(e).forEach(s => {
     if(!s.name) return;
     let wert, txt;
     if(s.modus === "zeit"){ wert = s.dauer || 0; txt = Math.round(wert) + " s"; }
@@ -5906,7 +5910,9 @@ let fortschrittUebung = null;
 /** Alle Übungsnamen, für die es protokollierte Sätze gibt (alphabetisch). */
 function fortschrittUebungen(){
   const namen = new Set();
-  sitzung.daten.protokoll.forEach(e => (e.saetze || []).forEach(s => { if(s.name) namen.add(s.name); }));
+  // v158: nur Übungen anbieten, für die es GEMESSENE Werte gibt — sonst stünde
+  // eine Kurve zur Wahl, die anschließend leer bleibt.
+  sitzung.daten.protokoll.forEach(e => echteSaetze(e).forEach(s => { if(s.name) namen.add(s.name); }));
   return [...namen].sort((a,b) => a.localeCompare(b, "de"));
 }
 function fortschrittSetzen(name){ fortschrittUebung = name; fortschrittZeichnen(); }
@@ -5926,7 +5932,9 @@ function fortschrittZeichnen(){
   const proTag = {};
   let modusZeit = false, gewichtGesehen = false;
   sitzung.daten.protokoll.forEach(e => {
-    (e.saetze || []).forEach(s => {
+    // v158: Sollwerte gehören nicht in die Fortschrittskurve (auch nicht in die
+    // 1RM-Schätzung darunter) — sie wären eine gerade Linie aus Plan-Zahlen.
+    echteSaetze(e).forEach(s => {
       if(s.name !== fortschrittUebung) return;
       let wert;
       if(s.modus === "zeit"){ modusZeit = true; wert = s.dauer || 0; }
@@ -6023,7 +6031,10 @@ function protokollEintragHtml(e, mitAktionen){
   }
   return '<div style="padding:6px 0;border-bottom:1px solid var(--line)">' +
     '<div class="zeile"><div style="color:var(--chalk)"><span style="color:' + sportartFarbe(e.sportart) + '">■</span> ' +
-      text(titel) + (e.sonder && e.plan ? ' <span class="meta">· Sondertraining</span>' : "") + '</div>' +
+      text(titel) + (e.sonder && e.plan ? ' <span class="meta">· Sondertraining</span>' : "") +
+      // v158: sichtbar machen, dass hier die geplanten Zahlen stehen — sonst
+      // liest sich der Eintrag wie ein gemessenes Training.
+      (istSollEintrag(e) ? ' <span class="meta">· Sollwerte</span>' : "") + '</div>' +
       (mitAktionen && e.id
         ? '<span style="flex:0 0 auto">' +
           '<button class="schmal" onclick="eintragBearbeiten(\'' + e.id + '\')" aria-label="Eintrag bearbeiten">✎</button> ' +
@@ -11603,7 +11614,8 @@ function kraftErledigt(planId){
     const saetze = [];
     plan.uebungen.forEach(u => {
       for(let s = 1; s <= u.saetze; s++){
-        const eintrag = { uebungId:u.id, name:u.name, modus:u.modus, satz:s, note:null };
+        // v158: `soll` markiert die Zahlen als GEPLANT, nicht gemessen.
+        const eintrag = { uebungId:u.id, name:u.name, modus:u.modus, satz:s, note:null, soll:true };
         if(u.modus === "zeit") eintrag.dauer = u.dauer;
         else { eintrag.wdh = u.wdh; eintrag.gewicht = u.gewicht; }
         saetze.push(eintrag);
@@ -11705,6 +11717,39 @@ function trainingLosgehts(){
    Vorher-Hinweis („REKORD", wenn der GEPLANTE Satz alles überträfe). Was fehlte,
    war die Bestätigung im Moment des Erfolgs — genau die Stelle, an der sie zählt.
    Drei kleine reine Funktionen tragen das, damit sie testbar bleiben. */
+
+/* ------------------------------------------------------------
+   v158: SOLL-Sätze zählen nicht als Leistung.
+
+   „Erledigt" auf einer Plan-Karte schreibt die geplanten Werte ins Protokoll —
+   der Nutzer sagt damit „ich habe diesen Plan gemacht", nicht „ich habe genau
+   diese Zahlen geschafft". Bis v157 waren beide Arten von Sätzen ununterscheidbar,
+   und die Sollwerte erzeugten Bestwerte, Rekord-Meldungen und Punkte auf der
+   Fortschrittskurve. Das verstößt gegen die goldene Regel „Heben erfindet nie
+   Daten": Ein geplanter Wert ist keine Messung.
+
+   Seit v158 tragen diese Sätze `soll:true` (additiv — alte Einträge haben das
+   Feld nicht und gelten weiter als gemessen; rückwirkend lässt sich das nicht
+   wissen). Die Trennlinie:
+     ZÄHLT WEITER  Kalender, Serie/Flamme, Volumen, Muskel-Heatmap — das
+                   Training hat stattgefunden, und das Volumen ist ausdrücklich
+                   eine grobe Trendgröße.
+     ZÄHLT NICHT   Bestwerte, Rekord-Vergleich, Fortschrittskurve samt
+                   1RM-Schätzung und „letztes Mal" — das sind Aussagen über
+                   gemessene Leistung.
+   ------------------------------------------------------------ */
+
+/** Die Sätze eines Eintrags, die wirklich geleistet wurden. Rein/testbar. */
+function echteSaetze(eintrag){
+  const s = eintrag && Array.isArray(eintrag.saetze) ? eintrag.saetze : [];
+  return s.filter(x => x && !x.soll);
+}
+
+/** Ist das ein reiner Soll-Eintrag (per „Erledigt" angelegt)? Rein/testbar. */
+function istSollEintrag(eintrag){
+  const s = eintrag && Array.isArray(eintrag.saetze) ? eintrag.saetze : [];
+  return s.length > 0 && s.every(x => x && x.soll);
+}
 
 /** Wert eines Satzes — dieselbe Rechnung wie Rekord und Bestwerte-Statistik:
     Gewicht × Wdh, ohne Gewicht die Wdh, bei Zeit-Übungen die Sekunden. */
@@ -12027,7 +12072,9 @@ function aufraeumen(){
    uebungId mit Namens-Rückfall (kopierte Übungen haben eigene IDs). */
 function letztesMal(u){
   for(let i = sitzung.daten.protokoll.length - 1; i >= 0; i--){
-    const saetze = (sitzung.daten.protokoll[i].saetze || []).filter(s =>
+    // v158: Soll-Sätze überspringen — „letztes Mal" soll zeigen, was du wirklich
+    // geschafft hast. Die Plan-Zahlen stehen ohnehin schon in der Übung.
+    const saetze = echteSaetze(sitzung.daten.protokoll[i]).filter(s =>
       s.uebungId === u.id || normName(s.name || "") === normName(u.name));
     if(saetze.length) return { datum: sitzung.daten.protokoll[i].datum, saetze };
   }
@@ -12053,8 +12100,8 @@ function letztesMalText(u){
 function bisherigerRekord(uebungId, modus){
   let best = 0;
   sitzung.daten.protokoll.forEach(e => {
-    if(!Array.isArray(e.saetze)) return;
-    e.saetze.forEach(sa => {
+    // v158: gegen Sollwerte gibt es keinen Rekord zu brechen.
+    echteSaetze(e).forEach(sa => {
       if(sa.uebungId !== uebungId) return;
       const wert = modus === "zeit" ? (sa.dauer || 0) : (sa.wdh || 0) * ((sa.gewicht || 0) > 0 ? sa.gewicht : 1);
       if(wert > best) best = wert;

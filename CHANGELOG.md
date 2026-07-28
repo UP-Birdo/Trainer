@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.158
+
+- Wenn du einen Plan mit „Erledigt“ abhakst, trägt die App die geplanten Zahlen
+  ein — du sagst damit „ich habe das gemacht“, nicht „ich habe genau diese Zahlen
+  geschafft“. Bisher wurden daraus trotzdem Bestwerte, Rekord-Meldungen und
+  Punkte auf deiner Fortschrittskurve. Das ist behoben: Solche Einträge zählen
+  weiter für Kalender, Serie, Volumen und die Muskelkarte — aber nicht mehr als
+  Leistung. Im Verlauf steht jetzt „Sollwerte“ dahinter, damit du sie erkennst.
+  Deine bisherigen Einträge bleiben, wie sie sind.
+
 ## 0.157
 
 - Der Notizblock schlägt dir jetzt Übungen vor: Sobald du zwei Buchstaben
