@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.183
+
+- Die Übungs-Bibliothek zeigt jetzt auch deine Sportart-Übungen. Bisher standen
+  dort ausschließlich Kraftübungen — wer nur läuft, fand unter „Alle Übungen zum
+  Nachschlagen“ keine einzige seiner eigenen, obwohl jeder der 81 Drills längst
+  einen Merksatz und eine volle Beschreibung hat. Die gab es nur über Profil →
+  Sportart, also hinter dem Profil, das es erst auf der höchsten Stufe gibt.
+- Die Filter oben richten sich jetzt nach dir: Kraft-Kategorien nur, wenn du
+  Krafttraining machst, dazu je eigener Sportart einen Filter. So steht dort nie
+  ein Knopf, hinter dem nichts liegt. Fremde Sportarten, die du nicht machst,
+  tauchen weiterhin nicht auf.
+
 ## 0.182
 
 - Ein Training löschen nimmt jetzt auch zurück, was es angerichtet hat. Bisher

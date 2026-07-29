@@ -1245,7 +1245,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   </div>
   <div class="karte" id="mehr-bibliothek-karte">
     <h2>Übungs-Bibliothek</h2>
-    <div class="meta abstand">Alle Übungen zum Nachschlagen: Gerät, Muskeln und ein kurzer Tipp.</div>
+    <!-- v183: „Gerät" stimmte nur fürs Krafttraining — seit die Drills der
+         eigenen Sportarten mit drinstehen, ist die Beschreibung allgemein. -->
+    <div class="meta abstand">Alle deine Übungen zum Nachschlagen: Muskeln, kurzer Tipp und Beschreibung.</div>
     <div class="knopfreihe"><button class="schmal" onclick="bibliothekOeffnen()">Bibliothek öffnen</button></div>
   </div>
   <div class="karte" id="mehr-papierkorb-karte">
@@ -2564,7 +2566,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 182;
+const APP_VERSION = 183;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5667,6 +5669,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.183", punkte:[
+    "Die Übungs-Bibliothek zeigt jetzt auch deine Sportart-Übungen. Bisher standen dort ausschließlich Kraftübungen — wer nur läuft, fand unter „Alle Übungen zum Nachschlagen“ keine einzige seiner eigenen, obwohl jeder der 81 Drills längst einen Merksatz und eine volle Beschreibung hat. Die gab es nur über Profil → Sportart, also hinter dem Profil, das es erst auf der höchsten Stufe gibt.",
+    "Die Filter oben richten sich jetzt nach dir: Kraft-Kategorien nur, wenn du Krafttraining machst, dazu je eigener Sportart einen Filter. So steht dort nie ein Knopf, hinter dem nichts liegt. Fremde Sportarten, die du nicht machst, tauchen weiterhin nicht auf."
+  ]},
   { stand:"0.182", punkte:[
     "Ein Training löschen nimmt jetzt auch zurück, was es angerichtet hat. Bisher verschwand nur der Eintrag — die angehobenen Gewichte und Wiederholungen, die Notenhistorie, gehobene Strecken und Ziele blieben im Plan stehen. Wer sich vertippt hatte, trainierte danach nach Zahlen, die aus dem Irrtum stammten. Jetzt geht der Plan auf den Stand vor diesem Training zurück, und der Dialog sagt dir vorher, dass das passiert.",
     "Zurückgenommen wird nur das JÜNGSTE Training eines Plans. Läge noch ein späteres dazwischen, würde dessen Steigerung stillschweigend mitverschwinden — das wäre schlimmer als nichts zu tun. In dem Fall sagt die App klar, dass der Plan bleibt, wie er ist, und löscht nur den Eintrag.",
@@ -12000,23 +12006,78 @@ const BIB_KATS = [["alle","Alle"],["beine","Beine"],["druck","Drücken"],["zug",
 const BIB_KAT_NAME = { beine:"Beine", druck:"Drücken", zug:"Ziehen", rumpf:"Rumpf", cardio:"Cardio" };
 let bibZustand = { kat:"alle", offen:null };
 
-/** Filtert die Übungen nach Kategorie + Suchtext (pure, testbar). */
+/* ------------------------------------------------------------
+   v183: Die Bibliothek kennt jetzt auch die Sportart-Drills.
+
+   Gefunden beim Durchspielen einer reinen Ausdauer-Sportlerin: Die Karte unter
+   Mehr → Werkzeuge verspricht „Alle Übungen zum Nachschlagen" — zeigte aber
+   ausschließlich `UEBUNGEN_DB`, also nur Kraftübungen. Für jemanden, der nur
+   läuft, stand dort **keine einzige** seiner Übungen, obwohl seit v145 jeder
+   der 81 Drills einen Kurz-Tipp und seit v151/v152 eine volle Beschreibung hat.
+   Erreichbar waren sie nur über Profil → Sportart — also hinter dem Profil, das
+   es erst ab Stufe 5 gibt.
+
+   Derselbe Fehler-Typ wie v169: Der Inhalt war da, nur am falschen Ort.
+
+   Gezeigt werden die Drills der EIGENEN Sportarten — nicht aller. Wer nur
+   läuft, will nicht durch Kletter-Drills blättern; und die Sportart-Seite
+   zeigt es genauso.
+   ------------------------------------------------------------ */
+
+/** Alle Übungen der Bibliothek in EINER Form: Kraftübungen aus `UEBUNGEN_DB`,
+    dazu die Drills der eigenen Sportarten. `sport` sagt, woher eine kommt —
+    daran hängt der Filter. Rein/testbar (Sportarten werden übergeben). */
+function bibKandidaten(sportarten){
+  const meine = sportarten || [];
+  const liste = meine.includes("kraft")
+    ? UEBUNGEN_DB.map(u => ({ name:u.name, kat:u.kat, geraet:u.geraet, modus:u.modus, sport:"kraft" }))
+    : [];
+  meine.filter(id => id !== "kraft").forEach(id =>
+    sportUebungen(id).forEach(v =>
+      liste.push({ name:v.name, kat:null, geraet:null, modus:v.modus, art:v.art, sport:id })));
+  return liste;
+}
+
+/** Die Filter-Knöpfe: „Alle" immer, die Kraft-Kategorien nur bei Krafttraining
+    im Profil, dazu je eigener Sportart einer. So steht dort nie ein Filter, der
+    auf nichts zeigt. Rein/testbar. */
+function bibFilterListe(sportarten){
+  const meine = sportarten || [];
+  const liste = [["alle", "Alle"]];
+  if(meine.includes("kraft"))
+    BIB_KATS.filter(([k]) => k !== "alle").forEach(x => liste.push(x));
+  meine.filter(id => id !== "kraft").forEach(id => liste.push(["sport:" + id, sportartName(id)]));
+  return liste;
+}
+
+/** Filtert die Übungen nach Kategorie + Suchtext (pure, testbar).
+    v183: `kat` ist entweder eine Kraft-Kategorie oder `sport:<id>`. */
 function bibFilter(uebungen, kat, suche){
   const s = normName(suche || "");
-  return uebungen.filter(u => (kat === "alle" || u.kat === kat) && (!s || normName(u.name).includes(s)));
+  const sportFilter = String(kat || "").indexOf("sport:") === 0 ? String(kat).slice(6) : null;
+  return uebungen.filter(u =>
+    (kat === "alle" || (sportFilter ? u.sport === sportFilter : u.kat === kat)) &&
+    (!s || normName(u.name).includes(s)));
 }
 
 function bibliothekOeffnen(){
   bibZustand.offen = null;
+  /* v183: Ein Filter, den es nicht mehr gibt, würde eine leere Liste zeigen —
+     etwa „Beine", nachdem Krafttraining aus dem Profil geflogen ist. */
+  const erlaubt = bibFilterListe(sitzung.daten.einrichtung.sportarten).map(([k]) => k);
+  if(!erlaubt.includes(bibZustand.kat)) bibZustand.kat = "alle";
   bibFilterZeichnen();
   bibKartenZeichnen();
   zeige("view-bibliothek");
 }
 
 function bibFilterZeichnen(){
-  document.getElementById("bib-filter").innerHTML = BIB_KATS.map(([k,n]) =>
-    '<button class="muskel-tab' + (bibZustand.kat === k ? " muskel-an" : "") +
-    '" onclick="bibKat(\'' + k + '\')">' + n + '</button>').join("");
+  // v183: Die Filter richten sich nach dem Profil — keine Kraft-Kategorien für
+  // jemanden ohne Krafttraining, dafür je eigener Sportart einer.
+  document.getElementById("bib-filter").innerHTML =
+    bibFilterListe(sitzung.daten.einrichtung.sportarten).map(([k,n]) =>
+      '<button class="muskel-tab' + (bibZustand.kat === k ? " muskel-an" : "") +
+      '" onclick="bibKat(\'' + k + '\')">' + text(n) + '</button>').join("");
 }
 function bibKat(k){ bibZustand.kat = k; bibZustand.offen = null; bibFilterZeichnen(); bibKartenZeichnen(); }
 function bibToggle(name){ bibZustand.offen = (bibZustand.offen === name ? null : name); bibKartenZeichnen(); }
@@ -12025,22 +12086,32 @@ function bibToggle(name){ bibZustand.offen = (bibZustand.offen === name ? null :
     zusätzlich Mini-Figur, Muskelnamen und der Ausführungs-Tipp. */
 function bibKarteHtml(u){
   const info = uebungMuskeln(u.name);
-  const geraet = (u.geraet && u.geraet !== "keine") ? geraetName(u.geraet) : "Körpergewicht";
+  const istDrill = u.sport && u.sport !== "kraft";
+  /* v183: Ein Drill hat kein Gerät und keine Kraft-Kategorie — er hat eine
+     Sportart und eine Art (Technik, Kondition, Grundlagen). Beides steht an
+     denselben zwei Stellen wie bei einer Kraftübung, damit die Karte für beide
+     gleich gelesen wird. */
+  const rechts = istDrill ? (u.art || sportartName(u.sport)) : (BIB_KAT_NAME[u.kat] || u.kat || "");
+  const herkunft = istDrill ? sportartName(u.sport)
+                            : ((u.geraet && u.geraet !== "keine") ? geraetName(u.geraet) : "Körpergewicht");
   const modus = u.modus === "zeit" ? "Zeit" : "Wdh";
   const region = info && info.label ? info.label : "";
   const nameJs = u.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   const kopf = '<div class="zeile" style="cursor:pointer" onclick="bibToggle(\'' + nameJs + '\')">' +
       '<h2 style="margin:0">' + text(u.name) + '</h2>' +
-      '<span class="meta">' + text(BIB_KAT_NAME[u.kat] || u.kat) + '</span></div>' +
-    '<div class="meta">' + text(geraet) + ' · ' + modus + (region ? ' · ' + text(region) : "") + '</div>';
+      '<span class="meta">' + text(rechts) + '</span></div>' +
+    '<div class="meta">' + text(herkunft) + ' · ' + modus + (region ? ' · ' + text(region) : "") + '</div>';
   if(bibZustand.offen !== u.name) return '<div class="karte">' + kopf + '</div>';
   const figur = miniFigurHtml(info);   // v139: eine Quelle, kennt auch Sekundärmuskeln
   const muskelNamen = (info && info.muskeln) ? info.muskeln.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
   // v139: Sekundärmuskeln benennen — die Figur zeigt sie blass, die Zeile macht klar, welche es sind.
   const sekNamen = (info && info.sekundaer && info.sekundaer.length)
     ? info.sekundaer.map(m => (MUSKEL_INFO[m] || {}).name || m).join(", ") : "";
-  const tip = UEBUNG_INFO[u.name] || "";
-  const beschreibung = UEBUNG_TEXT[u.name] || "";   // v138: 2–3 Sätze, wo schon geschrieben
+  /* v183: `drillTipp`/`drillText` statt der Kraft-Tabellen direkt — sie führen
+     beide Welten unter einer Quelle zusammen (v145/v151) und liefern für eine
+     Kraftübung genau dasselbe wie vorher. */
+  const tip = drillTipp(u.name);
+  const beschreibung = drillText(u.name);   // v138: 2–3 Sätze, wo schon geschrieben
   return '<div class="karte">' + kopf +
     '<div class="zeile abstand" style="align-items:flex-start;gap:12px">' + figur +
       '<div>' +
@@ -12056,7 +12127,7 @@ function bibKarteHtml(u){
 
 function bibKartenZeichnen(){
   const suche = (document.getElementById("bib-suche") || {}).value || "";
-  const liste = bibFilter(UEBUNGEN_DB, bibZustand.kat, suche);
+  const liste = bibFilter(bibKandidaten(sitzung.daten.einrichtung.sportarten), bibZustand.kat, suche);
   document.getElementById("bib-status").textContent = liste.length + (liste.length === 1 ? " Übung" : " Übungen");
   document.getElementById("bib-liste").innerHTML = liste.map(bibKarteHtml).join("");
   // Figur der OFFENEN Karte nachzeichnen (Canvas + async Bild-/Kartenladung).

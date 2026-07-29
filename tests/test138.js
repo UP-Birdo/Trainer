@@ -63,7 +63,14 @@ pruefe("jede Uebung hat weiterhin einen Kurz-Tipp" + (ohneTipp.length ? " (" + o
   ohneTipp.length === 0);
 
 /* 5) Verdrahtung in der Bibliothek. */
-pruefe("Bibliothek liest UEBUNG_TEXT", src.includes("const beschreibung = UEBUNG_TEXT[u.name]"));
+/* v183: Die Bibliothek liest die Beschreibung ueber `drillText` — das ist
+   dieselbe Quelle, nur eine Ebene weiter: `drillText` faellt fuer eine
+   Kraftuebung auf genau dieses UEBUNG_TEXT zurueck (v151). Noetig wurde es,
+   weil dort jetzt auch Sportart-Drills stehen. */
+pruefe("Bibliothek liest die Beschreibung ueber die gemeinsame Quelle",
+  src.includes("const beschreibung = drillText(u.name)"));
+pruefe("und die faellt fuer Kraftuebungen auf UEBUNG_TEXT zurueck",
+  /return SPORT_TEXT\[name\] \|\| UEBUNG_TEXT\[name\] \|\| "";/.test(src));
 pruefe("Beschreibung steht unter dem Tipp",
   src.indexOf("(tip ? '<div class=\"meta\" style=\"margin-top:6px\"'") < src.indexOf("(beschreibung ?"));
 pruefe("Text wird escaped", src.includes("text(beschreibung)"));
