@@ -2564,7 +2564,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 181;
+const APP_VERSION = 182;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4897,6 +4897,12 @@ const LISTEN_TYPEN = {
     sichtbar: () => sitzung.daten.protokoll.filter(e => e.id),
     kennung:  e => e.id,
     korb:     e => ({ typ:"eintrag", name: datumKurz(e.datum) + " · " + (e.plan || "Training") }),
+    /* v182: Ein Trainings-Eintrag hat FOLGEN am Plan (Steigerung, Noten,
+       Ziele). Die gehen beim Einzel-Löschen mit zurück und beim Rückgängig
+       wieder mit — dieselbe Regel wie beim × im Verlauf. Als Register-Feld,
+       damit `listenEinzelLoeschen` keine Liste beim Namen kennen muss. */
+    folgenZurueck: e => folgenZurueck(e),
+    folgenWieder: s => folgenWieder(s),
     // v153: Flamme, Heute-Karte und Statistik hängen am Protokoll — die müssen mit.
     zeichnen: () => { fortschrittNeuZeichnen(); verlaufListeZeichnen(); }
   },
@@ -5154,11 +5160,15 @@ function listenEinzelLoeschen(typ, kennung){
   const vorher = d.liste().slice();   // flache Kopie -> Rückgängig ohne Index-Rechnerei
   let korbId = null;
   if(d.korb){ const k = d.korb(eintrag); korbId = inPapierkorb(k.typ, k.name, eintrag); }
+  // v182: Manche Einträge haben Folgen anderswo (ein Training am Plan). Das
+  // Register sagt, ob und wie sie zurückgenommen werden.
+  const folgen = d.folgenZurueck ? d.folgenZurueck(eintrag) : null;
   d.setzen(d.liste().filter(e => e !== eintrag));
   speichern();
   d.zeichnen();
-  zeigenToast(d.einzahl + " gelöscht", "info", () => {
+  zeigenToast(folgen ? d.einzahl + " und Steigerung zurückgenommen" : d.einzahl + " gelöscht", "info", () => {
     d.setzen(vorher);
+    if(d.folgenWieder) d.folgenWieder(folgen);
     if(korbId) papierkorbEntfernen(korbId);
     speichern();
     d.zeichnen();
@@ -5657,6 +5667,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.182", punkte:[
+    "Ein Training löschen nimmt jetzt auch zurück, was es angerichtet hat. Bisher verschwand nur der Eintrag — die angehobenen Gewichte und Wiederholungen, die Notenhistorie, gehobene Strecken und Ziele blieben im Plan stehen. Wer sich vertippt hatte, trainierte danach nach Zahlen, die aus dem Irrtum stammten. Jetzt geht der Plan auf den Stand vor diesem Training zurück, und der Dialog sagt dir vorher, dass das passiert.",
+    "Zurückgenommen wird nur das JÜNGSTE Training eines Plans. Läge noch ein späteres dazwischen, würde dessen Steigerung stillschweigend mitverschwinden — das wäre schlimmer als nichts zu tun. In dem Fall sagt die App klar, dass der Plan bleibt, wie er ist, und löscht nur den Eintrag.",
+    "Und du kommst leichter dran: Im Kalender steht an einem Tag, an dem du trainiert hast, jetzt „Training löschen“ direkt im Menü — bei mehreren Trainings eine Zeile je Training. Rückgängig machen kannst du es wie immer sofort über die Meldung; dann kommt auch die Steigerung zurück."
+  ]},
   { stand:"0.181", punkte:[
     "Der Assistent kann deinem Profil ab jetzt nur noch etwas HINZUFÜGEN — nie etwas wegnehmen. Das gilt für Sportarten und für Geräte gleichermaßen: Wählst du etwas ab, weil es für diesen einen Plan nicht gebraucht wird, bleibt es in deinem Profil stehen. Tippst du dagegen etwas an, das du vorher nicht hattest, kommt es dazu. Nur ganz am Anfang, bei der Ersteinrichtung, legt deine Auswahl die Listen wirklich fest.",
     "Deshalb zeigt der Assistent auch wieder ALLE Sportarten statt nur deiner — du kannst dort einfach eine neue antippen, und sie ist danach in deinem Profil. Der Umweg über den Knopf „Andere Sportart einrichten“ ist damit weggefallen.",
@@ -6499,6 +6514,15 @@ function tagOeffnen(datum){
       eintragenRueckweg = "kalender";
       eintragenOeffnen(null, 0, datum);
     }});
+  /* v182 (Nutzer-Wunsch): An einem Tag, an dem trainiert wurde, steht das
+     Löschen gleich hier — eine Zeile je Training, damit bei mehreren klar ist,
+     welches gemeint ist. Es läuft durch dieselbe Funktion wie das × im Verlauf
+     (Rückfrage, Papierkorb, Rückgängig UND die Rücknahme der Plan-Folgen);
+     mitgegeben wird nur, dass danach der Kalender neu zu zeichnen ist statt
+     der Verlauf — man soll bleiben, wo man ist. */
+  proto.filter(e => e.id).forEach(e =>
+    aktionen.push({ text:"Training löschen: " + (e.plan || "Training"),
+                    tun:() => eintragLoeschen(e.id, kalenderZeichnen) }));
   if(sitzung.daten.plaene.length)
     aktionen.push({ text:"Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
   sitzung.daten.plaene.filter(p => (p.einzelTermine || []).includes(datum)).forEach(p =>
@@ -8704,26 +8728,132 @@ function muskelStatusText(){
 /** Einen einzelnen Protokoll-Eintrag löschen — mit Rückfrage und Undo.
     Für Tippfehler beim Nachtragen: „was trainiert wurde, wurde trainiert“ gilt
     für Einstellungen, eigene Fehleingaben muss man korrigieren dürfen. */
-function eintragLoeschen(id){
+/* ------------------------------------------------------------
+   v182: Ein Training löschen — samt seiner FOLGEN.
+
+   Nutzer-Wunsch: „… Trainings-Einheiten löschen im Nachhinein, mitsamt all den
+   Daten, die in dem Training gekommen sind — alles zurück wie vor der Übung,
+   dem Training oder dem Plan."
+
+   Bis v181 verschwand nur der Protokoll-Eintrag. Was ein Training am PLAN
+   angerichtet hat, blieb: angehobene Gewichte und Wiederholungen, die
+   Notenhistorie, der Verfehlt-Zähler, ein Deload, gehobene Strecken, Dauern und
+   Messgrößen-Ziele. Wer sich vertippt hatte, löschte den Eintrag — und trainierte
+   danach weiter nach Zahlen, die aus dem Irrtum stammten.
+
+   Der Weg dorthin ist ein SCHNAPPSCHUSS des Plans, genommen bevor das Training
+   ihn anfasst. Zwei Aufnahmestellen genügen, weil alle Änderungen am Plan
+   landen und beide Wege durch je einen Trichter laufen:
+     * `bewertungOeffnen` — Kraft UND Aktivitäten MIT Übungen (v127-Kommentar:
+       „ein zweiter Bewertungspfad wäre eine zweite Stelle, an der dieselbe
+       Regel abdriften kann");
+     * `aktivitaetAblegen` — reine Aktivitäten (Strecke/Dauer/Messgröße).
+   Wege, die den Plan gar nicht anfassen (Erledigt-Haken, Nachtragen, der
+   Notizblock-Haken aus v174), brauchen keinen.
+
+   **Zurückgenommen wird nur der JÜNGSTE Eintrag eines Plans.** Läge noch ein
+   späteres Training dazwischen, würde dessen Steigerung stillschweigend mit
+   verschwinden — das wäre schlimmer als gar nichts zu tun. Der Dialog sagt in
+   beiden Fällen, was passiert.
+   ------------------------------------------------------------ */
+
+/** Tiefe Kopie eines Plans. Bewusst über JSON: Ein Plan enthält nur Daten,
+    und so kann keine Referenz zurückbleiben, die später mitwandert. */
+function planSchnappschuss(plan){
+  return plan ? JSON.parse(JSON.stringify(plan)) : null;
+}
+
+/** Den Stand des Plans an einem Protokoll-Eintrag festhalten — vor allem, was
+    das Training gleich verändern wird. Ältere Abzüge desselben Plans fallen
+    dabei weg: Zurücknehmen lässt sich ohnehin nur der jüngste, und ein
+    Plan-Abzug je Training würde den Speicher über Jahre unnötig füllen. */
+function planStandMerken(eintrag, plan){
+  if(!eintrag || !plan || !plan.id) return;
+  /* Der FRÜHESTE Stand zählt. Eine Aktivität MIT Übungen läuft durch beide
+     Aufnahmestellen: erst `aktivitaetAblegen` (vor `zieleAnwenden`), dann
+     `bewertungOeffnen`. Ohne diese Wache überschriebe die zweite den echten
+     Ausgangsstand mit einem, an dem die Ziele schon gewirkt haben. */
+  if(eintrag.planVorher) return;
+  eintrag.planVorher = planSchnappschuss(plan);
+  (sitzung.daten.protokoll || []).forEach(x => {
+    if(x !== eintrag && x.planId === plan.id && x.planVorher) delete x.planVorher;
+  });
+}
+
+/** Ist dieser Eintrag der JÜNGSTE, der seinen Plan verändert hat? Nur dann
+    lässt sich sein Einfluss sauber herausrechnen. Gezählt werden nur Einträge,
+    die selbst einen Abzug tragen — nur die haben den Plan angefasst.
+    Rein/testbar. */
+function letzterAmPlan(protokoll, eintrag){
+  const liste = protokoll || [];
+  if(!eintrag || !eintrag.planId || !eintrag.planVorher) return false;
+  const i = liste.indexOf(eintrag);
+  if(i < 0) return false;
+  return !liste.slice(i + 1).some(x => x && x.planId === eintrag.planId && x.planVorher);
+}
+
+/** Kann dieser Eintrag seine Folgen zurücknehmen? Braucht zusätzlich, dass es
+    den Plan überhaupt noch gibt. Rein/testbar (Pläne werden übergeben). */
+function folgenZuruecknehmbar(protokoll, plaene, eintrag){
+  return letzterAmPlan(protokoll, eintrag) &&
+         (plaene || []).some(p => p.id === eintrag.planId);
+}
+
+/** Die Folgen zurücknehmen. Gibt den Plan-Stand VON JETZT zurück, damit ein
+    Rückgängig ihn wiederherstellen kann — oder null, wenn nichts geschah. */
+function folgenZurueck(eintrag){
+  if(!folgenZuruecknehmbar(sitzung.daten.protokoll, sitzung.daten.plaene, eintrag)) return null;
+  const i = sitzung.daten.plaene.findIndex(p => p.id === eintrag.planId);
+  const jetzt = planSchnappschuss(sitzung.daten.plaene[i]);
+  sitzung.daten.plaene[i] = planSchnappschuss(eintrag.planVorher);
+  return jetzt;
+}
+
+/** Gegenstück zum Rückgängig: den Plan wieder auf den Stand von vorhin setzen. */
+function folgenWieder(stand){
+  if(!stand) return;
+  const i = sitzung.daten.plaene.findIndex(p => p.id === stand.id);
+  if(i >= 0) sitzung.daten.plaene[i] = planSchnappschuss(stand);
+}
+
+/** Der Satz, der im Lösch-Dialog erklärt, was mit dem Plan passiert.
+    Rein/testbar — er ist die einzige Stelle, an der die App das verspricht. */
+function folgenSatz(protokoll, plaene, eintrag){
+  if(!eintrag || !eintrag.planVorher) return "";
+  if(folgenZuruecknehmbar(protokoll, plaene, eintrag))
+    return "\n\nDer Plan geht dabei auf den Stand vor diesem Training zurück — " +
+           "Gewichte, Wiederholungen und Steigerung.";
+  return "\n\nDer Plan bleibt, wie er ist: Seit diesem Training gab es weitere, " +
+         "die sich nicht mehr sauber herausrechnen lassen.";
+}
+
+/** `danach` (v182): was nach dem Löschen neu zu zeichnen ist. Der Verlauf ist
+    die Vorgabe; der Kalender reicht seinen eigenen Zeichner durch, damit man
+    dort bleibt, wo man war. */
+function eintragLoeschen(id, danach){
   const idx = sitzung.daten.protokoll.findIndex(e => e.id === id);
   if(idx < 0) return;
   const e = sitzung.daten.protokoll[idx];
-  frage("Diesen Eintrag löschen?\n" + datumKurz(e.datum) + " · " + e.plan, true, ja => {
+  const zeichnen = danach || verlaufOeffnen;
+  frage("Diesen Eintrag löschen?\n" + datumKurz(e.datum) + " · " + e.plan +
+        folgenSatz(sitzung.daten.protokoll, sitzung.daten.plaene, e), true, ja => {
     if(!ja) return;
+    const planStand = folgenZurueck(e);          // v182: erst die Folgen, dann der Eintrag
     sitzung.daten.protokoll.splice(idx, 1);
     const korbId = inPapierkorb("eintrag", datumKurz(e.datum) + " · " + (e.plan || "Training"), e);   // v96
     speichern();
     // v153: nicht nur die Statistik — auch Flamme und Heute-Karte hingen sonst
     // am alten Stand, bis man zufällig neu lud.
     fortschrittNeuZeichnen();
-    verlaufOeffnen();
-    zeigenToast("Eintrag gelöscht", "info", () => {
+    zeichnen();
+    zeigenToast(planStand ? "Training und Steigerung zurückgenommen" : "Eintrag gelöscht", "info", () => {
       sitzung.daten.protokoll.push(e);
       sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+      folgenWieder(planStand);
       papierkorbEntfernen(korbId);   // sofort zurück -> raus aus dem Papierkorb
       speichern();
       fortschrittNeuZeichnen();
-      verlaufOeffnen();
+      zeichnen();
       zeigenToast("Wiederhergestellt", "erfolg");
     });
   });
@@ -13944,6 +14074,10 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   // rückdatierten Eintrag steht dort ein fremder, späterer Eintrag, der sonst
   // bewertet und (Note/Notiz) überschrieben würde.
   const eintrag = neu;
+  /* v182: VOR `zieleAnwenden` — das hebt gleich Strecke und Dauer im Plan an,
+     und die spätere „zu leicht?"-Frage kann Messgröße oder Runden nachziehen.
+     Danach wäre der Stand von vorher nicht mehr zu haben. */
+  planStandMerken(eintrag, eintragPlan ? sitzung.daten.plaene.find(p => p.id === eintragPlan.id) : null);
   const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];
   speichern();
   const plan = eintragPlan;
@@ -14828,6 +14962,11 @@ function bewertungOeffnen(plan, eintrag){
       '<button id="note-' + u.id + '-' + n + '" class="' + (n===3?"gewaehlt":"") +
       '" onclick="noteSetzen(\'' + u.id + '\',' + n + ')">' + n + '</button>').join("") +
     '</div></div>').join("");
+
+  /* v182: Hier ist der Plan noch unberührt — `bewertungAnwenden` hebt gleich
+     Gewichte, Wiederholungen und Ziele. Der Abzug wird vom ECHTEN Plan
+     genommen, nicht von `plan`: Das ist seit der Vorschau nur eine Kopie. */
+  planStandMerken(eintrag, sitzung.daten.plaene.find(p => p.id === plan.id));
 
   lauf = { plan, schritte:[], index:0, timerId:null, protokollEintrag: eintrag };
   zeige("view-bewertung");

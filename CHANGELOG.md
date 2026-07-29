@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.182
+
+- Ein Training löschen nimmt jetzt auch zurück, was es angerichtet hat. Bisher
+  verschwand nur der Eintrag — die angehobenen Gewichte und Wiederholungen, die
+  Notenhistorie, gehobene Strecken und Ziele blieben im Plan stehen. Wer sich
+  vertippt hatte, trainierte danach nach Zahlen, die aus dem Irrtum stammten.
+  Jetzt geht der Plan auf den Stand vor diesem Training zurück, und der Dialog
+  sagt dir vorher, dass das passiert.
+- Zurückgenommen wird nur das JÜNGSTE Training eines Plans. Läge noch ein
+  späteres dazwischen, würde dessen Steigerung stillschweigend mitverschwinden —
+  das wäre schlimmer als nichts zu tun. In dem Fall sagt die App klar, dass der
+  Plan bleibt, wie er ist, und löscht nur den Eintrag.
+- Und du kommst leichter dran: Im Kalender steht an einem Tag, an dem du
+  trainiert hast, jetzt „Training löschen“ direkt im Menü — bei mehreren
+  Trainings eine Zeile je Training. Rückgängig machen kannst du es wie immer
+  sofort über die Meldung; dann kommt auch die Steigerung zurück.
+
 ## 0.181
 
 - Der Assistent kann deinem Profil ab jetzt nur noch etwas HINZUFÜGEN — nie
