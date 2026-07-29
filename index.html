@@ -2540,7 +2540,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 175;
+const APP_VERSION = 176;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5613,6 +5613,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.176", punkte:[
+    "Die Muskelkarte achtet jetzt auf leichtere Wochen. Trainierst du drei Wochen in Folge, ohne dass eine davon spürbar leichter war, steht das dort: „3 Wochen in Folge ohne leichtere Woche.“ Dauerbelastung ohne Entlastung ist einer der bekanntesten Wege in die Überlastung — und die App wusste es an anderer Stelle längst: Bei Laufen und Rad rechnet sie seit jeher mit drei Steigerungswochen und dann einer leichteren. Beim Krafttraining sagt sie es dir jetzt auch.",
+    "Als leichter zählt eine Woche mit deutlich weniger Sätzen als die Woche davor — oder eine ganz ohne Training. Die laufende Woche wird nie mitgezählt: Sie ist noch nicht vorbei und könnte die leichtere ja gerade werden. Der Hinweis ist eine Empfehlung, keine Warnung, und er verändert deine Richtwerte nicht: Was gezählt werden kann, wird gezählt — was nicht, wird gesagt."
+  ]},
   { stand:"0.175", punkte:[
     "Wischen zum Löschen: In jeder Liste mit Einträgen — Körpergewicht, Körpermaße, Tageswerte, Trainings-Verlauf und Papierkorb — legt ein Wisch nach links einen roten „Löschen“-Knopf frei. Ein zweiter Wisch nach rechts oder ein Tipp daneben macht ihn wieder zu. Gefragt wird nicht: Wischen und dann tippen ist die Bestätigung — und rückgängig machen kannst du es sofort über die Meldung. Was in den Papierkorb gehört, landet dort wie bisher.",
     "Damit ist die letzte Geste nachgeholt, die man vom iPhone kennt. Sie stört das Scrollen nicht: Wer senkrecht wischt, bewegt die Liste; wer nur kurz wackelt, löst nichts aus. Und solange ein roter Knopf offen steht, bleibt er der einzige — der nächste Wisch macht den vorigen zu."
@@ -8181,6 +8185,78 @@ function leistungFaellt(plaene){
   return muskeln;
 }
 
+/* ------------------------------------------------------------
+   v176: Wochen ohne Entlastung (Belastungs-Modell, Gruppe A, Punkt 4).
+
+   Dauerbelastung ohne leichtere Woche ist ein bekannter Überlastungspfad —
+   und die App weiß es längst, nur an der falschen Stelle: Die Ausdauer-Seite
+   rechnet seit jeher mit `ENTLASTUNG_NACH` (drei Steigerungswochen, dann eine
+   Entlastungswoche auf `ENTLASTUNG_ANTEIL`); die Muskelkarte kannte den
+   Rhythmus nicht. Beide Zahlen werden hier WIEDERVERWENDET, nicht neu
+   erfunden: Es soll im Haus eine Antwort auf „wann ist eine leichtere Woche
+   dran?" geben, nicht zwei.
+
+   Wie die Erkenntnisse aus v161 (Leistungsabfall) und v168 (Muskelkater) ist
+   das eine EIGENE Aussage — sie fließt NICHT in die Auslastungs-Quote ein.
+   Grund: Sie ist global (das ganze Training, nicht ein Muskel), und für einen
+   Faktor gäbe es keine belegte Zahl. Was gezählt werden kann, wird gezählt;
+   was nicht, wird gesagt.
+   ------------------------------------------------------------ */
+const ENTLASTUNG_BLICK = 8;   // so viele abgeschlossene Wochen schaut die App zurück
+
+/** Sätze je Kalenderwoche aus dem Protokoll — die reine Grundlage.
+    Gezählt wird JEDER protokollierte Satz: Auch abgehakte (v174) und über
+    „Erledigt" eingetragene (v158) sind Arbeit, sie sind nur nicht gemessen.
+    Rein/testbar. */
+function wochenLast(protokoll){
+  const summe = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    const w = isoWoche(e.datum);
+    summe[w] = (summe[w] || 0) + ((e.saetze || []).length);
+  });
+  return summe;
+}
+
+/** Wie viele ABGESCHLOSSENE Wochen in Folge lief das Training ohne
+    Entlastungswoche? Gezählt wird von der letzten abgeschlossenen Woche
+    rückwärts.
+
+    Als Entlastung gilt eine Woche, die
+      * gar kein Training hatte (Pause ist die deutlichste Entlastung), oder
+      * deutlich weniger Sätze hatte als die Woche davor (`ENTLASTUNG_ANTEIL`).
+
+    **Die LAUFENDE Woche zählt nie mit.** Sie ist noch nicht vorbei — sie
+    könnte die Entlastung ja gerade werden. Sie jetzt schon als „keine
+    Entlastung" zu werten, hieße über etwas zu urteilen, das noch gar nicht
+    passiert ist. Rein/testbar. */
+function wochenOhneEntlastung(protokoll, heute){
+  const last = wochenLast(protokoll);
+  // reihe[0] = letzte abgeschlossene Woche, reihe[1] = die davor, …
+  const reihe = [];
+  for(let i = 1; i <= ENTLASTUNG_BLICK + 1; i++)
+    reihe.push(last[isoWoche(tageVerschieben(heute, -7 * i))] || 0);
+  let folge = 0;
+  for(let i = 0; i < ENTLASTUNG_BLICK; i++){
+    const jetzt = reihe[i], davor = reihe[i + 1];
+    if(jetzt === 0) break;                                     // Pause = Entlastung
+    if(davor > 0 && jetzt <= davor * ENTLASTUNG_ANTEIL) break;  // deutlich leichter = Entlastung
+    folge++;
+  }
+  return folge;
+}
+
+/** Der Satz dazu — oder leer, solange nichts zu sagen ist. Rein/testbar.
+    Bewusst als Empfehlung formuliert, nicht als Warnung: Das ist eine
+    BEOBACHTUNG an gezählten Sätzen plus der Rhythmus, den die App ohnehin
+    empfiehlt — keine Aussage darüber, ob dieser Mensch überlastet ist. */
+function entlastungText(folge){
+  if(!(folge >= ENTLASTUNG_NACH)) return "";
+  return folge + " Wochen in Folge ohne leichtere Woche. Nach drei Steigerungswochen " +
+         "tut eine Entlastungswoche gut — etwa " + Math.round(ENTLASTUNG_ANTEIL * 100) +
+         " % der Sätze, dann normal weiter.";
+}
+
 /** Ein Satz Klartext zur Stufe — was heißt das für heute? Rein/testbar. */
 function auslastungText(muskel, a, reicht){
   const name = (MUSKEL_INFO[muskel] || {}).name || muskel;
@@ -8397,12 +8473,23 @@ function grundlagenZeileHtml(){
   return '<div class="meta" style="margin-top:6px;opacity:.8">' + text(grundlageText(g)) + '</div>';
 }
 
+/** v176: Die Entlastungs-Zeile. Sie steht auf der Muskelkarte IMMER, wenn es
+    etwas zu sagen gibt — ob ein Muskel gewählt ist oder nicht. Dieselbe
+    Überlegung wie bei der Warnung in v160: Man soll sie sehen, ohne erst den
+    richtigen Muskel erraten zu müssen. Die Aussage ist ohnehin global.
+    In der Signalfarbe, nicht im Warnrot: Es ist eine Empfehlung, kein Alarm. */
+function entlastungZeileHtml(){
+  const satz = entlastungText(wochenOhneEntlastung(sitzung.daten.protokoll, heuteAlsText()));
+  if(!satz) return "";
+  return '<div class="meta" style="margin-top:6px;color:var(--signal)">' + text(satz) + '</div>';
+}
+
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
       el.innerHTML = text("Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.") +
-                     grundlagenZeileHtml();
+                     grundlagenZeileHtml() + entlastungZeileHtml();
       return;
     }
     /* v160: Ohne Auswahl steht hier die WARNUNG, wenn es eine gibt — man soll
@@ -8418,7 +8505,7 @@ function muskelStatusText(){
     el.innerHTML = text(heiss.length
       ? "Über dem Richtwert: " + heiss.join(", ") + ". Tippe an für Einzelheiten."
       : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.") +
-      grundlagenZeileHtml();
+      grundlagenZeileHtml() + entlastungZeileHtml();
     return;
   }
   // v146: Es ist immer höchstens einer gewählt — der Mehrzahl-Fall ist entfallen.

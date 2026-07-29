@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.176
+
+- Die Muskelkarte achtet jetzt auf leichtere Wochen. Trainierst du drei Wochen
+  in Folge, ohne dass eine davon spürbar leichter war, steht das dort:
+  „3 Wochen in Folge ohne leichtere Woche.“ Dauerbelastung ohne Entlastung ist
+  einer der bekanntesten Wege in die Überlastung — und die App wusste es an
+  anderer Stelle längst: Bei Laufen und Rad rechnet sie seit jeher mit drei
+  Steigerungswochen und dann einer leichteren. Beim Krafttraining sagt sie es
+  dir jetzt auch.
+- Als leichter zählt eine Woche mit deutlich weniger Sätzen als die Woche davor
+  — oder eine ganz ohne Training. Die laufende Woche wird nie mitgezählt: Sie
+  ist noch nicht vorbei und könnte die leichtere ja gerade werden. Der Hinweis
+  ist eine Empfehlung, keine Warnung, und er verändert deine Richtwerte nicht:
+  Was gezählt werden kann, wird gezählt — was nicht, wird gesagt.
+
 ## 0.175
 
 - Wischen zum Löschen: In jeder Liste mit Einträgen — Körpergewicht,
