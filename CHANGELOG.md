@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.181
+
+- Der Assistent kann deinem Profil ab jetzt nur noch etwas HINZUFÜGEN — nie
+  etwas wegnehmen. Das gilt für Sportarten und für Geräte gleichermaßen: Wählst
+  du etwas ab, weil es für diesen einen Plan nicht gebraucht wird, bleibt es in
+  deinem Profil stehen. Tippst du dagegen etwas an, das du vorher nicht hattest,
+  kommt es dazu. Nur ganz am Anfang, bei der Ersteinrichtung, legt deine Auswahl
+  die Listen wirklich fest.
+- Deshalb zeigt der Assistent auch wieder ALLE Sportarten statt nur deiner — du
+  kannst dort einfach eine neue antippen, und sie ist danach in deinem Profil.
+  Der Umweg über den Knopf „Andere Sportart einrichten“ ist damit weggefallen.
+- Bei den Geräten wird nur der Ort zusammengeführt, den du gerade einstellst:
+  Wer im Gym eine Beinpresse hat, verliert sie nicht, weil er sich zuhause einen
+  Plan bauen lässt.
+
 ## 0.180
 
 - Nachgetragen wird jetzt im Kalender: Tippe auf den Tag, an dem du trainiert

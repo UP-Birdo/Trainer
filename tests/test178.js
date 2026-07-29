@@ -97,7 +97,11 @@ const spaeter = fragen.filter(f => f.nurWenn({}));
 pruefe("danach ist genau die ANDERE sichtbar", spaeter.length === 1);
 pruefe("und sie fragt nach dem Plan, nicht nach den Sportarten",
   /Plan/.test(spaeter[0].frage) && !/Welche Sportarten machst du/.test(spaeter[0].frage));
-pruefe("sie beschraenkt sich auf die eigenen Sportarten", spaeter[0].nurEigene === true);
+/* v181 hat diese v178-Entscheidung KORRIGIERT (Nutzer-Ansage): Der Assistent
+   zeigt wieder ALLE Sportarten — die Auswahl kann dem Profil seither nur noch
+   etwas hinzufuegen, also braucht es keine Beschraenkung mehr. */
+pruefe("sie zeigt wieder alle Sportarten", spaeter[0].optionen.length === A.SPORTARTEN.length);
+pruefe("die Beschraenkung aus v178 ist weg", !spaeter[0].nurEigene);
 pruefe("sie sagt sichtbar, dass Abwaehlen nichts entfernt",
   /Profil/.test(spaeter[0].hilfe) && /entfernt nichts/.test(spaeter[0].hilfe));
 pruefe("und traegt den Einzeiler aus v171", typeof spaeter[0].zusatz === "string");
@@ -106,10 +110,15 @@ pruefe("nie sind beide gleichzeitig sichtbar",
 
 /* ---------- 3) Der Assistent nimmt dem Profil nichts weg ---------- */
 const fertig = grabFn("plaeneErstellen");
+/* v181: Die Rolle steht jetzt in `nurErgaenzen` — sie entscheidet fuer
+   Sportarten UND Geraete gemeinsam, nicht mehr nur fuer die Sportarten. */
 pruefe("die Profil-Sportarten haengen an der Rolle des Assistenten",
-  /const profilSportarten = wzSportartenGesetzt/.test(fertig));
-pruefe("als Plan-Assistent uebernimmt er die BESTEHENDEN aus dem Profil",
-  /\? \(\(sitzung\.daten\.einrichtung \|\| \{\}\)\.sportarten \|\| \[\]\)\.slice\(\)/.test(fertig));
+  /const nurErgaenzen = wzSportartenGesetzt;/.test(fertig) &&
+  /const profilSportarten = nurErgaenzen/.test(fertig));
+/* v181: aus „uebernimmt die bestehenden" wurde „vereinigt beide" — der
+   Assistent darf seither auch etwas HINZUFUEGEN, nur nichts wegnehmen. */
+pruefe("als Plan-Assistent nimmt er dem Profil nichts weg",
+  /vereinigt\(altEinr\.sportarten \|\| \[\], einrichtung\.sportarten\)/.test(fertig));
 pruefe("nur die Ersteinrichtung bestimmt sie aus seiner Auswahl",
   /: einrichtung\.sportarten\.slice\(\)/.test(fertig));
 pruefe("danach ist die Frage fuer immer beantwortet",
@@ -123,30 +132,30 @@ pruefe("die Rueckfrage und das Loeschen nutzen dieselbe Regel",
 pruefe("selbst gebaute Plaene bleiben in jedem Fall",
   /Selbst gebaute Pläne bleiben in jedem Fall erhalten/.test(fertig));
 
-/* ---------- 5) Der Weg zu einer neuen Sportart ---------- */
-pruefe("der Assistent bietet ihn an", /andereSportartAusWizard\(\)/.test(src));
-pruefe("er fuehrt auf die Sportart-Seite mit Rueckweg",
-  /function andereSportartAusWizard\(\)\{ sportartenTabOeffnen\("wizard"\); \}/.test(src));
+/* ---------- 5) Der Weg zu einer neuen Sportart ----------
+   v181: Der Knopf „Andere Sportart einrichten" ist ENTFALLEN — er loeste ein
+   Problem, das es nicht mehr gibt: Der Assistent zeigt wieder alle Sportarten,
+   man tippt die neue einfach an. Was bleibt, ist die Zusage dahinter: Der Weg
+   zu einer neuen Sportart ist keine Sackgasse. */
+pruefe("der Knopf ist restlos entfernt", src.indexOf("andereSportartAusWizard") < 0);
+pruefe("stattdessen steht jede Sportart in der Auswahl",
+  spaeter[0].optionen.length === A.SPORTARTEN.length);
 const zurueck = grabFn("sportartenTabZurueck");
-pruefe("von dort geht es in den Assistenten zurueck",
-  /if\(ziel === "wizard"\)\{ einrichtungOeffnen\(\); return; \}/.test(zurueck));
+pruefe("und der Assistenten-Rueckweg ist mit ihm verschwunden",
+  zurueck.indexOf('"wizard"') < 0);
 pruefe("der Editor-Rueckweg aus v90 bleibt", /if\(ziel === "editor"\)/.test(zurueck));
 pruefe("ohne Ziel landet man im Profil", /profilOeffnen\(\);/.test(zurueck));
 pruefe("das Ziel wird beim Zuruecklaufen geraeumt", /sportartenRueckweg = null;/.test(zurueck));
 /* Aus dem Ja/Nein-Merker ist ein benanntes Ziel geworden — zwei Booleans
    nebeneinander koennten beide gleichzeitig gesetzt sein. */
 pruefe("der alte Boolean ist restlos ersetzt", src.indexOf("sportartenZurueckEditor") < 0);
-pruefe("der Knopf steht nur bei der Plan-Frage",
-  /if\(f\.nurEigene\)\s*\n?\s*optionenHtml \+=/.test(grabFn("wzZeichnen")));
-pruefe("er ist nicht die gelbe Hauptaktion",
-  !/primaer[^"]*"\s*onclick="andereSportartAusWizard/.test(src));
-
-/* ---------- 6) Die Auswahl zeigt nur eigene Sportarten ---------- */
+/* ---------- 6) Die Auswahl zeichnet wieder schlicht aus dem Register ---------- */
 const zeichnen = grabFn("wzZeichnen");
-pruefe("nurEigene filtert gegen das Profil",
-  /f\.nurEigene[\s\S]{0,200}sitzung\.daten\.einrichtung\.sportarten \|\| \[\]/.test(zeichnen));
-pruefe("ohne nurEigene bleiben die festen Optionen",
-  /: f\.optionen;/.test(zeichnen));
+pruefe("die Optionen kommen unveraendert aus der Frage",
+  /optionenHtml = f\.optionen\.map/.test(zeichnen));
+pruefe("die Sonderbehandlung aus v178 ist weg", zeichnen.indexOf("nurEigene") < 0);
+pruefe("die Geraete-Frage baut ihre Optionen weiter zur Laufzeit",
+  /f\.dynamisch/.test(zeichnen));
 
 /* ---------- 7) Das Feld ist additiv und wird nachgeruestet ---------- */
 const nach = src.slice(src.indexOf("function datenNachruesten"));

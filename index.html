@@ -2564,7 +2564,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 180;
+const APP_VERSION = 181;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5466,17 +5466,14 @@ function sportartenTabOeffnen(rueckweg){
 }
 /** Editor → „andere Sportart": zur Sportart-Seite, danach zurück in den Editor. */
 function andereSportartWaehlen(){ sportartenTabOeffnen("editor"); }
-/** v178: Assistent → „Andere Sportart einrichten": derselbe Weg, anderes Ziel. */
-function andereSportartAusWizard(){ sportartenTabOeffnen("wizard"); }
 /** Zurück aus der Sportart-Liste — dorthin, wo man hergekommen ist.
-    Der Assistent wird dabei NEU aufgesetzt (`einrichtungOeffnen`): Nur so
-    kennt er die frisch eingerichtete Sportart. Das kostet nichts, weil die
-    Sportart-Frage seine ERSTE ist — es geht keine Antwort verloren. */
+    v181: Der Assistenten-Rückweg aus v178 ist entfallen; er führte zu einem
+    Knopf, den es nicht mehr gibt (der Assistent zeigt seither wieder alle
+    Sportarten, es fehlt also keine mehr). Der Editor-Weg aus v90 bleibt. */
 function sportartenTabZurueck(){
   const ziel = sportartenRueckweg;
   sportartenRueckweg = null;
   if(ziel === "editor"){ editorZeichnen(); zeige("view-editor"); return; }
-  if(ziel === "wizard"){ einrichtungOeffnen(); return; }
   profilOeffnen();
 }
 
@@ -5660,6 +5657,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.181", punkte:[
+    "Der Assistent kann deinem Profil ab jetzt nur noch etwas HINZUFÜGEN — nie etwas wegnehmen. Das gilt für Sportarten und für Geräte gleichermaßen: Wählst du etwas ab, weil es für diesen einen Plan nicht gebraucht wird, bleibt es in deinem Profil stehen. Tippst du dagegen etwas an, das du vorher nicht hattest, kommt es dazu. Nur ganz am Anfang, bei der Ersteinrichtung, legt deine Auswahl die Listen wirklich fest.",
+    "Deshalb zeigt der Assistent auch wieder ALLE Sportarten statt nur deiner — du kannst dort einfach eine neue antippen, und sie ist danach in deinem Profil. Der Umweg über den Knopf „Andere Sportart einrichten“ ist damit weggefallen.",
+    "Bei den Geräten wird nur der Ort zusammengeführt, den du gerade einstellst: Wer im Gym eine Beinpresse hat, verliert sie nicht, weil er sich zuhause einen Plan bauen lässt."
+  ]},
   { stand:"0.180", punkte:[
     "Nachgetragen wird jetzt im Kalender: Tippe auf den Tag, an dem du trainiert hast, und wähle „Training eintragen“ — das Datum steht dann schon richtig da. Der eigene Eintrag „Training nachtragen“ im Plus-Menü der Pläne ist dafür weggefallen. Dort wird etwas NEUES angelegt, und ein Training von vorgestern ist kein neuer Plan.",
     "Für kommende Tage bietet der Kalender das gar nicht erst an — trainiert haben kann man nur heute oder früher. Dort steht wie bisher „Plan an diesem Tag“. Und nach dem Eintragen landest du wieder im Kalender, statt irgendwo anders. Der Knopf „Training eintragen“ auf Heute bleibt, wo er war."
@@ -10460,6 +10462,39 @@ function planMuskelListe(plan){
   return m.front.concat(m.back);
 }
 
+/* ------------------------------------------------------------
+   v181 (Nutzer-Ansage): Der Assistent ist nach der Ersteinrichtung **additiv**.
+
+   „Auch bei Geräten soll Abwählen nicht gleich zum Deaktivieren führen — was du
+   im Assistenten drückst, steuert nach dem ersten Mal nicht, ob du das Gerät
+   hast, sondern ist nur eine Frage. Wählst du ein neues, das du vorher nicht
+   genutzt hast, wird es hinzugefügt. So soll es auch bei den Sportarten sein:
+   erst beim Wizard die Grundsachen aussuchen, beim Assistenten dann alles
+   anzeigen — und was zusätzlich dazukommt, dem Profil hinzufügen."
+
+   Damit gilt für BEIDE Mehrfach-Auswahlen (Sportarten und Geräte) dieselbe
+   Regel, und v178 wird an einer Stelle korrigiert: Dort zeigte der Assistent
+   nur noch die eigenen Sportarten und ließ das Profil ganz unberührt. Jetzt
+   zeigt er wieder alles — nur wirkt die Auswahl in EINE Richtung.
+
+     Ersteinrichtung : die Auswahl BESTIMMT die Liste.
+     Assistent danach: die Auswahl gilt für DIESEN Lauf; neu Angetipptes kommt
+                       ins Profil, Abgewähltes bleibt dort stehen.
+
+   Der Knopf „Andere Sportart einrichten" aus v178 ist damit entfallen — er
+   löste ein Problem, das es nicht mehr gibt (die Sportart steht ja in der
+   Liste). Einrichten lässt sie sich weiterhin im Profil.
+   ------------------------------------------------------------ */
+
+/** Vereinigung zweier Listen, ohne Dubletten, in der Reihenfolge des ersten
+    Vorkommens. Die eine Stelle, an der „nur hinzufügen, nie wegnehmen"
+    wirklich passiert — für Sportarten wie für Geräte. Rein/testbar. */
+function vereinigt(alt, neu){
+  const raus = (alt || []).slice();
+  (neu || []).forEach(x => { if(raus.indexOf(x) < 0) raus.push(x); });
+  return raus;
+}
+
 /** Nur Krafttraining hat einen Plangenerator. Alles, was danach gefragt wird
     (Ort, Geräte, Startwerte, Split), ergibt ohne Krafttraining keinen Sinn —
     deshalb hängen alle folgenden Fragen an dieser einen Bedingung. */
@@ -10484,12 +10519,13 @@ const WIZARD_FRAGEN = [
     raster:true,
     optionen: SPORTARTEN.map(s => [s.id, s.name, s.einheiten])},
   { id:"sportarten", typ:"multi", frage:"Wofür möchtest du einen Plan?",
-    hilfe:"Nur die hier gewählten Sportarten bekommen einen neuen Plan. Alles andere bleibt, wie es ist — abwählen entfernt nichts aus deinem Profil.",
+    hilfe:"Nur die hier gewählten Sportarten bekommen einen neuen Plan. Abwählen entfernt nichts aus deinem Profil — und tippst du eine an, die du noch nicht hattest, kommt sie dazu.",
     nurWenn: () => wzSportartenGesetzt,
-    zusatz:"Deine Sportarten stehen schon fest — hier geht es nur um den Plan.",
-    nurEigene:true,   // Optionen = die Sportarten des Profils, nicht alle
+    zusatz:"Abwählen entfernt nichts; Neues kommt zu deinem Profil dazu.",
     raster:true,
-    optionen:[]},
+    // v181: wieder ALLE Sportarten (Nutzer-Ansage „beim Assistenten alles
+    // anzeigen") — die Auswahl kann dem Profil nur noch etwas hinzufügen.
+    optionen: SPORTARTEN.map(s => [s.id, s.name, s.einheiten])},
   { id:"ort", typ:"single", sportBezug:"kraft", frage:"Wo trainierst du?",
     hilfe:"Danach richtet sich, welche Übungen überhaupt vorkommen.",
     nurWenn: kraftGewaehlt,
@@ -10705,24 +10741,10 @@ function wzZeichnen(){
           '" onclick="wzMulti(\'geraete\',\'' + g.id + '\')">' + g.name + '</button>').join("")
       ).join("");
     } else {
-      /* v178: `nurEigene` = nur die Sportarten des PROFILS zur Auswahl. Der
-         Plan-Assistent soll nicht mehr die ganze Welt anbieten, sondern das,
-         was der Nutzer schon eingerichtet hat. */
-      const optionen = f.nurEigene
-        ? SPORTARTEN.filter(s => (sitzung.daten.einrichtung.sportarten || []).includes(s.id))
-                    .map(s => [s.id, s.name, s.einheiten])
-        : f.optionen;
-      optionenHtml = optionen.map(([wert, titel, unter]) =>
+      optionenHtml = f.optionen.map(([wert, titel, unter]) =>
         '<button class="wz-opt ' + (liste.includes(wert) ? "gewaehlt" : "") +
         '" onclick="wzMulti(\'' + f.id + '\',' + (typeof wert === "number" ? wert : "'" + wert + "'") + ')">' +
         titel + (unter ? '<small>' + unter + '</small>' : '') + '</button>').join("");
-      /* Der Weg zu einer NEUEN Sportart — dasselbe Muster wie im Plan-Editor
-         seit v90: ins Profil, dort auswählen, zurück in den Assistenten. Ohne
-         ihn wäre die Auswahl eine Sackgasse für jemanden, der gerade Yoga
-         anfangen will. Kein `primaer`: Die gelbe Aktion bleibt „Weiter". */
-      if(f.nurEigene)
-        optionenHtml += '<div style="grid-column:1/-1;margin-top:10px">' +
-          '<button class="schmal breit" onclick="andereSportartAusWizard()">Andere Sportart einrichten</button></div>';
     }
   } else {
     optionenHtml = f.optionen.map(([wert, titel, unter]) =>
@@ -10876,9 +10898,9 @@ function wzWeiter(){
   if(f){
     if(f.typ === "single" && !einrichtung[f.id]){ meldung("Bitte eine Antwort wählen."); return; }
     if(f.id === "sportarten" && einrichtung.sportarten.length === 0){
-      // v178: Beide Fassungen der Frage laufen hier durch — die Meldung folgt der,
-      // die gerade dasteht.
-      meldung(f.nurEigene
+      // v178/v181: Beide Fassungen der Frage laufen hier durch — die Meldung
+      // folgt der, die gerade dasteht (`wzSportartenGesetzt` unterscheidet sie).
+      meldung(wzSportartenGesetzt
         ? "Bitte mindestens eine Sportart wählen, für die ein Plan entstehen soll."
         : "Bitte mindestens eine Sportart wählen."); return;
     }
@@ -11165,28 +11187,47 @@ function plaeneErstellen(){
 
   const fertigstellen = () => {
     sitzung.daten.plaene = sitzung.daten.plaene.concat(alle);
-    /* v178: Wer die Sportarten schon bestimmt hat, hat hier nur ausgewählt,
-       WOFÜR ein Plan entstehen soll — das darf dem Profil nichts wegnehmen.
-       Nur die Ersteinrichtung bestimmt die Liste wirklich. Ohne diese
-       Unterscheidung würde ein Assistenten-Lauf für „nur Kraft" das Laufen aus
-       dem Profil löschen, samt aller dort hinterlegten Einstellungen. */
-    const profilSportarten = wzSportartenGesetzt
-      ? ((sitzung.daten.einrichtung || {}).sportarten || []).slice()
+
+    /* v178/v181: Nach der Ersteinrichtung ist der Assistent ADDITIV — seine
+       Antworten dürfen dem Profil etwas hinzufügen, aber nie etwas wegnehmen.
+       Das gilt für BEIDE Mehrfach-Auswahlen; die Regel steckt in `vereinigt`.
+       Ohne sie löschte ein Lauf „nur Kraft" das Laufen aus dem Profil, und ein
+       Lauf „zuhause ohne Kurzhanteln" die Kurzhanteln aus der Ausstattung.
+
+       WICHTIG: Beides muss GELESEN werden, bevor `sitzung.daten.einrichtung`
+       überschrieben wird — danach ist der alte Stand weg. */
+    const altEinr = sitzung.daten.einrichtung || {};
+    const altKraft = geraeteKonfig("kraft");
+    const nurErgaenzen = wzSportartenGesetzt;
+
+    const profilSportarten = nurErgaenzen
+      ? vereinigt(altEinr.sportarten || [], einrichtung.sportarten)
       : einrichtung.sportarten.slice();
+
+    /* Geräte werden PRO ORT geführt — zusammengeführt wird deshalb nur der
+       gerade bearbeitete Ort. Die anderen stehen in der Arbeitskopie ohnehin
+       unverändert (sie kommt aus dem Profil) und bleiben, wie sie sind: Wer im
+       Gym eine Beinpresse hat, verliert sie nicht, weil er zuhause einrichtet. */
+    const ort = einrichtung.ort || "zuhause";
+    const proOrt = JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}));
+    if(nurErgaenzen)
+      proOrt[ort] = vereinigt((altKraft.geraeteProOrt || {})[ort] || [], proOrt[ort] || []);
+    const geraeteJetzt = (proOrt[ort] || []).slice();
+
     sitzung.daten.einrichtung = {
       sportarten: profilSportarten,
-      sportartenGesetzt: true,   // ab jetzt fragt der Assistent nur noch nach dem Plan
-      ort:einrichtung.ort, geraete:einrichtung.geraete.slice(), erfahrung:einrichtung.erfahrung,
+      sportartenGesetzt: true,   // ab jetzt ist der Assistent additiv
+      ort:einrichtung.ort, geraete:geraeteJetzt, erfahrung:einrichtung.erfahrung,
       ziel:einrichtung.ziel, wochentage:einrichtung.wochentage.slice(),
       dauer:einrichtung.dauer, fokus:einrichtung.fokus, bonus:einrichtung.bonus.slice(),
-      geraeteProOrt: JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {})),
-      geraeteKonfig: (sitzung.daten.einrichtung || {}).geraeteKonfig || {}   // v55: Pro-Sport-Speicher NICHT verlieren
+      geraeteProOrt: proOrt,
+      geraeteKonfig: altEinr.geraeteKonfig || {}   // v55: Pro-Sport-Speicher NICHT verlieren
     };
     // v55: die im Wizard eingestellten Kraft-Geräte in ihren Pro-Sport-Slot schreiben
     const kraftK = geraeteKonfig("kraft");
     kraftK.ort = einrichtung.ort;
-    kraftK.geraete = einrichtung.geraete.slice();
-    kraftK.geraeteProOrt = JSON.parse(JSON.stringify(einrichtung.geraeteProOrt || {}));
+    kraftK.geraete = geraeteJetzt.slice();
+    kraftK.geraeteProOrt = JSON.parse(JSON.stringify(proOrt));
     // Tage und Dauer je Sportart mitsichern — der Wizard soll sie wiederfinden
     SPORTARTEN.filter(x => x.planTyp === "aktivitaet").forEach(x => {
       sitzung.daten.einrichtung["tage_" + x.id] = (einrichtung["tage_" + x.id] || []).slice();
