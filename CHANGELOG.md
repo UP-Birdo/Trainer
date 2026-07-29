@@ -3,6 +3,24 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.178
+
+- Der Assistent fragt nicht mehr jedes Mal, welche Sportarten du machst. Diese
+  Frage kommt jetzt nur noch beim allerersten Mal — danach steht sie in deinem
+  Profil. Der Plan-Assistent fragt stattdessen: „Wofür möchtest du einen Plan?“
+  und zeigt nur noch deine eigenen Sportarten. Willst du eine neue dazunehmen,
+  führt dich der Knopf „Andere Sportart einrichten“ ins Profil und danach zurück
+  in den Assistenten.
+- Dabei ist ein stiller Fehler mit weggegangen: Wer im Assistenten eine Sportart
+  abwählte, verlor sie aus dem Profil — samt allem, was dort eingestellt war.
+  Jetzt gilt klar getrennt: Deine Sportarten bestimmst du im Profil (oder
+  einmalig am Anfang), der Assistent wählt nur noch aus ihnen aus und nimmt dir
+  nie eine weg.
+- Und wenn der Assistent fragt, ob er alte automatisch erstellte Pläne ersetzen
+  soll, betrifft das jetzt nur noch die Sportarten, für die du gerade einen Plan
+  baust. Wer sich einen neuen Kraftplan machen lässt, verliert damit nicht mehr
+  seinen Laufplan.
+
 ## 0.177
 
 - Die Muskelkarte schaut jetzt auch auf deine Gewichtskurve — aber anders, als

@@ -46,6 +46,7 @@ const code = [
   grabFn("sportUebungen"),
   grabFn("zahlKurz"),
   grabFn("kraftGewaehlt"),
+  "let wzSportartenGesetzt = false;",   // v178: entscheidet, welche Fassung der Auftaktfrage steht
   grabAnweisung("const WIZARD_FRAGEN = ", "let wzSchritt"),
   "let wzSichtbar = [];",
   "let einrichtung = {};",
@@ -62,9 +63,15 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
 /* ---------- 1) Jede Frage weiss, zu welcher Sportart sie gehoert ---------- */
+/* v178: Die Auftaktfrage gibt es in ZWEI Fassungen (Ersteinrichtung vs.
+   Plan-Assistent) — sichtbar ist immer nur eine. Die v149-Zusage gilt
+   unveraendert: Ohne Sportart-Bezug steht nur die Auftaktfrage, und im
+   fertigen Ablauf steht sie genau einmal. */
 const ohneBezug = WIZARD_FRAGEN.filter(f => !f.sportBezug).map(f => f.id);
-pruefe("nur die Auftaktfrage steht ohne Sportart (ist: " + ohneBezug.join(", ") + ")",
-  JSON.stringify(ohneBezug) === JSON.stringify(["sportarten"]));
+pruefe("ohne Sportart steht nur die Auftaktfrage (ist: " + ohneBezug.join(", ") + ")",
+  ohneBezug.every(id => id === "sportarten"));
+pruefe("im sichtbaren Ablauf steht sie genau einmal",
+  sichtbarFuer({ sportarten:["kraft"] }).filter(f => !f.sportBezug).length === 1);
 const kraftFragen = WIZARD_FRAGEN.filter(f => f.sportBezug === "kraft").map(f => f.id);
 pruefe("die acht Kraft-Fragen sind zugeordnet (ist: " + kraftFragen.length + ")", kraftFragen.length === 8);
 
