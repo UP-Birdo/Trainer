@@ -76,6 +76,7 @@ const code = [
   grabFn("letztesMal"),
   grabFn("letztesMalText"),
   grabFn("kraftErledigt"),
+  grabFn("eintragZeitspanne"),   // v174: die Zeile zeigt den Zeitpunkt des Hakens
   grabFn("protokollEintragHtml"),
   "module.exports = { get sitzung(){ return sitzung; }, get toasts(){ return toasts; }," +
   " leereToasts(){ toasts = []; }, setStufe(n){ stufeWert = n; }," +

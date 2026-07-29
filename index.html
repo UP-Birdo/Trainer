@@ -177,6 +177,22 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .notiz-kopf label:first-child{flex:1}
 .notiz-kopf .notiz-zahl{width:64px}
 .notiz-kopf-frei{width:44px;flex:0 0 auto}   /* Spalte des ×-Knopfs */
+/* v174: Der Haken je Zeile (Notizblock-Verlauf, Stufe 1/2).
+   Bewusst KEIN gelber Vollton wie bei `button.gewaehlt`: Eine Liste erledigter
+   Zeilen wäre eine Wand aus Gelb. Stattdessen dasselbe Bild wie die
+   Mehrfach-Auswahl aus v163 — das Häkchen in der Signalfarbe (.plan-haken),
+   dazu eine farbige Kante am erledigten Knopf. */
+.notiz-erledigt{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.notiz-haken{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
+.notiz-haken.an{border-color:var(--signal)}
+.notiz-haken-text{flex:1;min-width:0;font-size:14px;line-height:1.25}
+.notiz-haken-text small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+/* Stufe 2: nur das Kästchen, als erste Spalte der Zeile — gleiche Breite wie
+   der ×-Knopf am anderen Ende, damit die Felder dazwischen bündig stehen. */
+.notiz-haken.klein{width:44px;flex:0 0 auto;justify-content:center;padding:0;margin:0}
+.notiz-kopf-haken{width:44px;flex:0 0 auto}   /* Spalte des Hakens */
 .leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
   background:rgba(139,144,154,0.03);transition:var(--transition)}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
@@ -2505,7 +2521,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 173;
+const APP_VERSION = 174;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3708,6 +3724,155 @@ function notizVorschlagWaehlen(planId, name){
   notizVorschlaegeSchliessen(planId);
 }
 
+/* ------------------------------------------------------------
+   v174: Der Haken je Zeile — endlich ein Verlauf für Stufe 1 und 2.
+
+   Die Stufen-Beschreibung war bis v172 unehrlich („festhalten, was war"),
+   v173 hat sie ehrlich gemacht — und der Nutzer hat die offene Frage
+   entschieden: Der Notizblock SOLL einen Verlauf bekommen, aber nicht als
+   zweites Eingabefeld („Getan" ist seit v155 zu Recht weg), sondern als
+   Haken an der Zeile: antippen, fertig. Zeitpunkt und Übung merkt sich die App.
+
+   Drei Zusagen bestimmen den Bau:
+
+   1. KOMPATIBEL NACH OBEN. Der Haken schreibt einen ganz normalen
+      `protokoll`-Eintrag in derselben Form wie „Erledigt" (`kraftErledigt`).
+      Wer später hochstuft, findet ihn in Verlauf, Kalender, Serie, Volumen und
+      Muskelkarte wieder — ohne Umwandlung. „Heben erfindet nie Daten": Es wird
+      nichts dazugedichtet, was der Haken nicht gesagt hat.
+   2. EHRLICHE ZAHLEN. Die Sätze tragen `soll:true` (v158). Ein Haken heißt
+      „gemacht", nicht „genau diese Zahlen geschafft". Sie zählen deshalb für
+      Kalender, Serie, Volumen und Heatmap — aber NICHT als Bestwert, Rekord
+      oder Punkt auf der Fortschrittskurve. Genau dafür gibt es das Feld seit
+      v158, hier wird es zum zweiten Mal gebraucht.
+   3. EIN EINTRAG JE ABSCHNITT UND TAG. Sonst würde ein Training mit sechs
+      Haken zu sechs „Trainings" — und Serie, Kalender und das Mindestmaß aus
+      v167 (5 Trainings) wären verfälscht. Weitere Haken hängen ihre Sätze an
+      denselben Eintrag.
+
+   Leitplanke 8 bleibt unberührt: Der Haken FRAGT nichts und BEWERTET nichts —
+   er notiert. Genau das gehört laut Leitplanke nach unten.
+   ------------------------------------------------------------ */
+
+/** Zeitpunkt „HH:MM" — der Moment, in dem der Haken gesetzt wurde. */
+function jetztAlsZeit(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+/** Der Notizblock-Eintrag EINES Abschnitts an EINEM Tag — oder `null`.
+    Erkannt an `quelle:"notizblock"`: Ein ECHTES Training am selben Tag mit
+    demselben Plan darf der Haken nicht erweitern — sonst lägen gemessene und
+    abgehakte Sätze in einem Eintrag und niemand könnte sie mehr trennen.
+    Rein/testbar. */
+function notizEintragFinden(protokoll, planId, datum){
+  return (protokoll || []).find(e =>
+    e && e.quelle === "notizblock" && e.planId === planId && e.datum === datum) || null;
+}
+
+/** Ist diese Übung an diesem Tag abgehakt? Rein/testbar. */
+function notizAbgehakt(protokoll, planId, datum, uebungId){
+  const e = notizEintragFinden(protokoll, planId, datum);
+  return !!(e && (e.saetze || []).some(s => s.uebungId === uebungId));
+}
+
+/** Die Sätze, die EIN Haken schreibt — einer je geplantem Satz, alle mit
+    demselben Zeitpunkt. Dieselbe Form wie `kraftErledigt`, damit die höheren
+    Stufen nichts unterscheiden müssen. Rein/testbar. */
+function notizSaetzeFuer(u, zeit){
+  const anzahl = begrenzen(typeof u.saetze === "number" && u.saetze > 0 ? u.saetze : 1, 1, 20);
+  const saetze = [];
+  for(let s = 1; s <= anzahl; s++){
+    const eintrag = { uebungId:u.id, name:u.name, modus:u.modus || "wdh", satz:s,
+                      note:null, soll:true, zeit:zeit };
+    if(eintrag.modus === "zeit") eintrag.dauer = u.dauer || 0;
+    else { eintrag.wdh = u.wdh || 0; eintrag.gewicht = u.gewicht || 0; }
+    saetze.push(eintrag);
+  }
+  return saetze;
+}
+
+/** Nach jeder Änderung: Sätze nach Zeitpunkt ordnen und die geschätzte Dauer
+    nachziehen — 2 min je Satz, dieselbe Schätzung wie beim Nachtragen
+    (`kraftNachtragen`). Keine neue Erfindung, eine bekannte. Rein/testbar. */
+function notizEintragAuffrischen(e){
+  e.saetze.sort((a, b) => String(a.zeit || "").localeCompare(String(b.zeit || "")) ||
+                          (a.satz || 0) - (b.satz || 0));
+  e.dauerMin = Math.max(1, e.saetze.length * 2);
+  return e;
+}
+
+/** Haken setzen oder wegnehmen — immer für HEUTE. Frühere Tage bleiben
+    unberührt: Der Haken beantwortet „heute gemacht?", er verwaltet nicht die
+    Historie. Wer einen alten Eintrag ändern will, tut das ab Stufe 4 im
+    Verlauf — dort gibt es Bearbeiten und Löschen. */
+function notizHakenUmschalten(planId, uebungId){
+  const p = findePlan(planId); if(!p) return;
+  const u = (p.uebungen || []).find(x => x.id === uebungId); if(!u) return;
+  if(!u.name || !u.name.trim()) return;          // eine namenlose Zeile ist nichts zum Abhaken
+  const heute = heuteAlsText();
+  const protokoll = sitzung.daten.protokoll;
+  let e = notizEintragFinden(protokoll, planId, heute);
+
+  if(e && e.saetze.some(s => s.uebungId === uebungId)){
+    e.saetze = e.saetze.filter(s => s.uebungId !== uebungId);
+    // Der letzte Haken weg = der Eintrag hat keinen Inhalt mehr. Er wandert
+    // NICHT in den Papierkorb: Ein Fehlgriff soll spurlos verschwinden, nicht
+    // als Leiche zum Wiederherstellen liegen bleiben.
+    if(!e.saetze.length) protokoll.splice(protokoll.indexOf(e), 1);
+    else notizEintragAuffrischen(e);
+    zeigenToast("Haken weg: " + u.name, "info");
+  } else {
+    if(!e){
+      e = { id: neueId(), datum: heute, plan: p.name || "Notizblock", planId: p.id,
+            sportart: p.sportart || "kraft", typ: "kraft", sonder: !planAmTag(p, heute),
+            quelle: "notizblock", dauerMin: 0, notiz: "", saetze: [] };
+      protokoll.push(e);
+      protokoll.sort((a, b) => a.datum.localeCompare(b.datum));
+    }
+    const zeit = jetztAlsZeit();
+    e.saetze = e.saetze.concat(notizSaetzeFuer(u, zeit));
+    notizEintragAuffrischen(e);
+    zeigenToast("Gemacht um " + zeit + ": " + u.name, "erfolg");
+  }
+  speichern();
+  fortschrittNeuZeichnen();   // v153: Flamme, Heute, Kalender und Statistik ziehen mit
+  notizblockZeichnen();
+}
+
+/** Ein Haken als Knopf. `kompakt` = nur das Kästchen (Stufe 2, inmitten der
+    Zeile); sonst Kästchen + Name + Zahlen (Stufe 1, unter dem Textfeld).
+    Bewusst KEIN `.gewaehlt`: Die Haus-Regel „ausgewählt = gelb" färbt die
+    ganze Fläche, und eine Liste erledigter Zeilen wäre eine Wand aus Gelb.
+    Stattdessen dasselbe Bild wie die Mehrfach-Auswahl aus v163 — das Häkchen
+    in der Signalfarbe, dazu eine farbige Kante. */
+function notizHakenHtml(p, u, kompakt){
+  const an = notizAbgehakt(sitzung.daten.protokoll, p.id, heuteAlsText(), u.id);
+  const kasten = '<span class="plan-haken">' + (an ? "☑" : "☐") + '</span>';
+  return '<button class="notiz-haken' + (kompakt ? " klein" : "") + (an ? " an" : "") + '" ' +
+    'aria-pressed="' + (an ? "true" : "false") + '" ' +
+    'aria-label="' + (an ? "Haken entfernen: " : "Als gemacht abhaken: ") + text(u.name) + '" ' +
+    'onclick="notizHakenUmschalten(\'' + p.id + '\', \'' + u.id + '\')">' + kasten +
+    (kompakt ? "" :
+      '<span class="notiz-haken-text">' + text(u.name) +
+      '<small>' + text(uebungBeschreiben(u)) + '</small></span>') +
+    '</button>';
+}
+
+/** Die Haken-Leiste unter dem Textfeld (Stufe 1).
+    WARUM unter dem Feld und nicht zwischen den Zeilen: Stufe 1 ist EIN
+    Textfeld — eine `<textarea>` kann keine Knöpfe zwischen ihren Zeilen
+    tragen, und sie zu Einzelzeilen umzubauen würde die Autokorrektur (v155)
+    und die Tipp-Vorschläge (v157) kosten. Die Leiste führt dieselben Übungen
+    in derselben Reihenfolge wie die Zeilen darüber, das Kästchen steht links
+    vom Namen. Ohne Übungen (reiner Freitext) erscheint sie gar nicht. */
+function notizHakenLeisteHtml(p){
+  const uebungen = (p.uebungen || []).filter(u => u.name && u.name.trim());
+  if(!uebungen.length) return "";
+  return '<div class="notiz-erledigt"><div class="filter-titel">Heute gemacht</div>' +
+    uebungen.map(u => notizHakenHtml(p, u, false)).join("") + '</div>';
+}
+
 function notizAbschnittHtml(p, s){
   const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
@@ -3725,12 +3890,21 @@ function notizAbschnittHtml(p, s){
       'oninput="notizTippen(this, \'' + p.id + '\')" ' +
       'onblur="notizVorschlaegeSchliessen(\'' + p.id + '\')" ' +
       'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>' +
-      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>';
+      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>' +
+      notizHakenLeisteHtml(p);   // v174: der Verlauf der Stufe 1
   } else {
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
+    /* v174: Der Haken sitzt hier IN der Zeile, ganz links — die Zeile ist auf
+       Stufe 2 ohnehin eine Reihe aus Feldern, da braucht es keine zweite Liste
+       darunter. Eine Zeile ohne Namen bekommt statt des Knopfes einen
+       Platzhalter: Es gibt nichts abzuhaken, und die Spalten sollen trotzdem
+       untereinander stehen. */
     const zeilen = (p.uebungen || []).map(u =>
       '<div class="notiz-zeile">' +
+        (u.name && u.name.trim()
+          ? notizHakenHtml(p, u, true)
+          : '<span class="notiz-kopf-haken"></span>') +
         '<input placeholder="Übung" value="' + text(u.name) + '" ' +
           'onchange="notizZeileNameSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
         '<input class="notiz-zahl" type="number" inputmode="numeric" placeholder="3" value="' +
@@ -3741,7 +3915,8 @@ function notizAbschnittHtml(p, s){
           'onchange="notizZeileWdhSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
         '<button class="rund" aria-label="Zeile löschen" onclick="notizZeileLoeschen(\'' + p.id + '\', \'' + u.id + '\')">×</button>' +
       '</div>').join("");
-    koerper = '<div class="notiz-kopf"><label>Übung</label><label class="notiz-zahl">Sätze</label>' +
+    koerper = '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
+      '<label>Übung</label><label class="notiz-zahl">Sätze</label>' +
       '<label class="notiz-zahl">Wdh</label><span class="notiz-kopf-frei"></span></div>' +
       zeilen +
       '<div class="knopfreihe abstand"><button class="schmal" onclick="notizZeileHinzu(\'' + p.id + '\')">+ Zeile</button></div>';
@@ -5277,6 +5452,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.174", punkte:[
+    "Der Notizblock bekommt einen Verlauf — ohne zweites Eingabefeld. Neben jeder Übung steht jetzt ein Kästchen: antippen, wenn du sie gemacht hast. Die App merkt sich die Uhrzeit und die Übung und trägt beides ein. Auf der einfachen Stufe stehen die Kästchen unter deinem Block („Heute gemacht“), auf der Stufe mit Zahlen sitzen sie links in der Zeile. Ein zweiter Tipp nimmt den Haken wieder weg.",
+    "Was du abhakst, ist ein ganz normaler Eintrag: Stufst du später hoch, findest du ihn im Verlauf, im Kalender, in deiner Serie, im Volumen und auf der Muskelkarte wieder — mit der Uhrzeit dabei. Umgewandelt wird nichts, und dazugedichtet auch nicht.",
+    "Die Zahlen aus deinen Zeilen gelten dabei als geplant, nicht als gemessen — ein Haken sagt „gemacht“, nicht „genau diese Zahlen geschafft“. Sie zählen deshalb für Kalender, Serie, Volumen und Muskelkarte, aber sie werden kein neuer Bestwert. Hakst du an einem Tag mehrere Übungen ab, wird daraus EIN Training, nicht fünf."
+  ]},
   { stand:"0.173", punkte:[
     "Die Werkzeuge gibt es jetzt auf jeder Stufe. Scheibenrechner, Übungs-Bibliothek und Papierkorb lagen unter „Mehr“ erst ab Stufe 3 — ausgerechnet der Langhantel-Erfahrene, für den der Notizblock gedacht ist, hatte den Scheibenrechner also nicht. Das passt zusammen: Diese drei fragen dich nichts und bewerten nichts, sie rechnen, schlagen nach und holen Gelöschtes zurück.",
     "Die Beschreibung der Stufe „Notizblock“ ist ehrlicher geworden. Sie versprach, festzuhalten, „was war“ — genau das kann sie nicht: Der Notizblock hält den aktuellen Stand fest, keinen Verlauf. Jetzt steht dort, was sie wirklich ist: dein Plan zum Nachschlagen.",
@@ -7097,6 +7277,17 @@ function gewichtInfoZeichnen(){
     Statistik-Vorschau UND im vollen Verlauf genutzt. v80: robust gegen Einträge
     ohne Plan/Dauer (die „Getan"-Schnellnotizen der Stufe 1/2 haben nur Datum +
     freitext — vorher stand da „undefined min · 0 Sätze" mit leerem Namen). */
+/** v174: Wann wurde gearbeitet? Zeigt den Zeitpunkt des ersten Hakens, bei
+    mehreren die Spanne bis zum letzten. Leer, wo keine Zeit hinterlegt ist —
+    also bei jedem Eintrag vor v174 und bei jedem echten Training (dessen Dauer
+    steht ohnehin daneben). Rein/testbar. */
+function eintragZeitspanne(e){
+  const zeiten = (((e && e.saetze) || []).map(s => s && s.zeit).filter(Boolean)).sort();
+  if(!zeiten.length) return "";
+  const von = zeiten[0], bis = zeiten[zeiten.length - 1];
+  return von === bis ? von : von + "–" + bis;
+}
+
 function protokollEintragHtml(e, mitAktionen){
   const titel = e.plan || (e.freitext ? "Notiz" : "Training");
   const teile = [e.datum.slice(8,10) + "." + e.datum.slice(5,7) + "." + e.datum.slice(0,4)];
@@ -7106,6 +7297,10 @@ function protokollEintragHtml(e, mitAktionen){
     const m = massText(e.sportart, e.messwert);   // v115: generische Messgröße (Beweglichkeit u. a.)
     if(m) teile.push(m);
   } else {
+    // v174: Der Zeitpunkt, den der Haken im Notizblock mitgeschrieben hat.
+    // Ältere Einträge haben ihn nicht — dann steht dort nichts.
+    const z = eintragZeitspanne(e);
+    if(z) teile.push(z);
     if(e.dauerMin > 0) teile.push(e.dauerMin + " min");
     if(e.saetze.length) teile.push(e.saetze.length + (e.saetze.length === 1 ? " Satz" : " Sätze"));
   }

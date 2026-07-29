@@ -3,6 +3,24 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.174
+
+- Der Notizblock bekommt einen Verlauf — ohne zweites Eingabefeld. Neben jeder
+  Übung steht jetzt ein Kästchen: antippen, wenn du sie gemacht hast. Die App
+  merkt sich die Uhrzeit und die Übung und trägt beides ein. Auf der einfachen
+  Stufe stehen die Kästchen unter deinem Block („Heute gemacht“), auf der Stufe
+  mit Zahlen sitzen sie links in der Zeile. Ein zweiter Tipp nimmt den Haken
+  wieder weg.
+- Was du abhakst, ist ein ganz normaler Eintrag: Stufst du später hoch, findest
+  du ihn im Verlauf, im Kalender, in deiner Serie, im Volumen und auf der
+  Muskelkarte wieder — mit der Uhrzeit dabei. Umgewandelt wird nichts, und
+  dazugedichtet auch nicht.
+- Die Zahlen aus deinen Zeilen gelten dabei als geplant, nicht als gemessen —
+  ein Haken sagt „gemacht“, nicht „genau diese Zahlen geschafft“. Sie zählen
+  deshalb für Kalender, Serie, Volumen und Muskelkarte, aber sie werden kein
+  neuer Bestwert. Hakst du an einem Tag mehrere Übungen ab, wird daraus EIN
+  Training, nicht fünf.
+
 ## 0.173
 
 - Die Werkzeuge gibt es jetzt auf jeder Stufe. Scheibenrechner, Übungs-
