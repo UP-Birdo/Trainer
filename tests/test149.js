@@ -104,9 +104,18 @@ pruefe("Hilfetext startet zugeklappt", zeichnen.includes('<div class="wz-hilfe" 
 pruefe("ein i klappt ihn auf", zeichnen.includes("infoUmschalten(\\'wz-hilfe\\')"));
 pruefe("Kopfzeile nennt die Sportart", zeichnen.includes("wzGruppenStand(wzSichtbar, wzSchritt)"));
 pruefe("Kopfzeile traegt die Sportart-Farbe", zeichnen.includes("sportart(stand.sport).farbe"));
-pruefe("Schritt-Anzeige zaehlt wirklich mit",
-  zeichnen.includes('"Schritt " + (wzSchritt + 1) + " von " + wzSichtbar.length'));
+/* v171 hat diese v149-Zusage ABGELOEST: Ueber jeder Frage standen drei Zaehler
+   parallel (Punkteleiste, „Frage N von M" der Sportart, „Schritt N von M"
+   global). Der globale Text-Zaehler ist entfallen — die Punkteleiste direkt
+   darueber sagt dasselbe, ohne dass man liest. Was BLEIBT: Es steht keine
+   feste, falsche Zahl mehr da (der eigentliche v149-Fehler). */
+pruefe("die Fusszeile zaehlt nicht mehr mit (v171)",
+  zeichnen.includes('wz-schritt-anzeige").textContent = ""'));
+pruefe("der globale Zaehler ist ganz weg",
+  !src.includes('"Schritt " + (wzSchritt + 1)'));
 pruefe("die feste Anzeige Schritt 1/7 ist raus", !src.includes(">Schritt 1/7<"));
+pruefe("die bildliche Punkteleiste traegt den globalen Fortschritt weiter",
+  zeichnen.includes('wz-fortschritt").innerHTML'));
 pruefe("die Zusammenfassung benennt sich selbst",
   grabFn("wzZusammenfassung").includes('"Zusammenfassung"'));
 

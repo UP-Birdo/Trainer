@@ -3,6 +3,83 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.173
+
+- Die Werkzeuge gibt es jetzt auf jeder Stufe. Scheibenrechner, Übungs-
+  Bibliothek und Papierkorb lagen unter „Mehr“ erst ab Stufe 3 — ausgerechnet
+  der Langhantel-Erfahrene, für den der Notizblock gedacht ist, hatte den
+  Scheibenrechner also nicht. Das passt zusammen: Diese drei fragen dich nichts
+  und bewerten nichts, sie rechnen, schlagen nach und holen Gelöschtes zurück.
+- Die Beschreibung der Stufe „Notizblock“ ist ehrlicher geworden. Sie versprach,
+  festzuhalten, „was war“ — genau das kann sie nicht: Der Notizblock hält den
+  aktuellen Stand fest, keinen Verlauf. Jetzt steht dort, was sie wirklich ist:
+  dein Plan zum Nachschlagen.
+- Behoben: In der Stufen-Auswahl war die aktuelle Stufe kaum lesbar — gelbe
+  Fläche, aber weiße und graue Schrift darauf.
+
+## 0.172
+
+- Der Notizblock versteht jetzt Gewichte. Schreib „Bankdrücken 3x8 80 kg“ — die
+  80 kg landen im Gewicht, nicht mehr im Namen. Das war mehr als unschön: Die
+  Übung hieß danach „Bankdrücken 80 kg“, und unter diesem Namen fand die App
+  weder die Muskelkarte noch die Erklärung noch das passende Gerät — und die
+  Zahl im Namen veraltete mit jeder Steigerung. Erkannt wird die Angabe am
+  Zeilenende, mit Komma oder Punkt; ein Gewicht mitten im Namen bleibt
+  unangetastet („Kurzhantel 20 kg 3 10“). Umgekehrt steht dein Gewicht jetzt
+  auch in der Zeile, wenn es aus einem Plan kommt.
+- Behoben: Meldungen liefen bei langem Text links und rechts aus dem Bild —
+  jetzt brechen sie um statt abzuschneiden, und bei vielen erkannten Übungen
+  nennt die Meldung zwei Namen und zählt den Rest.
+- Die Vorschläge beim Tippen verschwinden jetzt, sobald du das Feld verlässt,
+  und stehen bei Bedarf in zwei Zeilen — vorher war der dritte Vorschlag am Rand
+  angeschnitten.
+
+## 0.171
+
+- Klarere Worte an drei Stellen: Auf „Heute“ heißt die Überschrift jetzt „Kein
+  Plan für heute“, solange der Tag keiner ist — darunter stand bisher „Als
+  Ruhetag markieren“, was sich widersprach („ist doch schon einer?“). Der Knopf
+  heißt jetzt „Bewusst frei nehmen“. Im Training heißt der Knopf, der die Uhr
+  anhält, „Anhalten“ statt „Pause“ — in der Pause stand dort sonst „Pause“. Und
+  beim Aufwärmen und Dehnen heißt der große Knopf „Fertig“ statt
+  „Überspringen“: Er tut dasselbe wie vorher, lädt aber nicht mehr zum Weglassen
+  ein.
+- Der Assistent ist ruhiger geworden. Über jeder Frage standen drei Zähler
+  gleichzeitig — die Punkteleiste, „Frage 1 von 8“ und „Schritt 2 von 9“. Der
+  letzte ist weg; die Punkteleiste sagt dasselbe, ohne dass man liest. Bei der
+  Geräte-Frage steht jetzt sichtbar dabei, dass nichts auszuwählen völlig in
+  Ordnung ist — das stand bisher nur hinter dem „i“. Und lange Fragen beginnen
+  wieder oben, statt angeschnitten.
+- Der Hinweis nach dem Erstellen der Pläne nennt kein Tischtennis mehr, wenn du
+  nur Krafttraining gewählt hast.
+
+## 0.170
+
+- Der erste Bildschirm führt jetzt dorthin, wo Neue hinwollen: „Neues Konto
+  anlegen“ ist auf einem leeren Gerät die gelbe Hauptaktion. Vorher stand dort
+  „Sicherung wiederherstellen“ in Gelb — direkt nach der Willkommens-Seite, die
+  sich an Neue richtet, und die haben noch keine Sicherung. Dazu gab es
+  „Sicherung wiederherstellen“ und „Sicherung importieren“ untereinander: zwei
+  Namen für ein und denselben Weg. Geblieben ist ein Knopf, „Konto aus Sicherung
+  wiederherstellen“.
+- Beim Anlegen ist das Geschlecht keine Vorauswahl mehr, sondern eine Frage.
+  Bisher stand dort „männlich“ vorgewählt — wer das Feld übersah, bekam
+  stillschweigend zu schwere Startgewichte. Jetzt steht „bitte wählen“, und die
+  App fragt nach, bevor sie rechnet.
+- Der Wiederherstellungscode hat einen „Kopieren“-Knopf. Am iPhone musste man
+  ihn bisher von Hand abschreiben — ausgerechnet bei dem einen Wert, ohne den
+  ein vergessenes Passwort das Konto endgültig kostet.
+
+## 0.169
+
+- Du kommst jetzt im Training an die Erklärung jeder Übung: Tippe im Training
+  oder in der Vorschau auf den Übungsnamen — es öffnet sich der kurze Merksatz
+  und die volle Beschreibung. Wer vor „Superman · 12 Wdh“ stand und nicht
+  wusste, wie die Übung geht, musste bisher die App verlassen und die Bibliothek
+  suchen. Die Texte gab es längst, sie waren nur an der falschen Stelle.
+  Erkennbar ist es an der gepunkteten Linie unter dem Namen; wo nichts
+  hinterlegt ist (etwa beim Aufwärmen), bleibt der Name schlicht.
+
 ## 0.168
 
 - Der Tages-Check ersetzt die Befinden-Note. Statt dich zu fragen, wie du dich

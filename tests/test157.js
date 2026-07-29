@@ -28,7 +28,9 @@ const modul = { exports: {} };
 new Function("module", "exports", [
   grabLine("const NOTIZ_MUSTER"),
   grabLine("const NOTIZ_PAAR"),
+  grabLine("const NOTIZ_GEWICHT"),   // v172: Gewicht am Zeilenende
   grabFn("normName"),
+  grabFn("zahlKurz"),                // v172: notizZeileMitName schreibt das Gewicht mit
   grabFn("notizZeileDeuten"),
   grabFn("notizAktuelleZeile"),
   grabFn("notizVorschlaege"),
@@ -103,7 +105,12 @@ pruefe("der Fokus bleibt im Feld (sonst legt onchange den Halbsatz an)",
 const waehlen = grabFn("notizVorschlagWaehlen");
 pruefe("Auswaehlen ersetzt nur die eine Zeile", waehlen.includes("notizZeileMitName(z.text, name)"));
 pruefe("der Cursor landet hinter dem Eingesetzten", waehlen.includes("setSelectionRange(cursor, cursor)"));
-pruefe("danach ist die Reihe wieder zu", waehlen.includes("ziel.hidden = true"));
+/* v172: Das Schliessen liegt jetzt in einer eigenen Funktion — es gibt seither
+   einen zweiten Ausloeser (Verlassen des Feldes), und beide sollen dasselbe
+   tun. Geprueft wird die Delegation UND dass die Funktion wirklich schliesst. */
+pruefe("danach ist die Reihe wieder zu",
+  waehlen.includes("notizVorschlaegeSchliessen(planId)") &&
+  grabFn("notizVorschlaegeSchliessen").includes("ziel.hidden = true"));
 pruefe("gespeichert wird weiter erst beim Verlassen", !waehlen.includes("abschnittTextSetzen"));
 const pool = grabFn("alleUebungsNamen");
 pruefe("der Namens-Vorrat kennt Kraft, Drills und eigene",

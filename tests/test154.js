@@ -21,7 +21,12 @@ const AB_STUFE_1 = [
   "view-plaene",                                     // Stufe 1/2: der Notizblock
   "view-einstellungen", "view-einst-darstellung",    // „Mehr" + Darstellung
   "view-einst-konto", "view-einst-hilfe",            // Konto/Hilfe brauchen alle
-  "view-neuigkeiten", "view-wissen"                  // Lesestoff
+  "view-neuigkeiten", "view-wissen",                 // Lesestoff
+  /* v173: Werkzeuge und Nachschlagewerk. Bewusst ab Stufe 1 — sie VERLANGEN
+     nichts und BEWERTEN nichts (Leitplanke 8 haelt Analyse und Rueckfragen
+     fern, nicht Werkzeug und Nachschlagen). Der Scheibenrechner fehlte sonst
+     genau seiner Zielgruppe: dem Langhantel-Erfahrenen auf dem Notizblock. */
+  "view-einst-werkzeuge", "view-bibliothek", "view-papierkorb"
 ];
 
 function grabFn(name){
@@ -120,7 +125,21 @@ pruefe("Statistik-Auswahl erst mit dem Statistik-Tab (Stufe 4)",
   darst.includes('document.getElementById("darst-statistik-karte").hidden = stufe() < 4'));
 const mehr = grabFn("einstellungenOeffnen");
 pruefe("Profil-Zeile erst ab Stufe 5", mehr.includes('"mehr-profil-zeile").hidden = stufe() < 5'));
-pruefe("Werkzeuge erst ab Stufe 3", mehr.includes('"mehr-werkzeuge-zeile").hidden = stufe() < 3'));
+/* v173: Die Werkzeuge gelten ab Stufe 1 (Nutzer-Einwand: der Scheibenrechner
+   fehlte genau seiner Zielgruppe). Die Zeile fragt seither die EINE Quelle
+   statt einer eigenen Zahl — so koennen Menue-Zeile und Ansicht nicht
+   auseinanderlaufen. */
+pruefe("die Werkzeuge-Zeile fragt die eine Quelle",
+  mehr.includes('"mehr-werkzeuge-zeile").hidden = !viewErlaubt("view-einst-werkzeuge")'));
+pruefe("und die Quelle sagt: ab Stufe 1 (keine Sperre eingetragen)",
+  !VIEW_MIN_STUFE["view-einst-werkzeuge"] && erlaubtBei("view-einst-werkzeuge", 1));
+pruefe("die beiden Ansichten dahinter genauso",
+  erlaubtBei("view-bibliothek", 1) && erlaubtBei("view-papierkorb", 1));
+/* Die harte Grenze aus Leitplanke 8 bleibt, wo sie hingehoert: alles, was
+   fragt oder bewertet, ist weiterhin ab 4. */
+pruefe("was fragt und bewertet, bleibt oben",
+  VIEW_MIN_STUFE["view-tagescheck"] >= 4 && VIEW_MIN_STUFE["view-statistik"] >= 4 &&
+  VIEW_MIN_STUFE["view-muskeln"] >= 4);
 pruefe("Ziele bleiben unter Stufe 5 leer", grabFn("zieleStartZeichnen").includes("if(stufe() < 5)"));
 
 /* ---------- 5) Die Stufen-Liste selbst ---------- */

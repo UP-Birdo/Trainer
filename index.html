@@ -157,6 +157,14 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chalk)}
 .stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:0 0 0 2px rgba(244,199,78,0.15)}
 .stufe-wahl strong{color:var(--chalk);font-size:15px}
+/* v173: Die gelbe Fläche der gewählten Karte kommt aus der Haus-Regel
+   „AUSGEWÄHLT = GELB" (button.gewaehlt) — die setzt eine dunkle Schrift, aber
+   `.stufe-wahl strong` (0,1,1) und `.meta` (0,1,0) haben sie wieder auf Weiß
+   bzw. Grau gezogen. Auf dem Gelb war das kaum lesbar, und es traf immer die
+   AKTUELLE Stufe. Diese beiden Regeln (0,2,1 und 0,3,0) sind spezifischer und
+   gewinnen unabhängig von der Reihenfolge im Stylesheet. */
+.stufe-wahl.gewaehlt strong{color:#16181C}
+.stufe-wahl.gewaehlt .meta{color:#16181C;opacity:.85}
 .notiz-name{font-weight:700;font-size:16px}
 /* v79: wächst per JS mit dem Inhalt (notizTextWachsen) — kein internes Scrollen */
 .notiz-text{min-height:90px;overflow:hidden;resize:none}
@@ -199,6 +207,12 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .phase.pause{color:var(--rest)}
 .uebungsname{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 0 0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* v169: „Hier steht mehr" — der Übungsname führt zur Erklärung. Gepunktet in
+   der Signalfarbe statt eines eigenen Knopfes: Der Name ist ohnehin das Erste,
+   was man ansieht, und die eine gelbe Hauptaktion bleibt der Satz-Knopf. */
+.tippbar{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
+  text-decoration-color:var(--signal);text-underline-offset:5px}
+.uebungsname.tippbar{text-underline-offset:7px}
 .uhr{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .uhr-zahl{font-family:var(--mono);font-weight:700;letter-spacing:-.05em;line-height:.9;
   font-variant-numeric:tabular-nums;font-size:clamp(56px,22vw,120px);color:var(--signal)}
@@ -385,6 +399,9 @@ body:not(.nav-an) #nav{display:none}
 .wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
 .wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
 .wz-hilfe{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+/* v171: ein sichtbarer Einzeiler unter der Frage (die Zusicherung, die man
+   VOR dem Antworten braucht) — der lange Erklärtext bleibt hinter dem „i". */
+.wz-zusatz{margin:0 0 14px;line-height:1.45}
 /* v149: Kopfzeile über der Frage — WELCHE Sportart wird gerade eingestellt und
    die wievielte ihrer Fragen. Bei mehreren Sportarten war ohne sie nicht zu
    erkennen, wo man ist (Nutzer-Wunsch). Der Punkt trägt die Sportart-Farbe,
@@ -445,8 +462,13 @@ body:not(.nav-an) #nav{display:none}
 .filter-reihe button.gewaehlt{border-color:var(--chalk);color:var(--chalk);font-weight:600}
 .filter-titel{font-size:12px;color:var(--muted);margin-top:10px}
 /* v157: Die Vorschlags-Reihe im Notizblock nutzt denselben Chip-Look wie die
-   Filter der Übungs-Suche — ein Muster für „waagerechte Auswahl zum Wischen". */
-.notiz-vorschlaege{margin-top:6px}
+   Filter der Übungs-Suche — ein Muster für „waagerechte Auswahl zum Wischen".
+   v172: Hier aber UMBRECHEND statt wischend. Die Reihe war zwar scrollbar, sah
+   aber nicht danach aus: Der dritte Vorschlag stand angeschnitten am Rand und
+   wirkte unerreichbar. Bei höchstens fünf Vorschlägen passt eine zweite Zeile
+   allemal — und dann ist jeder ohne Geste erreichbar. Die Filter-Reihen der
+   Übungs-Suche bleiben wischbar; dort zählt die Reihenfolge. */
+.notiz-vorschlaege{margin-top:6px;flex-wrap:wrap;overflow-x:visible}
 .wahl-gruppe{margin:14px 0 6px}
 /* Wochentage in einer Zeile, wie die Kopfzeile des Kalenders.
    minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
@@ -546,10 +568,17 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 #toast-container{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:11;
   display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;
   max-width:90%;width:300px}
+/* v172: Der Toast lief bei langem Text links UND rechts aus dem Bild — er ist
+   ein Flex-Kind mit `align-items:center` im Container, wuchs also über dessen
+   300 px hinaus und wurde mittig abgeschnitten. `white-space:nowrap` verbot
+   den Umbruch, und `text-overflow:ellipsis` griff nicht, weil der Text kein
+   eigenes Block-Kind war. Jetzt: Breite hart auf den Container begrenzt und
+   umbrechen statt abschneiden — lieber zwei Zeilen als ein halber Satz. */
 .toast{background:var(--panel);border:2px solid var(--line);border-radius:8px;padding:12px 16px;
   color:var(--chalk);font-weight:600;box-shadow:var(--shadow-md);animation:toastIn 0.3s ease-out;
-  display:flex;align-items:center;gap:12px;font-size:14px;pointer-events:auto;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
+  display:flex;align-items:center;gap:12px;font-size:14px;pointer-events:auto;
+  max-width:100%;box-sizing:border-box;overflow:hidden}
+.toast > span{min-width:0;overflow-wrap:anywhere;line-height:1.35}
 /* v96: farbige Toasts NICHT mehr durchscheinend (vorher rgba .08 — man las den
    Text/Knopf darunter durch). Hintergrund bleibt das deckende Panel der Basis,
    nur Rand + Text tragen die Farbe. */
@@ -730,8 +759,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <div><label for="neu-groesse">Größe (cm)</label><input id="neu-groesse" type="number" inputmode="numeric"></div>
       <div><label for="neu-geburtsjahr">Geburtsjahr</label><input id="neu-geburtsjahr" type="number" inputmode="numeric"></div>
       <div><label for="neu-gewicht">Gewicht (kg)</label><input id="neu-gewicht" type="number" inputmode="decimal" step="0.1"></div>
+      <!-- v170: KEINE Vorauswahl. „männlich" stand hier vorgewählt — wer das
+           Feld übersah, bekam stillschweigend zu schwere Startgewichte (der
+           Faktor 0,7 in startwerteBerechnen entfällt) und keine Perioden-Frage
+           im Tages-Check. Eine stille Falschannahme ist schlechter als eine
+           Rückfrage. -->
       <div><label for="neu-geschlecht">Geschlecht</label>
         <select id="neu-geschlecht">
+          <option value="">bitte wählen</option>
           <option value="m">männlich</option><option value="w">weiblich</option><option value="d">divers</option>
         </select></div>
     </div>
@@ -744,8 +779,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="knopfreihe">
     <button class="breit" id="neu-knopf" onclick="neuFormularZeigen()">Neues Konto anlegen</button>
   </div>
+  <!-- v170: Der EINE Weg zurück ins alte Konto. Vorher stand derselbe Aufruf
+       zusätzlich als gelbe Hauptaktion im Leer-Zustand darüber — zwei Namen für
+       eine Sache, ohne erkennbaren Unterschied. -->
   <div class="knopfreihe">
-    <button class="schmal" id="import-knopf" onclick="document.getElementById('import-datei').click()">Sicherung importieren</button>
+    <button class="schmal" id="import-knopf" onclick="document.getElementById('import-datei').click()">Konto aus Sicherung wiederherstellen</button>
   </div>
   <input type="file" id="import-datei" accept="application/json" hidden onchange="sicherungImportieren(this)">
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -760,6 +798,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     Schreibe ihn auf Papier oder lege ihn in deinen Passwortmanager.
     Mit ihm kannst du ein vergessenes Passwort zurücksetzen — ohne ihn und ohne Passwort sind die Daten endgültig unlesbar.</div>
   <div id="code-anzeige" class="geheim">–</div>
+  <!-- v170: Am iPhone musste man den Code von Hand markieren — genau bei dem
+       einen Wert, dessen Verlust das Konto unrettbar macht. Der Knopf bleibt
+       grau: Die eine gelbe Hauptaktion ist das Bestätigen. -->
+  <div class="knopfreihe">
+    <button class="schmal" onclick="codeKopieren()">Code kopieren</button>
+  </div>
   <div class="knopfreihe">
     <button class="primaer" onclick="codeBestaetigen()">Ich habe den Code sicher notiert</button>
   </div>
@@ -1565,7 +1609,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div id="vorschau-liste"></div>
 
   <div class="knopfreihe">
-    <button class="primaer breit" onclick="trainingLosgehts()">Los geht's</button>
+    <button class="primaer breit" onclick="trainingLosgehts()">Los geht’s</button>
   </div>
   <div class="knopfreihe">
     <button class="breit" onclick="zeige('view-plaene')" data-zurueck>Zurück</button>
@@ -1591,7 +1635,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div id="danach" class="meta" style="text-align:center;margin-bottom:8px"></div>
   <button id="haupt-knopf" class="primaer breit" onclick="hauptKnopf()">Satz fertig</button>
   <div class="knopfreihe">
-    <button class="schmal" id="pause-knopf" onclick="pauseKnopf()">Pause</button>
+    <!-- v171: „Anhalten", nicht „Pause". Während der Pausen-Phase hieß der
+         Knopf „Pause" und stand damit für „Pause in der Pause" — er hält die
+         Uhr an, egal welche Phase gerade läuft. -->
+    <button class="schmal" id="pause-knopf" onclick="pauseKnopf()">Anhalten</button>
     <button class="schmal" id="plus-knopf" onclick="zeitAendern(30)">+ 30 s</button>
     <button class="schmal" id="minus-knopf" onclick="zeitAendern(-15)">− 15 s</button>
   </div>
@@ -2352,18 +2399,25 @@ function loginZeichnen(){
   ["login-formular","neu-formular","wiederherstellung-formular"].forEach(id =>
     document.getElementById(id).hidden = true);
   document.getElementById("neu-knopf").hidden = false;
+  /* v170: Die eine gelbe Hauptaktion folgt der wahrscheinlichsten Absicht.
+     Leeres Gerät → „Neues Konto anlegen"; gibt es schon Konten, ist Anmelden
+     gemeint und der Neu-Knopf tritt zurück. */
+  document.getElementById("neu-knopf").className =
+    tresor.konten.length === 0 ? "primaer breit" : "breit";
 
   versionAnzeigen();
 
   const ziel = document.getElementById("login-konten");
   ziel.hidden = false;
   if(tresor.konten.length === 0){
-    // Leeres Gerät: Die wahrscheinlichste Absicht ist "Ich habe eine Sicherung"
-    // (neues Handy, Safari-Daten gelöscht) — Wiederherstellen gehört nach vorn.
-    ziel.innerHTML = '<div class="leer">Noch kein Konto auf diesem Gerät.<br><br>' +
-      '<div class="knopfreihe">' +
-      '<button class="primaer" onclick="document.getElementById(\'import-datei\').click()">Sicherung wiederherstellen</button>' +
-      '</div></div>';
+    /* v170: Bis v169 stand hier „Sicherung wiederherstellen" als gelbe
+       Hauptaktion — und darunter „Sicherung importieren" als grauer Knopf, der
+       DIESELBE Funktion aufrief. Zwei Namen für einen Weg, und der als
+       Hauptaktion gesetzte war für jemanden ohne Sicherung der falsche: Wer die
+       Willkommens-Seite gerade zum ersten Mal gesehen hat, hat kein Backup.
+       Jetzt: ein Weg zum Wiederherstellen (der Knopf unten), und die gelbe
+       Hauptaktion ist „Neues Konto anlegen" (siehe unten). */
+    ziel.innerHTML = '<div class="leer">Noch kein Konto auf diesem Gerät.</div>';
   } else {
     ziel.innerHTML = tresor.konten.map(k =>
       '<div class="karte zeile"><h2>' + text(k.benutzer) + '</h2>' +
@@ -2451,7 +2505,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 168;
+const APP_VERSION = 173;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2620,15 +2674,20 @@ async function kontoAnlegen(){
   if(!kryptoVerfuegbar){ meldung("Verschlüsselung hier nicht verfügbar — bitte auf der echten Website (HTTPS) anlegen."); return; }
   const benutzer = document.getElementById("neu-benutzer").value.trim();
   const passwort = document.getElementById("neu-passwort").value;
+  const geschlecht = document.getElementById("neu-geschlecht").value;
   if(benutzer === ""){ meldung("Bitte einen Benutzernamen eingeben."); return; }
   if(passwort.length < 8){ meldung("Das Passwort braucht mindestens 8 Zeichen."); return; }
+  /* v170: Pflichtfeld statt stiller Vorauswahl. Es geht in die Startgewichte
+     ein — geraten wird hier nichts. Gespeichert wird weiterhin nur „m"/„w"/„d",
+     der leere Wert kommt nie in die Daten (additiver Datenvertrag unberührt). */
+  if(geschlecht === ""){ meldung("Bitte wähle noch dein Geschlecht — die App leitet daraus deine Startgewichte ab."); return; }
   if(tresor.konten.some(k => k.benutzer.toLowerCase() === benutzer.toLowerCase())){
     meldung("Diesen Benutzernamen gibt es auf diesem Gerät schon."); return;
   }
   const profil = {
     groesse: parseFloat(document.getElementById("neu-groesse").value) || 0,
     geburtsjahr: parseInt(document.getElementById("neu-geburtsjahr").value) || 0,
-    geschlecht: document.getElementById("neu-geschlecht").value
+    geschlecht
   };
 
   const dkBytes = dkErzeugen();
@@ -2659,6 +2718,43 @@ function codeAnzeigen(danach){
   nachCodeAnzeige = danach;
   zeige("view-code");
 }
+/** v170: Wiederherstellungscode in die Zwischenablage. Am iPhone ist das Feld
+    nicht markierbar, und genau dieser Wert entscheidet, ob ein vergessenes
+    Passwort das Konto kostet. Zwei Wege, weil `navigator.clipboard` nur auf
+    HTTPS existiert: die moderne API, sonst der alte `execCommand`-Trick über
+    ein unsichtbares Feld. Schlägt beides fehl, sagt die App das ehrlich —
+    besser als ein Erfolgs-Toast, nach dem die Zwischenablage leer ist. */
+function codeKopieren(){
+  const wert = document.getElementById("code-anzeige").textContent;
+  if(!wert || wert === "–"){ return; }
+  const gelungen = () => zeigenToast("Code kopiert — bitte gleich sicher ablegen.", "erfolg");
+  const misslungen = () => meldung("Kopieren hat nicht geklappt. Bitte schreibe den Code von Hand ab — ohne ihn ist ein vergessenes Passwort endgültig.");
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(wert)
+      .then(gelungen, () => { if(codeKopierenAlt(wert)) gelungen(); else misslungen(); });
+    return;
+  }
+  if(codeKopierenAlt(wert)) gelungen(); else misslungen();
+}
+
+/** Der alte Weg: Text in ein kurzlebiges Feld legen, markieren, kopieren.
+    Gibt zurück, ob es geklappt hat. */
+function codeKopierenAlt(wert){
+  try {
+    const feld = document.createElement("textarea");
+    feld.value = wert;
+    feld.setAttribute("readonly", "");
+    feld.style.position = "fixed";
+    feld.style.opacity = "0";
+    document.body.appendChild(feld);
+    feld.select();
+    feld.setSelectionRange(0, wert.length);   // iOS beachtet select() allein nicht
+    const ok = document.execCommand("copy");
+    document.body.removeChild(feld);
+    return !!ok;
+  } catch(e){ return false; }
+}
+
 function codeBestaetigen(){
   // Erst weiterschalten, dann aufräumen: Wirft der Wechsel einen Fehler,
   // bleibt der Code sichtbar statt einen leeren, festgefahrenen Bildschirm zu zeigen.
@@ -3246,9 +3342,20 @@ const VIEW_MIN_STUFE = {
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-uebung-picker": 3,                           // v148: Übungs-Suche als eigene Ansicht
-  "view-bibliothek": 3,                              // Übungs-Bibliothek (aus „Mehr")
-  "view-papierkorb": 3,                              // Papierkorb (aus „Mehr", v96)
-  "view-einst-werkzeuge": 3,                         // Untermenü „Werkzeuge" (v102)
+  /* v173: `view-einst-werkzeuge`, `view-bibliothek` und `view-papierkorb`
+     standen hier auf 3 und sind ERSATZLOS gestrichen — sie gelten damit ab
+     Stufe 1 (nicht gelistet = ab 1, siehe oben). Nutzer-Einwand aus dem
+     Persona-Durchgang: „Der Scheibenrechner fehlt genau seiner Zielgruppe" —
+     ausgerechnet der Langhantel-Erfahrene, für den der Notizblock gedacht ist,
+     hatte das Profi-Werkzeug nicht.
+     Das ist mit Leitplanke 8 vereinbar, und zwar für alle drei: Sie VERLANGEN
+     nichts und BEWERTEN nichts. Scheibenrechner = Taschenrechner, Bibliothek =
+     Nachschlagewerk (rein lesend, wie die Erklärung aus v169), Papierkorb =
+     Sicherheitsnetz gegen Datenverlust. Was Leitplanke 8 fernhält, sind Analyse
+     und Rückfragen — nicht Werkzeug und Nachschlagen.
+     Eine „1" gehört NICHT in diese Tabelle: Der Register-Vertrag (test154)
+     verlangt, dass hier nur echte Sperren stehen und alles ab Stufe 1
+     ausdrücklich in der Ab-Stufe-1-Liste des Tests geführt wird. */
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-koerpermasse": 4,   // v134
   "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
@@ -3280,12 +3387,18 @@ function navTabsFuerStufe(s){
    bestehende Daten umzuschreiben (additiver Datenvertrag). Die Nummer ist
    damit eine interne Kennung und steht nicht mehr in der Auswahl. --- */
 const SIMPELHEIT_STUFEN = [
+  /* v173: „festhalten, was war" war ein Versprechen, das die Stufe nicht halten
+     kann. Der Notizblock speichert den AKTUELLEN Stand jedes Abschnitts — kein
+     Datum, kein Verlauf, kein Protokoll (Leitplanke 8, bewusst). Wer nächste
+     Woche 82,5 kg einträgt, überschreibt die 80 von heute. Genau die
+     Zielgruppe, die hier landen soll, wählte die Stufe also mit einer falschen
+     Erwartung. Jetzt steht da, was sie WIRKLICH kann. */
   { n:1, titel:"Notizblock",
-    fuer:"Für Erfahrene, die nur festhalten wollen, was war.",
-    text:"Eine Seite, eine Übung je Zeile. Kein geführtes Training." },
+    fuer:"Für Erfahrene, die sich nur notieren wollen, was sie machen.",
+    text:"Eine Seite, eine Übung je Zeile — dein Plan zum Nachschlagen, ohne Verlauf." },
   { n:2, titel:"Notizblock + Zahlen",
-    fuer:"Wenn du keinen Plan brauchst, aber deine Zahlen willst.",
-    text:"Wie Notizblock, plus Sätze und Wiederholungen je Zeile." },
+    fuer:"Für Erfahrene, die ihre Sätze und Wiederholungen dabeihaben wollen.",
+    text:"Wie Notizblock, plus Sätze und Wiederholungen je Zeile — ebenfalls ohne Verlauf." },
   { n:3, titel:"Plan + Training",
     fuer:"Wenn du weißt, was du tust, und nur die Führung willst.",
     text:"Echte Pläne, geführtes Training mit Pause-Timer, Protokoll." },
@@ -3533,9 +3646,12 @@ function notizVorschlaege(zeile, namen, max){
 function notizZeileMitName(zeile, name){
   const d = notizZeileDeuten(zeile);
   if(!d) return name;
-  return d.modus === "zeit"
-    ? "Sätze " + d.saetze + " Zeit " + d.wert + " " + name
-    : "Sätze " + d.saetze + " Wdh " + d.wert + " " + name;
+  // v172: Das getippte Gewicht überlebt den Vorschlag genauso wie die Mengen.
+  const gew = d.gewicht != null ? " " + zahlKurz(d.gewicht) + " kg" : "";
+  if(d.saetze == null) return name + gew;      // nur ein Gewicht genannt
+  return (d.modus === "zeit"
+    ? "Sätze " + d.saetze + " Zeit " + d.wert + " "
+    : "Sätze " + d.saetze + " Wdh " + d.wert + " ") + name + gew;
 }
 
 /** Alle Namen, die die App kennt: Kraftübungen, Sportart-Drills und die
@@ -3566,6 +3682,16 @@ function notizTippen(el, planId){
   ziel.hidden = treffer.length === 0;
 }
 
+/** v172: Die Vorschläge schließen. Sie blieben nach dem Verlassen des Feldes
+    stehen und boten etwas an, das niemand mehr wollte — bis zum nächsten
+    Tastendruck irgendwo. Eine Stelle für beide Auslöser (Auswahl und Verlassen);
+    der `onmousedown`-Trick oben sorgt dafür, dass ein Tipp AUF einen Vorschlag
+    kein Verlassen ist. */
+function notizVorschlaegeSchliessen(planId){
+  const ziel = document.getElementById("notiz-vorschlag-" + planId);
+  if(ziel){ ziel.innerHTML = ""; ziel.hidden = true; }
+}
+
 /** Einen Vorschlag übernehmen: Name in der aktuellen Zeile ersetzen, Cursor
     dahinter, Vorschläge schließen. Gespeichert wird wie immer beim Verlassen
     des Feldes — hier wird nur geschrieben, was der Nutzer gewählt hat. */
@@ -3579,8 +3705,7 @@ function notizVorschlagWaehlen(planId, name){
   feld.focus();
   feld.setSelectionRange(cursor, cursor);
   notizTextWachsen(feld);
-  const ziel = document.getElementById("notiz-vorschlag-" + planId);
-  if(ziel){ ziel.innerHTML = ""; ziel.hidden = true; }
+  notizVorschlaegeSchliessen(planId);
 }
 
 function notizAbschnittHtml(p, s){
@@ -3595,8 +3720,10 @@ function notizAbschnittHtml(p, s){
     // v123: kurzer Platzhalter — das volle Muster erklärt das „i" im Kopf.
     // v157: `oninput` zieht zusätzlich die Vorschläge nach; die Chip-Reihe
     // darunter bleibt leer, solange nichts passt.
+    // v172: `onblur` räumt die Vorschläge weg — vorher blieben sie stehen.
     koerper = '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
       'oninput="notizTippen(this, \'' + p.id + '\')" ' +
+      'onblur="notizVorschlaegeSchliessen(\'' + p.id + '\')" ' +
       'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>' +
       '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>';
   } else {
@@ -3679,6 +3806,18 @@ const NOTIZ_MUSTER = /^s(?:ä|ae)tze\s+(\d+)\s+(wdh|zeit)\s+(\d+)\s+(.+)$/i;
    Ohne diese Bedingung zerlegt der Ausdruck eine einzelne Zahl in zwei Hälften
    („500" wird zu 50 und 0) und erfindet damit Mengen, die niemand getippt hat. */
 const NOTIZ_PAAR = /(\d+)(?:\s*[x×*]\s*|\s+)(\d+)/;
+/* v172: Das GEWICHT am Zeilenende. Für einen Kraftsportler ist es die
+   wichtigste Zahl seiner Notiz — bis v171 landete es im NAMEN: Aus
+   „Bankdrücken 3x8 80 kg" wurde die Übung „Bankdrücken 80 kg". Das war mehr
+   als hässlich: Unter diesem Namen greift KEINE Zuordnung mehr — nicht
+   `UEBUNGEN_DB` (Gerät, kanonische Schreibweise), nicht `UEBUNG_MUSKELN`
+   (Muskelkarte), nicht `UEBUNG_TEXT` (Erklärung), nicht die Bibliothek. Und
+   die Zahl im Namen veraltete mit jeder Steigerung.
+   Erkannt wird nur am ZEILENENDE, mit Leerzeichen davor: „Kurzhantel 20 kg 3 10"
+   (Gewicht MITTEN im Namen) bleibt damit unangetastet, wie seit v155 zugesagt.
+   Punkt und Komma sind beide erlaubt — getippt wird deutsch, gerechnet wird
+   mit Punkt. */
+const NOTIZ_GEWICHT = /\s(\d+(?:[.,]\d+)?)\s*kg\s*$/i;
 
 /** v155: Eine Notizblock-Zeile deuten — Muster ODER Kurzform.
     Rückgabe `{name, saetze, modus, wert}` oder `null`, wenn die Zeile keine
@@ -3690,28 +3829,50 @@ const NOTIZ_PAAR = /(\d+)(?:\s*[x×*]\s*|\s+)(\d+)/;
     ausdrückliche Muster („Sätze 3 Zeit 45 Plank") — aus „3 45" zu raten, ob
     Sekunden oder Wiederholungen gemeint sind, wäre geraten. */
 function notizZeileDeuten(zeile){
-  const t = String(zeile || "").trim();
-  if(!t) return null;
+  const roh = String(zeile || "").trim();
+  if(!roh) return null;
+  /* v172: Das Gewicht ZUERST abtrennen — sonst hielte das Zahlenpaar unten
+     „80" für eine Menge und der Rest landete im Namen. Danach ist die Zeile
+     wieder genau das, was v155 kannte. */
+  const g = roh.match(NOTIZ_GEWICHT);
+  const gewicht = g ? parseFloat(g[1].replace(",", ".")) : null;
+  const t = (g ? roh.slice(0, g.index) : roh).trim();
+  if(!t) return null;                          // „80 kg" allein ist keine Übung
+
   const m = t.match(NOTIZ_MUSTER);
   if(m) return { name: m[4].trim(), saetze: parseInt(m[1], 10),
                  modus: m[2].toLowerCase() === "zeit" ? "zeit" : "wdh",
-                 wert: parseInt(m[3], 10) };
+                 wert: parseInt(m[3], 10), gewicht };
   const paar = t.match(NOTIZ_PAAR);
-  if(!paar) return null;
+  /* Ohne Zahlenpaar zählt nur der Name (v79) — die Zeile ist trotzdem gedeutet,
+     WENN sie ein Gewicht genannt hat („Bankdrücken 80 kg"). `saetze: null`
+     heißt für alle Leser: hier wurden keine Mengen genannt, also auch keine
+     verändert (kein Wert, kein Effekt). */
+  if(!paar) return gewicht != null
+    ? { name: t, saetze: null, modus: null, wert: null, gewicht }
+    : null;
   const name = (t.slice(0, paar.index) + " " + t.slice(paar.index + paar[0].length))
     .replace(/\s+/g, " ").trim();
   if(!name) return null;                       // nackte Zahlen sind keine Übung
   const a = parseInt(paar[1], 10), b = parseInt(paar[2], 10);
-  if(!(a > 0) || !(b > 0)) return null;
-  return { name, saetze: Math.min(a, b), modus:"wdh", wert: Math.max(a, b) };
+  if(!(a > 0) || !(b > 0)) return gewicht != null
+    ? { name: t, saetze: null, modus: null, wert: null, gewicht }
+    : null;
+  return { name, saetze: Math.min(a, b), modus:"wdh", wert: Math.max(a, b), gewicht };
 }
 
 /** Eine Übung als Muster-Zeile für den Stufe-1-Text. Zeit immer in Sekunden —
     eine Einheit in der Zeile („30 min“) müsste der Parser mitschleppen. */
 function uebungAlsZeile(u){
+  /* v172: Das Gewicht gehört mit in die Zeile — sonst verschwände genau die
+     Zahl, die der Nutzer gerade getippt hat, beim Zurückschreiben aus dem Bild
+     (und die Übungen, die von Stufe 5 heruntergestuft wurden, zeigten ihr
+     Gewicht nie). Dieselbe Schreibweise, die der Parser oben liest: Zahl,
+     Leerzeichen, „kg", ganz am Ende. */
+  const gew = u.gewicht > 0 ? " " + zahlKurz(u.gewicht) + " kg" : "";
   return u.modus === "zeit"
-    ? "Sätze " + u.saetze + " Zeit " + u.dauer + " " + u.name
-    : "Sätze " + u.saetze + " Wdh " + u.wdh + " " + u.name;
+    ? "Sätze " + u.saetze + " Zeit " + u.dauer + " " + u.name + gew
+    : "Sätze " + u.saetze + " Wdh " + u.wdh + " " + u.name + gew;
 }
 
 /** Stufe-1-Sicht eines Abschnitts: erst die Übungen als Muster-Zeilen
@@ -3756,7 +3917,12 @@ function abschnittTextSetzen(id, wert, feld){
       u.gewicht = 0; u.gewichtSchritt = 0;       // kein erfundenes Startgewicht (goldene Regel)
       frisch.push(name);
     }
-    if(m){                                       // nur genannte Mengen ändern Werte
+    /* v172: Das Gewicht ist ein EIGENER genannter Wert — es kann ohne Mengen
+       dastehen („Bankdrücken 80 kg"), und Mengen können ohne Gewicht kommen.
+       Deshalb zwei getrennte Wachen statt einer: Jede ändert nur, was ihre
+       Zeile wirklich genannt hat. */
+    if(m && m.gewicht != null) u.gewicht = m.gewicht;
+    if(m && m.saetze != null){                   // nur genannte Mengen ändern Werte
       u.saetze = begrenzen(m.saetze || 1, 1, 20);
       const zahl = m.wert || 0;
       if(m.modus === "zeit"){
@@ -3786,8 +3952,22 @@ function abschnittTextSetzen(id, wert, feld){
      gezeichnet (Scroll-Position bleibt). */
   if(feld) feld.value = abschnittTextErzeugen(p);
   const weg = pool.filter(u => u.name && u.name.trim());
-  if(frisch.length) zeigenToast("Als Übung erkannt: " + frisch.join(", "), "erfolg");
-  if(weg.length) zeigenToast("Übung entfernt: " + weg.map(u => u.name).join(", "), "info");
+  // v172: Der Toast trug bei mehreren Übungen die ganze Liste — und lief aus
+  // dem Bild. Zwei Namen genügen; der Rest wird gezählt.
+  if(frisch.length) zeigenToast("Als Übung erkannt: " + toastListe(frisch), "erfolg");
+  if(weg.length) zeigenToast("Übung entfernt: " + toastListe(weg.map(u => u.name)), "info");
+}
+
+/** v172: Eine Namensliste für einen Toast — höchstens `max` Namen, der Rest
+    gezählt. Der Toast ist eine Randnotiz, kein Bericht: Wer wissen will, was
+    genau erkannt wurde, sieht es in der aufgeräumten Zeile darüber. */
+function toastListe(namen, max){
+  const n = (namen || []).filter(Boolean);
+  const grenze = max || 2;
+  if(n.length <= grenze) return n.join(", ");
+  const rest = n.length - grenze;
+  return n.slice(0, grenze).join(", ") +
+    (rest === 1 ? " und eine weitere" : " und " + rest + " weitere");
 }
 /* abschnittLoeschen (der große Knopf) ist in v79 entfallen — Löschen läuft
    übers Langdruck-Menü der Karte (planMenue -> planLoeschenById). */
@@ -4805,7 +4985,9 @@ function scheibenAnzeigen(){
 function einstellungenOeffnen(){
   simpelheitZeileZeichnen();
   document.getElementById("mehr-profil-zeile").hidden = stufe() < 5;
-  document.getElementById("mehr-werkzeuge-zeile").hidden = stufe() < 3;
+  // v173: Werkzeuge ab Stufe 1 — siehe VIEW_MIN_STUFE. Die Zeile bleibt hier
+  // stehen, damit sichtbar ist, dass sie eine bewusste Entscheidung ist.
+  document.getElementById("mehr-werkzeuge-zeile").hidden = !viewErlaubt("view-einst-werkzeuge");
   document.getElementById("mehr-zurueck").hidden = stufe() > 2;
   zeige("view-einstellungen");
 }
@@ -5095,6 +5277,29 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.173", punkte:[
+    "Die Werkzeuge gibt es jetzt auf jeder Stufe. Scheibenrechner, Übungs-Bibliothek und Papierkorb lagen unter „Mehr“ erst ab Stufe 3 — ausgerechnet der Langhantel-Erfahrene, für den der Notizblock gedacht ist, hatte den Scheibenrechner also nicht. Das passt zusammen: Diese drei fragen dich nichts und bewerten nichts, sie rechnen, schlagen nach und holen Gelöschtes zurück.",
+    "Die Beschreibung der Stufe „Notizblock“ ist ehrlicher geworden. Sie versprach, festzuhalten, „was war“ — genau das kann sie nicht: Der Notizblock hält den aktuellen Stand fest, keinen Verlauf. Jetzt steht dort, was sie wirklich ist: dein Plan zum Nachschlagen.",
+    "Behoben: In der Stufen-Auswahl war die aktuelle Stufe kaum lesbar — gelbe Fläche, aber weiße und graue Schrift darauf."
+  ]},
+  { stand:"0.172", punkte:[
+    "Der Notizblock versteht jetzt Gewichte. Schreib „Bankdrücken 3x8 80 kg“ — die 80 kg landen im Gewicht, nicht mehr im Namen. Das war mehr als unschön: Die Übung hieß danach „Bankdrücken 80 kg“, und unter diesem Namen fand die App weder die Muskelkarte noch die Erklärung noch das passende Gerät — und die Zahl im Namen veraltete mit jeder Steigerung. Erkannt wird die Angabe am Zeilenende, mit Komma oder Punkt; ein Gewicht mitten im Namen bleibt unangetastet („Kurzhantel 20 kg 3 10“). Umgekehrt steht dein Gewicht jetzt auch in der Zeile, wenn es aus einem Plan kommt.",
+    "Behoben: Meldungen liefen bei langem Text links und rechts aus dem Bild — jetzt brechen sie um statt abzuschneiden, und bei vielen erkannten Übungen nennt die Meldung zwei Namen und zählt den Rest.",
+    "Die Vorschläge beim Tippen verschwinden jetzt, sobald du das Feld verlässt, und stehen bei Bedarf in zwei Zeilen — vorher war der dritte Vorschlag am Rand angeschnitten."
+  ]},
+  { stand:"0.171", punkte:[
+    "Klarere Worte an drei Stellen: Auf „Heute“ heißt die Überschrift jetzt „Kein Plan für heute“, solange der Tag keiner ist — darunter stand bisher „Als Ruhetag markieren“, was sich widersprach („ist doch schon einer?“). Der Knopf heißt jetzt „Bewusst frei nehmen“. Im Training heißt der Knopf, der die Uhr anhält, „Anhalten“ statt „Pause“ — in der Pause stand dort sonst „Pause“. Und beim Aufwärmen und Dehnen heißt der große Knopf „Fertig“ statt „Überspringen“: Er tut dasselbe wie vorher, lädt aber nicht mehr zum Weglassen ein.",
+    "Der Assistent ist ruhiger geworden. Über jeder Frage standen drei Zähler gleichzeitig — die Punkteleiste, „Frage 1 von 8“ und „Schritt 2 von 9“. Der letzte ist weg; die Punkteleiste sagt dasselbe, ohne dass man liest. Bei der Geräte-Frage steht jetzt sichtbar dabei, dass nichts auszuwählen völlig in Ordnung ist — das stand bisher nur hinter dem „i“. Und lange Fragen beginnen wieder oben, statt angeschnitten.",
+    "Der Hinweis nach dem Erstellen der Pläne nennt kein Tischtennis mehr, wenn du nur Krafttraining gewählt hast."
+  ]},
+  { stand:"0.170", punkte:[
+    "Der erste Bildschirm führt jetzt dorthin, wo Neue hinwollen: „Neues Konto anlegen“ ist auf einem leeren Gerät die gelbe Hauptaktion. Vorher stand dort „Sicherung wiederherstellen“ in Gelb — direkt nach der Willkommens-Seite, die sich an Neue richtet, und die haben noch keine Sicherung. Dazu gab es „Sicherung wiederherstellen“ und „Sicherung importieren“ untereinander: zwei Namen für ein und denselben Weg. Geblieben ist ein Knopf, „Konto aus Sicherung wiederherstellen“.",
+    "Beim Anlegen ist das Geschlecht keine Vorauswahl mehr, sondern eine Frage. Bisher stand dort „männlich“ vorgewählt — wer das Feld übersah, bekam stillschweigend zu schwere Startgewichte. Jetzt steht „bitte wählen“, und die App fragt nach, bevor sie rechnet.",
+    "Der Wiederherstellungscode hat einen „Kopieren“-Knopf. Am iPhone musste man ihn bisher von Hand abschreiben — ausgerechnet bei dem einen Wert, ohne den ein vergessenes Passwort das Konto endgültig kostet."
+  ]},
+  { stand:"0.169", punkte:[
+    "Du kommst jetzt im Training an die Erklärung jeder Übung: Tippe im Training oder in der Vorschau auf den Übungsnamen — es öffnet sich der kurze Merksatz und die volle Beschreibung. Wer vor „Superman · 12 Wdh“ stand und nicht wusste, wie die Übung geht, musste bisher die App verlassen und die Bibliothek suchen. Die Texte gab es längst, sie waren nur an der falschen Stelle. Erkennbar ist es an der gepunkteten Linie unter dem Namen; wo nichts hinterlegt ist (etwa beim Aufwärmen), bleibt der Name schlicht."
+  ]},
   { stand:"0.168", punkte:[
     "Der Tages-Check ersetzt die Befinden-Note. Statt dich zu fragen, wie du dich auf einer Skala von 1 bis 5 fühlst, fragt die App jetzt konkrete Dinge: erschöpft? schlecht geschlafen? Kopfschmerzen? krank? Stress? Dein Befinden rechnet sie daraus aus. Der Grund: Eine Selbstnote wandert — deine 3 im Januar ist nicht dieselbe 3 wie im Juli, weil sich der Maßstab mit der Stimmung verschiebt. „Kopfschmerzen: ja oder nein“ ist dagegen in einem halben Jahr noch dieselbe Frage. Du erreichst den Check über das Plus in den Tageswerten; jede Frage lässt sich überspringen, und was du überspringst, wird nicht gespeichert.",
     "Muskelkater fragt der Check nach Körperregion. Das ist mehr als Kosmetik: Meldest du Muskelkater in der Brust, steht das bei der BRUST auf der Muskelkarte — nicht als Abzug auf deine ganze Rechnung. Und zwar als eigener Satz, nicht in der Prozentzahl verrührt, damit beide Aussagen scharf bleiben.",
@@ -9325,6 +9530,51 @@ function drillText(name){
   return SPORT_TEXT[name] || UEBUNG_TEXT[name] || "";
 }
 
+/* ------------------------------------------------------------
+   v169: Die Erklärung dort, wo man sie braucht — im Training.
+   Seit v143/v152 ist JEDE Übung und JEDER Drill beschrieben, aber die Texte
+   waren nur über Mehr → Werkzeuge → Bibliothek erreichbar (und die gibt es
+   erst ab Stufe 3). Wer vor „Superman · 12 Wdh" stand und nicht wusste, wie
+   die Übung geht, kam nicht an die Antwort. Jetzt ist der Übungsname im
+   Training und in der Vorschau antippbar.
+   Rein lesend — es wird nichts gefragt und nichts bewertet; damit gilt die
+   Grenze aus Leitplanke 8 (Stufe 1/2) hier nicht.
+   ------------------------------------------------------------ */
+
+/** Ein String so verpacken, dass er in einem `onclick="…('HIER')"` steht.
+    Zwei Ebenen, in dieser Reihenfolge:
+      1. JS-String — Backslash ZUERST, sonst verdoppelt der zweite Schritt
+         seine eigene Arbeit;
+      2. HTML-Attribut — `&` zuerst, sonst zerlegt es die eigenen Entities.
+    Übungsnamen enthalten heute nichts davon; der Schutz gilt den EIGENEN
+    Übungen, die der Nutzer frei tippen darf. */
+function jsArg(s){
+  return String(s == null ? "" : s)
+    .replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+    .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/** Der volle Erklär-Text zu einer Übung, so wie ihn der Dialog zeigt: Name,
+    Kurz-Tipp fürs Training, Beschreibung zum Nachlesen — jeweils nur, was es
+    wirklich gibt. Leerer String heißt „zu dieser Übung ist nichts hinterlegt";
+    dann bleibt der Name auch nicht antippbar (ein Tipp ins Leere wäre
+    schlimmer als gar keiner). Rein/testbar. */
+function uebungErklaerung(name){
+  const tipp = drillTipp(name), lang = drillText(name);
+  if(!tipp && !lang) return "";
+  return [String(name || "").trim(), tipp, lang].filter(Boolean).join("\n\n");
+}
+
+/** Gibt es zu dieser Übung etwas zu lesen? Die eine Frage, die über die
+    Antippbarkeit entscheidet — in Training UND Vorschau dieselbe Quelle. */
+function uebungErklaerbar(name){ return uebungErklaerung(name) !== ""; }
+
+/** Den Erklär-Dialog öffnen. Ohne Text passiert bewusst nichts. */
+function uebungErklaerungZeigen(name){
+  const t = uebungErklaerung(name);
+  if(t) meldung(t);
+}
+
 /* ============================================================
    v140: Muskel-Zuordnung für die SPORTART-DRILLS.
    Bisher fanden nur Kraftübungen (UEBUNGEN_DB) eine Figur — bei einem Topspin
@@ -9601,6 +9851,10 @@ const WIZARD_FRAGEN = [
     ]},
   { id:"geraete", typ:"multi", sportBezug:"kraft", frage:"Was hast du zur Verfügung?",
     hilfe:"Mehrfachauswahl — es werden nur Geräte gezeigt, die es an deinem Trainingsort geben kann. Nichts ausgewählt ist völlig in Ordnung: dann gibt es reine Körpergewichtsübungen.",
+    // v171: Die Zusicherung stand nur hinter dem „i". Vor einer langen
+    // Geräteliste ist genau das die Frage, die ein Anfänger sich stellt —
+    // sie gehört sichtbar dorthin, wo sie entsteht.
+    zusatz:"Nichts auszuwählen ist in Ordnung — dann gibt es reine Körpergewichtsübungen.",
     raster:true,
     nurWenn: kraftGewaehlt,
     dynamisch:true,   // Optionen kommen aus GERAETE, gefiltert nach Ort
@@ -9820,9 +10074,14 @@ function wzZeichnen(){
      Text). Er stand vorher auf JEDER Frage offen da — bei acht Fragen war der
      Wizard damit vor allem eine Textwand (Nutzer-Wunsch: zu aufgebläht).
      Zugeklappt startet er von selbst, weil die Bühne neu gezeichnet wird. */
+  /* v171: Ein optionaler EINZEILER unter der Frage — für die eine Zusicherung,
+     die man sehen muss, bevor man antwortet („nichts auszuwählen ist okay").
+     Als Feld am Fragen-Register, damit jede künftige Frage ihn haben kann,
+     ohne dass hier etwas dazukommt. Der lange Erklärtext bleibt hinter dem „i". */
   document.getElementById("wz-buehne").innerHTML = kopfzeile +
     '<div class="wz-kopf"><h2 class="wz-frage">' + f.frage + '</h2>' +
       '<button class="info-knopf" onclick="infoUmschalten(\'wz-hilfe\')" aria-label="Erklärung">i</button></div>' +
+    (f.zusatz ? '<div class="meta wz-zusatz">' + text(f.zusatz) + '</div>' : "") +
     '<div class="wz-hilfe" id="wz-hilfe" hidden>' + f.hilfe + '</div>' +
     '<div class="' + (f.raster ? "wz-raster" : "wz-optionen") + '">' + optionenHtml + '</div>' +
     (f.zeitCustom ? wzZeitCustomHtml(f) : "");
@@ -9830,10 +10089,20 @@ function wzZeichnen(){
   document.getElementById("wz-zurueck").textContent = wzSchritt === 0 ? "Abbrechen" : "Zurück";
   document.getElementById("wz-weiter").textContent = "Weiter";
   document.getElementById("wz-weiter").disabled = false;
-  // v149: Die Schritt-Anzeige stand seit jeher fest auf „Schritt 1/7" — sie
-  // zählt jetzt wirklich mit.
-  document.getElementById("wz-schritt-anzeige").textContent =
-    "Schritt " + (wzSchritt + 1) + " von " + wzSichtbar.length;
+  /* v171: Die Fußzeile zählt NICHT mehr mit. Über der Frage standen bisher drei
+     Zähler parallel — die Punkteleiste (global, bildlich), „Frage 1 von 8" (die
+     wievielte Frage dieser Sportart) und „Schritt 2 von 9" (global, in Worten).
+     Der letzte sagt dasselbe wie die Punkteleiste direkt darüber; die bleibt,
+     weil sie ohne Lesen erfassbar ist. Die Sportart-Zeile bleibt, weil sie
+     etwas sagt, was sonst nirgends steht. (Damit tritt die v149-Korrektur
+     „die Anzeige zählt jetzt wirklich mit" zurück — richtig gezählt hat sie,
+     nötig war sie nicht.) */
+  document.getElementById("wz-schritt-anzeige").textContent = "";
+  /* Lange Listen (die Geräte-Frage) scrollen; ohne Rücksprung stand die
+     nächste Frage angeschnitten am oberen Rand. `zeige` macht das beim
+     Ansichtswechsel — innerhalb des Assistenten wechselt die Ansicht nicht. */
+  const inhalt = document.getElementById("inhalt");
+  if(inhalt) inhalt.scrollTop = 0;
 }
 
 /* Einfachauswahl markiert nur (Umfärbung) — weiter geht es bewusst erst über
@@ -10248,7 +10517,10 @@ function plaeneErstellen(){
       (kraftGewaehlt(einrichtung)
         ? "\n\nDie Startwerte fürs Krafttraining sind bewusst vorsichtig — nach 2–3 Trainings hat die automatische Anpassung sie auf dich kalibriert."
         : "") +
-      "\n\nÜber „Bearbeiten“ kannst du jederzeit Übungen ergänzen — auch bei einer Sportart wie Tischtennis.");
+      // v171: Das Beispiel „auch bei einer Sportart wie Tischtennis" stand auch
+      // dann da, wenn nur Krafttraining gewählt war — und verwirrte dort mehr,
+      // als es erklärte. Der Satz gilt ohne Beispiel für jeden Plan.
+      "\n\nÜber „Bearbeiten“ kannst du jederzeit Übungen ergänzen.");
   };
 
   // Frühere automatisch erstellte Pläne ersetzen? Selbst gebaute bleiben immer.
@@ -13079,8 +13351,16 @@ function vorschauZeichnen(){
         figur = miniFigurHtml(info);   // v139
       }
     }
+    /* v169: Der Name führt zur Erklärung — dieselbe Geste wie im Training,
+       damit man sie schon vor dem Start kennenlernt. Angefasst wird nur der
+       NAME, nicht die ganze Zeile: Die Unterzeile („Satz 1/3 · 12 Wdh") ist
+       keine Erklärung und soll auch nicht unterstrichen aussehen. */
+    const nameHtml = uebungErklaerbar(titel)
+      ? '<span class="tippbar" role="button" onclick="uebungErklaerungZeigen(\'' +
+        jsArg(titel) + '\')">' + text(titel) + '</span>'
+      : text(titel);
     return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +
-           '<span class="vs-titel">' + text(titel) + '<small>' + text(unter) + '</small></span>' + figur + '</div>';
+           '<span class="vs-titel">' + nameHtml + '<small>' + text(unter) + '</small></span>' + figur + '</div>';
   }).join("");
   // v84: Figuren nachträglich zeichnen (Canvas + async Bild-/Kartenladung).
   miniFigurenZeichnen("#vorschau-liste");
@@ -13195,12 +13475,32 @@ function satzProtokollieren(schritt, istSekunden){
     zeigenToast("Neuer Rekord: " + rekordText(eintrag), "erfolg");
 }
 
+/** v169: Den Übungsnamen im Training setzen — und ihn antippbar machen, sobald
+    es zu dieser Übung etwas zu lesen gibt. Eine Stelle für beide Zweige
+    (Plan-Übung und Aufwärm-/Dehn-Schritt), damit die Geste nie an einem
+    Schritt-Typ hängen bleibt. Die gepunktete Unterstreichung ist der Hinweis,
+    dass hier mehr liegt; ohne Text bleibt der Name eine schlichte Überschrift. */
+function uebungsnameSetzen(name){
+  const el = document.getElementById("uebungsname");
+  if(!el) return;
+  el.textContent = name;
+  if(uebungErklaerbar(name)){
+    el.classList.add("tippbar");
+    el.setAttribute("role", "button");
+    el.onclick = () => uebungErklaerungZeigen(name);
+  } else {
+    el.classList.remove("tippbar");
+    el.removeAttribute("role");
+    el.onclick = null;
+  }
+}
+
 function schrittBetreten(){
   toeneVerwerfen();
   clearInterval(lauf.timerId);
   lauf.pausiert = false;
   const pauseK = document.getElementById("pause-knopf");
-  pauseK.textContent = "Pause";
+  pauseK.textContent = "Anhalten";   // v171: nicht „Pause" — siehe pauseKnopf
   pauseK.classList.remove("gewaehlt");
   if(lauf.index >= lauf.schritte.length){ trainingBeenden(); return; }
   trainingSichern();   // v80: Zwischenstand je Schritt — überlebt einen App-Abbruch
@@ -13214,7 +13514,7 @@ function schrittBetreten(){
   // Bonus-Phasen (Aufwärmen/Dehnen) haben keine Übung aus dem Plan
   if(s.typ === "aufwaermen" || s.typ === "dehnen"){
     const istWarm = s.typ === "aufwaermen";
-    document.getElementById("uebungsname").textContent = s.name;
+    uebungsnameSetzen(s.name);
     document.getElementById("strichliste").innerHTML = "";
     document.getElementById("uhr-rekord").hidden = true;
     // v165: Statt der Historie (die es hier nicht gibt) steht hier, WOFÜR die
@@ -13227,7 +13527,12 @@ function schrittBetreten(){
     const z = document.getElementById("uhr-zahl");
     z.className = "uhr-zahl" + (istWarm ? "" : " pause");
     document.getElementById("uhr-label").textContent = istWarm ? "LOCKER BEWEGEN" : "HALTEN, NICHT WIPPEN";
-    document.getElementById("haupt-knopf").textContent = "Überspringen";
+    /* v171: „Fertig", nicht „Überspringen". Der Knopf ist die eine gelbe
+       Hauptaktion des Bildschirms — und lud damit ausgerechnet beim Aufwärmen
+       und Dehnen zum Weglassen ein. Er tut dasselbe wie vorher (weiter zum
+       nächsten Schritt, protokolliert wird hier nichts); nur heißt er jetzt
+       nach dem, was man tun SOLL, nicht nach dem, was man lassen kann. */
+    document.getElementById("haupt-knopf").textContent = "Fertig";
     countdownStarten(s.sekunden);
     sprich(s.ansage);
     return;
@@ -13245,7 +13550,7 @@ function schrittBetreten(){
   plus.textContent  = "+ 30 s"; plus.onclick  = () => zeitAendern(30);
   minus.textContent = "− 15 s"; minus.onclick = () => zeitAendern(-15);
 
-  document.getElementById("uebungsname").textContent = u.name;
+  uebungsnameSetzen(u.name);
   strichlisteZeichnen(u, s);
   gesamtBalkenZeichnen(0);
 
@@ -13478,7 +13783,7 @@ function pauseKnopf(){
     knopf.classList.add("gewaehlt");
   } else {
     lauf.pausiert = false;
-    knopf.textContent = "Pause";
+    knopf.textContent = "Anhalten";
     knopf.classList.remove("gewaehlt");
     countdownStarten(lauf.restBeiPause);
   }
@@ -13691,13 +13996,17 @@ function heuteKarteZeichnen(){
       '</div></div>';
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());
+    /* v171: Die Überschrift hieß immer „Ruhetag" — auch dann, wenn der Tag noch
+       gar keiner war. Darunter stand „Als Ruhetag markieren", was sich für
+       Laien widersprach („ist doch schon einer?"). Gemeint waren zwei
+       verschiedene Dinge: die Überschrift sagte „kein Plan für heute", der
+       Knopf „halt das fest". Jetzt sagt die Überschrift, was WIRKLICH ist —
+       und der Knopf, was er TUT. Der Untertitel aus v123 entfällt damit: Er
+       meldete genau den Zustand, den die Überschrift jetzt selbst trägt. */
     ziel.innerHTML = '<div class="karte"><div class="heute-label" style="color:var(--rest)">Heute · ' + name + '</div>' +
-      '<h2>Ruhetag</h2>' +
-      // v123: Untertitel nur, wenn er einen ZUSTAND meldet (als Ruhetag markiert).
-      // Die Rückfrage davor stand doppelt zu den zwei Knöpfen darunter.
-      (istRuhe ? '<div class="meta">Als Ruhetag markiert.</div>' : "") +
+      '<h2>' + (istRuhe ? "Ruhetag" : "Kein Plan für heute") + '</h2>' +
       '<div class="knopfreihe"><button class="primaer breit" onclick="heuteTrainingEintragen()">Training eintragen</button>' +
-      '<button class="breit" onclick="ruhetagHeute()">' + (istRuhe ? "Ruhetag entfernen" : "Als Ruhetag markieren") + '</button></div></div>';
+      '<button class="breit" onclick="ruhetagHeute()">' + (istRuhe ? "Ruhetag entfernen" : "Bewusst frei nehmen") + '</button></div></div>';
   }
   return null;
 }

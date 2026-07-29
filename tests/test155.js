@@ -28,6 +28,7 @@ const modul = { exports: {} };
 new Function("module", "exports", [
   grabConst("NOTIZ_MUSTER"),
   grabConst("NOTIZ_PAAR"),
+  grabConst("NOTIZ_GEWICHT"),   // v172: Gewicht am Zeilenende
   grabFn("notizZeileDeuten"),
   "module.exports = { notizZeileDeuten };"
 ].join("\n"))(modul, modul.exports);
@@ -35,33 +36,37 @@ const deuten = modul.exports.notizZeileDeuten;
 
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
+/* Bewusst STRENGER Vergleich: Er faellt auch dann auf, wenn die Deutung ein
+   Feld ZUSAETZLICH liefert. Genau das ist in v172 passiert (`gewicht`) — die
+   Erwartungen unten fuehren es seither ausdruecklich mit `null`. Das haelt
+   die v155-Zusage fest: Wo kein Gewicht genannt ist, wird auch keines gedeutet. */
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /* ---------- 1) Das ausdrueckliche Muster bleibt unveraendert ---------- */
 pruefe("Muster mit Wdh",
-  gleich(deuten("Sätze 2 Wdh 20 Liegestütze"), { name:"Liegestütze", saetze:2, modus:"wdh", wert:20 }));
+  gleich(deuten("Sätze 2 Wdh 20 Liegestütze"), { name:"Liegestütze", saetze:2, modus:"wdh", wert:20, gewicht:null }));
 pruefe("Muster mit Zeit",
-  gleich(deuten("Sätze 3 Zeit 45 Plank"), { name:"Plank", saetze:3, modus:"zeit", wert:45 }));
+  gleich(deuten("Sätze 3 Zeit 45 Plank"), { name:"Plank", saetze:3, modus:"zeit", wert:45, gewicht:null }));
 pruefe("Muster ohne Umlaut und klein geschrieben",
-  gleich(deuten("saetze 2 wdh 20 Liegestütze"), { name:"Liegestütze", saetze:2, modus:"wdh", wert:20 }));
+  gleich(deuten("saetze 2 wdh 20 Liegestütze"), { name:"Liegestütze", saetze:2, modus:"wdh", wert:20, gewicht:null }));
 
 /* ---------- 2) Kurzform: zwei Zahlen, egal wie herum ---------- */
 pruefe("Name dann Zahlen",
-  gleich(deuten("Bankdrücken 3 10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10 }));
+  gleich(deuten("Bankdrücken 3 10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10, gewicht:null }));
 pruefe("Zahlen VERKEHRT herum werden gedreht",
-  gleich(deuten("Bankdrücken 10 3"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10 }));
+  gleich(deuten("Bankdrücken 10 3"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10, gewicht:null }));
 pruefe("Zahlen zuerst, Name hinten",
-  gleich(deuten("3 10 Bankdrücken"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10 }));
-pruefe("mit x dazwischen", gleich(deuten("Bankdrücken 3x10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10 }));
-pruefe("mit Malzeichen", gleich(deuten("Bankdrücken 3 × 10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10 }));
-pruefe("gleiche Zahlen", gleich(deuten("Dips 5 5"), { name:"Dips", saetze:5, modus:"wdh", wert:5 }));
+  gleich(deuten("3 10 Bankdrücken"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10, gewicht:null }));
+pruefe("mit x dazwischen", gleich(deuten("Bankdrücken 3x10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10, gewicht:null }));
+pruefe("mit Malzeichen", gleich(deuten("Bankdrücken 3 × 10"), { name:"Bankdrücken", saetze:3, modus:"wdh", wert:10, gewicht:null }));
+pruefe("gleiche Zahlen", gleich(deuten("Dips 5 5"), { name:"Dips", saetze:5, modus:"wdh", wert:5, gewicht:null }));
 pruefe("die Kurzform legt immer Wdh an", deuten("Plank 3 45").modus === "wdh");
 
 /* ---------- 3) Namen mit eigenen Zahlen ueberleben ---------- */
 pruefe("Zahl IM Namen bleibt am Namen",
-  gleich(deuten("500-m-Intervalle 3 10"), { name:"500-m-Intervalle", saetze:3, modus:"wdh", wert:10 }));
+  gleich(deuten("500-m-Intervalle 3 10"), { name:"500-m-Intervalle", saetze:3, modus:"wdh", wert:10, gewicht:null }));
 pruefe("Gewicht im Namen bleibt stehen",
-  gleich(deuten("Kurzhantel 20 kg 3 10"), { name:"Kurzhantel 20 kg", saetze:3, modus:"wdh", wert:10 }));
+  gleich(deuten("Kurzhantel 20 kg 3 10"), { name:"Kurzhantel 20 kg", saetze:3, modus:"wdh", wert:10, gewicht:null }));
 
 /* ---------- 4) Was KEINE Mengen nennt, bleibt reiner Name ---------- */
 pruefe("nur ein Name -> null", deuten("Liegestütze") === null);
@@ -74,6 +79,10 @@ pruefe("Null als Menge zaehlt nicht", deuten("Dips 0 10") === null);
 const setzen = grabFn("abschnittTextSetzen");
 pruefe("der Parser benutzt die Deutung", setzen.includes("notizZeileDeuten(t)"));
 pruefe("Saetze kommen aus der Deutung", setzen.includes("begrenzen(m.saetze || 1, 1, 20)"));
+/* v172: Die Wache heisst jetzt „nur wenn Mengen genannt wurden" statt „nur
+   wenn die Zeile gedeutet wurde" — eine Zeile kann seither gedeutet sein,
+   ohne Mengen zu nennen („Bankdruecken 80 kg"). */
+pruefe("Mengen aendern nur, was die Zeile nennt", setzen.includes("if(m && m.saetze != null)"));
 pruefe("der Modus kommt aus der Deutung", setzen.includes('m.modus === "zeit"'));
 pruefe("das Feld bekommt die aufgeraeumte Fassung zurueck",
   setzen.includes("if(feld) feld.value = abschnittTextErzeugen(p)"));

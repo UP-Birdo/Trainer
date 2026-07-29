@@ -61,7 +61,10 @@ const code = [
   grabFn("planAmTag"),
   grabLine("const NOTIZ_MUSTER"),
   grabLine("const NOTIZ_PAAR"),
+  grabLine("const NOTIZ_GEWICHT"),   // v172: Gewicht am Zeilenende
   grabFn("notizZeileDeuten"),
+  grabFn("zahlKurz"),          // v172: uebungAlsZeile schreibt das Gewicht mit
+  grabFn("toastListe"),        // v172: kuerzt die Toast-Liste
   grabFn("uebungAlsZeile"),
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),

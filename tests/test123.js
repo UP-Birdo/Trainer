@@ -48,7 +48,13 @@ const heute = grabFn("heuteKarteZeichnen");
 pruefe("Füll-Satz nach dem Training weg", !heute.includes("Gut gemacht"));
 pruefe("Erledigt-Überschrift bleibt", heute.includes("<h2>Erledigt</h2>"));
 pruefe("Ruhetag-Frage weg", !heute.includes("trainiert trotzdem"));
-pruefe("Ruhetag-Zustand bleibt sichtbar", heute.includes("Als Ruhetag markiert."));
+/* v172-Nachtrag zur v123-Zusage: Der Zustand bleibt sichtbar — aber seit v171
+   trägt ihn die ÜBERSCHRIFT statt eines eigenen Untertitels. Die Zusage
+   („man sieht, ob der Tag als Ruhetag markiert ist") gilt unverändert, sie
+   wird nur an einer Stelle weniger erfüllt. */
+pruefe("Ruhetag-Zustand bleibt sichtbar",
+  heute.includes('istRuhe ? "Ruhetag" : "Kein Plan für heute"'));
+pruefe("und steht nicht mehr doppelt daneben", !heute.includes("Als Ruhetag markiert."));
 pruefe("Ruhetag-Knöpfe unberührt (Regression)",
   heute.includes("ruhetagHeute()") && heute.includes("heuteTrainingEintragen()"));
 
