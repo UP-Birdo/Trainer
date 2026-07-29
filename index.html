@@ -1661,6 +1661,28 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
 
+<!-- v168: Tages-Check — konkrete Fragen statt Selbsteinschätzung. Nur Stufe 4/5
+     (Leitplanke 8: auf Stufe 1/2 wird nichts gefragt). -->
+<section id="view-tagescheck" class="view">
+  <div class="kopf"><h1>Tages-Check</h1>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
+  <div class="meta abstand">Nur was zutrifft — was du überspringst, wird nicht gespeichert und fließt nirgends ein.</div>
+  <div id="tagescheck-fragen"></div>
+  <div class="karte">
+    <h2>Muskelkater — wo?</h2>
+    <div class="meta abstand">Trifft genau die Muskeln dieser Region, nicht deine ganze Rechnung.</div>
+    <div id="tagescheck-regionen" class="wahl-raster"></div>
+  </div>
+  <div class="karte">
+    <div class="zeile"><strong>Ergebnis</strong><span id="tagescheck-ergebnis" class="meta">—</span></div>
+  </div>
+  <div class="knopfreihe abstand">
+    <button class="schmal" onclick="zeige('view-statistik')">Abbrechen</button>
+    <button class="primaer" onclick="tagesCheckSpeichern()" style="flex:2">Speichern</button>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
 <!-- v166: Einträge eines Tageswerts (Tipp auf die Kurve) — wie view-koerpermasse. -->
 <section id="view-tageswert" class="view">
   <div class="kopf"><h1 id="tageswert-titel">Tageswert</h1>
@@ -2429,7 +2451,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 167;
+const APP_VERSION = 168;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3230,6 +3252,7 @@ const VIEW_MIN_STUFE = {
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-koerpermasse": 4,   // v134
   "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
+  "view-tagescheck": 4,     // v168: Fragenkatalog — Leitplanke 8: nichts fragen auf Stufe 1/2
   "view-profil": 5, "view-sportarten": 5, "view-sportart": 5, "view-ziele": 5,
   "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
   "view-wizard": 5
@@ -5072,6 +5095,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.168", punkte:[
+    "Der Tages-Check ersetzt die Befinden-Note. Statt dich zu fragen, wie du dich auf einer Skala von 1 bis 5 fühlst, fragt die App jetzt konkrete Dinge: erschöpft? schlecht geschlafen? Kopfschmerzen? krank? Stress? Dein Befinden rechnet sie daraus aus. Der Grund: Eine Selbstnote wandert — deine 3 im Januar ist nicht dieselbe 3 wie im Juli, weil sich der Maßstab mit der Stimmung verschiebt. „Kopfschmerzen: ja oder nein“ ist dagegen in einem halben Jahr noch dieselbe Frage. Du erreichst den Check über das Plus in den Tageswerten; jede Frage lässt sich überspringen, und was du überspringst, wird nicht gespeichert.",
+    "Muskelkater fragt der Check nach Körperregion. Das ist mehr als Kosmetik: Meldest du Muskelkater in der Brust, steht das bei der BRUST auf der Muskelkarte — nicht als Abzug auf deine ganze Rechnung. Und zwar als eigener Satz, nicht in der Prozentzahl verrührt, damit beide Aussagen scharf bleiben.",
+    "Jede Frage bekommt ihre eigene Kurve in den Tageswerten (Erschöpfung, Kopfschmerzen, Stress …) — mit Verlauf, Einträgen und Mehrfach-Löschen wie bei allem anderen. Und dein Befinden geht wie der Schlaf in die Belastungs-Rechnung ein: ab drei Einträgen in der Woche, höchstens 10 Prozent Wirkung, ohne Daten gar keine.",
+    "Alles davon gibt es erst ab der Stufe „Statistik“. Auf den einfachen Stufen bleibt die App das, was sie dort sein soll: ein Notizblock, der nichts fragt und nichts bewertet."
+  ]},
   { stand:"0.167", punkte:[
     "Dein Schlaf zählt jetzt in der Belastungs-Rechnung mit. Trägst du in einer Woche mindestens drei Nächte ein, geht der Schnitt in die Rechnung ein: Unter 6 Stunden senkt er deine Richtwerte um 10 Prozent, bis 7 Stunden um 5, zwischen 7 und 8,5 ändert sich nichts, darüber gibt es 3 Prozent dazu. Trägst du nichts oder zu wenig ein, ändert Schlaf gar nichts — fehlende Werte fließen nie ein. Die Wirkung ist bewusst klein: Dass Schlafmangel die Erholung stört, ist belegt, eine genaue Formel dafür gibt es nicht.",
     "Neu auf der Muskelkarte: eine Zeile, die sagt, worauf die Einschätzung überhaupt beruht — etwa „Grundlage: 14 Trainings · Erfahrung · Alter. Ohne Schlaf.“ So siehst du, was die Rechnung genauer machen würde, statt es raten zu müssen. Dort steht auch offen, wenn die App ohne deine Erfahrungsangabe mit „Wiedereinsteiger“ rechnet.",
@@ -6195,14 +6224,155 @@ function koerpermassTrend(reihe){
 const TAGESWERTE = [
   { id:"schlaf",   name:"Schlaf",   einheit:"h", min:0, max:24, schritt:0.5, nachkomma:1,
     hinweis:"Stunden geschlafen. Auf die halbe Stunde genau reicht — es geht um den Verlauf, nicht um die Minute." },
-  { id:"befinden", name:"Befinden", einheit:"",  min:1, max:5,  schritt:1,   nachkomma:0,
-    hinweis:"1 = ausgelaugt · 2 = müde · 3 = normal · 4 = gut · 5 = topfit." }
+  // v168: Befinden wird nicht mehr geschätzt, sondern aus dem Tages-Check
+  // abgeleitet. `check:true` heißt: Das Plus öffnet den Check, nicht das
+  // Zahlenfeld. Von Hand eingetragene Altwerte bleiben in derselben Reihe.
+  { id:"befinden", name:"Befinden", einheit:"",  min:1, max:5,  schritt:1,   nachkomma:0, check:true,
+    hinweis:"Wird aus dem Tages-Check errechnet: 1 = ausgelaugt · 3 = normal · 5 = topfit." },
+  { id:"erschoepft",  name:"Erschöpfung",   einheit:"", min:0, max:2, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = etwas · 2 = stark." },
+  { id:"schlecht",    name:"Schlecht geschlafen", einheit:"", min:0, max:2, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = etwas · 2 = stark." },
+  { id:"kopfschmerz", name:"Kopfschmerzen", einheit:"", min:0, max:1, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = ja." },
+  { id:"krank",       name:"Krank",         einheit:"", min:0, max:1, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = ja." },
+  { id:"stress",      name:"Stress",        einheit:"", min:0, max:2, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = etwas · 2 = stark." },
+  { id:"kater",       name:"Muskelkater",   einheit:"Regionen", min:0, max:12, schritt:1, nachkomma:0, check:true,
+    hinweis:"Aus dem Tages-Check: wie viele Körperregionen betroffen sind." },
+  // Erscheint nur bei entsprechendem Profil — wie die Frage selbst.
+  { id:"periode",     name:"Tage",          einheit:"", min:0, max:1, schritt:1, nachkomma:0, check:true,
+    nurWenn: p => p && p.geschlecht === "w",
+    hinweis:"Aus dem Tages-Check: 0 = nein · 1 = ja." }
 ];
+
+/** Die Tageswerte, die für DIESES Profil sichtbar sind. Rein/testbar. */
+function tageswerteFuer(profil){
+  return TAGESWERTE.filter(w => !w.nurWenn || w.nurWenn(profil));
+}
 
 /** Die Beschreibung eines Tageswerts (oder der erste, wenn die Art unbekannt ist). */
 function tageswertDef(id){
   return TAGESWERTE.find(w => w.id === id) || TAGESWERTE[0];
 }
+
+/* ============================================================
+   #region Tages-Check (v168)
+   Nutzer-Einwand zu v166: „sein Wohlbefinden in Zahlen zu fassen ist
+   kompliziert für den Anwender" — mit dem Vorschlag, stattdessen „mehrere
+   detaillierte Fragen" zu stellen (erschöpft? Kopfschmerzen? bei Frauen die
+   Tage? Muskelkater?) und das Befinden daraus abzuleiten.
+
+   Der Einwand trifft einen echten Punkt: Eine Selbstnote WANDERT. Die 3 im
+   Januar und die 3 im Juli sind nicht dieselbe 3, weil sich der Maßstab mit
+   der Stimmung verschiebt — über Wochen verglichen ist das fast wertlos.
+   „Kopfschmerzen: ja/nein" ist heute dasselbe wie in einem halben Jahr.
+
+   Darum: `befinden` ist ab v168 ein ABGELEITETER Wert. Von Hand eingetragene
+   Befinden-Werte aus v166 bleiben gültig und stehen weiter in derselben Reihe
+   (additiver Datenvertrag) — der Check schreibt nur denselben Schlüssel.
+   ============================================================ */
+/* Antwort-Skalen. Bewusst nur zwei: Ja/Nein und dreistufig. Mehr Abstufungen
+   würden dieselbe Unsicherheit zurückholen, die die Selbstnote hatte. */
+const CHECK_SKALEN = {
+  janein: [{ wert:0, text:"Nein" }, { wert:1, text:"Ja" }],
+  stufe3: [{ wert:0, text:"Nein" }, { wert:1, text:"Etwas" }, { wert:2, text:"Stark" }]
+};
+
+/* Die Fragen. `abzug` = wie stark die Antwort das Befinden senkt (mal Antwortwert).
+   Ein weiterer Punkt kostet eine Zeile — inklusive Kurve, Detail-Ansicht und
+   Mehrfach-Löschen, weil jede Frage ein normaler Tageswert ist. */
+const TAGES_FRAGEN = [
+  { id:"erschoepft",  frage:"Fühlst du dich erschöpft?", skala:"stufe3", abzug:1 },
+  { id:"schlecht",    frage:"Schlecht geschlafen?",      skala:"stufe3", abzug:0.5 },
+  { id:"kopfschmerz", frage:"Kopfschmerzen?",            skala:"janein", abzug:1 },
+  { id:"krank",       frage:"Erkältet oder krank?",      skala:"janein", abzug:1.5 },
+  { id:"stress",      frage:"Viel Stress gerade?",       skala:"stufe3", abzug:0.5 },
+  // Nur bei entsprechendem Profil — und wie jede Frage überspringbar (keine
+  // Antwort ist eine gültige Antwort, sie schreibt schlicht keine Zeile).
+  { id:"periode",     frage:"Hast du deine Tage?",       skala:"janein", abzug:0.5,
+    nurWenn: p => p && p.geschlecht === "w" }
+];
+
+/* Muskelkater wird nach REGION gefragt statt pauschal — das ist der stärkste
+   Teil des Nutzer-Vorschlags: So trifft er genau die Muskeln, um die es geht,
+   statt einen globalen Faktor zu verschieben. */
+/* Je betroffener Region ein voller Punkt, gedeckelt bei zwei: Ein halber Punkt
+   verschwindet beim Runden — wer eine Region ankreuzt und danach dieselbe Zahl
+   sieht, hält das zu Recht für kaputt. Ab zwei Regionen ist es breite Ermüdung
+   und der Deckel greift; mehr abzuziehen würde Muskelkater zum Hauptfaktor
+   machen, und der ist nach einem guten Training normal. */
+const CHECK_KATER_ABZUG = 1;
+const CHECK_KATER_MAX   = 2;
+
+/** Die Fragen, die für DIESES Profil gelten. Rein/testbar. */
+function checkFragen(profil){
+  return TAGES_FRAGEN.filter(f => !f.nurWenn || f.nurWenn(profil));
+}
+
+/** Alle Körperregionen der Muskelkarte, in fester Reihenfolge. Rein/testbar. */
+function checkRegionen(){
+  const namen = [];
+  MUSKEL_ORDER.forEach(m => {
+    const r = (MUSKEL_INFO[m] || {}).region;
+    if(r && !namen.includes(r)) namen.push(r);
+  });
+  return namen;
+}
+
+/** Befinden 1–5 aus den Antworten. 5 = topfit, jeder Befund zieht ab.
+    Ergebnis immer im Bereich 1–5, damit es zu den v166-Werten passt.
+    Rein/testbar. */
+function befindenAusCheck(antworten){
+  const a = antworten || {};
+  let abzug = 0;
+  TAGES_FRAGEN.forEach(f => { abzug += (a[f.id] || 0) * f.abzug; });
+  const regionen = (a.kater || []).length;
+  abzug += Math.min(CHECK_KATER_MAX, regionen) * CHECK_KATER_ABZUG;
+  return Math.max(1, Math.min(5, Math.round(5 - abzug)));
+}
+
+/** Aus den Antworten die Zeilen für `tageswerte` bauen — eine je beantworteter
+    Frage, eine je Muskelkater-Region, plus das abgeleitete Befinden.
+    Unbeantwortete Fragen erzeugen KEINE Zeile („kein Wert, kein Effekt").
+    Rein/testbar: Antworten rein, fertige Zeilen raus. */
+function checkZeilen(antworten, datum, profil){
+  const a = antworten || {};
+  const zeilen = [];
+  checkFragen(profil).forEach(f => {
+    if(a[f.id] === undefined || a[f.id] === null) return;
+    zeilen.push({ datum, art: f.id, wert: a[f.id] });
+  });
+  (a.kater || []).forEach(r => zeilen.push({ datum, art: "kater:" + r, wert: 1 }));
+  // Zusammenfassungen für die Kurven: wie viele Regionen, und das Befinden.
+  zeilen.push({ datum, art:"kater",    wert: (a.kater || []).length });
+  zeilen.push({ datum, art:"befinden", wert: befindenAusCheck(a) });
+  return zeilen;
+}
+
+/** Muskelkater-Regionen der letzten Tage. Rein/testbar. */
+function katerRegionen(tageswerte, heute, tage){
+  const fenster = tage === undefined ? CHECK_KATER_TAGE : tage;
+  const raus = new Set();
+  (tageswerte || []).forEach(e => {
+    if(!e || !e.datum || !e.art || e.art.indexOf("kater:") !== 0 || !(e.wert > 0)) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d >= 0 && d <= fenster) raus.add(e.art.slice(6));
+  });
+  return raus;
+}
+
+/** Die Muskeln zu diesen Regionen. Rein/testbar. */
+function katerMuskeln(regionen){
+  const raus = new Set();
+  MUSKEL_ORDER.forEach(m => {
+    const r = (MUSKEL_INFO[m] || {}).region;
+    if(r && regionen && regionen.has && regionen.has(r)) raus.add(m);
+  });
+  return raus;
+}
+const CHECK_KATER_TAGE = 2;   // Muskelkater hält typischerweise 24–72 Stunden an
 
 /** Alle Einträge einer Art, chronologisch. Rein/testbar. */
 function werteReihe(liste, art){
@@ -6257,12 +6427,74 @@ function tageswertArtSetzen(id){
 }
 
 function tageswertFormularZeigen(){
+  // v168: Werte aus dem Tages-Check trägt man nicht als Zahl ein — dafür ist
+  // der Check da. Ein Plus, zwei Wege, je nach gewähltem Wert.
+  if(tageswertDef(tageswertArt).check){ tagesCheckOeffnen(); return; }
   const f = document.getElementById("tageswert-formular");
   f.hidden = !f.hidden;
   if(!f.hidden){
     document.getElementById("tageswert-datum").value = heuteAlsText();
     document.getElementById("tageswert-wert").focus();
   }
+}
+
+/* ---- Tages-Check: Ansicht (v168) ---- */
+let checkAntworten = { kater: [] };
+
+function tagesCheckOeffnen(){
+  if(!viewErlaubt("view-tagescheck")) return;
+  checkAntworten = { kater: [] };   // jeder Aufruf startet leer — nichts vorbelegen
+  tagesCheckZeichnen();
+  zeige("view-tagescheck");
+}
+
+function tagesCheckZeichnen(){
+  const profil = sitzung.daten.profil;
+  document.getElementById("tagescheck-fragen").innerHTML = checkFragen(profil).map(f =>
+    '<div class="karte"><h2>' + text(f.frage) + '</h2>' +
+    '<div class="wahl-raster">' + CHECK_SKALEN[f.skala].map(s =>
+      '<button class="' + (checkAntworten[f.id] === s.wert ? "gewaehlt" : "") + '" ' +
+      'onclick="tagesCheckAntwort(\'' + f.id + '\',' + s.wert + ')">' + text(s.text) + '</button>').join("") +
+    '</div></div>').join("");
+
+  document.getElementById("tagescheck-regionen").innerHTML = checkRegionen().map(r =>
+    '<button class="' + (checkAntworten.kater.includes(r) ? "gewaehlt" : "") + '" ' +
+    'onclick="tagesCheckRegion(\'' + text(r) + '\')">' + text(r) + '</button>').join("");
+
+  const beantwortet = checkFragen(profil).some(f => checkAntworten[f.id] !== undefined) ||
+                      checkAntworten.kater.length > 0;
+  document.getElementById("tagescheck-ergebnis").textContent = beantwortet
+    ? "Befinden " + befindenAusCheck(checkAntworten) + " von 5"
+    : "noch nichts beantwortet";
+}
+
+/** Nochmal dieselbe Antwort antippen nimmt sie zurück — überspringen muss
+    genauso einfach sein wie antworten. */
+function tagesCheckAntwort(id, wert){
+  if(checkAntworten[id] === wert) delete checkAntworten[id];
+  else checkAntworten[id] = wert;
+  tagesCheckZeichnen();
+}
+
+function tagesCheckRegion(region){
+  const i = checkAntworten.kater.indexOf(region);
+  if(i >= 0) checkAntworten.kater.splice(i, 1); else checkAntworten.kater.push(region);
+  tagesCheckZeichnen();
+}
+
+function tagesCheckSpeichern(){
+  const profil = sitzung.daten.profil;
+  const beantwortet = checkFragen(profil).some(f => checkAntworten[f.id] !== undefined) ||
+                      checkAntworten.kater.length > 0;
+  if(!beantwortet){ meldung("Beantworte mindestens eine Frage — sonst gibt es nichts zu speichern."); return; }
+  const heute = heuteAlsText();
+  checkZeilen(checkAntworten, heute, profil).forEach(z =>
+    werteSetzen(sitzung.daten.tageswerte, z.datum, z.art, z.wert));
+  speichern();
+  tageswertArt = "befinden";     // dorthin, wo das Ergebnis steht
+  tageswertZeichnen();
+  zeige("view-statistik");
+  zeigenToast("Tages-Check gespeichert", "erfolg");
 }
 
 function tageswertEintragen(){
@@ -6295,7 +6527,9 @@ function tageswertZeichnen(){
   const def = tageswertDef(tageswertArt);
   tageswertArt = def.id;   // unbekannte Art (alter Stand) auf den ersten zurückholen
 
-  document.getElementById("tageswert-art").innerHTML = TAGESWERTE.map(w => {
+  // v168: Nur die Werte, die zum Profil passen (die Perioden-Frage erscheint
+  // nicht bei jedem) — dieselbe Bedingung wie im Tages-Check selbst.
+  document.getElementById("tageswert-art").innerHTML = tageswerteFuer(sitzung.daten.profil).map(w => {
     const n = werteReihe(sitzung.daten.tageswerte, w.id).length;
     return '<option value="' + w.id + '"' + (w.id === tageswertArt ? " selected" : "") + '>' +
       text(w.name) + (n ? " (" + n + ")" : "") + '</option>';
@@ -7165,6 +7399,40 @@ function schlafFaktor(schnitt){
   return stufe ? stufe.faktor : SCHLAF_STUFEN[SCHLAF_STUFEN.length - 1].faktor;
 }
 
+/* v168: BEFINDEN IN DER RECHNUNG — mit derselben Zurückhaltung wie Schlaf.
+   Das Befinden kommt seit v168 aus konkreten Fragen (Kopfschmerzen, krank,
+   Stress …) statt aus einer Selbstnote; damit ist es vergleichbar genug, um es
+   einzurechnen. Erschöpfung und Muskelkater stecken zwar auch darin und hängen
+   mit dem Training zusammen — deshalb ist die Wirkung klein und gedeckelt, und
+   der Muskelkater wirkt zusätzlich NUR über seinen eigenen Satz je Muskel,
+   nicht über diesen Faktor. */
+const BEFINDEN_MINDEST = 3;   // wie beim Schlaf: ein einzelner Tag ist kein Befinden
+const BEFINDEN_STUFEN = [
+  { bis:2, faktor:0.90, text:"angeschlagen" },
+  { bis:3, faktor:0.95, text:"durchwachsen" },
+  { bis:5, faktor:1.00, text:"gut" }
+];
+
+/** Befinden-Schnitt der letzten Tage — `null` bei zu wenigen Einträgen. */
+function befindenSchnitt(tageswerte, heute, tage, mindestens){
+  const fenster = tage || SCHLAF_TAGE;
+  const grenze = mindestens === undefined ? BEFINDEN_MINDEST : mindestens;
+  const treffer = (tageswerte || []).filter(e => {
+    if(!e || e.art !== "befinden" || !(e.wert > 0) || !e.datum) return false;
+    const d = tagDifferenz(e.datum, heute);
+    return d >= 0 && d <= fenster;
+  });
+  if(treffer.length < grenze) return null;
+  return treffer.reduce((s, e) => s + e.wert, 0) / treffer.length;
+}
+
+/** Wirkung des Befindens auf die Kapazität. 1 = kein Effekt. Rein/testbar. */
+function befindenFaktor(schnitt){
+  if(schnitt === null || schnitt === undefined || !isFinite(schnitt)) return 1;
+  const stufe = BEFINDEN_STUFEN.find(s => schnitt <= s.bis);
+  return stufe ? stufe.faktor : BEFINDEN_STUFEN[BEFINDEN_STUFEN.length - 1].faktor;
+}
+
 /** Persönlicher Faktor auf die Kapazität. Erfahrung ist der belegte Anteil,
     Alter und Geschlecht sind schwach gewichtete Heuristiken, Aufwärmen/Dehnen
     ein kleiner Bonus für die verträglichere Einheit, Schlaf seit v167.
@@ -7180,6 +7448,7 @@ function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte){
   if(bonus.includes("aufwaermen")) f *= 1.05;
   if(bonus.includes("dehnen"))     f *= 1.02;
   f *= schlafFaktor(schlafSchnitt(tageswerte, heute));                      // v167, 1 ohne Daten
+  f *= befindenFaktor(befindenSchnitt(tageswerte, heute));                  // v168, 1 ohne Daten
   return Math.round(f * 100) / 100;
 }
 
@@ -7289,6 +7558,7 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
   (e.erfahrung ? hat : fehlt).push("Erfahrung");
   (alterJahre(p, heute) ? hat : fehlt).push("Alter");
   (schlafSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Schlaf");
+  (befindenSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Befinden");   // v168
   return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
            annahme: !e.erfahrung };
 }
@@ -7530,8 +7800,12 @@ function muskelAuswahlZeichnen(){
       // eigener Satz daneben — es ist eine andere Aussage als „viel Umfang".
       const faellt = leistungFaellt(sitzung.daten.plaene).has(key)
         ? " Zuletzt bliebst du hier unter deinem Soll — ein Zeichen, dass die Erholung nicht reicht." : "";
+      // v168: Muskelkater aus dem Tages-Check — auch das ist eine EIGENE
+      // Aussage und wird nicht in die Quote verrührt (wie v161 beim Leistungsabfall).
+      const kater = katerMuskeln(katerRegionen(sitzung.daten.tageswerte, heuteAlsText())).has(key)
+        ? " Du hast hier Muskelkater gemeldet — der Muskel arbeitet noch." : "";
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt) + '</div>';
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater) + '</div>';
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";

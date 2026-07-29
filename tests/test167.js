@@ -52,6 +52,13 @@ new Function("module", "exports", [
   grabConst("WARNUNG_MINDEST_TRAININGS"),
   grabFn("schlafSchnitt"),
   grabFn("schlafFaktor"),
+  /* v168: Das Befinden geht nach demselben Muster ein. Hier wird immer ohne
+     Befinden-Eintraege gerechnet, der Faktor ist also 1 — die v167-Zusagen
+     gelten damit unveraendert weiter. */
+  grabConst("BEFINDEN_MINDEST"),
+  grabLiteral("BEFINDEN_STUFEN"),
+  grabFn("befindenSchnitt"),
+  grabFn("befindenFaktor"),
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
@@ -133,9 +140,17 @@ pruefe("leere Tageswerte aendern nichts",
   A.kapazitaetsFaktor(profil, einr, HEUTE, []) === ohne);
 pruefe("zu wenige Naechte aendern nichts",
   A.kapazitaetsFaktor(profil, einr, HEUTE, naechte([0, 1], 4)) === ohne);
-pruefe("nur Befinden-Eintraege aendern nichts",
+// v168: Befinden geht ebenfalls ein — aber nach derselben Regel. Zu wenige
+// Eintraege aendern weiterhin nichts; die Wirkung selbst prueft test168.
+pruefe("zu wenige Befinden-Eintraege aendern nichts",
   A.kapazitaetsFaktor(profil, einr, HEUTE,
-    [0,1,2].map(d => ({ art:"befinden", datum:"2026-07-2" + (7-d), wert:1 }))) === ohne);
+    [0,1].map(d => ({ art:"befinden", datum:"2026-07-2" + (7-d), wert:1 }))) === ohne);
+pruefe("ein gutes Befinden aendert nichts",
+  A.kapazitaetsFaktor(profil, einr, HEUTE,
+    [0,1,2].map(d => ({ art:"befinden", datum:"2026-07-2" + (7-d), wert:5 }))) === ohne);
+pruefe("ein schlechtes Befinden SENKT die Kapazitaet",
+  A.kapazitaetsFaktor(profil, einr, HEUTE,
+    [0,1,2].map(d => ({ art:"befinden", datum:"2026-07-2" + (7-d), wert:1 }))) < ohne);
 pruefe("schlechter Schlaf SENKT die Kapazitaet",
   A.kapazitaetsFaktor(profil, einr, HEUTE, naechte([0,1,2], 5)) < ohne);
 pruefe("guter Schlaf hebt sie leicht",
@@ -179,17 +194,20 @@ pruefe("ohne Daten bleibt der Satz wie vorher",
   A.auslastungText("pectoral", null, false).includes("noch nicht trainiert"));
 
 /* ---------- 7) Die Grundlagen-Zeile ---------- */
-const gVoll = A.rechnungsGrundlage(trainings(14), profil, einr, naechte([0,1,2], 7), HEUTE);
+// v168: „vollstaendig" heisst jetzt auch MIT Befinden-Eintraegen.
+const befindenVoll = [0,1,2].map(d => ({ art:"befinden", datum:"2026-07-2" + (7-d), wert:4 }));
+const gVoll = A.rechnungsGrundlage(trainings(14), profil, einr,
+                                   naechte([0,1,2], 7).concat(befindenVoll), HEUTE);
 pruefe("sie zaehlt die Trainings", gVoll.trainings === 14);
 pruefe("und weiss, dass die Basis reicht", gVoll.reicht === true);
-pruefe("Erfahrung, Alter und Schlaf stehen als vorhanden drin",
-  ["Erfahrung", "Alter", "Schlaf"].every(x => gVoll.hat.includes(x)));
+pruefe("Erfahrung, Alter, Schlaf und Befinden stehen als vorhanden drin",
+  ["Erfahrung", "Alter", "Schlaf", "Befinden"].every(x => gVoll.hat.includes(x)));
 pruefe("nichts fehlt", gVoll.fehlt.length === 0);
 pruefe("und es wird nichts angenommen", gVoll.annahme === false);
 
 const gLeer = A.rechnungsGrundlage(trainings(2), {}, {}, [], HEUTE);
-pruefe("ohne Angaben fehlt alles drei",
-  ["Erfahrung", "Alter", "Schlaf"].every(x => gLeer.fehlt.includes(x)));
+pruefe("ohne Angaben fehlt alles",
+  ["Erfahrung", "Alter", "Schlaf", "Befinden"].every(x => gLeer.fehlt.includes(x)));
 pruefe("und nichts steht als vorhanden da", gLeer.hat.length === 0);
 pruefe("die duenne Basis wird erkannt", gLeer.reicht === false);
 pruefe("die stille Annahme wird gemeldet", gLeer.annahme === true);
@@ -198,7 +216,7 @@ const tVoll = A.grundlageText(gVoll), tLeer = A.grundlageText(gLeer);
 pruefe("der volle Text nennt die Trainings", tVoll.includes("14 Trainings"));
 pruefe("und sagt nichts von fehlenden Daten", !tVoll.includes("Ohne "));
 pruefe("und verlangt keine weiteren Trainings", !tVoll.includes("Für eine Warnung"));
-pruefe("der leere Text nennt, was fehlt", tLeer.includes("Ohne Erfahrung, Alter, Schlaf."));
+pruefe("der leere Text nennt, was fehlt", tLeer.includes("Ohne Erfahrung, Alter, Schlaf, Befinden."));
 pruefe("er sagt, dass es genauer wuerde", tLeer.includes("genauer"));
 pruefe("er macht die stille Wiedereinsteiger-Annahme sichtbar",
   tLeer.includes("Wiedereinsteiger"));

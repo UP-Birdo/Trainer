@@ -39,6 +39,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test168.js` | Tages-Check statt Selbsteinschätzung: läuft über die **echten Register** `TAGES_FRAGEN` und `TAGESWERTE` (eine neue Frage wird automatisch mitgeprüft) — `befindenAusCheck` (Abzüge, Deckelung, immer 1–5), `checkZeilen` (**übersprungene Fragen erzeugen keine Zeile**, „Nein" schon; Perioden-Frage nur bei passendem Profil), `katerRegionen`/`katerMuskeln` (**Muskelkater trifft die Muskeln SEINER Region**, kurzes Fenster), `befindenSchnitt`/`befindenFaktor` (kann nur senken, nie heben) + Leitplanke 8: alles erst ab Stufe 4 |
 | `test167.js` | Schlaf in der Belastungs-Rechnung + Mindestmaß: `schlafSchnitt`/`schlafFaktor` (Fenster, Mindest-Einträge, gedeckelte Wirkung) und die harte Zusage **„kein Wert, kein Effekt"** — fehlende/zu wenige Daten dürfen den Kapazitätsfaktor **exakt** unverändert lassen; dazu `basisReicht` (zählt Trainings insgesamt, **nicht** im 7-Tage-Fenster), `rechnungsGrundlage`/`grundlageText` (was fehlt, sichtbare Wiedereinsteiger-Annahme) und dass Zahlen immer, Urteil und rote Einfärbung nur mit Basis erscheinen |
 | `test166.js` | Tageswerte (Schlaf, Befinden): läuft über das **echte Register** `TAGESWERTE` (ein neuer Wert wird automatisch mitgeprüft) — `werteReihe`/`werteSetzen` (eine Zeile je Tag UND Art), `tageswertPruefen` (Schrittweite, Bereichsgrenzen, Komma, Null bleibt gültig), `tageswertSchnitt` (letzte N **Einträge**), `tageswertText` + die Verdrahtung in Statistik-Auswahl, Stufen-Filter und Mehrfach-Löschen |
 | `test165.js` | Aufwärmen/Dehnen nach Schwerpunkt: `bonusAuswahl` (allgemeine zuerst, Sortierung nach Trefferzahl, Obergrenze statt Soll, Rückfall auf die alte Grundfolge, rein und wiederholbar) + **Katalog-Vertrag**: echte Muskel-Schlüssel, keine Dubletten, **jede** Region in **beiden** Katalogen abgedeckt |
@@ -153,6 +154,7 @@ VS Codes Electron springt ein):
     & $code tests\test165.js index.html
     & $code tests\test166.js index.html
     & $code tests\test167.js index.html
+    & $code tests\test168.js index.html
 
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 

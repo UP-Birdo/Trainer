@@ -3,6 +3,30 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.168
+
+- Der Tages-Check ersetzt die Befinden-Note. Statt dich zu fragen, wie du dich
+  auf einer Skala von 1 bis 5 fühlst, fragt die App jetzt konkrete Dinge:
+  erschöpft? schlecht geschlafen? Kopfschmerzen? krank? Stress? Dein Befinden
+  rechnet sie daraus aus. Der Grund: Eine Selbstnote wandert — deine 3 im Januar
+  ist nicht dieselbe 3 wie im Juli, weil sich der Maßstab mit der Stimmung
+  verschiebt. „Kopfschmerzen: ja oder nein“ ist dagegen in einem halben Jahr
+  noch dieselbe Frage. Du erreichst den Check über das Plus in den Tageswerten;
+  jede Frage lässt sich überspringen, und was du überspringst, wird nicht
+  gespeichert.
+- Muskelkater fragt der Check nach Körperregion. Das ist mehr als Kosmetik:
+  Meldest du Muskelkater in der Brust, steht das bei der BRUST auf der
+  Muskelkarte — nicht als Abzug auf deine ganze Rechnung. Und zwar als eigener
+  Satz, nicht in der Prozentzahl verrührt, damit beide Aussagen scharf bleiben.
+- Jede Frage bekommt ihre eigene Kurve in den Tageswerten (Erschöpfung,
+  Kopfschmerzen, Stress …) — mit Verlauf, Einträgen und Mehrfach-Löschen wie bei
+  allem anderen. Und dein Befinden geht wie der Schlaf in die
+  Belastungs-Rechnung ein: ab drei Einträgen in der Woche, höchstens 10 Prozent
+  Wirkung, ohne Daten gar keine.
+- Alles davon gibt es erst ab der Stufe „Statistik“. Auf den einfachen Stufen
+  bleibt die App das, was sie dort sein soll: ein Notizblock, der nichts fragt
+  und nichts bewertet.
+
 ## 0.167
 
 - Dein Schlaf zählt jetzt in der Belastungs-Rechnung mit. Trägst du in einer

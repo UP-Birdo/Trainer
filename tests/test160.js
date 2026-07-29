@@ -56,6 +56,12 @@ const code = [
   grabFn("schlafSchnitt"),
   grabFn("schlafFaktor"),
   "const SCHLAF_STUFEN = " + grabLiteral("SCHLAF_STUFEN") + ";",
+  /* v168: dasselbe fuer das Befinden — hier ohne Tageswerte aufgerufen, also
+     Faktor 1. Die Wirkung selbst prueft test168. */
+  "const BEFINDEN_MINDEST = 3;",
+  "const BEFINDEN_STUFEN = " + grabLiteral("BEFINDEN_STUFEN") + ";",
+  grabFn("befindenSchnitt"),
+  grabFn("befindenFaktor"),
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
