@@ -2566,7 +2566,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 183;
+const APP_VERSION = 184;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5669,6 +5669,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.184", punkte:[
+    "Die Muskelkarte sagt jetzt, was sie nicht zählen kann. Wer läuft, schwimmt oder Rad fährt, bekam über jeden einzelnen Muskel „diese Woche noch nicht trainiert“ zu lesen — obwohl er dreimal draußen war. Die Karte rechnet mit Sätzen, und ein Lauf hat keine; das war technisch richtig und las sich trotzdem falsch.",
+    "Unter der Karte steht deshalb jetzt eine Zeile wie „3 Einheiten dieser Woche (Laufen) zählen hier nicht mit: die Karte rechnet mit gemessenen Sätzen. Im Kalender und im Verlauf stehen sie.“ Und wenn gar keine Sätze da sind, erklärt die Karte nicht länger eine Farbe, die es nicht gibt.",
+    "Deine Läufe in Sätze umzurechnen wäre der falsche Weg gewesen — für „ein 10-km-Lauf entspricht so und so vielen Sätzen“ gibt es keine belastbare Zahl, und eine erfundene wäre schlimmer als keine. Nebenbei siehst du damit erstmals auch, dass ein per „Erledigt“ abgehaktes Training seine Sollwerte nicht als Belastung mitbringt."
+  ]},
   { stand:"0.183", punkte:[
     "Die Übungs-Bibliothek zeigt jetzt auch deine Sportart-Übungen. Bisher standen dort ausschließlich Kraftübungen — wer nur läuft, fand unter „Alle Übungen zum Nachschlagen“ keine einzige seiner eigenen, obwohl jeder der 81 Drills längst einen Merksatz und eine volle Beschreibung hat. Die gab es nur über Profil → Sportart, also hinter dem Profil, das es erst auf der höchsten Stufe gibt.",
     "Die Filter oben richten sich jetzt nach dir: Kraft-Kategorien nur, wenn du Krafttraining machst, dazu je eigener Sportart einen Filter. So steht dort nie ein Knopf, hinter dem nichts liegt. Fremde Sportarten, die du nicht machst, tauchen weiterhin nicht auf."
@@ -8292,6 +8297,59 @@ function grundlageText(g){
   return satz + ohne + genauer + hinweis + zuwenig;
 }
 
+/* ------------------------------------------------------------
+   v184: Was diese Karte NICHT zählen kann — und das auch sagt.
+
+   Aufgefallen beim dritten Persona-Durchgang (reine Ausdauer-Sportlerin,
+   v183): Wer nur läuft, liest über JEDEN Muskel „diese Woche noch nicht
+   trainiert". Technisch richtig — die Quote zählt Sätze, und ein Lauf trägt
+   keine (`aktivitaetAblegen` legt `saetze:[]` an) — und trotzdem falsch
+   gelesen: Sie HAT trainiert, dreimal diese Woche.
+
+   Die Läufe umzurechnen wäre der falsche Ausweg. Für „ein 10-km-Lauf
+   entspricht N Sätzen Beinbeuger" gibt es keine belegte Zahl; das wäre genau
+   die erfundene Genauigkeit, die v160 bei Körpergewicht und BMI abgelehnt hat.
+   Also dieselbe Antwort wie dort und wie bei v176/v177: **Was gezählt werden
+   kann, wird gezählt; was nicht, wird gesagt.**
+
+   Mitgenommen wird eine zweite, bisher unsichtbare Lücke: Auch die
+   Soll-Einträge aus v158 („Erledigt", der Haken aus v174) gehen nicht in die
+   Quote ein — `muskelLast` filtert über `echteSaetze`. Deshalb ist das
+   Kriterium hier ebenfalls `echteSaetze` und nicht „hat überhaupt Sätze", und
+   der Satz spricht von GEMESSENEN Sätzen. So deckt eine Zeile beide Fälle,
+   statt zwei Zeilen dasselbe halb zu sagen.
+   ------------------------------------------------------------ */
+
+/** Einheiten im Last-Fenster, die keine gemessenen Sätze tragen: Anzahl und die
+    beteiligten Sportarten (Reihenfolge des ersten Auftretens). Rein/testbar. */
+function satzloseEinheiten(protokoll, heute, tage){
+  const fenster = tage || MUSKEL_HEAT_TAGE;
+  const sportarten = [];
+  let anzahl = 0;
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > fenster) return;
+    if(echteSaetze(e).length) return;
+    anzahl++;
+    if(e.sportart && !sportarten.includes(e.sportart)) sportarten.push(e.sportart);
+  });
+  return { anzahl, sportarten };
+}
+
+/** Der Satz dazu — oder leer, solange es nichts einzuordnen gibt. Bewusst eine
+    Einordnung und keine Warnung: Es ist die Auskunft darüber, was in dieser
+    Rechnung steckt, und gehört darum an die Grundlagen-Zeile. Rein/testbar. */
+function satzloseText(info){
+  if(!info || !(info.anzahl > 0)) return "";
+  const eine = info.anzahl === 1;
+  const namen = info.sportarten.map(sportartName).filter(Boolean).join(", ");
+  return info.anzahl + (eine ? " Einheit" : " Einheiten") + " dieser Woche" +
+         (namen ? " (" + namen + ")" : "") + (eine ? " zählt" : " zählen") +
+         " hier nicht mit: die Karte rechnet mit gemessenen Sätzen. " +
+         "Im Kalender und im Verlauf " + (eine ? "steht sie" : "stehen sie") + ".";
+}
+
 /** Auslastung je Muskel: Sätze, Kapazität, Quote und Erholung. Rein/testbar. */
 function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte){
   const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
@@ -8686,11 +8744,18 @@ function muskelAuswahlZeichnen(){
 
 /** v167: Die Grundlagen-Zeile unter der Statuszeile — sie steht auf der
     Muskelkarte immer, egal ob etwas gewählt ist. Sie ist die sichtbare Antwort
-    auf „wer es genauer will, gibt mehr Daten her". */
+    auf „wer es genauer will, gibt mehr Daten her".
+    v184: Dazu die Einordnung, welche Einheiten hier NICHT mitzählen. Sie hängt
+    bewusst hier und nicht in `BELASTUNGS_HINWEISE`: Das Register sammelt
+    Empfehlungen in der Signalfarbe, das hier ist eine Auskunft über die
+    Rechnung — dieselbe Sache, die die Grundlagen-Zeile schon erzählt. Und so
+    bleibt es bei EINEM Aufruf an beiden Stellen unten (v177). */
 function grundlagenZeileHtml(){
   const g = rechnungsGrundlage(sitzung.daten.protokoll, sitzung.daten.profil,
                                sitzung.daten.einrichtung, sitzung.daten.tageswerte, heuteAlsText());
-  return '<div class="meta" style="margin-top:6px;opacity:.8">' + text(grundlageText(g)) + '</div>';
+  const zeile = s => '<div class="meta" style="margin-top:6px;opacity:.8">' + text(s) + '</div>';
+  const einordnung = satzloseText(satzloseEinheiten(sitzung.daten.protokoll, heuteAlsText()));
+  return zeile(grundlageText(g)) + (einordnung ? zeile(einordnung) : "");
 }
 
 /* v176/v177: Die Hinweis-Zeilen stehen auf der Muskelkarte IMMER, wenn es
@@ -8718,9 +8783,17 @@ function muskelStatusText(){
       ? Object.keys(alle).filter(m => auslastungStufe(alle[m]) === "zuviel")
           .map(m => (MUSKEL_INFO[m] || {}).name || m)
       : [];
+    /* v184: Ist im Fenster kein einziger gemessener Satz gelandet, gibt es auch
+       keine Farbe — dann darf die Zeile nicht erklären, was die Farbe bedeutet.
+       Genau diesen Satz liest die reine Ausdauer-Sportlerin als Erstes; die
+       Einordnung, WARUM die Karte grau bleibt, steht direkt darunter in der
+       Grundlagen-Zeile. */
+    const ohneFarbe = Object.keys(alle).length === 0;
     el.innerHTML = text(heiss.length
       ? "Über dem Richtwert: " + heiss.join(", ") + ". Tippe an für Einzelheiten."
-      : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.") +
+      : ohneFarbe
+        ? "Diese Woche noch keine gemessenen Sätze — darum bleibt die Karte grau."
+        : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.") +
       grundlagenZeileHtml() + belastungsHinweiseHtml();
     return;
   }

@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.184
+
+- Die Muskelkarte sagt jetzt, was sie nicht zählen kann. Wer läuft, schwimmt
+  oder Rad fährt, bekam über jeden einzelnen Muskel „diese Woche noch nicht
+  trainiert“ zu lesen — obwohl er dreimal draußen war. Die Karte rechnet mit
+  Sätzen, und ein Lauf hat keine; das war technisch richtig und las sich
+  trotzdem falsch.
+- Unter der Karte steht deshalb jetzt eine Zeile wie „3 Einheiten dieser Woche
+  (Laufen) zählen hier nicht mit: die Karte rechnet mit gemessenen Sätzen. Im
+  Kalender und im Verlauf stehen sie.“ Und wenn gar keine Sätze da sind,
+  erklärt die Karte nicht länger eine Farbe, die es nicht gibt.
+- Deine Läufe in Sätze umzurechnen wäre der falsche Weg gewesen — für „ein
+  10-km-Lauf entspricht so und so vielen Sätzen“ gibt es keine belastbare Zahl,
+  und eine erfundene wäre schlimmer als keine. Nebenbei siehst du damit erstmals
+  auch, dass ein per „Erledigt“ abgehaktes Training seine Sollwerte nicht als
+  Belastung mitbringt.
+
 ## 0.183
 
 - Die Übungs-Bibliothek zeigt jetzt auch deine Sportart-Übungen. Bisher standen
