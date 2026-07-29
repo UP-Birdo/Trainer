@@ -32,20 +32,24 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 const w = (s, sp) => planNeuWege(s, sp).join(",");
 
-/* 1) planNeuWege — Stufe und Profil entscheiden. */
-pruefe("Stufe 5 mit Kraft: Assistent + eigen + Beispiel + nachtragen",
-  w(5, ["kraft"]) === "assistent,eigen,beispiel,nachtragen");
-pruefe("Stufe 3 ohne Assistent", w(3, ["kraft"]) === "eigen,beispiel,nachtragen");
-pruefe("Stufe 4 ohne Assistent", w(4, ["kraft"]) === "eigen,beispiel,nachtragen");
-pruefe("ohne Kraft kein Beispielplan", w(5, ["yoga"]) === "assistent,eigen,nachtragen");
+/* 1) planNeuWege — Stufe und Profil entscheiden.
+   v180: „nachtragen" ist hier ENTFALLEN — nachgetragen wird jetzt im Kalender
+   am jeweiligen Tag (`tagOeffnen`). Das „+"-Menue legt NEUES an, und ein
+   Training von vorgestern ist kein neuer Plan. Alle anderen Wege und ihre
+   Reihenfolge bleiben unveraendert; test180 prueft den neuen Weg. */
+pruefe("Stufe 5 mit Kraft: Assistent + eigen + Beispiel",
+  w(5, ["kraft"]) === "assistent,eigen,beispiel");
+pruefe("Stufe 3 ohne Assistent", w(3, ["kraft"]) === "eigen,beispiel");
+pruefe("Stufe 4 ohne Assistent", w(4, ["kraft"]) === "eigen,beispiel");
+pruefe("ohne Kraft kein Beispielplan", w(5, ["yoga"]) === "assistent,eigen");
 pruefe("Intervall-Sportart bringt den Intervall-Weg",
-  w(5, ["kraft","laufen"]) === "assistent,eigen,beispiel,intervall,nachtragen");
+  w(5, ["kraft","laufen"]) === "assistent,eigen,beispiel,intervall");
 pruefe("zweite Intervall-Sportart bringt ihn nur EINMAL",
-  w(5, ["laufen","kampfsport"]) === "assistent,eigen,intervall,nachtragen");
-pruefe("ohne Sportarten bleibt das Noetigste", w(5, []) === "assistent,eigen,nachtragen");
-pruefe("undefined faellt nicht um", w(5, undefined) === "assistent,eigen,nachtragen");
-pruefe("Nachtragen steht immer am Ende",
-  planNeuWege(5, ["kraft","laufen"]).slice(-1)[0] === "nachtragen");
+  w(5, ["laufen","kampfsport"]) === "assistent,eigen,intervall");
+pruefe("ohne Sportarten bleibt das Noetigste", w(5, []) === "assistent,eigen");
+pruefe("undefined faellt nicht um", w(5, undefined) === "assistent,eigen");
+pruefe("Nachtragen ist aus dem Plus-Menue verschwunden",
+  planNeuWege(5, ["kraft","laufen"]).indexOf("nachtragen") < 0);
 pruefe("eigener Plan ist immer dabei",
   planNeuWege(3, []).includes("eigen") && planNeuWege(5, ["yoga"]).includes("eigen"));
 
@@ -68,8 +72,9 @@ pruefe("Leer-Zustand rendert genau einen Knopf",
 /* 3) Das Menue haengt an der reinen Auswahl. */
 const menue = grabFn("planNeuMenue");
 pruefe("Menue nutzt planNeuWege", menue.includes("planNeuWege(stufe()"));
-pruefe("alle fuenf Wege sind verdrahtet",
-  ["assistent:", "eigen:", "beispiel:", "intervall:", "nachtragen:"].every(k => menue.includes(k)));
+pruefe("alle vier Wege sind verdrahtet",
+  ["assistent:", "eigen:", "beispiel:", "intervall:"].every(k => menue.includes(k)));
+pruefe("und kein toter Eintrag bleibt zurueck (v180)", !menue.includes("nachtragen"));
 pruefe("Stufe 1/2 legt weiter direkt einen Abschnitt an", menue.includes("abschnittAnlegen()"));
 
 console.log(ok + " ok, " + fehler + " Fehler");

@@ -1623,7 +1623,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="meta" id="ein-vorschau" style="margin-top:10px"></div>
   </div>
   <div class="knopfreihe"><button class="primaer breit" onclick="aktivitaetSpeichern()">Eintragen</button></div>
-  <div class="knopfreihe"><button class="breit" onclick="planListeZeichnen();zeige('view-plaene')">Abbrechen</button></div>
+  <!-- v180: Auch das Abbrechen führt dorthin zurück, wo man hergekommen ist. -->
+  <div class="knopfreihe"><button class="breit" onclick="eintragenVerlassen(false)">Abbrechen</button></div>
 </section>
 
 <section id="view-vorschau" class="view">
@@ -2563,7 +2564,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 179;
+const APP_VERSION = 180;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4535,7 +4536,12 @@ function planNeuWege(stufeNr, sportarten){
   wege.push("eigen");
   if(liste.includes("kraft")) wege.push("beispiel");
   if(liste.some(id => sportart(id).intervall)) wege.push("intervall");
-  wege.push("nachtragen");
+  /* v180: „Training nachtragen" ist hier ENTFALLEN. Das „+"-Menü der Pläne ist
+     der Ort, an dem etwas NEUES angelegt wird — ein Training von vorgestern ist
+     aber kein neuer Plan. Nachgetragen wird jetzt im Kalender am jeweiligen Tag
+     (`tagOeffnen`), wo das Datum ohnehin schon feststeht, statt es im Formular
+     erst zurückzustellen. Der Weg „Training eintragen" auf der Heute-Karte
+     bleibt unberührt — dort ist HEUTE gemeint. */
   return wege;
 }
 
@@ -4547,8 +4553,7 @@ function planNeuMenue(){
     assistent:  { text:"Plan mit Assistent",    tun: einrichtungOeffnen },
     eigen:      { text:"Eigenen Plan erstellen", tun: planAnlegen },
     beispiel:   { text:"Beispielplan laden",     tun: beispielLaden },
-    intervall:  { text:"Intervall-Plan anlegen", tun: intervallPlanNeu },
-    nachtragen: { text:"Training nachtragen",    tun:() => eintragenOeffnen(null, 0) }
+    intervall:  { text:"Intervall-Plan anlegen", tun: intervallPlanNeu }
   };
   aktionsMenue("Neu anlegen",
     planNeuWege(stufe(), sitzung.daten.einrichtung.sportarten || ["kraft"]).map(k => wege[k]));
@@ -5655,6 +5660,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.180", punkte:[
+    "Nachgetragen wird jetzt im Kalender: Tippe auf den Tag, an dem du trainiert hast, und wähle „Training eintragen“ — das Datum steht dann schon richtig da. Der eigene Eintrag „Training nachtragen“ im Plus-Menü der Pläne ist dafür weggefallen. Dort wird etwas NEUES angelegt, und ein Training von vorgestern ist kein neuer Plan.",
+    "Für kommende Tage bietet der Kalender das gar nicht erst an — trainiert haben kann man nur heute oder früher. Dort steht wie bisher „Plan an diesem Tag“. Und nach dem Eintragen landest du wieder im Kalender, statt irgendwo anders. Der Knopf „Training eintragen“ auf Heute bleibt, wo er war."
+  ]},
   { stand:"0.179", punkte:[
     "Die Übungs-Suche zeigt jetzt zu jeder Übung die Muskel-Figur — du siehst also schon beim Aussuchen, was die Übung trifft, statt es aus dem Namen zu raten. Damit ist der Wunsch „Übungen als Karteikarten mit Muskel-Bild statt Dropdowns“ komplett; die Figur war das letzte fehlende Stück.",
     "Sie hat bisher gefehlt, weil über hundert Figuren auf einmal die Liste zäh gemacht hätten. Jetzt wird jede erst gezeichnet, wenn sie ins Bild kommt — die Liste bleibt flüssig, egal wie viele Übungen dein Filter übrig lässt. Übungen ohne hinterlegte Muskeln bleiben wie bisher ohne Figur."
@@ -6476,6 +6485,18 @@ function tagOeffnen(datum){
   else if(geplant.length) info += " · geplant: " + geplant.map(p => p.name).join(", ");
   else if(istRuhe)        info += " · Ruhetag";
   const aktionen = [];
+  /* v180: Nachgetragen wird DORT, wo der Tag steht. Der separate Weg „Training
+     nachtragen" im „+"-Menü der Pläne ist dafür entfallen — er war ein eigener
+     Eintrag für etwas, das an dieser Stelle von selbst zur Hand ist (offener
+     Roadmap-Punkt aus der 11. Runde).
+     Nur für heute und früher: Ein Training in der Zukunft kann man nicht
+     gemacht haben (`kraftNachtragen` weist es ohnehin ab). Für kommende Tage
+     ist „Plan an diesem Tag" die richtige Aktion — und sie steht darunter. */
+  if(datum <= heuteAlsText())
+    aktionen.push({ text:"Training eintragen", tun:() => {
+      eintragenRueckweg = "kalender";
+      eintragenOeffnen(null, 0, datum);
+    }});
   if(sitzung.daten.plaene.length)
     aktionen.push({ text:"Plan an diesem Tag", tun:() => einzelterminMenue(datum) });
   sitzung.daten.plaene.filter(p => (p.einzelTermine || []).includes(datum)).forEach(p =>
@@ -13657,6 +13678,27 @@ function intervallAufraeumen(){
 /* ---------- Das Formular: einziger Ort, an dem eine Aktivität entsteht ---------- */
 let eintragPlan = null;
 
+/* v180: Wohin nach dem Eintragen — oder nach dem Abbrechen?
+   Das entschied bisher jede der drei Stellen für sich: `kraftNachtragen` und
+   der Abbrechen-Knopf gingen zu den Plänen, `aktivitaetAblegen` auf „Heute".
+   Seit der Kalender-Tag nachtragen kann, gibt es einen dritten Fall — und drei
+   verstreute Antworten auf dieselbe Frage wären eine zu viel. Jetzt eine
+   Stelle, wie bei `sportartenRueckweg` (v178). */
+let eintragenRueckweg = null;   // null = wie bisher, "kalender" = zurück in den Kalender
+
+/** `nachStart` = der Weg, den diese Stelle OHNE Kalender-Herkunft nehmen würde. */
+function eintragenVerlassen(nachStart){
+  if(eintragenRueckweg === "kalender"){
+    eintragenRueckweg = null;
+    kalenderZeichnen();
+    zeige("view-kalender");
+    return;
+  }
+  if(nachStart){ startOeffnen(); return; }
+  planListeZeichnen();
+  zeige("view-plaene");
+}
+
 /** plan = Vorlage (optional), sekunden = gemessene Zeit (optional). */
 /* ============================================================
    #region Kraft nachtragen (v70)
@@ -13721,11 +13763,12 @@ function kraftNachtragen(){
   speichern();
   meldung("Krafttraining eingetragen: " + uebung +
     (saetze.length ? " · " + saetze.length + "×" + w + (kg ? " · " + kg + " kg" : "") : ""));
-  planListeZeichnen();
-  zeige("view-plaene");
+  eintragenVerlassen(false);   // v180
 }
 
-function eintragenOeffnen(plan, sekunden){
+/** `datum` (v180): Vorgabe für „Wann" — der Kalender reicht seinen Tag durch.
+    Ohne Angabe bleibt es bei heute. */
+function eintragenOeffnen(plan, sekunden, datum){
   eintragPlan = plan || null;
   const sport = plan ? plan.sportart : ersteAktivitaetsSportart();
   const feld = document.getElementById("ein-sport");
@@ -13743,7 +13786,7 @@ function eintragenOeffnen(plan, sekunden){
   ["ein-saetze","ein-wdh","ein-gewicht","ein-notiz"].forEach(id => document.getElementById(id).value = "");
   eintragKraftUebungen();
 
-  document.getElementById("ein-datum").value = heuteAlsText();
+  document.getElementById("ein-datum").value = datum || heuteAlsText();
   document.getElementById("ein-einheit").innerHTML = ZEITEINHEITEN.map(z =>
     '<option value="' + z.id + '">' + z.name + '</option>').join("");
   const einheit = plan ? plan.zeitEinheit : "min";
@@ -13872,7 +13915,7 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
     bewertungOeffnen(sitzung.daten.plaene.find(p => p.id === plan.id) || plan, eintrag);
     return;
   }
-  startOeffnen();
+  eintragenVerlassen(true);   // v180: „Heute" — oder zurück in den Kalender
   /* E1 — Fortschritt je Sportart-Klasse: Drills laufen oben durch die Bewertung
      (progressionAnwenden: Wdh/Zeit hoch). Eine REINE Aktivität (Ausdauer u. a.,
      ohne Drills) steigern wir hier: war die Einheit leicht, hebe Dauer und —

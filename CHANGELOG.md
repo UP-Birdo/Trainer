@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.180
+
+- Nachgetragen wird jetzt im Kalender: Tippe auf den Tag, an dem du trainiert
+  hast, und wähle „Training eintragen“ — das Datum steht dann schon richtig da.
+  Der eigene Eintrag „Training nachtragen“ im Plus-Menü der Pläne ist dafür
+  weggefallen. Dort wird etwas NEUES angelegt, und ein Training von vorgestern
+  ist kein neuer Plan.
+- Für kommende Tage bietet der Kalender das gar nicht erst an — trainiert haben
+  kann man nur heute oder früher. Dort steht wie bisher „Plan an diesem Tag“.
+  Und nach dem Eintragen landest du wieder im Kalender, statt irgendwo anders.
+  Der Knopf „Training eintragen“ auf Heute bleibt, wo er war.
+
 ## 0.179
 
 - Die Übungs-Suche zeigt jetzt zu jeder Übung die Muskel-Figur — du siehst also
