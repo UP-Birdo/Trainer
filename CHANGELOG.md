@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.175
+
+- Wischen zum Löschen: In jeder Liste mit Einträgen — Körpergewicht,
+  Körpermaße, Tageswerte, Trainings-Verlauf und Papierkorb — legt ein Wisch nach
+  links einen roten „Löschen“-Knopf frei. Ein zweiter Wisch nach rechts oder ein
+  Tipp daneben macht ihn wieder zu. Gefragt wird nicht: Wischen und dann tippen
+  ist die Bestätigung — und rückgängig machen kannst du es sofort über die
+  Meldung. Was in den Papierkorb gehört, landet dort wie bisher.
+- Damit ist die letzte Geste nachgeholt, die man vom iPhone kennt. Sie stört das
+  Scrollen nicht: Wer senkrecht wischt, bewegt die Liste; wer nur kurz wackelt,
+  löst nichts aus. Und solange ein roter Knopf offen steht, bleibt er der
+  einzige — der nächste Wisch macht den vorigen zu.
+
 ## 0.174
 
 - Der Notizblock bekommt einen Verlauf — ohne zweites Eingabefeld. Neben jeder

@@ -523,6 +523,25 @@ body:not(.nav-an) #nav{display:none}
 /* v163: Mehrfach-Auswahl in Statistik-Listen. Der Umschlag legt sich NUR im
    Auswahl-Modus um eine Zeile — außerhalb bleibt jede Liste, wie sie war. */
 .listen-leiste{padding:6px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--line);gap:8px}
+/* v175: Wischen zum Löschen. Der rote Knopf liegt UNTER der Zeile; ein Wisch
+   nach links schiebt den Inhalt darüber weg. Der Inhalt braucht deshalb eine
+   deckende Fläche — sonst schiene das Rot durch. Zwei Rechnungen, weil die
+   Listen in zwei Umgebungen stehen: frei in der Ansicht (Verlauf, Papierkorb)
+   und in einer Karte (Gewicht, Körpermaße, Tageswerte). */
+.wisch{position:relative;overflow:hidden}
+.wisch-inhalt{position:relative;z-index:1;background:var(--ground);
+  transition:transform 0.18s cubic-bezier(0.4,0,0.2,1)}
+.karte .wisch-inhalt{background:var(--panel)}
+.wisch-loeschen{position:absolute;top:0;right:0;bottom:0;z-index:0;width:88px;
+  background:var(--warn);color:#16181C;font-weight:700;border:none;border-radius:0;
+  min-height:0;padding:0;
+  /* Geschlossen ist der Knopf unsichtbar — damit ist er zugleich aus der
+     Tab-Reihenfolge und für Vorlese-Programme raus, ohne eigenes aria-hidden.
+     Das Verschwinden wartet, bis die Zeile zurückgeglitten ist; sonst klaffte
+     beim Zumachen eine Lücke hinter dem laufenden Inhalt. */
+  visibility:hidden;transition:visibility 0s linear 0.18s}
+.wisch.offen .wisch-loeschen{visibility:visible;transition:visibility 0s}
+.wisch.offen .wisch-inhalt{transform:translateX(-88px)}
 .listen-wahl{display:flex;align-items:center;gap:8px;cursor:pointer}
 .listen-wahl-inhalt{flex:1;min-width:0}
 .listen-wahl.gewaehlt .listen-wahl-inhalt{border-left:2px solid var(--signal);padding-left:6px}
@@ -2521,7 +2540,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 174;
+const APP_VERSION = 175;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4770,6 +4789,11 @@ function wischZurueckEinrichten(){
   inhalt.addEventListener("touchend", e => {
     const anfang = start; start = null;
     if(!anfang || ueberlagerungOffen()) return;
+    /* v175: Steht eine Listenzeile offen, gehört der Wisch nach RECHTS ihr —
+       er macht sie wieder zu. Ohne diese Wache würde derselbe Wisch zusätzlich
+       die Ansicht verlassen: Man wollte einen roten Knopf loswerden und stünde
+       plötzlich einen Bildschirm weiter zurück. */
+    if(wischZeileOffen()) return;
     const b = e.changedTouches[0];
     if(!wischZurueck(anfang, { x: b.clientX, y: b.clientY })) return;
     const knopf = zurueckKnopfDerAnsicht();
@@ -4949,12 +4973,24 @@ function listenKopfHtml(typ){
     Tipp hakt an. Außerhalb kommt die Zeile unverändert zurück — jede Liste
     behält ihr eigenes Aussehen. */
 function listenZeileHtml(typ, kennung, innen){
-  if(listenAuswahlTyp !== typ || kennung === undefined || kennung === null) return innen;
-  const gewaehlt = listenAuswahl.has(kennung);
-  return '<div class="listen-wahl' + (gewaehlt ? " gewaehlt" : "") + '" ' +
-    'onclick="listenAuswahlUmschalten(\'' + typ + '\',\'' + text(String(kennung)) + '\')">' +
-    '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span>' +
-    '<div class="listen-wahl-inhalt">' + innen + '</div></div>';
+  if(kennung === undefined || kennung === null) return innen;
+  if(listenAuswahlTyp === typ){
+    const gewaehlt = listenAuswahl.has(kennung);
+    return '<div class="listen-wahl' + (gewaehlt ? " gewaehlt" : "") + '" ' +
+      'onclick="listenAuswahlUmschalten(\'' + typ + '\',\'' + text(String(kennung)) + '\')">' +
+      '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span>' +
+      '<div class="listen-wahl-inhalt">' + innen + '</div></div>';
+  }
+  /* v175: Außerhalb des Auswahl-Modus liegt unter jeder Zeile ein roter
+     Löschen-Knopf, den ein Wisch nach links freilegt. Der Umschlag entsteht
+     hier — an der EINEN Stelle, durch die jede Zeile jeder Liste läuft —,
+     nicht in den fünf Zeichnern. Im Auswahl-Modus (oben) gibt es ihn bewusst
+     nicht: Dort bedeutet ein Tipp „anhaken". */
+  return '<div class="wisch">' +
+    '<div class="wisch-inhalt">' + innen + '</div>' +
+    '<button class="wisch-loeschen" onclick="listenEinzelLoeschen(\'' + typ + '\', \'' +
+      jsArg(String(kennung)) + '\')">Löschen</button>' +
+    '</div>';
 }
 
 /** Im Auswahl-Modus zeigt die Liste ALLES — sonst wäre „Alle" eine Lüge
@@ -4968,7 +5004,132 @@ function listenGrenze(typ, standard){
 function listenAuswahlPruefen(ansichtId){
   const d = LISTEN_TYPEN[listenAuswahlTyp];
   if(d && d.ansicht !== ansichtId){ listenAuswahlTyp = null; listenAuswahl.clear(); }
+  wischZeileSchliessen();   // v175: eine offene Zeile bleibt nicht über den Ansichtswechsel hinweg stehen
 }
+
+/* ============================================================
+   #region Wischen zum Löschen (v175) — die letzte fehlende iOS-Listen-Geste
+
+   Aus dem Navigations-Vergleich der 34. Runde: Nach links wischen legt einen
+   roten „Löschen"-Knopf frei. Gebaut auf demselben Register wie das
+   Mehrfach-Löschen (v163) — jede Liste weiß dort schon, wie sie löscht, was in
+   den Papierkorb wandert und wer danach neu zeichnen muss. Deshalb kostet die
+   Geste hier KEINE Zeile je Liste: Sie hängt an `listenZeileHtml`, durch das
+   ohnehin jede Zeile jeder Liste läuft.
+
+   Die vier Wachen gegen Fehlauslösung (dieselbe Denkweise wie bei der
+   Zurück-Geste in v164 — dort haben sie sich bewährt):
+   1. Zu schräg = Scrollen. Wer senkrecht wischt, will die Liste bewegen.
+   2. Zu kurz = Antippen. Ein Wackeln beim Tippen darf nichts freilegen.
+   3. Immer nur EINE Zeile offen — sonst weiß niemand mehr, welcher rote Knopf
+      zu welchem Eintrag gehört.
+   4. Im Auswahl-Modus gar nicht. Dort bedeutet ein Tipp „anhaken"; zwei
+      Lösch-Wege gleichzeitig wären eine Falle (die Lehre aus v163).
+   ============================================================ */
+const WISCH_ZEILE_WEG = 45;       // so weit muss der Finger waagerecht laufen
+const WISCH_ZEILE_SCHRAEG = 30;   // so weit darf er dabei senkrecht abweichen
+
+/** Was meint dieser Wisch auf einer Listenzeile?
+    `"auf"` = nach links (Löschen freilegen), `"zu"` = nach rechts (wieder
+    zumachen), `null` = war Scrollen oder zu kurz. Rein/testbar. */
+function wischZeile(start, ende){
+  if(!start || !ende) return null;
+  const dx = ende.x - start.x;
+  const dy = Math.abs(ende.y - start.y);
+  if(dy > WISCH_ZEILE_SCHRAEG) return null;        // senkrecht = scrollen
+  if(Math.abs(dx) < WISCH_ZEILE_WEG) return null;  // zu kurz = tippen
+  return dx < 0 ? "auf" : "zu";
+}
+
+let wischZeileAktiv = null;   // die gerade geöffnete Zeile (DOM-Element) oder null
+
+/** Die offene Zeile — oder null. Prüft mit, ob sie noch im Dokument steht:
+    Nach einem Neuzeichnen zeigt die Merkvariable sonst auf eine Leiche. */
+function wischZeileOffen(){
+  if(wischZeileAktiv && !wischZeileAktiv.isConnected) wischZeileAktiv = null;
+  return wischZeileAktiv;
+}
+
+function wischZeileOeffnen(zeile){
+  wischZeileSchliessen();          // Wache 3: immer nur eine
+  zeile.classList.add("offen");
+  wischZeileAktiv = zeile;
+}
+
+function wischZeileSchliessen(){
+  const offen = wischZeileOffen();
+  if(offen) offen.classList.remove("offen");
+  wischZeileAktiv = null;
+}
+
+/** Einmal beim Start angebunden — über Delegation an `#inhalt`, nicht je Zeile.
+    Die Listen zeichnen sich mehrfach neu; Listener je Zeile müssten dabei
+    jedes Mal nachgezogen werden und würden sich sonst stapeln (die Lehre aus
+    v80 beim Langdruck). */
+function wischZeileEinrichten(){
+  const inhalt = document.getElementById("inhalt");
+  if(!inhalt) return;
+  let start = null, zeile = null;
+
+  inhalt.addEventListener("touchstart", e => {
+    zeile = e.target && e.target.closest ? e.target.closest(".wisch") : null;
+    const t = e.touches[0];
+    start = zeile ? { x: t.clientX, y: t.clientY } : null;
+  }, { passive:true });
+
+  inhalt.addEventListener("touchend", e => {
+    const anfang = start, ziel = zeile;
+    start = null; zeile = null;
+    if(!anfang || !ziel) return;
+    const b = e.changedTouches[0];
+    const richtung = wischZeile(anfang, { x: b.clientX, y: b.clientY });
+    if(richtung === "auf") wischZeileOeffnen(ziel);
+    else if(richtung === "zu") wischZeileSchliessen();
+  }, { passive:true });
+
+  inhalt.addEventListener("touchcancel", () => { start = null; zeile = null; }, { passive:true });
+
+  /* Solange eine Zeile offen ist, ist sie „scharf": Ein Tipp irgendwo schließt
+     sie und löst sonst NICHTS aus. Ohne diese Wache träfe der Tipp die Knöpfe
+     IN der Zeile (im Papierkorb etwa „Wiederherstellen") — man wollte aber nur
+     den roten Knopf wieder loswerden. Capture-Phase, damit es vor den
+     `onclick`-Attributen greift. */
+  inhalt.addEventListener("click", e => {
+    if(!wischZeileOffen()) return;
+    if(e.target && e.target.closest && e.target.closest(".wisch-loeschen")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    wischZeileSchliessen();
+  }, true);
+}
+
+/** EINEN Eintrag löschen — über dasselbe Register wie die Sammel-Löschung.
+    Damit gilt für jede Liste automatisch dasselbe: Papierkorb, wo einer
+    vorgesehen ist, Rückgängig immer, Neuzeichnen immer.
+    **Bewusst OHNE Rückfrage:** Das Freilegen des roten Knopfes IST die
+    Rückfrage — man muss wischen UND tippen. So macht es das System, und der
+    Rückgängig-Toast fängt den Fehlgriff. Die Sammel-Löschung fragt weiterhin;
+    dort trifft ein einziger Tipp viele Einträge auf einmal. */
+function listenEinzelLoeschen(typ, kennung){
+  const d = LISTEN_TYPEN[typ]; if(!d) return;
+  const eintrag = d.liste().find(e => String(d.kennung(e)) === String(kennung));
+  if(!eintrag) return;
+  wischZeileSchliessen();
+  const vorher = d.liste().slice();   // flache Kopie -> Rückgängig ohne Index-Rechnerei
+  let korbId = null;
+  if(d.korb){ const k = d.korb(eintrag); korbId = inPapierkorb(k.typ, k.name, eintrag); }
+  d.setzen(d.liste().filter(e => e !== eintrag));
+  speichern();
+  d.zeichnen();
+  zeigenToast(d.einzahl + " gelöscht", "info", () => {
+    d.setzen(vorher);
+    if(korbId) papierkorbEntfernen(korbId);
+    speichern();
+    d.zeichnen();
+    zeigenToast("Wiederhergestellt", "erfolg");
+  });
+}
+/* #endregion Wischen zum Löschen */
 
 /** Hängt an jede Plan-Karte die Langdruck-Erkennung. */
 /** v124: Die Langdruck-Mechanik als EIN Helfer — sie hängt jetzt an zwei Sorten
@@ -5452,6 +5613,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.175", punkte:[
+    "Wischen zum Löschen: In jeder Liste mit Einträgen — Körpergewicht, Körpermaße, Tageswerte, Trainings-Verlauf und Papierkorb — legt ein Wisch nach links einen roten „Löschen“-Knopf frei. Ein zweiter Wisch nach rechts oder ein Tipp daneben macht ihn wieder zu. Gefragt wird nicht: Wischen und dann tippen ist die Bestätigung — und rückgängig machen kannst du es sofort über die Meldung. Was in den Papierkorb gehört, landet dort wie bisher.",
+    "Damit ist die letzte Geste nachgeholt, die man vom iPhone kennt. Sie stört das Scrollen nicht: Wer senkrecht wischt, bewegt die Liste; wer nur kurz wackelt, löst nichts aus. Und solange ein roter Knopf offen steht, bleibt er der einzige — der nächste Wisch macht den vorigen zu."
+  ]},
   { stand:"0.174", punkte:[
     "Der Notizblock bekommt einen Verlauf — ohne zweites Eingabefeld. Neben jeder Übung steht jetzt ein Kästchen: antippen, wenn du sie gemacht hast. Die App merkt sich die Uhrzeit und die Übung und trägt beides ein. Auf der einfachen Stufe stehen die Kästchen unter deinem Block („Heute gemacht“), auf der Stufe mit Zahlen sitzen sie links in der Zeile. Ein zweiter Tipp nimmt den Haken wieder weg.",
     "Was du abhakst, ist ein ganz normaler Eintrag: Stufst du später hoch, findest du ihn im Verlauf, im Kalender, in deiner Serie, im Volumen und auf der Muskelkarte wieder — mit der Uhrzeit dabei. Umgewandelt wird nichts, und dazugedichtet auch nicht.",
@@ -14392,6 +14557,7 @@ document.addEventListener("visibilitychange", () => {
 wasserzeichenZeichnen();
 systemTexteAnwenden();   // Texte auf iPhone/Android einstellen, bevor irgendetwas sichtbar wird
 wischZurueckEinrichten();   // v164: Wisch von der linken Kante = zurück (iPhone-Geste)
+wischZeileEinrichten();     // v175: Wisch nach links auf einer Listenzeile = löschen
 
 /* v82: Beim ALLERERSTEN Start zeigt die App, was sie anders macht — danach nie
    wieder. Geräte-Merker (localStorage), kein Konto-Bezug: die Seite kommt VOR

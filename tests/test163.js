@@ -68,6 +68,10 @@ const umgebung = [
   grabFn("listenKopfHtml"),
   grabFn("listenZeileHtml"),
   grabFn("listenGrenze"),
+  grabFn("wischZeileOffen"),        // v175: der Ansichtswechsel schliesst auch
+  grabFn("wischZeileSchliessen"),   //       eine offen gewischte Zeile
+  grabFn("jsArg"),                  // v175: der Wisch-Umschlag entschaerft die Kennung
+  "let wischZeileAktiv = null;",
   grabFn("listenAuswahlPruefen"),
   "module.exports = { LISTEN_TYPEN, listenAuswahlText, listenKennungen, listenAuswahlStarten," +
   " listenAuswahlBeenden, listenAuswahlUmschalten, listenAuswahlAlle, listenAuswahlLoeschen," +
@@ -282,8 +286,18 @@ pruefe("aber nur fuer die aktive Liste", A.listenGrenze("verlauf", 10) === 10);
 
 /* ---------- 16) Die Zeile bleibt ausserhalb des Modus unveraendert ---------- */
 frischeDaten();
-pruefe("ohne Modus kommt die Zeile so zurueck, wie sie kam",
-  A.listenZeileHtml("gewicht", "2026-01-01", "<div>X</div>") === "<div>X</div>");
+/* v175 hat diesen Punkt praezisiert: Ausserhalb des Modus bekommt die Zeile den
+   Wisch-Umschlag (Wischen zum Loeschen). Die v163-Zusage dahinter gilt
+   unveraendert weiter — der INHALT geht unangetastet durch, jede Liste behaelt
+   ihr eigenes Aussehen. Nur die Kaestchen bleiben dem Modus vorbehalten. */
+const ohneModus = A.listenZeileHtml("gewicht", "2026-01-01", "<div>X</div>");
+pruefe("ohne Modus geht der Inhalt unveraendert durch",
+  ohneModus.indexOf("<div>X</div>") > 0);
+pruefe("ohne Modus gibt es KEINE Kaestchen",
+  ohneModus.indexOf("listen-wahl") < 0 && ohneModus.indexOf("☐") < 0);
+pruefe("dafuer den Wisch-Umschlag mit seinem Loeschen-Knopf",
+  ohneModus.indexOf('<div class="wisch">') === 0 &&
+  ohneModus.indexOf("listenEinzelLoeschen('gewicht', '2026-01-01')") > 0);
 A.listenAuswahlStarten("gewicht");
 const roh = A.listenZeileHtml("gewicht", "2026-01-01", "<div>X</div>");
 pruefe("im Modus steht ein leeres Kaestchen davor", roh.indexOf("☐") > 0);
@@ -296,8 +310,13 @@ pruefe("und die Zeile ist markiert", gehakt.indexOf("gewaehlt") > 0);
 pruefe("ohne Kennung bleibt die Zeile roh",
   A.listenZeileHtml("gewicht", undefined, "<div>X</div>") === "<div>X</div>" &&
   A.listenZeileHtml("gewicht", null, "<div>X</div>") === "<div>X</div>");
-pruefe("eine fremde Liste wird nicht umgebaut",
-  A.listenZeileHtml("verlauf", "e1", "<div>X</div>") === "<div>X</div>");
+/* Der Modus laeuft hier fuer „gewicht". Eine FREMDE Liste darf davon nichts
+   mitbekommen — sie bleibt beim normalen Wisch-Umschlag, ohne Kaestchen. */
+const fremd = A.listenZeileHtml("verlauf", "e1", "<div>X</div>");
+pruefe("eine fremde Liste bekommt keine Kaestchen",
+  fremd.indexOf("listen-wahl") < 0 && fremd.indexOf("☐") < 0);
+pruefe("und ihr Loeschen-Knopf gehoert IHR",
+  fremd.indexOf("listenEinzelLoeschen('verlauf', 'e1')") > 0);
 
 /* ---------- 17) Der Kopf ueber der Liste ---------- */
 frischeDaten();
