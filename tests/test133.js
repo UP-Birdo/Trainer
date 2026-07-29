@@ -32,6 +32,7 @@ new Function("module", "exports", [
   "function begrenzen(w,min,max){ return Math.min(max, Math.max(min, w)); }",
   "function uhrText(s){ return String(s); }",
   grabConst("IV_GRENZEN"),
+  grabConst("IV_STANDARD"),   // v186: die Standardwerte liegen jetzt in einer Konstante
   grabFn("intervallPhasen"), grabFn("intervallGesamt"), grabFn("intervallText"),
   grabFn("planIntervallSetzen"), grabFn("editorIvDauerNachziehen"),
   grabFn("editorIvSetzen"), grabFn("editorIvStufe"),

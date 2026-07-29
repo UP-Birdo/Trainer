@@ -182,7 +182,10 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    Zeilen wäre eine Wand aus Gelb. Stattdessen dasselbe Bild wie die
    Mehrfach-Auswahl aus v163 — das Häkchen in der Signalfarbe (.plan-haken),
    dazu eine farbige Kante am erledigten Knopf. */
-.notiz-erledigt{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+/* v185: Die Leiste steht jetzt VOR dem Textfeld (Nutzer-Ansage), darum trennt
+   die Linie nach UNTEN — sie soll die Haken vom Text absetzen, nicht vom
+   Abschnittsnamen darüber. */
+.notiz-erledigt{margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:10px}
 .notiz-haken{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
   background:var(--panel);border:1px solid var(--line);border-radius:8px;
   padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
@@ -1893,12 +1896,16 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></span>Mehr</button>
 </nav>
 
-<!-- Aktionsmenü für langes Drücken -->
+<!-- Aktionsmenü für langes Drücken.
+     v185: Hier stand bis v184 ein festes „Abbrechen" — und seit v164 baut
+     `aktionsMenue()` zusätzlich eines an das Ende der Knopfliste. Es waren also
+     ZWEI. Geblieben ist das gebaute: Es liegt im selben Container wie die
+     Aktionen (also direkt darunter statt mit einer Lücke) und trägt die
+     abgesetzte Gestaltung aus `.menue-abbrechen`. -->
 <div id="menue-hintergrund" onclick="menueSchliessen(event)">
   <div id="menue" role="dialog" aria-modal="true">
     <h2 id="menue-titel">–</h2>
     <div id="menue-knoepfe"></div>
-    <button class="schmal" onclick="menueSchliessen()">Abbrechen</button>
   </div>
 </div>
 
@@ -2566,7 +2573,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 184;
+const APP_VERSION = 186;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3912,13 +3919,19 @@ function notizHakenHtml(p, u, kompakt){
     '</button>';
 }
 
-/** Die Haken-Leiste unter dem Textfeld (Stufe 1).
-    WARUM unter dem Feld und nicht zwischen den Zeilen: Stufe 1 ist EIN
-    Textfeld — eine `<textarea>` kann keine Knöpfe zwischen ihren Zeilen
+/** Die Haken-Leiste des Abschnitts (Stufe 1).
+    WARUM eine eigene Leiste und keine Knöpfe zwischen den Zeilen: Stufe 1 ist
+    EIN Textfeld — eine `<textarea>` kann keine Knöpfe zwischen ihren Zeilen
     tragen, und sie zu Einzelzeilen umzubauen würde die Autokorrektur (v155)
     und die Tipp-Vorschläge (v157) kosten. Die Leiste führt dieselben Übungen
-    in derselben Reihenfolge wie die Zeilen darüber, das Kästchen steht links
-    vom Namen. Ohne Übungen (reiner Freitext) erscheint sie gar nicht. */
+    in derselben Reihenfolge wie das Textfeld, das Kästchen steht links vom
+    Namen. Ohne Übungen (reiner Freitext) erscheint sie gar nicht.
+
+    v185 (Nutzer-Ansage): Sie steht jetzt VOR dem Textfeld, nicht darunter.
+    Der Grund liegt in der Benutzung: Der Text ist die Definition des
+    Abschnitts — den schreibt man einmal; die Haken sind die TÄGLICHE Handlung.
+    Was man jeden Tag tut, gehört nach oben, statt hinter einen Block, der mit
+    jeder Übung länger wird. */
 function notizHakenLeisteHtml(p){
   const uebungen = (p.uebungen || []).filter(u => u.name && u.name.trim());
   if(!uebungen.length) return "";
@@ -3939,12 +3952,14 @@ function notizAbschnittHtml(p, s){
     // v157: `oninput` zieht zusätzlich die Vorschläge nach; die Chip-Reihe
     // darunter bleibt leer, solange nichts passt.
     // v172: `onblur` räumt die Vorschläge weg — vorher blieben sie stehen.
-    koerper = '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
+    // v185 (Nutzer-Ansage): die Haken-Leiste steht VOR dem Textfeld — sie ist
+    // die tägliche Handlung, der Text nur die Definition (s. notizHakenLeisteHtml).
+    koerper = notizHakenLeisteHtml(p) +   // v174: der Verlauf der Stufe 1
+      '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
       'oninput="notizTippen(this, \'' + p.id + '\')" ' +
       'onblur="notizVorschlaegeSchliessen(\'' + p.id + '\')" ' +
       'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>' +
-      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>' +
-      notizHakenLeisteHtml(p);   // v174: der Verlauf der Stufe 1
+      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>';
   } else {
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
@@ -5669,6 +5684,15 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.186", punkte:[
+    "Der Trainingsplanung-Assistent kann jetzt auch Intervall-Pläne. Bei Sportarten mit Runden-Training (Laufen, Kampfsport) fragt er „Wie trainierst du?“ — durchgehend oder in Runden. Bisher ging ein Runden-Plan nur über das „+“ in den Plänen; der Assistent baute immer eine durchgehende Einheit.",
+    "Wählst du „In Runden“, entfallen die Fragen nach Dauer und Strecke — die Gesamtdauer rechnet die App aus Belastung und Pause, genau wie der Timer. Nach den Runden-Zahlen fragt der Assistent bewusst nicht: Er nimmt die Vorgabe deiner Sportart, und im Plan stellst du sie mit einem Tipp um.",
+    "Diese Vorgabe passt jetzt zur Sportart: Beim Laufen sind es 8 Runden à 30 Sekunden mit 15 Sekunden Pause, im Kampfsport 3 Runden à 3 Minuten mit 1 Minute Pause — das übliche Maß einer Runde. Und wer schon einen Runden-Plan hat, findet „In Runden“ vorgewählt."
+  ]},
+  { stand:"0.185", punkte:[
+    "In den Aktionsmenüs (langes Drücken auf einen Plan oder eine Übung) standen zwei „Abbrechen“ untereinander. Der Fehler stammt aus v164: Damals bekam jedes Menü automatisch eines — im Grundgerüst stand aber längst eines fest. Jetzt ist es wieder eines.",
+    "Im Notizblock sitzen die Kästchen „Heute gemacht“ jetzt ÜBER deinem Textblock statt darunter. Den Text schreibst du einmal, die Haken tippst du jeden Tag — und dafür soll man nicht erst an einem Block vorbeiscrollen, der mit jeder Übung länger wird."
+  ]},
   { stand:"0.184", punkte:[
     "Die Muskelkarte sagt jetzt, was sie nicht zählen kann. Wer läuft, schwimmt oder Rad fährt, bekam über jeden einzelnen Muskel „diese Woche noch nicht trainiert“ zu lesen — obwohl er dreimal draußen war. Die Karte rechnet mit Sätzen, und ein Lauf hat keine; das war technisch richtig und las sich trotzdem falsch.",
     "Unter der Karte steht deshalb jetzt eine Zeile wie „3 Einheiten dieser Woche (Laufen) zählen hier nicht mit: die Karte rechnet mit gemessenen Sätzen. Im Kalender und im Verlauf stehen sie.“ Und wenn gar keine Sätze da sind, erklärt die Karte nicht länger eine Farbe, die es nicht gibt.",
@@ -9014,8 +9038,20 @@ function aktivitaetsFelderVorbereiten(e){
     if(s.strecke && !e["strecke_" + s.id]) e["strecke_" + s.id] = s.strecke.start;
     if(s.mass && e["ziel_" + s.id] == null) e["ziel_" + s.id] = s.mass.start;
     if(!Array.isArray(e["drills_" + s.id])) e["drills_" + s.id] = [];
+    // v186: Wie trainiert wird — Vorbelegung „durchgehend", also genau das
+    // Verhalten bis v185. Nur Sportarten mit Runden-Training bekommen das Feld.
+    if(s.intervall && !e["ivart_" + s.id]) e["ivart_" + s.id] = "durch";
   });
   return e;
+}
+
+/** Hat der Nutzer für diese Sportart im Assistenten „In Runden" gewählt?
+    Sportarten ohne Runden-Training können das nie — deshalb die Abfrage auf
+    `intervall` und nicht nur auf das Feld: Ein Altbestand mit einem
+    versehentlich gesetzten Feld darf keinen Intervall-Plan erzeugen, wo die
+    Sportart gar keinen anbietet. Rein/testbar. */
+function wzRundenGewaehlt(e, sportId){
+  return !!(sportart(sportId).intervall && e && e["ivart_" + sportId] === "runden");
 }
 
 const WOCHENTAGE = ["","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
@@ -9124,7 +9160,10 @@ const SPORTARTEN = [
     mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a", presets:["4","5c","6b","7a"] }, einheiten:"Zeit · Schwierigkeit" },
   { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
-  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, fortschritt:"kampf", einheiten:"Zeit · Runden" },
+  // v186: eigene Intervall-Vorgabe — im Kampfsport ist die Runde 3 Minuten lang
+  // mit 1 Minute Pause (Amateur-Boxrunde), nicht 30 Sekunden wie beim Laufen.
+  { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, fortschritt:"kampf",
+    intervallStandard:{ runden:3, belastung:180, pause:60 }, einheiten:"Zeit · Runden" },
   { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet", fortschritt:"beweglichkeit",
     // v115 (Nicht-Kraft, Etappe 1): generische Messgröße `mass` neben der Strecke —
@@ -9337,6 +9376,37 @@ function aktivitaetText(sportartId, strecke, sekunden, zeitEinheitId){
 function sportart(id){ return SPORTARTEN.find(x => x.id === id) || SPORTARTEN[0]; }
 function sportartName(id){ return sportart(id).name; }
 function sportartFarbe(id){ return sportart(id).farbe; }
+
+/* v186: Die Intervall-Standardwerte standen bis v185 an ZWEI Stellen dasselbe
+   hartkodiert (Editor-Umschalter und „Intervall-Plan anlegen"). Mit dem
+   Assistenten wäre eine dritte Kopie dazugekommen — deshalb jetzt eine Wahrheit.
+   Die Werte selbst sind unverändert: 8 Runden, 30 s Belastung, 15 s Pause.
+   (Die Grenzen der Felder stehen weiter beim Editor: `IV_GRENZEN`.)
+
+   WARUM DER BLOCK HIER OBEN STEHT — teuer bezahlt und nicht verschieben:
+   `WIZARD_FRAGEN` ruft `ivStandardFuer` beim AUFBAU der Fragenliste auf, um die
+   Vorgabe in der Antwort zu zeigen. Lag die Konstante weiter unten (bei
+   `IV_GRENZEN`, wo sie thematisch hingehört hätte), war sie zu diesem Zeitpunkt
+   noch in der Temporal Dead Zone: „Cannot access 'IV_STANDARD' before
+   initialization" — die App wäre beim Laden weiß geblieben. `--check` sieht das
+   nicht, weil es reine Syntax prüft; gefunden haben es test149/test150, die die
+   Fragenliste wirklich auswerten. */
+const IV_STANDARD = { runden:8, belastung:30, pause:15 };
+
+/** Die Intervall-Vorgabe einer Sportart: ihre eigene, wenn sie eine hat, sonst
+    der Haus-Standard. Rein/testbar.
+
+    WARUM überhaupt eigene: 8 × 30/15 s ist ein gängiges Lauf-Intervall, wäre im
+    Kampfsport aber Unsinn — dort sind Runden von 3 Minuten mit 1 Minute Pause
+    das übliche Maß (Amateur-Boxrunde). Eine Sportart, die eine andere Antwort
+    hat, nennt sie in `SPORTARTEN.intervallStandard`; alle anderen brauchen
+    keinen Eintrag. */
+function ivStandardFuer(sportId){
+  const eigen = sportart(sportId).intervallStandard;
+  return { runden:   eigen && eigen.runden    || IV_STANDARD.runden,
+           belastung:eigen && eigen.belastung || IV_STANDARD.belastung,
+           pause:    eigen && eigen.pause != null ? eigen.pause : IV_STANDARD.pause };
+}
 function gymStandardGeraete(){ return GERAETE.filter(g => g.gymStandard && g.orte.includes("gym")).map(g => g.id); }
 
 /* ------------------------------------------------------------
@@ -10821,19 +10891,42 @@ const WIZARD_FRAGEN = [
     hilfe:"Diese Tage färbt der Kalender in der Farbe der Sportart. Keinen ausgewählt = der Plan bleibt ohne festen Tag, und du trägst ihn ein, wenn er passiert ist.",
     nurWenn: e => (e.sportarten || []).includes(s.id),
     optionen: WOCHENTAGE.slice(1).map((w,i) => [i+1, w.slice(0,2), w]) },
+  /* v186 (Roadmap, 21. Runde — zweite Hälfte des Intervall-Wunsches): Bei
+     Sportarten mit Runden-Training fragt der Assistent, WIE trainiert wird.
+     Sie steht bewusst VOR der Dauer-Frage: „In Runden" ersetzt Dauer und
+     Strecke (dieselbe Regel wie der Editor-Umschalter aus v133 — die Dauer ist
+     dann das Ergebnis der Phasen), also fallen deren Fragen weg. Anders herum
+     müsste man erst nach einer Dauer antworten, die gleich verworfen wird.
+
+     Nach den Runden-Zahlen wird NICHT gefragt (drei weitere Fragen wären genau
+     die Aufblähung, die v149/v150 abgebaut haben). Der Plan bekommt die Vorgabe
+     seiner Sportart, feinjustiert wird im Editor — dort gibt es die Stepper seit
+     v133. Die Antwort steht im Hilfetext, damit niemand raten muss. */
+  s.intervall ? { id:"ivart_" + s.id, typ:"single", raster:true, sportBezug:s.id,
+    frage:"Wie trainierst du " + s.name + "?",
+    hilfe:"Durchgehend = eine Einheit mit einer Dauer. In Runden = geführter Intervall-Timer mit Belastung und Pause; die Gesamtdauer rechnet die App daraus. Die Runden-Zahlen kannst du danach im Plan ändern.",
+    nurWenn: e => (e.sportarten || []).includes(s.id),
+    optionen: [["durch","Durchgehend","Eine Einheit, eine Dauer"],
+               ["runden","In Runden", ivStandardFuer(s.id).runden + " × " +
+                 ivStandardFuer(s.id).belastung + " s Belastung + " +
+                 ivStandardFuer(s.id).pause + " s Pause"]] } : null,
   { id:"dauer_" + s.id, typ:"single", raster:true, sportBezug:s.id, zeitCustom:true,
     frage:"Wie lange dauert eine Einheit " + s.name + "?",
     hilfe:"Ein Richtwert für die Planung — beim Eintragen zählt, wie lange es wirklich war. Oder gib unten deine eigene Zeit ein.",
-    nurWenn: e => (e.sportarten || []).includes(s.id),
+    // v186: bei Runden-Training entfällt die Frage — die Dauer ergibt sich dann
+    // aus den Phasen und würde nur überschrieben.
+    nurWenn: e => (e.sportarten || []).includes(s.id) && !wzRundenGewaehlt(e, s.id),
     // v100: 4 statt 5 Presets -> sauberes 2×2-Raster (5 gaben eine schiefe letzte Reihe).
     // Zwischenwerte (z. B. 1,5 Std) gehen weiter über „Eigene Zeit".
     optionen: [[1800,"30 min"],[3600,"1 Std"],[7200,"2 Std"],[10800,"3 Std"]] }
-].concat(
+].filter(Boolean).concat(
   // v150: Strecke — nur wo die Sportart eine hat.
   s.strecke ? [{ id:"strecke_" + s.id, typ:"single", raster:true, sportBezug:s.id,
     frage:"Wie weit ist eine Einheit " + s.name + "?",
     hilfe:"Das Ziel deines Plans. Es wächst später von selbst mit, wenn dir eine Einheit zu leicht war — feiner einstellen kannst du es jederzeit im Plan.",
-    nurWenn: e => (e.sportarten || []).includes(s.id),
+    // v186: Ein Runden-Plan hat keine Strecke (v133: „Runden ersetzt Dauer UND
+    // Strecke") — also auch keine Frage danach.
+    nurWenn: e => (e.sportarten || []).includes(s.id) && !wzRundenGewaehlt(e, s.id),
     optionen: s.strecke.presets.map(v => [v, zahlKurz(v) + " " + s.strecke.einheit]) }] : []
 ).concat(
   // v150: Messgrößen-Ziel — nur wo die Sportart eine Messgröße hat.
@@ -10886,6 +10979,9 @@ function einrichtungOeffnen(){
     // sonst fragte der Wizard Dinge neu, die längst eingestellt sind.
     if(p.strecke > 0) einrichtung["strecke_" + p.sportart] = p.strecke;
     if(p.massZiel != null && p.massZiel !== "") einrichtung["ziel_" + p.sportart] = p.massZiel;
+    // v186: Wer schon einen Runden-Plan hat, findet „In Runden" vorgewählt —
+    // dieselbe Überlegung wie bei Tagen und Dauer.
+    if(p.intervall) einrichtung["ivart_" + p.sportart] = "runden";
     if(Array.isArray(p.uebungen) && p.uebungen.length){
       einrichtung["drills_" + p.sportart] = p.uebungen.map(u => u.name);
     }
@@ -11145,11 +11241,15 @@ function wzZusammenfassung(){
     const sp = sportart(id);
     const tage = einrichtung["tage_" + id] || [];
     const drills = (einrichtung["drills_" + id] || []).length;
+    /* v186: Bei „In Runden" steht hier die Intervall-Kurzform statt einer Dauer,
+       nach der gar nicht gefragt wurde — und zwar über `intervallText`, also
+       genau in der Form, die später auf der Plan-Karte steht. */
+    const iv = wzRundenGewaehlt(einrichtung, id) ? ivStandardFuer(id) : null;
     const teile = [
       tage.length ? tage.slice().sort().map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "ohne festen Tag",
-      zeitKurz(einrichtung["dauer_" + id] || 3600, "h")
+      iv ? intervallText({ intervall: iv }) : zeitKurz(einrichtung["dauer_" + id] || 3600, "h")
     ];
-    if(sp.strecke) teile.push(zahlKurz(einrichtung["strecke_" + id] || sp.strecke.start) + " " + sp.strecke.einheit);
+    if(sp.strecke && !iv) teile.push(zahlKurz(einrichtung["strecke_" + id] || sp.strecke.start) + " " + sp.strecke.einheit);
     if(sp.mass) teile.push(massText(id, einrichtung["ziel_" + id]));
     if(drills) teile.push(drills + (drills === 1 ? " Übung" : " Übungen"));
     return sportartName(id) + ": " + teile.filter(Boolean).join(" · ");
@@ -11302,11 +11402,21 @@ function aktivitaetsPlaeneBauen(){
     // weiterhin der Startwert der Sportart (Verhalten bis v149).
     const strecke = einrichtung["strecke_" + id];
     const ziel = einrichtung["ziel_" + id];
+    /* v186: „In Runden" macht daraus einen Intervall-Plan. Die Dauer wird dabei
+       GERECHNET, nicht gesetzt — mit derselben Funktion, die der Timer und der
+       Editor benutzen (`intervallGesamt`/`intervallPhasen`). Eine zweite
+       Rechnung hier hieße, dass Plan und Timer auseinanderlaufen können. Und
+       die Strecke fällt weg: „Runden ersetzt Dauer und Strecke" (v133). */
+    const runden = wzRundenGewaehlt(einrichtung, id);
+    const iv = runden ? ivStandardFuer(id) : null;
+    const dauer = iv ? intervallGesamt(intervallPhasen(iv.runden, iv.belastung, iv.pause))
+                     : (einrichtung["dauer_" + id] || 3600);
     return { id:neueId(), name: sp.name, quelle:"assistent", sportart:id, typ:"aktivitaet",
              tage: (einrichtung["tage_" + id] || []).slice().sort((a,b) => a-b),
-             dauer: einrichtung["dauer_" + id] || 3600,
-             zeitEinheit: (einrichtung["dauer_" + id] || 3600) >= 3600 ? "h" : "min",
-             strecke: sp.strecke ? (strecke > 0 ? strecke : sp.strecke.start) : 0,
+             dauer,
+             zeitEinheit: dauer >= 3600 ? "h" : "min",
+             intervall: iv,
+             strecke: (!iv && sp.strecke) ? (strecke > 0 ? strecke : sp.strecke.start) : 0,
              massZiel: sp.mass ? (ziel != null && ziel !== "" ? ziel : sp.mass.start) : null,
              steigerung: { woche:null, stufen:0, vorEntlastung:0 },
              reihenfolge:"klassisch", aufwaermen:false, dehnen:false, uebungen };
@@ -12773,7 +12883,7 @@ const IV_GRENZEN = { runden:[1,60], belastung:[5,600], pause:[0,600] };
 
 function planIntervallSetzen(an){
   if(an){
-    if(!editorPlan.intervall) editorPlan.intervall = { runden:8, belastung:30, pause:15 };
+    if(!editorPlan.intervall) editorPlan.intervall = Object.assign({}, IV_STANDARD);
     editorIvDauerNachziehen();
   } else {
     editorPlan.intervall = null;   // zurück zum normalen Aktivitäts-Plan
@@ -13857,9 +13967,9 @@ function intervallPlanNeu(){
   document.getElementById("iv-sport").innerHTML =
     intervallSportarten().map(s => '<option value="' + s.id + '">' + text(s.name) + '</option>').join("");
   document.getElementById("iv-name").value = "";
-  document.getElementById("iv-runden").value = 8;
-  document.getElementById("iv-belastung").value = 30;
-  document.getElementById("iv-pause").value = 15;
+  document.getElementById("iv-runden").value = IV_STANDARD.runden;          // v186: eine Wahrheit
+  document.getElementById("iv-belastung").value = IV_STANDARD.belastung;
+  document.getElementById("iv-pause").value = IV_STANDARD.pause;
   intervallVorschau();
   zeige("view-intervall-neu");
 }

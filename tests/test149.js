@@ -46,6 +46,13 @@ const code = [
   grabFn("sportUebungen"),
   grabFn("zahlKurz"),
   grabFn("kraftGewaehlt"),
+  /* v186: Die Fragenliste ruft beim Aufbau `ivStandardFuer` auf (die Vorgabe
+     steht in der Antwort) und blendet Dauer/Strecke bei Runden aus. Beides
+     gehoert also in die Umgebung, sonst wirft schon der Aufbau. */
+  /^const IV_STANDARD\s*=\s*[^;]+;/m.exec(src)[0],
+  grabFn("sportart"),
+  grabFn("ivStandardFuer"),
+  grabFn("wzRundenGewaehlt"),
   "let wzSportartenGesetzt = false;",   // v178: entscheidet, welche Fassung der Auftaktfrage steht
   grabAnweisung("const WIZARD_FRAGEN = ", "let wzSchritt"),
   "let wzSichtbar = [];",

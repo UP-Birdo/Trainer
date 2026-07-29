@@ -3,6 +3,32 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.186
+
+- Der Trainingsplanung-Assistent kann jetzt auch Intervall-Pläne. Bei Sportarten
+  mit Runden-Training (Laufen, Kampfsport) fragt er „Wie trainierst du?“ —
+  durchgehend oder in Runden. Bisher ging ein Runden-Plan nur über das „+“ in den
+  Plänen; der Assistent baute immer eine durchgehende Einheit.
+- Wählst du „In Runden“, entfallen die Fragen nach Dauer und Strecke — die
+  Gesamtdauer rechnet die App aus Belastung und Pause, genau wie der Timer. Nach
+  den Runden-Zahlen fragt der Assistent bewusst nicht: Er nimmt die Vorgabe deiner
+  Sportart, und im Plan stellst du sie mit einem Tipp um.
+- Diese Vorgabe passt jetzt zur Sportart: Beim Laufen sind es 8 Runden à 30
+  Sekunden mit 15 Sekunden Pause, im Kampfsport 3 Runden à 3 Minuten mit 1 Minute
+  Pause — das übliche Maß einer Runde. Und wer schon einen Runden-Plan hat, findet
+  „In Runden“ vorgewählt.
+
+## 0.185
+
+- In den Aktionsmenüs (langes Drücken auf einen Plan oder eine Übung) standen
+  zwei „Abbrechen“ untereinander. Der Fehler stammt aus v164: Damals bekam jedes
+  Menü automatisch eines — im Grundgerüst stand aber längst eines fest. Jetzt ist
+  es wieder eines.
+- Im Notizblock sitzen die Kästchen „Heute gemacht“ jetzt ÜBER deinem Textblock
+  statt darunter. Den Text schreibst du einmal, die Haken tippst du jeden Tag —
+  und dafür soll man nicht erst an einem Block vorbeiscrollen, der mit jeder
+  Übung länger wird.
+
 ## 0.184
 
 - Die Muskelkarte sagt jetzt, was sie nicht zählen kann. Wer läuft, schwimmt

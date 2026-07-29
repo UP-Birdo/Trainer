@@ -165,7 +165,10 @@ pruefe("der Zeitpunkt steht in der Rueckmeldung", /Gemacht um " \+ zeit/.test(um
 
 /* ---------- 9) Verdrahtung in beiden Stufen ---------- */
 const abschnitt = grabFn("notizAbschnittHtml");
-pruefe("Stufe 1 bekommt die Haken-Leiste unter dem Textfeld",
+/* Die Leiste hing bis v184 unter dem Textfeld, seit v185 steht sie davor
+   (Nutzer-Ansage) — geprueft wird hier nur, DASS Stufe 1 sie bekommt; die
+   Reihenfolge selbst haelt test185 fest. */
+pruefe("Stufe 1 bekommt die Haken-Leiste",
   abschnitt.includes("notizHakenLeisteHtml(p)"));
 pruefe("Stufe 2 bekommt den Haken IN der Zeile",
   abschnitt.includes("notizHakenHtml(p, u, true)"));

@@ -46,6 +46,14 @@ const code = [
   grabFn("sportUebungen"),
   grabFn("zahlKurz"),
   grabFn("kraftGewaehlt"),
+  /* v186: Der Aufbau der Fragenliste ruft `ivStandardFuer` auf, und
+     `aktivitaetsPlaeneBauen` rechnet bei Runden die Dauer aus den Phasen —
+     beide Bausteine gehoeren deshalb in die Umgebung. */
+  /^const IV_STANDARD\s*=\s*[^;]+;/m.exec(src)[0],
+  grabFn("ivStandardFuer"),
+  grabFn("wzRundenGewaehlt"),
+  grabFn("intervallPhasen"),
+  grabFn("intervallGesamt"),
   grabAnweisung("const WIZARD_FRAGEN = ", "let wzSchritt"),
   grabFn("wzZahlFeld"),
   grabFn("aktivitaetsFelderVorbereiten"),
@@ -67,8 +75,15 @@ function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEH
 const fragenVon = sportId => WIZARD_FRAGEN.filter(f => f.sportBezug === sportId).map(f => f.id);
 
 /* ---------- 1) Jede Sportart wird nach dem gefragt, was sie messen kann ---------- */
-pruefe("Laufen: Tage, Dauer, Strecke, Uebungen",
-  JSON.stringify(fragenVon("laufen")) === JSON.stringify(["tage_laufen","dauer_laufen","strecke_laufen","drills_laufen"]));
+/* v186: Laufen hat Runden-Training, bekommt also zusaetzlich die Frage
+   „durchgehend oder in Runden" — und die steht VOR der Dauer, weil sie sie
+   ersetzen kann. Sportarten ohne `intervall` sind unveraendert. */
+pruefe("Laufen: Tage, Art, Dauer, Strecke, Uebungen",
+  JSON.stringify(fragenVon("laufen")) === JSON.stringify(["tage_laufen","ivart_laufen","dauer_laufen","strecke_laufen","drills_laufen"]));
+const falscheArt = SPORTARTEN.filter(s => s.planTyp === "aktivitaet")
+  .filter(s => !!s.intervall !== fragenVon(s.id).includes("ivart_" + s.id)).map(s => s.id);
+pruefe("die Art-Frage steht genau dort, wo es Runden-Training gibt" +
+  (falscheArt.length ? " (" + falscheArt.join(", ") + ")" : ""), falscheArt.length === 0);
 pruefe("Yoga: Tage, Dauer, Ziel, Uebungen",
   JSON.stringify(fragenVon("yoga")) === JSON.stringify(["tage_yoga","dauer_yoga","ziel_yoga","drills_yoga"]));
 pruefe("Tischtennis ohne Strecke und ohne Ziel",
