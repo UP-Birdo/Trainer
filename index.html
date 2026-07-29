@@ -2540,7 +2540,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 176;
+const APP_VERSION = 177;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5613,6 +5613,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.177", punkte:[
+    "Die Muskelkarte schaut jetzt auch auf deine Gewichtskurve — aber anders, als du vielleicht denkst: Nicht auf den Stand (was du wiegst, sagt nichts darüber, wie viele Sätze ein Muskel verträgt — das bleibt bewusst draußen), sondern auf den Verlauf. Fällt dein Gewicht über drei Wochen deutlich, steht das dort. Ein anhaltender Abfall ist eines der verlässlichsten Zeichen für zu wenig Erholung oder zu wenig Essen.",
+    "Verglichen werden dabei Durchschnitte aus zwei Hälften, nicht zwei einzelne Tage — dein Tagesgewicht schwankt um ein bis zwei Prozent, und daraus einen Trend zu machen wäre geraten. Und weil die App nicht wissen kann, ob du das so willst, sagt sie zuerst, was gezählt wurde, und stellt die Deutung ausdrücklich unter Vorbehalt."
+  ]},
   { stand:"0.176", punkte:[
     "Die Muskelkarte achtet jetzt auf leichtere Wochen. Trainierst du drei Wochen in Folge, ohne dass eine davon spürbar leichter war, steht das dort: „3 Wochen in Folge ohne leichtere Woche.“ Dauerbelastung ohne Entlastung ist einer der bekanntesten Wege in die Überlastung — und die App wusste es an anderer Stelle längst: Bei Laufen und Rad rechnet sie seit jeher mit drei Steigerungswochen und dann einer leichteren. Beim Krafttraining sagt sie es dir jetzt auch.",
     "Als leichter zählt eine Woche mit deutlich weniger Sätzen als die Woche davor — oder eine ganz ohne Training. Die laufende Woche wird nie mitgezählt: Sie ist noch nicht vorbei und könnte die leichtere ja gerade werden. Der Hinweis ist eine Empfehlung, keine Warnung, und er verändert deine Richtwerte nicht: Was gezählt werden kann, wird gezählt — was nicht, wird gesagt."
@@ -8257,6 +8261,80 @@ function entlastungText(folge){
          " % der Sätze, dann normal weiter.";
 }
 
+/* ------------------------------------------------------------
+   v177: Trend des Körpergewichts (Belastungs-Modell, Gruppe A, Punkt 5).
+
+   Heikel — und deshalb ausdrücklich abgegrenzt: v160 hat Körpergewicht und BMI
+   als KAPAZITÄTS-FAKTOR abgelehnt (kein belegter Zusammenhang zur
+   Satz-Verträglichkeit eines einzelnen Muskels; `test160` prüft das hart mit).
+   **Diese Ablehnung gilt unverändert.** Was hier dazukommt, ist etwas anderes:
+   nicht der STAND, sondern der VERLAUF. Ein anhaltender Abfall über zwei bis
+   drei Wochen ist ein belastbares Zeichen für zu wenig Erholung oder zu wenig
+   Essen — und das ist eine Aussage über das Training, nicht über den Körperbau.
+
+   Wie v161, v168 und v176 bleibt es eine EIGENE Aussage und wird kein Faktor.
+
+   Gemessen wird über MITTELWERTE zweier Hälften, nicht über zwei Einzelwerte:
+   Das Tagesgewicht schwankt um ein bis zwei Prozent (Wasser, Essen, Tageszeit)
+   — zwei Einzelpunkte würden diese Schwankung als Trend verkaufen.
+
+   Und: Die App kann NICHT wissen, ob der Abfall gewollt ist; wer abnehmen will,
+   sieht dieselbe Kurve. Der Satz nennt deshalb erst die gezählte Tatsache und
+   stellt die Deutung ausdrücklich unter Vorbehalt. Alles andere wäre geraten.
+   ------------------------------------------------------------ */
+const GEWICHT_TREND_TAGE = 21;       // drei Wochen — kürzer ist Rauschen
+const GEWICHT_TREND_MIN = 2;         // so viele Einträge braucht JEDE Hälfte
+const GEWICHT_TREND_ANTEIL = 0.02;   // ab 2 % Abfall wird es erwähnt
+
+/** Der Gewichts-Verlauf der letzten drei Wochen: Mittel der älteren Hälfte
+    gegen Mittel der jüngeren. Liefert `{ alt, neu, anteil }` (anteil > 0 =
+    gefallen) oder `null`, solange zu wenige Einträge da sind. Rein/testbar. */
+function gewichtTrend(gewichte, heute){
+  const von = tageVerschieben(heute, -GEWICHT_TREND_TAGE);
+  const mitte = tageVerschieben(heute, -Math.round(GEWICHT_TREND_TAGE / 2));
+  const drin = (gewichte || []).filter(e =>
+    e && e.datum && e.kg > 0 && e.datum > von && e.datum <= heute);
+  const alt = drin.filter(e => e.datum <= mitte);
+  const neu = drin.filter(e => e.datum > mitte);
+  if(alt.length < GEWICHT_TREND_MIN || neu.length < GEWICHT_TREND_MIN) return null;
+  const schnitt = l => l.reduce((s, e) => s + e.kg, 0) / l.length;
+  const a = schnitt(alt), n = schnitt(neu);
+  if(!(a > 0)) return null;
+  return { alt: a, neu: n, anteil: (a - n) / a };
+}
+
+/** Der Satz dazu — oder leer. Steigendes und gleichbleibendes Gewicht sagt
+    nichts über die Erholung; erwähnt wird nur der Abfall. Rein/testbar. */
+function gewichtTrendText(t){
+  if(!t || !(t.anteil >= GEWICHT_TREND_ANTEIL)) return "";
+  const kg = zahlKurz(Math.round((t.alt - t.neu) * 10) / 10);
+  return "Dein Gewicht ist in drei Wochen um etwa " + kg + " kg gefallen. " +
+         "Falls das nicht so gewollt ist: zu wenig Erholung und zu wenig Essen sind " +
+         "die häufigsten Gründe — beides bremst den Fortschritt.";
+}
+
+/* v177: Die EIGENEN Aussagen des Belastungs-Modells an einer Stelle — die
+   Dinge, die NEBEN der Quote stehen, weil sie sich nicht ehrlich in eine Zahl
+   fassen lassen. Als Register, damit die nächste (Ruhepuls, Gruppe B) eine
+   Zeile kostet und nicht einen weiteren Aufruf in `muskelStatusText`.
+   Jeder Eintrag liefert seinen Satz — oder leer, wenn er nichts zu sagen hat. */
+const BELASTUNGS_HINWEISE = [
+  { id:"entlastung",
+    satz: () => entlastungText(wochenOhneEntlastung(sitzung.daten.protokoll, heuteAlsText())) },
+  { id:"gewicht",
+    satz: () => gewichtTrendText(gewichtTrend(sitzung.daten.gewichte, heuteAlsText())) }
+];
+
+/** Alle Hinweise, die gerade etwas zu sagen haben — je einer als Zeile.
+    In der Signalfarbe, nicht im Warnrot: Es sind Empfehlungen, keine Alarme. */
+function belastungsHinweiseHtml(){
+  return BELASTUNGS_HINWEISE
+    .map(h => h.satz())
+    .filter(Boolean)
+    .map(s => '<div class="meta" style="margin-top:6px;color:var(--signal)">' + text(s) + '</div>')
+    .join("");
+}
+
 /** Ein Satz Klartext zur Stufe — was heißt das für heute? Rein/testbar. */
 function auslastungText(muskel, a, reicht){
   const name = (MUSKEL_INFO[muskel] || {}).name || muskel;
@@ -8473,23 +8551,19 @@ function grundlagenZeileHtml(){
   return '<div class="meta" style="margin-top:6px;opacity:.8">' + text(grundlageText(g)) + '</div>';
 }
 
-/** v176: Die Entlastungs-Zeile. Sie steht auf der Muskelkarte IMMER, wenn es
-    etwas zu sagen gibt — ob ein Muskel gewählt ist oder nicht. Dieselbe
-    Überlegung wie bei der Warnung in v160: Man soll sie sehen, ohne erst den
-    richtigen Muskel erraten zu müssen. Die Aussage ist ohnehin global.
-    In der Signalfarbe, nicht im Warnrot: Es ist eine Empfehlung, kein Alarm. */
-function entlastungZeileHtml(){
-  const satz = entlastungText(wochenOhneEntlastung(sitzung.daten.protokoll, heuteAlsText()));
-  if(!satz) return "";
-  return '<div class="meta" style="margin-top:6px;color:var(--signal)">' + text(satz) + '</div>';
-}
-
+/* v176/v177: Die Hinweis-Zeilen stehen auf der Muskelkarte IMMER, wenn es
+   etwas zu sagen gibt — ob ein Muskel gewählt ist oder nicht. Dieselbe
+   Überlegung wie bei der Warnung in v160: Man soll sie sehen, ohne erst den
+   richtigen Muskel erraten zu müssen. Die Aussagen sind ohnehin global.
+   (v176 hatte dafür eine eigene Funktion; seit v177 liefert sie das Register
+   `BELASTUNGS_HINWEISE` — sonst käme mit jeder neuen Aussage ein weiterer
+   Aufruf an beide Stellen hier unten dazu.) */
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
       el.innerHTML = text("Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.") +
-                     grundlagenZeileHtml() + entlastungZeileHtml();
+                     grundlagenZeileHtml() + belastungsHinweiseHtml();
       return;
     }
     /* v160: Ohne Auswahl steht hier die WARNUNG, wenn es eine gibt — man soll
@@ -8505,7 +8579,7 @@ function muskelStatusText(){
     el.innerHTML = text(heiss.length
       ? "Über dem Richtwert: " + heiss.join(", ") + ". Tippe an für Einzelheiten."
       : "Farbe = wie oft zuletzt trainiert. Tippe einen Muskel für die Übungen.") +
-      grundlagenZeileHtml() + entlastungZeileHtml();
+      grundlagenZeileHtml() + belastungsHinweiseHtml();
     return;
   }
   // v146: Es ist immer höchstens einer gewählt — der Mehrzahl-Fall ist entfallen.

@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.177
+
+- Die Muskelkarte schaut jetzt auch auf deine Gewichtskurve — aber anders, als
+  du vielleicht denkst: Nicht auf den Stand (was du wiegst, sagt nichts
+  darüber, wie viele Sätze ein Muskel verträgt — das bleibt bewusst draußen),
+  sondern auf den Verlauf. Fällt dein Gewicht über drei Wochen deutlich, steht
+  das dort. Ein anhaltender Abfall ist eines der verlässlichsten Zeichen für zu
+  wenig Erholung oder zu wenig Essen.
+- Verglichen werden dabei Durchschnitte aus zwei Hälften, nicht zwei einzelne
+  Tage — dein Tagesgewicht schwankt um ein bis zwei Prozent, und daraus einen
+  Trend zu machen wäre geraten. Und weil die App nicht wissen kann, ob du das so
+  willst, sagt sie zuerst, was gezählt wurde, und stellt die Deutung
+  ausdrücklich unter Vorbehalt.
+
 ## 0.176
 
 - Die Muskelkarte achtet jetzt auf leichtere Wochen. Trainierst du drei Wochen

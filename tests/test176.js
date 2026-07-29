@@ -143,17 +143,21 @@ pruefe("es gibt sie im Quelltext genau einmal",
 pruefe("und auslastungText auch nicht",
   !/wochenOhneEntlastung|entlastungText/.test(grabFn("auslastungText")));
 
-/* ---------- 7) Verdrahtung ---------- */
-const zeile = grabFn("entlastungZeileHtml");
-pruefe("die Zeile fragt die Zaehlung", /wochenOhneEntlastung\(sitzung\.daten\.protokoll/.test(zeile));
-pruefe("ohne Satz erscheint gar keine Zeile", /if\(!satz\) return "";/.test(zeile));
-pruefe("sie traegt die Signalfarbe, nicht das Warnrot",
+/* ---------- 7) Verdrahtung ----------
+   v177 hat die eigene Zeilen-Funktion durch das Register BELASTUNGS_HINWEISE
+   ersetzt — sonst kaeme mit jeder neuen eigenen Aussage ein weiterer Aufruf an
+   beiden Stellen dazu. Die v176-Zusage bleibt: Der Satz steht auf der
+   Muskelkarte, mit und ohne gewaehlten Muskel, in der Signalfarbe. */
+const zeile = grabFn("belastungsHinweiseHtml");
+pruefe("das Register liefert die Zeilen", /BELASTUNGS_HINWEISE/.test(zeile));
+pruefe("der Entlastungs-Hinweis steht darin",
+  /entlastungText\(wochenOhneEntlastung\(sitzung\.daten\.protokoll/.test(src));
+pruefe("ohne Satz erscheint gar keine Zeile", /\.filter\(Boolean\)/.test(zeile));
+pruefe("die Zeilen tragen die Signalfarbe, nicht das Warnrot",
   /var\(--signal\)/.test(zeile) && !/var\(--warn\)/.test(zeile));
 const status = grabFn("muskelStatusText");
-pruefe("sie steht MIT gewaehltem Muskel da",
-  (status.match(/entlastungZeileHtml\(\)/g) || []).length === 2);
-pruefe("und ohne gewaehlten auch",
-  status.indexOf("entlastungZeileHtml()") < status.lastIndexOf("entlastungZeileHtml()"));
+pruefe("sie stehen MIT gewaehltem Muskel da und ohne",
+  (status.match(/belastungsHinweiseHtml\(\)/g) || []).length === 2);
 pruefe("die Grundlagen-Zeile aus v167 bleibt daneben stehen",
   (status.match(/grundlagenZeileHtml\(\)/g) || []).length === 2);
 pruefe("die Muskelkarte bleibt ab Stufe 4 (Leitplanke 8)",
