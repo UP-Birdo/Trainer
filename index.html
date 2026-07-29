@@ -2573,7 +2573,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 186;
+const APP_VERSION = 187;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5684,6 +5684,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.187", punkte:[
+    "Jeder vergangene Tag ohne Training wird jetzt als Ruhetag im Kalender vermerkt — einen Tag später, wenn er wirklich vorbei ist. Bisher passierte das nur, wenn du die App mehrere Tage nicht geöffnet hattest: Wer täglich hereinschaut, bekam nie einen automatischen Ruhetag, weil der gestrige Tag als „schon besucht“ übersprungen wurde.",
+    "Der heutige Tag bleibt bewusst frei — du könntest ja noch trainieren. Und wenn du für so einen Tag später doch ein Training nachträgst, verschwindet der Ruhetag von selbst.",
+    "Gemeldet wird das nur, wenn es etwas zu sagen gibt: mehrere Tage am Stück oder eine erloschene Serie. Ein einzelner Ruhetag von gestern ist Alltag und wird still eingetragen, statt dich jeden Tag mit einer Meldung zu begrüßen."
+  ]},
   { stand:"0.186", punkte:[
     "Der Trainingsplanung-Assistent kann jetzt auch Intervall-Pläne. Bei Sportarten mit Runden-Training (Laufen, Kampfsport) fragt er „Wie trainierst du?“ — durchgehend oder in Runden. Bisher ging ein Runden-Plan nur über das „+“ in den Plänen; der Assistent baute immer eine durchgehende Einheit.",
     "Wählst du „In Runden“, entfallen die Fragen nach Dauer und Strecke — die Gesamtdauer rechnet die App aus Belastung und Pause, genau wie der Timer. Nach den Runden-Zahlen fragt der Assistent bewusst nicht: Er nimmt die Vorgabe deiner Sportart, und im Plan stellst du sie mit einem Tipp um.",
@@ -6495,10 +6500,55 @@ function ruhetagUmschalten(datum){
   }
 }
 
-let autoRuheGeprueft = false;   // v103: nur einmal pro Sitzung
-/** v103: Beim Öffnen einmal prüfen — Tage seit dem letzten Besuch OHNE Training
-    werden automatisch als Ruhetag im Kalender vermerkt; danach eine kurze Meldung
-    (inkl. ob die Flamme in der Zwischenzeit erloschen ist). Ohne manuelles Zutun. */
+let autoRuheGeprueft = false;   // nur einmal pro Sitzung
+
+/* ------------------------------------------------------------
+   v187 (Nutzer-Ansage): „Jeder Tag, an dem kein Training stattfindet, wird
+   einen Tag später als Ruhetag eingetragen."
+
+   Der Befund dahinter: v103 hat das versprochen, aber nur für ABWESENHEIT
+   geliefert. Die Schleife begann einen Tag NACH dem letzten Besuch — wer die
+   App also täglich öffnet, bekam nie einen automatischen Ruhetag: Gestern fiel
+   raus (da war man da), heute fällt zu Recht raus. Der Kalender blieb für den
+   treuen Nutzer genau dort leer, wo er die Wahrheit hätte zeigen sollen.
+
+   Zwei Grenzen bleiben bewusst:
+   * **Heute wird nie markiert.** Der Tag ist nicht vorbei; man könnte noch
+     trainieren. Genau das meint „einen Tag später".
+   * **Nur ab dem letzten Besuch vorwärts**, nichts rückwirkend darüber hinaus.
+     Wer die App drei Monate nicht geöffnet hat, bekommt seine drei Monate
+     nachgetragen (das war schon so) — aber die Zeit VOR dem ersten Besuch
+     bleibt unberührt; dort weiß die App nichts.
+   Und die Invariante aus v153 schützt weiter: Wird für so einen Tag später ein
+   Training nachgetragen, fällt der Ruhetag im `speichern()` von selbst weg.
+   ------------------------------------------------------------ */
+
+/** Welche vergangenen Tage sind nachzutragende Ruhetage? Vom letzten Besuch
+    (einschließlich) bis gestern (einschließlich) alles, woran weder trainiert
+    wurde noch schon ein Ruhetag steht. Aufsteigend. Rein/testbar. */
+function autoRuhetage(letzterBesuch, heute, protokoll, ruhetage){
+  if(!letzterBesuch || !heute || letzterBesuch >= heute) return [];
+  const trainiert = new Set((protokoll || []).map(e => e && e.datum).filter(Boolean));
+  const ruhe = new Set(ruhetage || []);
+  const neu = [];
+  // Start beim Besuchstag SELBST (v187) — er ist inzwischen vorbei.
+  for(let c = letzterBesuch; c < heute; c = tageVerschieben(c, 1)){
+    if(!trainiert.has(c) && !ruhe.has(c)) neu.push(c);
+  }
+  return neu;
+}
+
+/** Soll das gemeldet werden? Ein einzelner Ruhetag ist Alltag — seit v187
+    kommt er bei täglicher Nutzung jeden Tag vor, und eine tägliche Meldung
+    darüber wäre genau die Textwand, die v120/v123 abgebaut haben. Gesagt wird
+    es, wenn wirklich etwas passiert ist: mehrere Tage am Stück, oder die Flamme
+    ist in der Zwischenzeit erloschen. Rein/testbar. */
+function autoRuheMelden(neu, erloschen, letzterBesuch){
+  if(!neu || !neu.length) return false;
+  return neu.length >= 2 || !!(erloschen && erloschen > letzterBesuch);
+}
+
+/** Beim Öffnen einmal prüfen und die vergangenen Ruhetage vermerken. */
 function autoRuhetageEintragen(){
   if(autoRuheGeprueft || !sitzung) return;
   autoRuheGeprueft = true;
@@ -6508,20 +6558,17 @@ function autoRuhetageEintragen(){
   d.letzterBesuch = heute;
   // Stufe 1/2 (kein Kalender/Training) oder kein/heutiger Vorbesuch: nur merken.
   if(stufe() < 3 || !vorher || vorher >= heute){ speichern(); return; }
-  const trainiert = new Set(d.protokoll.map(e => e.datum));
-  const ruhe = new Set(d.ruhetage);
-  const neu = [];
-  for(let c = tageVerschieben(vorher, 1); c < heute; c = tageVerschieben(c, 1)){
-    if(!trainiert.has(c) && !ruhe.has(c)){ d.ruhetage.push(c); neu.push(c); }
-  }
+  const neu = autoRuhetage(vorher, heute, d.protokoll, d.ruhetage);
+  neu.forEach(c => d.ruhetage.push(c));
   speichern();
   if(!neu.length) return;
   kalenderZeichnen();
+  const erloschen = flammeErloschenAm();
+  if(!autoRuheMelden(neu, erloschen, vorher)) return;   // v187: der Alltag bleibt still
   // v119: NICHT `text` nennen — das verdeckt die globale Escaping-Funktion text().
   let meldungsText = "Seit deinem letzten Besuch (" + datumKurz(vorher) + ") habe ich " + neu.length +
     (neu.length === 1 ? " Ruhetag" : " Ruhetage") + " im Kalender vermerkt (" +
     datumKurz(neu[0]) + (neu.length > 1 ? " bis " + datumKurz(neu[neu.length - 1]) : "") + ").";
-  const erloschen = flammeErloschenAm();
   if(erloschen && erloschen > vorher) meldungsText += "\n\nDeine Flamme ist am " + datumKurz(erloschen) + " erloschen.";
   meldung(meldungsText);
 }

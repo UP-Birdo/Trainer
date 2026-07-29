@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.187
+
+- Jeder vergangene Tag ohne Training wird jetzt als Ruhetag im Kalender vermerkt
+  — einen Tag später, wenn er wirklich vorbei ist. Bisher passierte das nur, wenn
+  du die App mehrere Tage nicht geöffnet hattest: Wer täglich hereinschaut, bekam
+  nie einen automatischen Ruhetag, weil der gestrige Tag als „schon besucht“
+  übersprungen wurde.
+- Der heutige Tag bleibt bewusst frei — du könntest ja noch trainieren. Und wenn
+  du für so einen Tag später doch ein Training nachträgst, verschwindet der
+  Ruhetag von selbst.
+- Gemeldet wird das nur, wenn es etwas zu sagen gibt: mehrere Tage am Stück oder
+  eine erloschene Serie. Ein einzelner Ruhetag von gestern ist Alltag und wird
+  still eingetragen, statt dich jeden Tag mit einer Meldung zu begrüßen.
+
 ## 0.186
 
 - Der Trainingsplanung-Assistent kann jetzt auch Intervall-Pläne. Bei Sportarten
