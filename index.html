@@ -692,6 +692,10 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .picker-karte .text small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
 .picker-karte .pfeil{color:var(--signal);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
 .vs-zeile .mini-figur{width:34px;margin-left:auto}
+/* v179: dieselbe Figur auf den Karten des Übungs-Pickers. Etwas schmaler als
+   in der Vorschau — die Liste kann über hundert Zeilen lang werden, und die
+   Figur ist doppelt so hoch wie breit. */
+.picker-karte .mini-figur{width:30px;flex:0 0 auto}
 /* Meilenstein-Abzeichen der Trainings-Serie (v85) */
 .meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px}
 
@@ -2559,7 +2563,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 178;
+const APP_VERSION = 179;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5651,6 +5655,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.179", punkte:[
+    "Die Übungs-Suche zeigt jetzt zu jeder Übung die Muskel-Figur — du siehst also schon beim Aussuchen, was die Übung trifft, statt es aus dem Namen zu raten. Damit ist der Wunsch „Übungen als Karteikarten mit Muskel-Bild statt Dropdowns“ komplett; die Figur war das letzte fehlende Stück.",
+    "Sie hat bisher gefehlt, weil über hundert Figuren auf einmal die Liste zäh gemacht hätten. Jetzt wird jede erst gezeichnet, wenn sie ins Bild kommt — die Liste bleibt flüssig, egal wie viele Übungen dein Filter übrig lässt. Übungen ohne hinterlegte Muskeln bleiben wie bisher ohne Figur."
+  ]},
   { stand:"0.178", punkte:[
     "Der Assistent fragt nicht mehr jedes Mal, welche Sportarten du machst. Diese Frage kommt jetzt nur noch beim allerersten Mal — danach steht sie in deinem Profil. Der Plan-Assistent fragt stattdessen: „Wofür möchtest du einen Plan?“ und zeigt nur noch deine eigenen Sportarten. Willst du eine neue dazunehmen, führt dich der Knopf „Andere Sportart einrichten“ ins Profil und danach zurück in den Assistenten.",
     "Dabei ist ein stiller Fehler mit weggegangen: Wer im Assistenten eine Sportart abwählte, verlor sie aus dem Profil — samt allem, was dort eingestellt war. Jetzt gilt klar getrennt: Deine Sportarten bestimmst du im Profil (oder einmalig am Anfang), der Assistent wählt nur noch aus ihnen aus und nimmt dir nie eine weg.",
@@ -7857,6 +7865,44 @@ function miniFigurenZeichnen(selektor){
     // v139: `data-mf-sek` trägt die Sekundärmuskeln (optional, blasser gemalt).
     miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean),
                     (el.dataset.mfSek || "").split(",").filter(Boolean), quoten));
+}
+
+/* ------------------------------------------------------------
+   v179: Figuren erst zeichnen, wenn ihre Karte ins Bild kommt.
+
+   Der Übungs-Picker trägt seit v91 bewusst KEINE Muskel-Figur — mit der
+   Begründung „Perf". Die war berechtigt: `muskelnAufCanvas` legt je Figur
+   einen vollen RGBA-Puffer an (bei 200×400 rund 320 kB) und schreibt ihn mit
+   `putImageData` zurück. Bei über hundert Kraftübungen in der ungefilterten
+   Liste wären das Dutzende Megabyte und ebenso viele Canvas-Schreibvorgänge —
+   auf einem iPhone der sichere Weg zu einer hakeligen Liste.
+
+   Die Lösung ist nicht, die Figur wegzulassen, sondern sie zu verschieben: Ein
+   `IntersectionObserver` zeichnet jede Figur genau dann, wenn sie in Sichtweite
+   kommt (200 px Vorlauf, damit sie beim Scrollen schon fertig ist). Damit
+   kostet die Liste nur noch die Figuren, die man wirklich ansieht.
+   ------------------------------------------------------------ */
+let miniFigurBeobachter = null;   // immer nur EINER — der vorige wird abgelöst
+
+/** Wie `miniFigurenZeichnen`, aber verzögert. Ohne `IntersectionObserver`
+    (sehr alte Browser) wird sofort alles gezeichnet — lieber langsam als leer. */
+function miniFigurenLazy(selektor){
+  if(miniFigurBeobachter){ miniFigurBeobachter.disconnect(); miniFigurBeobachter = null; }
+  const figuren = [...document.querySelectorAll(selektor + " .mini-figur[data-mf-ansicht]")];
+  if(!figuren.length) return;
+  if(typeof IntersectionObserver !== "function"){ miniFigurenZeichnen(selektor); return; }
+  // v162: Die Quoten EINMAL je Zeichenlauf holen, nicht je Figur.
+  const quoten = auslastungsQuoten();
+  miniFigurBeobachter = new IntersectionObserver((eintraege, selbst) => {
+    eintraege.forEach(e => {
+      if(!e.isIntersecting) return;
+      selbst.unobserve(e.target);          // jede Figur wird genau einmal gezeichnet
+      const el = e.target;
+      miniMuskelFigur(el, el.dataset.mfAnsicht, el.dataset.mfMuskeln.split(",").filter(Boolean),
+                      (el.dataset.mfSek || "").split(",").filter(Boolean), quoten);
+    });
+  }, { root: document.getElementById("inhalt"), rootMargin: "200px" });
+  figuren.forEach(f => miniFigurBeobachter.observe(f));
 }
 
 /** v139: Ein `.mini-figur`-Element als HTML — EINE Quelle für alle Stellen
@@ -12893,8 +12939,15 @@ function pickerKarteHtml(name){
   const geraet = dbu ? ((dbu.geraet && dbu.geraet !== "keine") ? geraetName(dbu.geraet) : "Körpergewicht") : "";
   const unten = [geraet, (info && info.label) ? info.label : ""].filter(Boolean).join(" · ");
   const nameJs = name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  /* v179: Endlich die Muskel-Figur auf der Karte — der letzte offene Punkt aus
+     „Übungs-Bauen entrümpeln". Sie steht rechts vom Text wie in der
+     Trainings-Vorschau, damit beide Listen gleich gelesen werden. Übungen ohne
+     hinterlegte Muskeln (Freitext, reine Technik-Drills) bekommen weiterhin
+     keine — `miniFigurHtml` liefert dann leer, kein leerer Kasten.
+     Gezeichnet wird verzögert (`miniFigurenLazy`), siehe dort. */
   return '<button class="picker-karte" onclick="pickerKarteHinzu(\'' + nameJs + '\')">' +
     '<span class="text"><strong>' + text(name) + '</strong>' + (unten ? '<small>' + text(unten) + '</small>' : "") + '</span>' +
+    miniFigurHtml(info) +
     '<span class="pfeil">+</span></button>';
 }
 
@@ -12912,6 +12965,7 @@ function pickerKartenZeichnen(){
   ziel.innerHTML = namen.length
     ? '<div class="karte">' + namen.map(pickerKarteHtml).join("") + '</div>'
     : '<div class="karte"><div class="meta">' + leer + '</div></div>';
+  miniFigurenLazy("#picker-karten");   // v179: nur zeichnen, was man sieht
 }
 
 /** Karte angetippt: Übung hinzufügen. Ohne Sportart wird sie aus der Übung

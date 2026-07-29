@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.179
+
+- Die Übungs-Suche zeigt jetzt zu jeder Übung die Muskel-Figur — du siehst also
+  schon beim Aussuchen, was die Übung trifft, statt es aus dem Namen zu raten.
+  Damit ist der Wunsch „Übungen als Karteikarten mit Muskel-Bild statt
+  Dropdowns“ komplett; die Figur war das letzte fehlende Stück.
+- Sie hat bisher gefehlt, weil über hundert Figuren auf einmal die Liste zäh
+  gemacht hätten. Jetzt wird jede erst gezeichnet, wenn sie ins Bild kommt — die
+  Liste bleibt flüssig, egal wie viele Übungen dein Filter übrig lässt. Übungen
+  ohne hinterlegte Muskeln bleiben wie bisher ohne Figur.
+
 ## 0.178
 
 - Der Assistent fragt nicht mehr jedes Mal, welche Sportarten du machst. Diese
