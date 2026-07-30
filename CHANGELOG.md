@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.190
+
+- Drei Stellen weniger Text, wie gewünscht. Auf „Heute“ steht bei den Zielen kein
+  „Noch kein Ziel gesetzt“ mehr — nur noch der Knopf, der ohnehin dasselbe sagt.
+- Unter der großen Flamme in der Statistik steht kein Text mehr. Was dort stand
+  (deine Meilenstein-Marke und wie weit es bis zur nächsten ist), findest du jetzt
+  im „i“ derselben Karte, zusammen mit den übrigen Kennzahlen.
+- In der Stufen-Auswahl trägt jede Karte nur noch ihren Namen. Wofür die Stufe
+  gedacht ist und was sie zeigt, steht hinter dem „i“ rechts daneben.
+
 ## 0.189
 
 - Deine Pausen zählen jetzt in der Belastungs-Rechnung mit: Wer dichter

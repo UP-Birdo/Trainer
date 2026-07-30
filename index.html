@@ -153,7 +153,14 @@ textarea{font-family:inherit;font-size:16px;background:var(--panel);color:var(--
   border:2px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;appearance:none;resize:vertical}
 textarea:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
 textarea::placeholder{color:var(--muted);opacity:0.7}
-.stufe-wahl{display:block;width:100%;text-align:left;margin-bottom:10px;padding:14px 16px;min-height:0;
+/* v190: Die Karte und ihr „i" stehen nebeneinander in einer Reihe (ein Knopf im
+   Knopf wäre ungültiges HTML). Die Karte nimmt den Platz, das „i" bleibt schmal
+   und behält seine Tippfläche. Der Abstand sitzt jetzt an der Reihe, nicht mehr
+   an der Karte — sonst stünde das „i" nicht mehr auf ihrer Höhe. */
+.stufe-reihe{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
+.stufe-reihe .stufe-wahl{flex:1;margin-bottom:0}
+.stufe-info{margin:-4px 0 10px;white-space:normal}
+.stufe-wahl{display:block;width:100%;text-align:left;padding:14px 16px;min-height:0;
   background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chalk)}
 .stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:0 0 0 2px rgba(244,199,78,0.15)}
 .stufe-wahl strong{color:var(--chalk);font-size:15px}
@@ -164,6 +171,9 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    AKTUELLE Stufe. Diese beiden Regeln (0,2,1 und 0,3,0) sind spezifischer und
    gewinnen unabhängig von der Reihenfolge im Stylesheet. */
 .stufe-wahl.gewaehlt strong{color:#16181C}
+/* Seit v190 steht in der Karte kein `.meta` mehr (die Beschreibung liegt hinter
+   dem „i"). Die Regel bleibt als Absicherung: Wer dort wieder Text hineinlegt,
+   bekommt ihn automatisch lesbar — der v173-Fehler kann so nicht zurückkommen. */
 .stufe-wahl.gewaehlt .meta{color:#16181C;opacity:.85}
 .notiz-name{font-weight:700;font-size:16px}
 /* v79: wächst per JS mit dem Inhalt (notizTextWachsen) — kein internes Scrollen */
@@ -960,8 +970,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div class="zeile">
       <div>
         <div id="tag-streak-zahl" class="kennzahl" style="font-size:34px">🔥 0</div>
-        <!-- v120: „Trainings-Serie"-Label raus — die Flamme + Zahl zeigt es schon. -->
-        <div id="serie-meilenstein" style="margin-top:4px"></div>
+        <!-- v120: „Trainings-Serie"-Label raus — die Flamme + Zahl zeigt es schon.
+             v190: auch die Meilenstein-Zeile ist weg — sie steht jetzt mit im „i“
+             (Nutzer-Ansage: unter der Flamme kein Text). -->
       </div>
       <!-- v104: die Kennzahlen-Zeile (Wochen in Folge, Trainings gesamt …) liegt hinter dem „i" -->
       <button class="info-knopf" onclick="event.stopPropagation(); infoUmschalten('statistik-klein')" aria-label="Details">i</button>
@@ -2573,7 +2584,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 189;
+const APP_VERSION = 190;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3525,13 +3536,27 @@ function simpelheitFrageZeichnen(){
      rückwärts (5,4,3,2,1), was mehr verwirrt als hilft. Zuerst „für wen",
      dann was die Stufe zeigt: Man wählt nach der eigenen Lage, nicht nach
      einer Funktionsliste. */
+  /* v190 (Nutzer-Ansage „unter der Überschrift kein Text, der soll unter ein i
+     daneben"): Die Karte trägt nur noch den Titel; „für wen" und die
+     Kurzbeschreibung liegen hinter dem „i" rechts daneben.
+
+     WARUM das „i" NEBEN dem Knopf steht und nicht darin: Ein Knopf in einem
+     Knopf ist ungültiges HTML — der Tipp träfe je nach Gerät den falschen, und
+     Vorleseprogramme kommen damit nicht klar. Deshalb eine Zeile mit zwei
+     Geschwistern; die Erklärung klappt darunter auf (`infoUmschalten`, dasselbe
+     Muster wie Kalender-Legende und Statistik-Kennzahlen). */
   document.getElementById("simpelheit-inhalt").innerHTML =
     simpelheitListe().map(s =>
-      '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
-        '<strong>' + text(s.titel) + '</strong>' +
-        '<div class="meta" style="margin-top:4px;white-space:normal">' + text(s.fuer) + '</div>' +
-        '<div class="meta" style="margin-top:2px;white-space:normal;opacity:.75">' + text(s.text) + '</div>' +
-      '</button>').join("");
+      '<div class="stufe-reihe">' +
+        '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
+          '<strong>' + text(s.titel) + '</strong>' +
+        '</button>' +
+        '<button class="info-knopf" onclick="infoUmschalten(\'stufe-info-' + s.n + '\')" ' +
+          'aria-label="Was zeigt diese Stufe?">i</button>' +
+      '</div>' +
+      '<div id="stufe-info-' + s.n + '" class="meta info-text stufe-info" hidden>' +
+        text(s.fuer) + " — " + text(s.text) +
+      '</div>').join("");
 }
 
 function simpelheitWaehlen(n){
@@ -4353,9 +4378,10 @@ function zieleStartZeichnen(){
   if(ziele.length === 0 && uebungen.length === 0){ ziel.innerHTML = ""; return; }
 
   if(ziele.length === 0){
+    // v190 (Nutzer-Ansage): kein „Noch kein Ziel gesetzt." mehr — der Knopf
+    // „Ziel anlegen" sagt dasselbe, und die Überschrift steht schon darüber.
     ziel.innerHTML = '<div class="karte"><div class="zeile"><h2>Ziele</h2></div>' +
-      '<div class="meta abstand">Noch kein Ziel gesetzt.</div>' +
-      '<div class="knopfreihe"><button class="schmal breit" onclick="zieleOeffnen()">Ziel anlegen</button></div></div>';
+      '<div class="knopfreihe abstand"><button class="schmal breit" onclick="zieleOeffnen()">Ziel anlegen</button></div></div>';
     return;
   }
 
@@ -5684,6 +5710,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.190", punkte:[
+    "Drei Stellen weniger Text, wie gewünscht. Auf „Heute“ steht bei den Zielen kein „Noch kein Ziel gesetzt“ mehr — nur noch der Knopf, der ohnehin dasselbe sagt.",
+    "Unter der großen Flamme in der Statistik steht kein Text mehr. Was dort stand (deine Meilenstein-Marke und wie weit es bis zur nächsten ist), findest du jetzt im „i“ derselben Karte, zusammen mit den übrigen Kennzahlen.",
+    "In der Stufen-Auswahl trägt jede Karte nur noch ihren Namen. Wofür die Stufe gedacht ist und was sie zeigt, steht hinter dem „i“ rechts daneben."
+  ]},
   { stand:"0.189", punkte:[
     "Deine Pausen zählen jetzt in der Belastungs-Rechnung mit: Wer dichter trainiert, holt sich mehr Ermüdung — bei gleichem Gewicht und gleichen Wiederholungen. Unter 45 Sekunden wiegt ein Satz etwas mehr, über 3 Minuten etwas weniger.",
     "Die Wirkung ist bewusst klein (höchstens 10 Prozent). Dass kurze Pausen härter sind, ist gut belegt — um wie viel genau, ist es nicht. Lieber eine vorsichtige Zahl als eine erfundene Genauigkeit.",
@@ -6293,19 +6324,24 @@ function serienMeilenstein(n){
   return { erreicht, naechster };
 }
 
-/** Meilenstein-Zeile unter der großen Flamme in der Statistik. */
-function meilensteinZeileZeichnen(n){
-  const el = document.getElementById("serie-meilenstein"); if(!el) return;
+/** Der Meilenstein als Klartext für die Info-Zeile. Rein/testbar.
+
+    v190 (Nutzer-Ansage „unter der Flamme kein Text, der soll in dem i sein"):
+    Bis v189 stand das als eigene Zeile unter der großen Flamme. Die Karte trägt
+    damit nur noch Flamme, Zahl und die 7-Tage-Vorschau — alles Weitere liegt
+    hinter dem „i", wo seit v104 schon die Kennzahlen liegen. Ohne Serie oder
+    ohne Marke ist der Text leer, dann steht dort auch nichts. */
+function meilensteinText(n){
   const ms = serienMeilenstein(n);
   if(ms.erreicht){
-    el.innerHTML = '<span class="meilenstein">🔥 ' + ms.erreicht + 'er-Serie</span>' +
-      (ms.naechster ? '<span class="meta"> · noch ' + (ms.naechster - n) + ' bis ' + ms.naechster + '</span>'
-                    : '<span class="meta"> · stärkste Marke erreicht</span>');
-  } else if(n > 0){
-    el.innerHTML = '<span class="meta">Noch ' + (ms.naechster - n) + ' bis zur ersten Meilenstein-Flamme (' + ms.naechster + ')</span>';
-  } else {
-    el.innerHTML = "";
+    return ms.erreicht + "er-Serie" +
+      (ms.naechster ? " · noch " + (ms.naechster - n) + " bis " + ms.naechster
+                    : " · stärkste Marke erreicht");
   }
+  if(n > 0 && ms.naechster){
+    return "noch " + (ms.naechster - n) + " bis zur ersten Meilenstein-Flamme (" + ms.naechster + ")";
+  }
+  return "";
 }
 
 /** Flamme in der Kopfzeile der Plan-Übersicht (nur sichtbar, wenn Serie läuft). */
@@ -6331,11 +6367,13 @@ function kennzahlenZeichnen(){
   const monat = heute.slice(0,7);
   const serie = trainingsSerie();
   document.getElementById("tag-streak-zahl").textContent = "🔥 " + serie;
-  meilensteinZeileZeichnen(serie);
+  // v190: Der Meilenstein steht jetzt mit in der Info-Zeile statt unter der Flamme.
+  const meilenstein = meilensteinText(serie);
   document.getElementById("statistik-klein").textContent =
     streak + (streak === 1 ? " Woche" : " Wochen") + " in Folge · " +
     protokoll.length + " Trainings gesamt · " +
-    protokoll.filter(e => e.datum.startsWith(monat)).length + " diesen Monat";
+    protokoll.filter(e => e.datum.startsWith(monat)).length + " diesen Monat" +
+    (meilenstein ? " · " + meilenstein : "");
 }
 
 /** Kalender des aktuellen Monats.
