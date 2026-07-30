@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.191
+
+- Ausdauer-Pläne laufen nicht mehr jedes Mal dasselbe. Ein Laufplan wechselt jetzt
+  durch fünf Einheiten: Grundlagen, Tempo, Grundlagen, Regeneration, langer Lauf —
+  und dann von vorn. Auf der Plan-Karte und in der Stoppuhr steht, was heute dran
+  ist.
+- Die Länge rechnet die App aus deiner Vorgabe: Der Grundlagen-Lauf ist deine
+  Strecke, der lange das Anderthalbfache, Tempo und Regeneration entsprechend
+  kürzer. Deine Zahl im Plan bleibt der Maßstab.
+- Die Reihenfolge ist fest, nicht zufällig — du sollst sehen können, was als
+  Nächstes kommt. Von fünf Einheiten ist genau eine wirklich hart; die lockeren zu
+  schnell zu laufen ist der häufigste Fehler im Ausdauertraining.
+- Neue Ausdauer-Pläne aus dem Assistenten haben das von Anfang an. Bei bestehenden
+  Plänen schaltest du es im Plan selbst ein („Wechselnde Einheiten“), sie bleiben
+  sonst, wie sie sind.
+
 ## 0.190
 
 - Drei Stellen weniger Text, wie gewünscht. Auf „Heute“ steht bei den Zielen kein

@@ -1464,6 +1464,17 @@ button.gewaehlt{background:var(--signal);color:#16181C}
         </div>
         <select id="akt-mass-select" onchange="aktMassSetzen(this.value)" hidden></select>
       </div>
+      <!-- v191: Wechselnde Einheiten (nur Ausdauer-Sportarten). Die Werte oben
+           sind dann die Vorgabe des GRUNDLAGEN-Laufs; die anderen Einheiten
+           rechnen daraus ihre eigene Länge. -->
+      <div id="akt-wechsel-feld" class="abstand" hidden>
+        <div class="zeile">
+          <div><strong>Wechselnde Einheiten</strong>
+            <div class="meta" id="akt-wechsel-info" style="margin-top:2px;white-space:normal"></div></div>
+          <button id="akt-wechsel-knopf" class="schmal" onclick="aktWechselUmschalten()">Aus</button>
+        </div>
+        <div class="meta" id="akt-wechsel-vorschau" style="margin-top:8px" hidden></div>
+      </div>
       </div><!-- /akt-dauer-block -->
       <div class="meta" id="akt-hinweis" style="margin-top:10px"></div>
   </div>
@@ -2584,7 +2595,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 190;
+const APP_VERSION = 191;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4486,7 +4497,10 @@ function planListeZeichnen(){
       (marke ? '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' : "") +
       '<h2>' + haken + text(p.name) + '</h2>' +
       '<div class="meta">' +
-        (istAkt ? (p.intervall ? intervallText(p) : planZielText(p))   // v121: planZielText trägt auch das Messgrößen-Ziel
+        // v191: Bei wechselnden Einheiten steht hier, was als NÄCHSTES dran ist —
+        // das ist die Information, die man vor dem Start braucht.
+        (istAkt ? (p.intervall ? intervallText(p)
+                  : (einheitText(p, planGetan(p.id, sitzung.daten.protokoll)) || planZielText(p)))   // v121: planZielText trägt auch das Messgrößen-Ziel
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
         (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '</div>' + planFigurenHtml(p) + '</div>' +
@@ -5710,6 +5724,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.191", punkte:[
+    "Ausdauer-Pläne laufen nicht mehr jedes Mal dasselbe. Ein Laufplan wechselt jetzt durch fünf Einheiten: Grundlagen, Tempo, Grundlagen, Regeneration, langer Lauf — und dann von vorn. Auf der Plan-Karte und in der Stoppuhr steht, was heute dran ist.",
+    "Die Länge rechnet die App aus deiner Vorgabe: Der Grundlagen-Lauf ist deine Strecke, der lange das Anderthalbfache, Tempo und Regeneration entsprechend kürzer. Deine Zahl im Plan bleibt der Maßstab.",
+    "Die Reihenfolge ist fest, nicht zufällig — du sollst sehen können, was als Nächstes kommt. Von fünf Einheiten ist genau eine wirklich hart; die lockeren zu schnell zu laufen ist der häufigste Fehler im Ausdauertraining.",
+    "Neue Ausdauer-Pläne aus dem Assistenten haben das von Anfang an. Bei bestehenden Plänen schaltest du es im Plan selbst ein („Wechselnde Einheiten“), sie bleiben sonst, wie sie sind."
+  ]},
   { stand:"0.190", punkte:[
     "Drei Stellen weniger Text, wie gewünscht. Auf „Heute“ steht bei den Zielen kein „Noch kein Ziel gesetzt“ mehr — nur noch der Knopf, der ohnehin dasselbe sagt.",
     "Unter der großen Flamme in der Statistik steht kein Text mehr. Was dort stand (deine Meilenstein-Marke und wie weit es bis zur nächsten ist), findest du jetzt im „i“ derselben Karte, zusammen mit den übrigen Kennzahlen.",
@@ -9352,6 +9372,82 @@ function hatStrecke(sportartId){ return !!sportart(sportartId).strecke; }
 
    Prozente sind Zuwachs JE EINHEIT (0 = wächst hier nicht).
    ============================================================ */
+/* ============================================================
+   v191 (Nutzer-Ansage): „bei laufen verschiedene Übungen und nicht vom Standard
+   ausgehen so wie beim Krafttraining" — auf Rückfrage geklärt: ein Laufplan soll
+   aus WECHSELNDEN EINHEITEN bestehen statt immer derselben Dauer.
+
+   Ein Kraftplan hat verschiedene Übungen; ein Ausdauer-Plan hatte bisher eine
+   Zahl (Dauer/Strecke) und fertig — jedes Training war gleich. Das ist nicht
+   nur langweilig, es ist auch schlechtes Training: Wer immer dasselbe Tempo
+   läuft, trainiert dauernd im mittleren Bereich und wird weder ausdauernder
+   noch schneller.
+
+   Die fünf Einheiten sind die klassischen des Ausdauertrainings. Die Faktoren
+   beziehen sich auf die Plan-Vorgabe (Strecke bzw. Dauer): Der Grundlagenlauf
+   IST die Vorgabe, alles andere weicht bewusst davon ab.
+
+   `hart` markiert die intensiven Einheiten — daran hängt die Reihenfolge unten. */
+const AUSDAUER_EINHEITEN = {
+  grundlage:    { name:"Grundlagen",   kurz:"locker, du könntest dich unterhalten", faktor:1,    hart:false },
+  lang:         { name:"Langer",       kurz:"deutlich länger, dafür langsamer",     faktor:1.5,  hart:false },
+  tempo:        { name:"Tempo",        kurz:"zügig, aber gleichmäßig durchhaltbar", faktor:0.6,  hart:true  },
+  intervall:    { name:"Intervalle",   kurz:"harte Abschnitte mit Pausen dazwischen", faktor:0.5, hart:true },
+  regeneration: { name:"Regeneration", kurz:"kurz und sehr locker — nur lockern",   faktor:0.5,  hart:false }
+};
+
+/* Die Reihenfolge, in der die Einheiten kommen. BEWUSST eine feste Folge und
+   kein Zufall: Man soll sehen können, was als Nächstes dran ist, und zweimal
+   derselbe Plan soll zweimal dasselbe ergeben.
+
+   Warum diese Mischung: Von fünf Einheiten ist genau eine hart. Das folgt dem
+   polarisierten Ansatz (der weit überwiegende Teil locker, ein kleiner Teil
+   wirklich hart) — der Fehler, den die meisten machen, ist, die lockeren Läufe
+   zu schnell zu laufen. Der lange Lauf steht am Ende, weil er in der Praxis
+   meist aufs Wochenende fällt. */
+const AUSDAUER_FOLGE = ["grundlage", "tempo", "grundlage", "regeneration", "lang"];
+
+/** Welche Einheit ist beim nächsten Mal dran? `getan` = wie oft dieser Plan
+    schon trainiert wurde. Rein/testbar — die Folge wiederholt sich endlos. */
+function einheitFuer(getan){
+  const n = Math.max(0, Math.floor(Number(getan) || 0));
+  return AUSDAUER_FOLGE[n % AUSDAUER_FOLGE.length];
+}
+
+/** Trägt dieser Plan wechselnde Einheiten? Nur Ausdauer-Sportarten können das,
+    und nur, wenn es am Plan eingeschaltet ist. Ein Intervall-Plan ist davon
+    ausgenommen: Der IST schon eine feste Einheitenform (v118). Rein/testbar. */
+function planWechselnd(plan){
+  if(!plan || !plan.wechselnd || plan.intervall) return false;
+  return (sportart(plan.sportart) || {}).fortschritt === "ausdauer";
+}
+
+/** Wie oft wurde dieser Plan schon absolviert? Rein/testbar. */
+function planGetan(planId, protokoll){
+  return (protokoll || []).filter(e => e && e.planId === planId).length;
+}
+
+/** Die nächste Einheit eines Plans als Kurztext: „Tempo · 3 km · zügig, aber
+    gleichmäßig durchhaltbar". Ohne wechselnde Einheiten `null`. Rein/testbar. */
+function einheitText(plan, getan){
+  if(!planWechselnd(plan)) return null;
+  const e = AUSDAUER_EINHEITEN[einheitFuer(getan)];
+  if(!e) return null;
+  const sp = sportart(plan.sportart) || {};
+  const teile = [e.name];
+  /* Gerechnet wird auf der Größe, die der Plan wirklich führt: Wo es eine
+     Strecke gibt, ist sie das Maß; sonst die Dauer. Gerundet wird großzügig —
+     „3,2 km" wäre eine Genauigkeit, die die Einheit nicht hat. */
+  if(sp.strecke && plan.strecke > 0){
+    const wert = plan.strecke * e.faktor;
+    teile.push(zahlKurz(Math.round(wert * 10) / 10) + " " + sp.strecke.einheit);
+  } else if(plan.dauer > 0){
+    teile.push(Math.round(plan.dauer * e.faktor / 60) + " min");
+  }
+  teile.push(e.kurz);
+  return teile.join(" · ");
+}
+
 const FORTSCHRITT_KLASSEN = {
   kraft:         { name:"Krafttraining", dauer:0,    strecke:0    },
   ausdauer:      { name:"Ausdauer",      dauer:0.06, strecke:0.06 },
@@ -11560,6 +11656,12 @@ function aktivitaetsPlaeneBauen(){
              dauer,
              zeitEinheit: dauer >= 3600 ? "h" : "min",
              intervall: iv,
+             /* v191 (Nutzer-Ansage „nicht vom Standard ausgehen"): Ausdauer-Pläne
+                aus dem Assistenten wechseln ihre Einheiten von Anfang an — sonst
+                müsste man die Einstellung erst suchen. Ein Runden-Plan nicht: Der
+                IST bereits eine feste Einheitenform (v118). Bestehende Pläne
+                bleiben unangetastet; im Editor ist es ein Tipp. */
+             wechselnd: !iv && sp.fortschritt === "ausdauer",
              strecke: (!iv && sp.strecke) ? (strecke > 0 ? strecke : sp.strecke.start) : 0,
              massZiel: sp.mass ? (ziel != null && ziel !== "" ? ziel : sp.mass.start) : null,
              steigerung: { woche:null, stufen:0, vorEntlastung:0 },
@@ -13015,6 +13117,8 @@ function planSportartSetzen(id){
     // Wechsel auf eine andere Sportart fällt es weg (sonst hinge ein Timer an
     // einem Plan, der ihn gar nicht anbietet).
     if(!sportart(id).intervall) editorPlan.intervall = null;
+    // v191: dasselbe für die wechselnden Einheiten — sie gehören zur Ausdauer.
+    if(sportart(id).fortschritt !== "ausdauer") editorPlan.wechselnd = false;
   }
   editorZeichnen();
 }
@@ -13082,11 +13186,41 @@ function aktivitaetsFelderZeichnen(){
     document.getElementById("akt-strecke").value = p.strecke;
   }
   massZielFeldZeichnen(p, sp);   // v121: Ziel der Messgröße (Grad, Schwierigkeit …)
+  wechselFeldZeichnen(p, sp);    // v191: wechselnde Einheiten (nur Ausdauer)
   document.getElementById("akt-hinweis").innerHTML = sp.strecke
     ? "Richtwerte für die Planung. Beim Eintragen zählt, was du wirklich geschafft hast — daraus rechnet die App die Pace."
     : sp.mass
       ? "Richtwert für die Planung. Erreichst du dein Ziel und war die Einheit leicht, hebt die App es nach dem Eintragen einen Schritt an."
       : "Für " + text(sp.name) + " gibt es kein sinnvolles Streckenmaß — hier zählt die Trainingszeit.";
+}
+
+/* v191: der Schalter für wechselnde Einheiten. Steht nur bei Ausdauer-Sportarten
+   (die anderen haben keine Einheiten-Lehre, die das trüge) und zeigt bei „An"
+   gleich die ganze Folge — man soll sehen, worauf man sich einlässt, bevor man
+   speichert. */
+function wechselFeldZeichnen(p, sp){
+  const block = document.getElementById("akt-wechsel-feld");
+  const kann = sp.fortschritt === "ausdauer";
+  block.hidden = !kann;
+  if(!kann) return;
+  const an = !!p.wechselnd;
+  const knopf = document.getElementById("akt-wechsel-knopf");
+  knopf.textContent = an ? "An" : "Aus";
+  knopf.classList.toggle("gewaehlt", an);
+  document.getElementById("akt-wechsel-info").textContent = an
+    ? "Jedes Training ist eine andere Einheit. Die Werte oben gelten für den Grundlagen-Lauf."
+    : "Statt immer derselben Einheit: locker, zügig, lang und Regeneration im Wechsel.";
+  const vorschau = document.getElementById("akt-wechsel-vorschau");
+  vorschau.hidden = !an;
+  if(an){
+    vorschau.textContent = "Der Reihe nach: " +
+      AUSDAUER_FOLGE.map(id => AUSDAUER_EINHEITEN[id].name).join(" → ") + " → …";
+  }
+}
+
+function aktWechselUmschalten(){
+  editorPlan.wechselnd = !editorPlan.wechselnd;
+  editorZeichnen();
 }
 
 /* v121: das Ziel-Feld der Messgröße im Editor — dieselbe Zwei-Arten-Weiche wie
@@ -14007,7 +14141,12 @@ function stoppuhrOeffnen(planId){
   document.getElementById("stopp-name").textContent = plan.name;
   document.getElementById("stopp-sport").innerHTML =
     '<span style="color:' + sportartFarbe(plan.sportart) + '">■</span> ' + text(sportartName(plan.sportart));
-  document.getElementById("stopp-ziel").textContent = "Geplant: " + planZielText(plan);   // v121: inkl. Messgrößen-Ziel
+  /* v121: inkl. Messgrößen-Ziel. v191: Bei wechselnden Einheiten steht hier die
+     Einheit, die gerade dran ist — sonst liefe man mit der Zahl des
+     Grundlagen-Laufs los, obwohl heute Tempo ansteht. */
+  const einheit = einheitText(plan, planGetan(plan.id, sitzung.daten.protokoll));
+  document.getElementById("stopp-ziel").textContent = einheit ? "Heute: " + einheit
+                                                             : "Geplant: " + planZielText(plan);
   document.getElementById("stopp-warnung").textContent = systemText("iOS", "Android", "Das System");
   stoppuhrZeichnen();
   zeige("view-stoppuhr");
