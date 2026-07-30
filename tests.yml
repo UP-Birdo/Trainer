@@ -1,0 +1,30 @@
+# Läuft bei jedem Hochladen automatisch auf GitHubs Servern (dort gibt es
+# echtes Node): Syntax-Check + komplette Regressionskette aus tests/.
+# Ergebnis: grünes Häkchen am Commit und das Badge oben im README.
+#
+# 07/2026: Bis dahin stand hier jede Testdatei einzeln — zuletzt über 90 Zeilen,
+# die bei jeder neuen Version von Hand nachgetragen werden mussten und die der
+# Deploy-Token gar nicht hochladen darf (die Datei driftete also). Jetzt läuft
+# der Sammel-Läufer tests/alle.js, der von sich aus JEDE tests/testNN.js findet
+# und zusätzlich den Script-Block der index.html syntaktisch prüft. Eine neue
+# Testdatei wird damit automatisch mitgeprüft — hier ist nichts mehr zu pflegen.
+name: Tests
+
+on:
+    push:
+    workflow_dispatch:
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Code holen
+              uses: actions/checkout@v4
+
+            - name: Node einrichten
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Syntax-Check und komplette Regressionskette
+              run: node tests/alle.js index.html
