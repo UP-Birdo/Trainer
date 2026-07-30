@@ -37,48 +37,51 @@ const w = (s, sp) => planNeuWege(s, sp).join(",");
    am jeweiligen Tag (`tagOeffnen`). Das „+"-Menue legt NEUES an, und ein
    Training von vorgestern ist kein neuer Plan. Alle anderen Wege und ihre
    Reihenfolge bleiben unveraendert; test180 prueft den neuen Weg. */
-/* v192: „uebung" (Einzelne Uebung) steht seit Etappe 1 der
-   Uebungs-Entscheidung an ERSTER Stelle — sie ist die neue Grundeinheit, und
-   der kuerzeste Weg zum ersten Training gehoert nach oben. Alle uebrigen Wege
-   und ihre Reihenfolge bleiben unveraendert; test192 prueft den neuen Weg. */
-pruefe("Stufe 5 mit Kraft: Uebung + Assistent + eigen + Beispiel",
-  w(5, ["kraft"]) === "uebung,assistent,eigen,beispiel");
-pruefe("Stufe 3 ohne Assistent", w(3, ["kraft"]) === "uebung,eigen,beispiel");
-pruefe("Stufe 4 ohne Assistent", w(4, ["kraft"]) === "uebung,eigen,beispiel");
-pruefe("ohne Kraft kein Beispielplan", w(5, ["yoga"]) === "uebung,assistent,eigen");
-pruefe("Intervall-Sportart bringt den Intervall-Weg",
-  w(5, ["kraft","laufen"]) === "uebung,assistent,eigen,beispiel,intervall");
-pruefe("zweite Intervall-Sportart bringt ihn nur EINMAL",
-  w(5, ["laufen","kampfsport"]) === "uebung,assistent,eigen,intervall");
-pruefe("ohne Sportarten bleibt das Noetigste", w(5, []) === "uebung,assistent,eigen");
-pruefe("undefined faellt nicht um", w(5, undefined) === "uebung,assistent,eigen");
+/* v193 (Nutzer-Ansage): „Beispielplan laden und Plan mit Assistent erst mal raus
+   aus den Menuees — dort soll nur Plan erstellen oder Uebung eintragen stehen."
+   Damit bietet das „+" auf JEDER Stufe und bei JEDEM Profil genau zwei Wege an.
+   Die v129-Zusage dahinter bleibt dieselbe: eine ueberschaubare Auswahl, keine
+   Knopfleiste unter der Liste. Wo die drei entfallenen Wege geblieben sind,
+   prueft test193 (Ersteinrichtung bzw. „Mehr -> Werkzeuge"). */
+pruefe("Stufe 5 mit Kraft: nur Uebung + eigener Plan", w(5, ["kraft"]) === "uebung,eigen");
+pruefe("Stufe 3 genauso", w(3, ["kraft"]) === "uebung,eigen");
+pruefe("Stufe 4 genauso", w(4, ["kraft"]) === "uebung,eigen");
+pruefe("ohne Kraft genauso", w(5, ["yoga"]) === "uebung,eigen");
+pruefe("Intervall-Sportart aendert nichts mehr",
+  w(5, ["kraft","laufen"]) === "uebung,eigen");
+pruefe("zwei Intervall-Sportarten ebenso", w(5, ["laufen","kampfsport"]) === "uebung,eigen");
+pruefe("ohne Sportarten bleibt es dabei", w(5, []) === "uebung,eigen");
+pruefe("undefined faellt nicht um", w(5, undefined) === "uebung,eigen");
 pruefe("Nachtragen ist aus dem Plus-Menue verschwunden",
   planNeuWege(5, ["kraft","laufen"]).indexOf("nachtragen") < 0);
 pruefe("eigener Plan ist immer dabei",
   planNeuWege(3, []).includes("eigen") && planNeuWege(5, ["yoga"]).includes("eigen"));
+pruefe("die Uebung steht an erster Stelle", planNeuWege(5, ["kraft"])[0] === "uebung");
 
 /* 2) Leer-Zustand: nur EINE Aktion. */
 const liste = grabFn("planListeZeichnen");
 pruefe("Leer-Zustand ohne Beispielplan-Knopf", !liste.includes("beispielLaden()"));
 pruefe("Leer-Zustand ohne Intervall-Knopf", !liste.includes("intervallPlanNeu()"));
-pruefe("Stufe 5 zeigt Trainingsplanung", liste.includes(">Trainingsplanung</button>"));
-pruefe("darunter Eigenen Plan als Hauptaktion",
-  /stufe\(\) >= 5[\s\S]{0,220}planAnlegen\(\)">Eigenen Plan/.test(liste));
+/* v193: Die eine Aktion ist jetzt auf JEDER Stufe dieselbe — die einzelne Uebung.
+   Vorher stand hier ab Stufe 5 der Assistent; der ist aus den Anlege-Wegen
+   ausgezogen, also darf ihn auch der Leer-Zustand nicht mehr bewerben. */
+pruefe("Leer-Zustand ohne Assistent", !liste.includes("einrichtungOeffnen()"));
+pruefe("Leer-Zustand fuehrt zur einzelnen Uebung", liste.includes('uebungAlleinAnlegen()">Übung eintragen'));
 // Nur den Leer-Zustands-Block ansehen (er endet mit dem return), nicht den Rest
-// der Funktion — dort stehen die Knoepfe der Karten/Zeilen. Im Quelltext stehen
-// ZWEI Knoepfe, aber als die beiden Zweige EINES Ternaers: zur Laufzeit rendert
-// genau einer (Stufe 5 Assistent, darunter Eigener Plan).
+// der Funktion — dort stehen die Knoepfe der Karten/Zeilen.
 const leerBlock = (liste.split("Noch nichts angelegt")[1] || "").split("return;")[0];
 pruefe("Leer-Zustand rendert genau einen Knopf",
-  leerBlock.split("<button").length - 1 === 2 &&
-  /\?[\s\S]*<button[\s\S]*:[\s\S]*<button/.test(leerBlock));
+  leerBlock.split("<button").length - 1 === 1);
+pruefe("und keine Stufen-Verzweigung mehr", !leerBlock.includes("stufe()"));
 
 /* 3) Das Menue haengt an der reinen Auswahl. */
 const menue = grabFn("planNeuMenue");
 pruefe("Menue nutzt planNeuWege", menue.includes("planNeuWege(stufe()"));
-pruefe("alle Wege sind verdrahtet",   // v192: „uebung" kam dazu
-  ["uebung:", "assistent:", "eigen:", "beispiel:", "intervall:"].every(k => menue.includes(k)));
-pruefe("und kein toter Eintrag bleibt zurueck (v180)", !menue.includes("nachtragen"));
+pruefe("beide Wege sind verdrahtet",   // v193: nur noch zwei
+  ["uebung:", "eigen:"].every(k => menue.includes(k)));
+pruefe("und kein toter Eintrag bleibt zurueck (v180/v193)",
+  !menue.includes("nachtragen") && !menue.includes("assistent:") &&
+  !menue.includes("beispiel:") && !menue.includes("intervall:"));
 pruefe("Stufe 1/2 legt weiter direkt einen Abschnitt an", menue.includes("abschnittAnlegen()"));
 
 console.log(ok + " ok, " + fehler + " Fehler");

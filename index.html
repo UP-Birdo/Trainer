@@ -589,6 +589,15 @@ body:not(.nav-an) #nav{display:none}
 .plan-zeile .plan-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* v109: Sportart-Kopf als Akkordeon-Zeile bei sehr vielen Plänen. */
 .plan-gruppe{margin-bottom:8px}
+/* v193: Der Umschalter Übung/Plan im Editor-Kopf — zwei Segmente, das aktuelle
+   gefüllt. Er sitzt zwischen Kopfzeile und erster Karte, wo man den Zustand
+   sucht, und ist so breit wie der Inhalt darunter. */
+.art-schalter{display:flex;gap:0;margin:0 0 10px;border:1px solid var(--line);
+  border-radius:10px;overflow:hidden}
+.art-schalter button{flex:1;border:0;border-radius:0;background:transparent;
+  color:var(--muted);font-size:13px;font-weight:600;padding:9px 0;margin:0}
+.art-schalter button.gewaehlt{background:var(--signal);color:#0D1117}
+
 /* v192: Marke „Übung"/„Plan" in der Liste — klein und ruhig, sie ordnet ein und
    drängt sich nicht vor den Namen. */
 .art-marke{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;
@@ -1265,6 +1274,19 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="scheibe-stange" class="wahl-raster"></div>
     <div id="scheibe-ergebnis" class="meta" style="margin-top:10px"></div>
   </div>
+  <!-- v193: Der Plan-Assistent und der Beispielplan sind aus dem „+"-Menü der
+       Übungen ausgezogen (Nutzer-Ansage: dort nur noch Übung eintragen bzw. Plan
+       erstellen). Verloren gehen sollen sie deshalb nicht — hier stehen sie
+       weiter zur Verfügung. Der Assistent bleibt zusätzlich der Weg der
+       Ersteinrichtung, siehe planNeuWege. -->
+  <div class="karte" id="mehr-assistent-karte">
+    <h2>Plan mit Assistent</h2>
+    <div class="meta abstand">Ein paar Fragen zu Ziel, Tagen und Ausstattung — daraus baut die App fertige Pläne. Der geführte Weg, wenn du nicht selbst zusammenstellen willst.</div>
+    <div class="knopfreihe">
+      <button class="schmal" id="mehr-assistent-knopf" onclick="einrichtungOeffnen()">Assistent starten</button>
+      <button class="schmal" id="mehr-beispiel-knopf" onclick="beispielLaden()">Beispielplan laden</button>
+    </div>
+  </div>
   <div class="karte" id="mehr-bibliothek-karte">
     <h2>Übungs-Bibliothek</h2>
     <!-- v183: „Gerät" stimmte nur fürs Krafttraining — seit die Drills der
@@ -1353,8 +1375,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      Ansicht: Plan bearbeiten
      ============================================================ -->
 <section id="view-editor" class="view">
-  <div class="kopf"><h1>Plan bearbeiten</h1>
+  <div class="kopf"><h1 id="editor-titel">Plan bearbeiten</h1>
     <button id="editor-menue-knopf" class="schmal" hidden onclick="editorMenue()" aria-label="Weitere Aktionen">⋯</button></div>
+  <!-- v193 (Nutzer-Ansage, Etappe 2 der Übungs-Entscheidung): Der Schalter steht
+       ganz oben und erscheint nur, wenn beides möglich ist — also bei einer
+       einzelnen Übung. Er sagt zugleich, was das Ding gerade IST. -->
+  <div id="editor-art" class="art-schalter" hidden>
+    <button id="art-uebung" onclick="editorArtSetzen('uebung')">Übung</button>
+    <button id="art-plan"   onclick="editorArtSetzen('plan')">Plan</button>
+  </div>
   <div class="karte">
     <!-- v126/v131/v146: ALLE Einstellungen des Plans liegen hinter EINER Zeile und
          starten zugeklappt. Seit v146 gehören NAME und SPORTART dazu (Nutzer-Wunsch):
@@ -2606,7 +2635,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 192;
+const APP_VERSION = 193;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4450,17 +4479,34 @@ function sichtbarePlaene(){
    Feld noch etwas anderes behauptete. Abgeleitet stimmt es immer, und der
    Datenvertrag bleibt unberührt (kein neues Feld, keine Nachrüstung).
 
-   Ein Aktivitäts-Plan ohne Übungen (reine Stoppuhr: „Laufen 30 min") bleibt ein
-   Plan — er hat keine einzelne Übung, die man zeigen könnte, sondern eine
-   Vorgabe. Das ist kein Sonderfall, sondern dieselbe Regel: 0 Übungen ≠ 1 Übung.
+   **Korrektur in v193:** Ein Aktivitäts-Plan OHNE Übungen (reine Stoppuhr,
+   „Laufen 30 min") galt in v192 als Plan — mit der Begründung, er habe keine
+   einzelne Übung, sondern eine Vorgabe. Der Nutzer hat die Grenze geklärt
+   („Laufen gibt es nicht als Übung" — es soll sie geben): Auch eine
+   Ausdauer-Einheit ohne festen Tag ist eine EINZELNE Sache, die man startet, und
+   kein Plan. Entscheidend ist also allein der Termin, nicht die Zählweise des
+   Inhalts. Was einen Plan ausmacht, ist damit genau eines von beidem: **mehr als
+   eine Übung** oder **ein Termin**.
    ------------------------------------------------------------ */
 function planArt(plan){
   if(!plan) return "plan";
   const uebungen = plan.uebungen || [];
   const tage     = plan.tage || [];
   const termine  = plan.einzelTermine || [];
-  const terminiert = tage.length > 0 || termine.length > 0;
-  return (uebungen.length === 1 && !terminiert) ? "uebung" : "plan";
+  if(tage.length > 0 || termine.length > 0) return "plan";       // terminiert = Plan
+  if(uebungen.length === 1) return "uebung";                     // die einzelne Übung
+  // v193: die Aktivitäts-Einheit ohne eigene Drills („Laufen 30 min")
+  return (plan.typ === "aktivitaet" && uebungen.length === 0) ? "uebung" : "plan";
+}
+
+/** v193: Kann dieser Plan überhaupt zur einzelnen Übung werden — und umgekehrt?
+    Nur dann zeigt der Editor den Umschalter. Mehr als eine Übung heißt: Es ist
+    ein Bündel, und ein Bündel ohne Termin wäre nach der Regel oben weder das eine
+    noch das andere. Rein/testbar. */
+function planArtUmschaltbar(plan){
+  if(!plan) return false;
+  const anzahl = (plan.uebungen || []).length;
+  return anzahl <= 1 && !(anzahl === 0 && plan.typ !== "aktivitaet");
 }
 
 /** Die Marke, die in der Liste Übung von Plan unterscheidet (v192).
@@ -4502,11 +4548,14 @@ function planListeZeichnen(){
     // „Eigenen Plan" die eine Aktion, sonst stünde der Leer-Zustand ohne Weg da.
     // v192: Der Leer-Satz nennt keine Plan-Art mehr — hier fehlt jetzt beides,
     // die einzelne Übung wie der Plan.
+    /* v193: Die eine Aktion ist jetzt auf jeder Stufe dieselbe — „Übung
+       eintragen". Vorher stand hier ab Stufe 5 der Assistent; der ist aus den
+       Anlege-Wegen ausgezogen (Nutzer-Ansage, siehe planNeuWege), und die
+       einzelne Übung ist der kürzeste Weg zum ersten Training. Der Rest liegt
+       weiter im gelben „+" darunter (v129: nur EINE Aktion im Leer-Zustand). */
     ziel.innerHTML = '<div class="leer">Noch nichts angelegt.<br><br>' +
       '<div class="knopfreihe">' +
-      (stufe() >= 5
-        ? '<button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>'
-        : '<button class="primaer schmal" onclick="planAnlegen()">Eigenen Plan</button>') +
+      '<button class="primaer schmal" onclick="uebungAlleinAnlegen()">Übung eintragen</button>' +
       '</div></div>';
     return;
   }
@@ -4619,6 +4668,11 @@ function beispielLaden(){
   sitzung.daten.plaene.push(beispielplan());
   speichern();
   planListeZeichnen();
+  /* v193: Der Knopf sitzt jetzt unter „Mehr → Werkzeuge", nicht mehr im „+" der
+     Übungen — von dort muss der Weg zum Ergebnis führen, sonst bliebe man auf
+     der Werkzeug-Seite stehen und sähe nicht, dass etwas passiert ist. */
+  zeige("view-plaene");
+  zeigenToast("Beispielplan geladen", "erfolg");
 }
 
 function planDuplizieren(planId){
@@ -4642,36 +4696,38 @@ function planDuplizieren(planId){
     „beispiel" nur bei Kraft (der Beispielplan IST ein Kraft-Ganzkörper, v95),
     „intervall" nur, wenn der Nutzer eine Intervall-Sportart betreibt (v118). */
 function planNeuWege(stufeNr, sportarten){
-  const liste = sportarten || [];
-  const wege = [];
-  /* v192: „Einzelne Übung" steht GANZ OBEN — sie ist ab jetzt die Grundeinheit
-     (Etappe 1 der Übungs-Entscheidung), und der kürzeste Weg zum ersten
-     Training gehört an die erste Stelle. Der Assistent bleibt vorerst darunter
-     stehen; er verschwindet erst in Etappe 3, wenn der Ersatz trägt. */
-  wege.push("uebung");
-  if(stufeNr >= 5) wege.push("assistent");
-  wege.push("eigen");
-  if(liste.includes("kraft")) wege.push("beispiel");
-  if(liste.some(id => sportart(id).intervall)) wege.push("intervall");
-  /* v180: „Training nachtragen" ist hier ENTFALLEN. Das „+"-Menü der Pläne ist
-     der Ort, an dem etwas NEUES angelegt wird — ein Training von vorgestern ist
-     aber kein neuer Plan. Nachgetragen wird jetzt im Kalender am jeweiligen Tag
-     (`tagOeffnen`), wo das Datum ohnehin schon feststeht, statt es im Formular
-     erst zurückzustellen. Der Weg „Training eintragen" auf der Heute-Karte
-     bleibt unberührt — dort ist HEUTE gemeint. */
-  return wege;
+  /* v193 (Nutzer-Ansage): „Beispielplan laden und Plan mit Assistent erst mal raus
+     aus den Menüs — dort soll nur Plan erstellen oder Übung eintragen stehen."
+     Damit hat das „+" genau ZWEI Einträge, auf jeder Stufe und bei jedem Profil.
+     Das ist Etappe 3 der Übungs-Entscheidung, so weit sie ohne die Klärung zur
+     Ersteinrichtung geht.
+
+     Was mit den drei entfallenen Wegen passiert — keiner ist verloren:
+     * **Assistent:** läuft weiter in der ERSTEINRICHTUNG (der erste Start führt
+       hindurch) und steht unter „Mehr → Werkzeuge". Gelöscht wird er erst, wenn
+       geklärt ist, wie ein neuer Nutzer ohne ihn zu seinem ersten Plan kommt.
+     * **Beispielplan:** ebenfalls unter „Mehr → Werkzeuge". Er ist ein
+       Nachschlage-Angebot („wie sieht ein fertiger Plan aus?"), kein Anlege-Weg.
+     * **Intervall-Plan:** der Editor kann Runden seit v133 selbst („Dauer /
+       Runden" bei Intervall-Sportarten) — der eigene Menü-Eintrag war seither
+       ein zweiter Weg zum selben Ziel. Die Ansicht bleibt, nur der Eintrag geht.
+
+     Die Signatur bleibt absichtlich unverändert (Stufe + Sportarten), damit die
+     Aufrufer gleich bleiben und ein späterer Weg wieder daran hängen kann. */
+  return ["uebung", "eigen"];
 }
 
 function planNeuMenue(){
   // v76: Auf Stufe 1/2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
   // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
   if(stufe() <= 2){ abschnittAnlegen(); return; }
+  /* v193: Nur noch die zwei Wege aus `planNeuWege`. Die Einträge für Assistent,
+     Beispielplan und Intervall sind hier entfallen, nicht nur ausgeblendet —
+     ein Eintrag, den keine Auswahl mehr nennt, wäre toter Code. Ihre Funktionen
+     leben weiter (Ersteinrichtung bzw. „Mehr → Werkzeuge"). */
   const wege = {
-    uebung:     { text:"Einzelne Übung",        tun: uebungAlleinAnlegen },   // v192
-    assistent:  { text:"Plan mit Assistent",    tun: einrichtungOeffnen },
-    eigen:      { text:"Eigenen Plan erstellen", tun: planAnlegen },
-    beispiel:   { text:"Beispielplan laden",     tun: beispielLaden },
-    intervall:  { text:"Intervall-Plan anlegen", tun: intervallPlanNeu }
+    uebung:     { text:"Übung eintragen",        tun: uebungAlleinAnlegen },   // v192/v193
+    eigen:      { text:"Plan erstellen",         tun: planAnlegen }
   };
   aktionsMenue("Neu anlegen",
     planNeuWege(stufe(), sitzung.daten.einrichtung.sportarten || ["kraft"]).map(k => wege[k]));
@@ -5508,6 +5564,17 @@ function einstDarstellungOeffnen(){
 /** Untermenü „Werkzeuge" (Scheibenrechner + Bibliothek + Papierkorb), ab Stufe 3. */
 function einstWerkzeugeOeffnen(){
   if(!viewErlaubt("view-einst-werkzeuge")) return;
+  /* v193: Der Assistent hat hier sein neues Zuhause (aus dem „+" der Übungen
+     ausgezogen). Er bleibt an dieselben zwei Bedingungen gebunden wie vorher im
+     Menü: die Trainingsplanung gibt es ab Stufe 5, und der Beispielplan IST ein
+     Kraft-Ganzkörper (v95) — ohne Krafttraining im Profil hilft er nicht. */
+  const meineSport = sitzung.daten.einrichtung.sportarten || ["kraft"];
+  const mitAssistent = stufe() >= 5;
+  const mitBeispiel  = meineSport.includes("kraft");
+  const setzen = (id, an) => { const e = document.getElementById(id); if(e) e.hidden = !an; };
+  setzen("mehr-assistent-knopf", mitAssistent);
+  setzen("mehr-beispiel-knopf",  mitBeispiel);
+  setzen("mehr-assistent-karte", mitAssistent || mitBeispiel);   // leere Karte zeigt niemand
   scheibenStangeZeichnen(); scheibenAnzeigen();
   const pkAnz = (sitzung.daten.papierkorb || []).length;
   const pkInfo = document.getElementById("papierkorb-mehr-info");
@@ -5785,6 +5852,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.193", punkte:[
+    "Das „+“ bei den Übungen hat nur noch zwei Einträge: „Übung eintragen“ und „Plan erstellen“. Der Assistent und der Beispielplan sind dort ausgezogen — du findest beide unter „Mehr“ → „Werkzeuge“, und der Assistent führt weiterhin durch die Ersteinrichtung.",
+    "Die Übungs-Suche hat Filter bekommen: zuerst die Sportart, darunter das Gerät (beim Krafttraining) oder Technik/Kondition. Vorher stand dort gar kein Filter, solange die Sportart noch nicht feststand — also gerade dann, wenn die Liste am längsten ist.",
+    "Und du kannst jetzt eine ganze Einheit eintragen, nicht nur eine Übung daraus: „Laufen“ steht in der Suche ganz oben, mit deiner Strecke und Dauer aus dem Profil. Bisher gab es dort nur die einzelnen Lauf-Drills.",
+    "Neu im Kopf beim Bearbeiten: ein Schalter „Übung / Plan“. Er erscheint, sobald nur eine Übung im Spiel ist. „Plan“ öffnet die Wochentage, „Übung“ nimmt den Termin wieder weg — die Übung selbst bleibt dabei unverändert."
+  ]},
   { stand:"0.192", punkte:[
     "Du kannst jetzt eine einzelne Übung anlegen, ohne erst einen Plan zu bauen. Im „+“ steht ganz oben „Einzelne Übung“: aussuchen, fertig — sie liegt sofort startbar in der Liste, ganz ohne Namen, Wochentag und Einstellungen.",
     "Der Tab heißt darum nicht mehr „Pläne“, sondern „Übungen“. Er zeigt beides, und jede Karte sagt jetzt, was sie ist: eine einzelne Übung oder ein Plan.",
@@ -13096,7 +13169,10 @@ let editorPlan = null;
 
 /* v148: Die Filter der Übungs-Suche. Nur Anzeige-Zustand, wird beim Öffnen
    zurückgesetzt — nichts davon gehört zum Plan. */
-let pickerFilter = { kat:"alle", geraet:"alle", art:"alle" };
+/* v193: `sport` kam dazu (Nutzer-Ansage „Filter pro Sportart und darunter Gerät").
+   Er greift nur, solange der Plan noch KEINE Sportart hat — genau der Fall beim
+   Weg „Einzelne Übung" mit mehreren Sportarten im Profil. */
+let pickerFilter = { sport:"alle", kat:"alle", geraet:"alle", art:"alle" };
 function planAnlegen(){
   uebungEinzelModus = false;   // v192: der Editor-Weg, nicht der Einzel-Weg
   editorMehr = {};
@@ -13157,13 +13233,17 @@ function uebungAlleinAnlegen(){
 function einzelUebungAbschliessen(){
   if(!uebungEinzelModus) return false;
   const u = editorPlan.uebungen[0];
-  if(!u) return false;
-  editorPlan.name = u.name;
+  /* v193: Zwei Formen einer Einheit — eine gewählte Übung ODER eine ganze
+     Aktivitäts-Einheit („Laufen 5 km"), die gar keine Übung hat. Ohne beides
+     gibt es nichts abzuschließen. */
+  const istEinheit = !u && editorPlan.typ === "aktivitaet" && editorPlan.sportart;
+  if(!u && !istEinheit) return false;
+  editorPlan.name = u ? u.name : sportartName(editorPlan.sportart);
   editorPlan.tage = [];            // ohne festen Tag — sonst wäre es ein Plan (planArt)
   editorPlan.einzelTermine = [];
   eigeneUebungenAblegen(editorPlan);   // selbst geschriebene Übung ins Profil (v44)
   uebungEinzelModus = false;
-  planSichern("Übung gespeichert");
+  planSichern(istEinheit ? "Einheit gespeichert" : "Übung gespeichert");
   return true;
 }
 
@@ -13183,6 +13263,54 @@ function editorMenue(){
     { text:"Duplizieren", tun:() => planDuplizieren(editorPlan.id) },
     { text:"Plan löschen", stil:"gefahr", tun:() => planLoeschen() }
   ]);
+}
+
+/* ------------------------------------------------------------
+   v193 — der Umschalter Übung ↔ Plan (Etappe 2 der Übungs-Entscheidung).
+
+   Nutzer-Ansage: „Bei Plänen mit nur einer Übung soll im obersten Kopf ein
+   Schalter erscheinen, der zwischen Plan und Übung umschaltet — dasselbe bei
+   einzelnen Übungen, falls du sie zu einem Plan ändern willst."
+
+   Das ist der bessere Weg als ein eigener Menü-Eintrag „terminieren": Der
+   Schalter zeigt zugleich, was das Ding gerade IST, und er steht nur da, wo die
+   Umwandlung überhaupt möglich ist (`planArtUmschaltbar`).
+
+   Umgeschaltet wird NUR der Termin — die Übung selbst wird nie angefasst:
+   * zu Plan: die Einstellungen klappen auf, damit die Wochentage sichtbar sind
+     (ohne Tag bliebe es nach der Regel eine Übung — der Nutzer muss also einen
+     wählen, und der Editor zeigt ihm sofort, wo);
+   * zu Übung: Wochentage und Einzeltermine werden geleert. Der Takt bleibt
+     stehen, wie er war — wer zurückschaltet, findet seine Einstellung wieder
+     (additiver Datenvertrag: nichts wegwerfen, was nicht stört).
+   ------------------------------------------------------------ */
+function editorArtSetzen(art){
+  if(!editorPlan || !planArtUmschaltbar(editorPlan)) return;
+  if(art === "plan"){
+    editorEinstOffen = true;          // die Wochentage stehen dort — sonst sucht man sie
+    editorZeichnen();
+    // Erst mit einem Tag ist es wirklich ein Plan; bis dahin sagt es die Zeile.
+    if(!(editorPlan.tage || []).length) zeigenToast("Wochentag wählen — dann ist es ein Plan", "info");
+    return;
+  }
+  editorPlan.tage = [];
+  editorPlan.einzelTermine = [];
+  editorZeichnen();
+}
+
+/** Den Schalter auf den aktuellen Stand bringen (Sichtbarkeit + gewähltes Segment).
+    Der Titel zieht mit: „Plan bearbeiten" stimmt bei einer Übung nicht. */
+function editorArtZeichnen(){
+  const leiste = document.getElementById("editor-art");
+  const titel  = document.getElementById("editor-titel");
+  if(!leiste) return;
+  const umschaltbar = planArtUmschaltbar(editorPlan);
+  leiste.hidden = !umschaltbar;
+  const istUebung = planArt(editorPlan) === "uebung";
+  const u = document.getElementById("art-uebung"), p = document.getElementById("art-plan");
+  if(u) u.classList.toggle("gewaehlt", istUebung);
+  if(p) p.classList.toggle("gewaehlt", !istUebung);
+  if(titel) titel.textContent = (umschaltbar && istUebung) ? "Übung bearbeiten" : "Plan bearbeiten";
 }
 
 /** v126: Stand des Wochentag-Blocks als kurze Zeile — „kein fester Tag" bzw.
@@ -13428,6 +13556,7 @@ function planTaktSetzen(t){
 
 function editorZeichnen(){
   rampeKlemmen();   // v135: Aufwärmsätze auf 0–3 halten
+  editorArtZeichnen();   // v193: Umschalter Übung/Plan im Kopf
   document.getElementById("plan-name").value = editorPlan.name;
   if(!editorPlan.reihenfolge) editorPlan.reihenfolge = "klassisch";
   if(!Array.isArray(editorPlan.tage)) editorPlan.tage = [];
@@ -13660,7 +13789,7 @@ function uebungPickerZeichnen(){
 /** v148: Die Suche öffnen. Filter und Suchtext starten jedes Mal frisch — wer
     sie später wieder aufmacht, sucht in aller Regel etwas anderes. */
 function uebungPickerOeffnen(){
-  pickerFilter = { kat:"alle", geraet:"alle", art:"alle" };
+  pickerFilter = { sport:"alle", kat:"alle", geraet:"alle", art:"alle" };   // v193: sport kam dazu
   eigenBauerOffen = false;
   uebungWartet = null;
   const feld = document.getElementById("picker-suche");
@@ -13728,8 +13857,20 @@ function pickerAnsichtZeichnen(){
 
 /** v148: Die übergeordneten Filter als selbst gebaute Chip-Reihen.
     Kraft: Bereich (Muskelgruppe) + Gerät — inklusive „Körpergewicht", das man
-    am häufigsten sucht. Aktivität: Technik oder Kondition. Ohne feste Sportart
-    gibt es nichts zu filtern (die Liste mischt dann mehrere Sportarten). */
+    am häufigsten sucht. Aktivität: Technik oder Kondition.
+    v193: Ohne feste Sportart steht jetzt die Sportart-Reihe darüber (vorher gab
+    es dort gar keine Filter, siehe unten).
+
+    v193: Welche Sportart gilt gerade für die Suche? Entweder die des Plans (dann
+    ist sie fest) oder die im Filter gewählte. Ohne beides mischt die Liste alle
+    Profil-Sportarten — dann gibt es nur die Sportart-Reihe zu filtern.
+    Rein bis auf `editorPlan`/`pickerFilter`, damit beide Seiten (Filter-Anzeige
+    und Kandidaten) dieselbe Antwort benutzen. */
+function pickerSportKontext(){
+  if(editorPlan && editorPlan.sportart) return editorPlan.sportart;
+  return (pickerFilter.sport && pickerFilter.sport !== "alle") ? pickerFilter.sport : null;
+}
+
 function pickerFilterHtml(){
   const reihe = (titel, feld, eintraege) =>
     '<div class="filter-titel">' + text(titel) + '</div><div class="filter-reihe">' +
@@ -13737,14 +13878,26 @@ function pickerFilterHtml(){
       '<button class="' + (pickerFilter[feld] === wert ? "gewaehlt" : "") +
       '" onclick="pickerFilterSetzen(\'' + feld + '\',\'' + wert + '\')">' + text(name) + '</button>').join("") +
     '</div>';
-  if(!editorPlan.sportart) return "";
-  if(editorPlan.typ === "kraft"){
-    const meine = meineGeraete(editorPlan.sportart);   // ["keine", ...Geräte der Sportart]
+  /* v193 (Nutzer-Ansage): Ohne feste Sportart stand hier bisher GAR NICHTS — die
+     Suche zeigte eine ungeordnete Liste aus allen Sportarten des Profils. Genau
+     das ist der Normalfall beim Weg „Einzelne Übung". Jetzt steht die Sportart
+     als erste Filterreihe da, und darunter kommt dieselbe zweite Reihe wie
+     sonst auch (Gerät bei Kraft, Art bei allen anderen). */
+  let kopf = "";
+  if(!editorPlan.sportart){
+    const meine = SPORTARTEN.filter(s => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(s.id));
+    if(meine.length < 2) return "";                    // eine Sportart braucht keinen Filter
+    kopf = reihe("Sportart", "sport", [["alle","Alle"]].concat(meine.map(s => [s.id, s.name])));
+  }
+  const sp = pickerSportKontext();
+  if(!sp) return kopf;
+  if(planTypFuer(sp) === "kraft"){
+    const meine = meineGeraete(sp);   // ["keine", ...Geräte der Sportart]
     const geraete = [["alle","Alle Geräte"], ["keine","Körpergewicht"]].concat(
       GERAETE.filter(g => meine.includes(g.id) && g.id !== "keine").map(g => [g.id, g.name]));
-    return reihe("Bereich", "kat", BIB_KATS) + reihe("Gerät", "geraet", geraete);
+    return kopf + reihe("Bereich", "kat", BIB_KATS) + reihe("Gerät", "geraet", geraete);
   }
-  return reihe("Art", "art", [["alle","Alles"], ["technik","Technik"], ["kondition","Kondition"]]);
+  return kopf + reihe("Art", "art", [["alle","Alles"], ["technik","Technik"], ["kondition","Kondition"]]);
 }
 
 function pickerFilterSetzen(feld, wert){
@@ -13766,6 +13919,31 @@ function pickerKandidaten(){
   const drin = new Set(editorPlan.uebungen.map(u => u.name.trim()));
   const suche = normName((document.getElementById("picker-suche") || {}).value || "");
   let namen;
+  const filterSport = !editorPlan.sportart ? pickerSportKontext() : null;   // v193
+  if(filterSport){
+    /* v193: Der Plan hat noch keine Sportart, aber der Filter nennt eine — dann
+       zeigt die Suche genau deren Vorrat, samt Gerät/Art-Filter. Gebunden wird
+       der Plan erst beim Antippen einer Übung (pickerKarteHinzu), wie bisher. */
+    if(planTypFuer(filterSport) === "kraft"){
+      const meine = meineGeraete(filterSport);
+      const g = pickerFilter.geraet, k = pickerFilter.kat;
+      namen = UEBUNGEN_DB
+        .filter(u => meine.includes(u.geraet) &&
+                     (g === "alle" || u.geraet === g) &&
+                     (k === "alle" || u.kat === k) && !drin.has(u.name))
+        .map(u => u.name);
+    } else {
+      const a = pickerFilter.art;
+      namen = sportUebungen(filterSport)
+        .filter(v => !drin.has(v.name) && (a === "alle" || v.art === a))
+        .map(v => v.name);
+    }
+    const eigene = ((sitzung.daten.eigeneUebungen || {})[filterSport] || [])
+      .map(v => v.name).filter(n => !drin.has(n) && !namen.includes(n));
+    namen = namen.concat(eigene);
+    if(suche) namen = namen.filter(n => normName(n).includes(suche));
+    return namen;
+  }
   if(!editorPlan.sportart){
     // v56: Plan noch ohne Sportart -> Übungen ALLER Profil-Sportarten anbieten.
     const konfig = sitzung.daten.einrichtung.sportarten || ["kraft"];
@@ -13820,10 +13998,74 @@ function pickerKarteHtml(name){
     '<span class="pfeil">+</span></button>';
 }
 
+/* ------------------------------------------------------------
+   v193 — die Sportart selbst als Einheit („Laufen gibt es nicht als Übung").
+
+   Der Nutzer wollte eine einzelne Einheit „Laufen" eintragen und fand nur deren
+   Drills (Intervalle, Steigerungsläufe …). Der Lauf selbst — Dauer bzw. Strecke,
+   das, was die Stoppuhr misst — war über diesen Weg gar nicht anlegbar; ihn gab
+   es nur als Plan aus dem Assistenten oder Editor.
+
+   Angeboten wird er darum als eigene Karte ganz oben, aber NUR im Einzel-Modus:
+   Im Editor-Weg wäre „Laufen" keine Übung, die man einem Plan hinzufügt — dort
+   IST die Dauer der Plan.
+   ------------------------------------------------------------ */
+function pickerEinheitKandidaten(){
+  if(!uebungEinzelModus) return [];
+  const suche = normName((document.getElementById("picker-suche") || {}).value || "");
+  const kontext = pickerSportKontext();
+  return SPORTARTEN
+    .filter(s => (sitzung.daten.einrichtung.sportarten || ["kraft"]).includes(s.id))
+    .filter(s => planTypFuer(s.id) !== "kraft")          // Kraft misst Sätze, nicht Dauer
+    .filter(s => !kontext || s.id === kontext)
+    .filter(s => !suche || normName(s.name).includes(suche));
+}
+
+/** Was der Nutzer für diese Sportart im Profil hinterlegt hat (Dauer in Sekunden,
+    Strecke) — mit den Startwerten der Sportart als Rückfall. Rein/testbar:
+    `einrichtung` wird übergeben, nichts wird gelesen, was nicht drinsteht. */
+function sportEinheitVorgabe(sportId, einrichtungDaten){
+  const e = einrichtungDaten || {};
+  const sp = sportart(sportId);
+  const dauer = typeof e["dauer_" + sportId] === "number" && e["dauer_" + sportId] > 0
+    ? e["dauer_" + sportId] : 1800;
+  const strecke = (sp && sp.strecke)
+    ? (typeof e["strecke_" + sportId] === "number" && e["strecke_" + sportId] > 0
+        ? e["strecke_" + sportId] : sp.strecke.start)
+    : 0;
+  return { dauer: dauer, strecke: strecke };
+}
+
+/** Untertitel der Einheiten-Karte: „5 km · 30 min" — die eigene Vorgabe, damit
+    man vor dem Antippen sieht, was entsteht. */
+function einheitUntertitel(sportId){
+  const v = sportEinheitVorgabe(sportId, sitzung.daten.einrichtung);
+  return aktivitaetText(sportId, v.strecke, v.dauer, "min") || "ganze Einheit";
+}
+
+/** Eine Sportart als ganze Einheit anlegen (Dauer/Strecke aus dem Profil). */
+function pickerEinheitWaehlen(sportId){
+  if(!uebungEinzelModus) return;
+  planSportartSetzen(sportId);        // setzt Typ + die Aktivitäts-Felder (Dauer usw.)
+  // planSportartSetzen legt Standardwerte an — die eigene Vorgabe ist besser.
+  const v = sportEinheitVorgabe(sportId, sitzung.daten.einrichtung);
+  editorPlan.dauer = v.dauer;
+  editorPlan.strecke = v.strecke;
+  einzelUebungAbschliessen();
+}
+
 /** Die Kandidaten-Karten in den Picker zeichnen (Suche/Gerätefilter greifen). */
 function pickerKartenZeichnen(){
   const ziel = document.getElementById("picker-karten"); if(!ziel) return;
   const namen = pickerKandidaten();
+  const einheiten = pickerEinheitKandidaten();
+  const einheitHtml = einheiten.length
+    ? '<div class="filter-titel">Ganze Einheit</div><div class="karte">' + einheiten.map(s =>
+        '<button class="picker-karte" onclick="pickerEinheitWaehlen(\'' + s.id + '\')">' +
+          '<span class="text"><strong>' + text(s.name) + '</strong>' +
+          '<small>' + text(einheitUntertitel(s.id)) + '</small></span>' +
+          '<span class="pfeil">+</span></button>').join("") + '</div>'
+    : "";
   const suche = (document.getElementById("picker-suche") || {}).value || "";
   // v148: Mit Filtern gibt es einen dritten Grund für eine leere Liste — dann
   // nennen wir ihn, statt „alles schon im Plan" zu behaupten.
@@ -13831,9 +14073,13 @@ function pickerKartenZeichnen(){
   const leer = suche ? "Nichts gefunden."
              : gefiltert ? "Kein Treffer mit diesen Filtern."
              : "Alle passenden Übungen sind schon im Plan.";
-  ziel.innerHTML = namen.length
-    ? '<div class="karte">' + namen.map(pickerKarteHtml).join("") + '</div>'
-    : '<div class="karte"><div class="meta">' + leer + '</div></div>';
+  // v193: Steht oben schon eine ganze Einheit, ist die Übungs-Liste nicht „leer",
+  // sondern hat nur nichts Weiteres — dann bleibt der Leer-Satz weg.
+  const uebungsHtml = namen.length
+    ? '<div class="filter-titel">' + (einheitHtml ? "Einzelne Übungen" : "Übungen") + '</div>' +
+      '<div class="karte">' + namen.map(pickerKarteHtml).join("") + '</div>'
+    : (einheitHtml ? "" : '<div class="karte"><div class="meta">' + leer + '</div></div>');
+  ziel.innerHTML = einheitHtml + uebungsHtml;
   miniFigurenLazy("#picker-karten");   // v179: nur zeichnen, was man sieht
 }
 
@@ -15624,19 +15870,17 @@ function heuteKarteZeichnen(){
     // Noch gar kein Plan: Der Start muss den Weg zeigen. Ohne diesen Zweig
     // sähe ein neuer Nutzer nur "Ruhetag" und wüsste nicht, dass die Pläne im
     // Nachbar-Tab entstehen (die leere Liste mit den Anlege-Knöpfen liegt dort).
-    // v76: Der Trainingsplanung-Assistent ist ein Stufe-5-Feature. Auf Stufe 3/4
-    // legt der Nutzer selbst an — sonst würde eine Oberfläche versprochen, die
-    // seine Stufe gar nicht zeigt.
-    const mitAssistent = stufe() >= 5;
+    /* v193: Hier stand ab Stufe 5 der Assistent („Trainingsplanung starten") und
+       darunter „Zu den Übungen". Seit der Assistent aus den Anlege-Wegen
+       ausgezogen ist (Nutzer-Ansage, siehe planNeuWege), wäre er als gelbe
+       Hauptaktion auf „Heute" die einzige Stelle, die ihn noch bewirbt — also
+       führt die Karte jetzt auf jeder Stufe dorthin, wo angelegt wird. */
     // v120: „Heute" so knapp wie möglich — nur die Überschrift + die EINE Option.
-    // „Eigenen Plan" gibt es bewusst nur noch unter „Pläne" (dort FAB + Leer-Zustand).
     ziel.innerHTML = '<div class="karte">' +
-      '<h2>Noch kein Plan</h2>' +
+      '<h2>Noch nichts angelegt</h2>' +
       '<div class="knopfreihe">' +
-        (mitAssistent
-          ? '<button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>'
-          // v192: Der Tab heißt „Übungen" — der Knopf dorthin muss dasselbe Wort tragen.
-          : '<button class="primaer breit" onclick="planListeZeichnen(); zeige(\'view-plaene\')">Zu den Übungen</button>') +
+        // v192: Der Tab heißt „Übungen" — der Knopf dorthin muss dasselbe Wort tragen.
+        '<button class="primaer breit" onclick="planListeZeichnen(); zeige(\'view-plaene\')">Zu den Übungen</button>' +
       '</div></div>';
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());

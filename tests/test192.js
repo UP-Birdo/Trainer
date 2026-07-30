@@ -81,8 +81,17 @@ pruefe("auch ein einzelner Termin macht sie zum Plan",
   A.planArt({ uebungen:[uebung("Klimmzuege")], tage:[], einzelTermine:["2026-07-30"] }) === "plan");
 pruefe("zwei Uebungen sind ein Plan",
   A.planArt({ uebungen:[uebung("A"), uebung("B")], tage:[] }) === "plan");
-pruefe("null Uebungen (reine Stoppuhr) sind ein Plan",
-  A.planArt({ typ:"aktivitaet", uebungen:[], tage:[] }) === "plan");
+/* v193 korrigiert diese v192-Grenze (Nutzer-Ansage „Laufen gibt es nicht als
+   Uebung" — es soll sie geben): Eine Ausdauer-Einheit ohne eigene Drills ist
+   ebenfalls eine einzelne Sache, die man startet. Entscheidend ist der TERMIN,
+   nicht die Zaehlweise des Inhalts. Ein KRAFT-Plan ohne Uebungen bleibt ein
+   Plan — der hat gar nichts, was man starten koennte. */
+pruefe("die Ausdauer-Einheit ohne Drills ist eine Uebung",
+  A.planArt({ typ:"aktivitaet", uebungen:[], tage:[] }) === "uebung");
+pruefe("mit festem Tag ist dieselbe Einheit ein Plan",
+  A.planArt({ typ:"aktivitaet", uebungen:[], tage:[3] }) === "plan");
+pruefe("ein leerer Kraft-Plan bleibt ein Plan",
+  A.planArt({ typ:"kraft", uebungen:[], tage:[] }) === "plan");
 pruefe("ein Aktivitaets-Plan mit genau einem Drill ist eine Uebung",
   A.planArt({ typ:"aktivitaet", uebungen:[uebung("Intervalllauf")], tage:[] }) === "uebung");
 pruefe("kein Plan uebergeben faellt nicht um", A.planArt(null) === "plan" && A.planArt() === "plan");
@@ -115,7 +124,8 @@ pruefe("auf jeder Stufe, die das Menue ueberhaupt zeigt",
 const menue = grabFn("planNeuMenue");
 pruefe("das Menue verdrahtet ihn mit uebungAlleinAnlegen",
   /uebung:\s*\{[^}]*uebungAlleinAnlegen/.test(menue));
-pruefe("und beschriftet ihn als Einzelne Uebung", menue.includes('"Einzelne Übung"'));
+// v193: Der Eintrag heisst jetzt „Übung eintragen" (Nutzer-Wortlaut).
+pruefe("und beschriftet ihn als Uebung eintragen", menue.includes('"Übung eintragen"'));
 
 const anlegen = grabFn("uebungAlleinAnlegen");
 pruefe("er schaltet in den Einzel-Modus", anlegen.includes("uebungEinzelModus = true"));
@@ -195,9 +205,14 @@ pruefe("der Verweis von Heute traegt dasselbe Wort", src.includes(">Zu den Übun
 pruefe("der Leer-Zustand nennt keine Plan-Art mehr", liste.includes("Noch nichts angelegt."));
 
 /* ---------- 7) Der Ersatz zuerst, das Entfernen zuletzt ---------- */
-pruefe("der Assistent steht in dieser Etappe NOCH im Menue",
-  A.planNeuWege(5, ["kraft"]).includes("assistent"));
-pruefe("und seine Ansicht ist unangetastet",
+/* v193 (Nutzer-Ansage): Der Assistent ist aus dem „+"-Menue ausgezogen. Die
+   v192-Zusage bleibt der Sache nach bestehen und wird hier weiter geprueft:
+   Er ist NICHT geloescht — Ansicht und Fragenkatalog stehen unangetastet, und
+   er bleibt ueber die Ersteinrichtung und „Mehr -> Werkzeuge" erreichbar
+   (test193 prueft beides). Gelöscht wird erst nach der Ersteinrichtungs-Klärung. */
+pruefe("der Assistent ist aus dem Plus-Menue ausgezogen (v193)",
+  !A.planNeuWege(5, ["kraft"]).includes("assistent"));
+pruefe("aber seine Ansicht ist unangetastet",
   src.includes('id="view-wizard"') && src.includes("const WIZARD_FRAGEN"));
 pruefe("planSichern meldet ohne Angabe weiterhin Plan gespeichert",
   grabFn("planSichern").includes('meldungText || "Plan gespeichert"'));

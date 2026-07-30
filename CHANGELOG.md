@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.193
+
+- Das „+“ bei den Übungen hat nur noch zwei Einträge: „Übung eintragen“ und „Plan
+  erstellen“. Der Assistent und der Beispielplan sind dort ausgezogen — du findest beide
+  unter „Mehr“ → „Werkzeuge“, und der Assistent führt weiterhin durch die
+  Ersteinrichtung.
+- Die Übungs-Suche hat Filter bekommen: zuerst die Sportart, darunter das Gerät (beim
+  Krafttraining) oder Technik/Kondition. Vorher stand dort gar kein Filter, solange die
+  Sportart noch nicht feststand — also gerade dann, wenn die Liste am längsten ist.
+- Und du kannst jetzt eine ganze Einheit eintragen, nicht nur eine Übung daraus:
+  „Laufen“ steht in der Suche ganz oben, mit deiner Strecke und Dauer aus dem Profil.
+  Bisher gab es dort nur die einzelnen Lauf-Drills.
+- Neu im Kopf beim Bearbeiten: ein Schalter „Übung / Plan“. Er erscheint, sobald nur
+  eine Übung im Spiel ist. „Plan“ öffnet die Wochentage, „Übung“ nimmt den Termin wieder
+  weg — die Übung selbst bleibt dabei unverändert.
+
 ## 0.192
 
 - Du kannst jetzt eine einzelne Übung anlegen, ohne erst einen Plan zu bauen. Im „+“

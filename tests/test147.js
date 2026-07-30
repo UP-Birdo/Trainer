@@ -27,7 +27,12 @@ const zeichnen = grabFn("editorZeichnen");
 pruefe("Zeile wird aus dem Plan-Namen gesetzt",
   zeichnen.includes('document.getElementById("plan-einst-stand").textContent = editorPlan.name.trim() || "Einstellungen"'));
 pruefe("kein Stand-Text mehr auf der Zeile", !zeichnen.includes('"Einstellungen: "'));
-pruefe("Ueberschrift ist wieder statisch (keine id noetig)", !src.includes('id="editor-titel"'));
+/* v193: Die Ueberschrift hat wieder eine id — sie wechselt jetzt zwischen „Plan
+   bearbeiten" und „Uebung bearbeiten" (Umschalter im Kopf, Etappe 2 der
+   Uebungs-Entscheidung). Die v147-Zusage bleibt: Sie traegt NICHT den
+   Plan-Namen, der stuende sonst doppelt da. Genau das wird hier geprueft. */
+pruefe("Ueberschrift traegt nicht den Plan-Namen",
+  !grabFn("editorArtZeichnen").includes("editorPlan.name"));
 const tippen = grabFn("planNameTippen");
 pruefe("Tippen schreibt auf dieselbe Zeile", tippen.includes('getElementById("plan-einst-stand")'));
 pruefe("Tippen zeichnet den Editor NICHT neu", !tippen.includes("editorZeichnen"));

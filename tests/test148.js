@@ -48,7 +48,10 @@ const code = [
   "const document = { getElementById };",
   "const sitzung = { daten: { einrichtung: { sportarten:['kraft','laufen'] }, eigeneUebungen: {} } };",
   "let editorPlan = { sportart:'kraft', typ:'kraft', uebungen:[] };",
-  "let pickerFilter = { kat:'alle', geraet:'alle', art:'alle' };",
+  "let pickerFilter = { sport:'alle', kat:'alle', geraet:'alle', art:'alle' };",   // v193: sport kam dazu
+  "const SPORTARTEN = [{ id:'kraft', name:'Krafttraining' }, { id:'laufen', name:'Laufen' }];",
+  "function planTypFuer(id){ return id === 'kraft' ? 'kraft' : 'aktivitaet'; }",
+  grabFn("pickerSportKontext"),
   grabFn("pickerKandidaten"),
   grabFn("pickerFilterHtml"),
   "module.exports = { pickerKandidaten, pickerFilterHtml, GERAETE," +
@@ -112,7 +115,7 @@ setFilter({ kat:"alle", geraet:"alle", art:"kondition" });
 pruefe("Art Kondition filtert", pickerKandidaten().includes("Bergsprints"));
 
 /* ---------- 7) Welche Filter-Reihen es gibt ---------- */
-setPlan(kraftPlan()); setFilter({ kat:"alle", geraet:"alle", art:"alle" });
+setPlan(kraftPlan()); setFilter({ sport:"alle", kat:"alle", geraet:"alle", art:"alle" });
 const kraftFilter = pickerFilterHtml();
 pruefe("Kraft bekommt zwei Reihen", (kraftFilter.match(/filter-reihe/g) || []).length === 2);
 pruefe("Kraft-Reihen heissen Bereich und Geraet",
@@ -123,8 +126,24 @@ setPlan(laufPlan());
 const aktFilter = pickerFilterHtml();
 pruefe("Aktivitaet bekommt eine Reihe", (aktFilter.match(/filter-reihe/g) || []).length === 1);
 pruefe("Aktivitaets-Reihe heisst Art", aktFilter.includes("Art") && aktFilter.includes("Technik"));
+/* v193 (Nutzer-Ansage „Filter pro Sportart und darunter Geraet"): Ohne feste
+   Sportart stand hier bisher GAR NICHTS — beim Weg „Einzelne Uebung" ist das der
+   Normalfall. Jetzt steht die Sportart-Reihe da; waehlt man eine, kommt die
+   zweite Reihe (Geraet bzw. Art) darunter. Die Zusage von v148 bleibt: Es gibt
+   keine Filter, die auf nichts zeigen — bei nur EINER Profil-Sportart bleibt es
+   deshalb leer. */
 setPlan({ sportart:"", typ:"", uebungen:[] });
-pruefe("ohne Sportart gibt es nichts zu filtern", pickerFilterHtml() === "");
+const ohneSport = pickerFilterHtml();
+pruefe("ohne Sportart steht die Sportart-Reihe da",
+  (ohneSport.match(/filter-reihe/g) || []).length === 1 && ohneSport.includes("Sportart"));
+setFilter({ sport:"laufen", kat:"alle", geraet:"alle", art:"alle" });
+const mitSportFilter = pickerFilterHtml();
+pruefe("mit gewaehlter Sportart kommt die zweite Reihe dazu",
+  (mitSportFilter.match(/filter-reihe/g) || []).length === 2 && mitSportFilter.includes("Art"));
+setFilter({ sport:"kraft", kat:"alle", geraet:"alle", art:"alle" });
+pruefe("bei Kraft sind es Bereich UND Geraet",
+  (pickerFilterHtml().match(/filter-reihe/g) || []).length === 3);   // Sportart + Bereich + Gerät
+setFilter({ sport:"alle", kat:"alle", geraet:"alle", art:"alle" });
 
 /* ---------- 8) Aufbau der Ansicht ---------- */
 const ansicht = src.split('<section id="view-uebung-picker"')[1].split("</section>")[0];
@@ -140,7 +159,7 @@ pruefe("pickerBodyZeichnen ist entfallen", !src.includes("function pickerBodyZei
 /* ---------- 9) Verdrahtung ---------- */
 pruefe("Editor zeigt nur noch den Eingang", grabFn("uebungPickerZeichnen").includes('onclick="uebungPickerOeffnen()"'));
 pruefe("Oeffnen setzt die Filter zurueck",
-  grabFn("uebungPickerOeffnen").includes('pickerFilter = { kat:"alle", geraet:"alle", art:"alle" }'));
+  grabFn("uebungPickerOeffnen").includes('pickerFilter = { sport:"alle", kat:"alle", geraet:"alle", art:"alle" }'));
 pruefe("Oeffnen wechselt die Ansicht", grabFn("uebungPickerOeffnen").includes('zeige("view-uebung-picker")'));
 pruefe("Fertig fuehrt zurueck in den Editor", grabFn("pickerZurueck").includes('zeige("view-editor")'));
 pruefe("Auswaehlen bleibt in der Suche", grabFn("pickerKarteHinzu").includes("pickerAnsichtZeichnen()"));
