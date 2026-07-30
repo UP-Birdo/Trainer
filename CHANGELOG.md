@@ -3,6 +3,32 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.189
+
+- Deine Pausen zählen jetzt in der Belastungs-Rechnung mit: Wer dichter
+  trainiert, holt sich mehr Ermüdung — bei gleichem Gewicht und gleichen
+  Wiederholungen. Unter 45 Sekunden wiegt ein Satz etwas mehr, über 3 Minuten
+  etwas weniger.
+- Die Wirkung ist bewusst klein (höchstens 10 Prozent). Dass kurze Pausen härter
+  sind, ist gut belegt — um wie viel genau, ist es nicht. Lieber eine vorsichtige
+  Zahl als eine erfundene Genauigkeit.
+- Auf der Muskelkarte steht in der Grundlagen-Zeile jetzt „Pausen“ mit dabei. Das
+  ist der einzige Posten, für den du nichts eintragen musst — er kommt aus dem
+  Training selbst.
+
+## 0.188
+
+- Die App merkt sich ab jetzt, wie lange deine Pausen zwischen den Sätzen
+  wirklich waren — nicht, was im Plan steht. Wer 90 Sekunden geplant hat und 40
+  macht, trainiert dichter, und das soll die Belastungs-Rechnung im nächsten
+  Schritt berücksichtigen können.
+- Gemessen wird von der Pause bis zum nächsten Satz, das Bereitmachen zählt mit —
+  auch dabei erholst du dich. Hältst du das Training an, läuft die Pause weiter:
+  Dein Muskel weiß nichts von der Uhr.
+- Legst du das Handy weg und machst Stunden später weiter, wird nichts
+  eingetragen. Eine Unterbrechung ist keine Pause, und keine Zahl ist ehrlicher
+  als eine falsche.
+
 ## 0.187
 
 - Jeder vergangene Tag ohne Training wird jetzt als Ruhetag im Kalender vermerkt

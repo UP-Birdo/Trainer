@@ -62,6 +62,13 @@ new Function("module", "exports", [
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
+  /* v189: Die Grundlagen-Zeile nennt jetzt auch die gemessenen Pausen. In
+     dieser Datei tragen die Test-Trainings keine, der Posten steht hier also
+     immer unter „fehlt" — die v167-Zusagen bleiben unveraendert. Gebaut wird
+     die Aussage in test189. */
+  "const MUSKEL_HEAT_TAGE = 7;",
+  grabFn("echteSaetze"),
+  grabFn("pausenGemessen"),
   grabFn("rechnungsGrundlage"),
   grabFn("grundlageText"),
   grabFn("auslastungStufe"),

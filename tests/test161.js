@@ -42,6 +42,11 @@ const code = [
   "function uebungMuskeln(n){ return KARTE[n] || null; }",
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
+  /* v189: die gemessene Pause wiegt in satzGewichtung mit. Ohne Pausen-Feld ist
+     der Faktor 1 — alle Zusagen dieser Datei gelten damit unveraendert weiter
+     (test189 prueft sie zusaetzlich Wert fuer Wert nach). */
+  "const PAUSE_STUFEN = " + grabLiteral("PAUSE_STUFEN") + ";",
+  grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
   grabFn("satzGewichtung"),
   grabFn("muskelLast"),

@@ -65,6 +65,11 @@ const code = [
   grabFn("kapazitaetsFaktor"),
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
+  /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne
+     Pausen-Feld ist der Faktor 1, die Zusagen hier bleiben also unveraendert —
+     die Bausteine muessen aber in der Umgebung liegen. Wirkung: test189. */
+  "const PAUSE_STUFEN = " + grabLiteral("PAUSE_STUFEN") + ";",
+  grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
   grabFn("satzGewichtung"),
   grabFn("muskelLast"),

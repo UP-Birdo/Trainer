@@ -2573,7 +2573,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 187;
+const APP_VERSION = 189;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5684,6 +5684,16 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.189", punkte:[
+    "Deine Pausen zählen jetzt in der Belastungs-Rechnung mit: Wer dichter trainiert, holt sich mehr Ermüdung — bei gleichem Gewicht und gleichen Wiederholungen. Unter 45 Sekunden wiegt ein Satz etwas mehr, über 3 Minuten etwas weniger.",
+    "Die Wirkung ist bewusst klein (höchstens 10 Prozent). Dass kurze Pausen härter sind, ist gut belegt — um wie viel genau, ist es nicht. Lieber eine vorsichtige Zahl als eine erfundene Genauigkeit.",
+    "Auf der Muskelkarte steht in der Grundlagen-Zeile jetzt „Pausen“ mit dabei. Das ist der einzige Posten, für den du nichts eintragen musst — er kommt aus dem Training selbst."
+  ]},
+  { stand:"0.188", punkte:[
+    "Die App merkt sich ab jetzt, wie lange deine Pausen zwischen den Sätzen wirklich waren — nicht, was im Plan steht. Wer 90 Sekunden geplant hat und 40 macht, trainiert dichter, und das soll die Belastungs-Rechnung im nächsten Schritt berücksichtigen können.",
+    "Gemessen wird von der Pause bis zum nächsten Satz, das Bereitmachen zählt mit — auch dabei erholst du dich. Hältst du das Training an, läuft die Pause weiter: Dein Muskel weiß nichts von der Uhr.",
+    "Legst du das Handy weg und machst Stunden später weiter, wird nichts eingetragen. Eine Unterbrechung ist keine Pause, und keine Zahl ist ehrlicher als eine falsche."
+  ]},
   { stand:"0.187", punkte:[
     "Jeder vergangene Tag ohne Training wird jetzt als Ruhetag im Kalender vermerkt — einen Tag später, wenn er wirklich vorbei ist. Bisher passierte das nur, wenn du die App mehrere Tage nicht geöffnet hattest: Wer täglich hereinschaut, bekam nie einen automatischen Ruhetag, weil der gestrige Tag als „schon besucht“ übersprungen wurde.",
     "Der heutige Tag bleibt bewusst frei — du könntest ja noch trainieren. Und wenn du für so einen Tag später doch ein Training nachträgst, verschwindet der Ruhetag von selbst.",
@@ -8278,12 +8288,54 @@ function maxGewichtJeUebung(protokoll){
     Ohne beides bleibt es beim neutralen 1 — geraten wird nicht. Rein/testbar. */
 function satzGewichtung(satz, maxGewicht){
   const n = satz && Number(satz.note);
-  if(n >= 1 && n <= 5) return NOTE_GEWICHT[n];
-  if(maxGewicht > 0 && satz && satz.gewicht > 0){
+  let wert;
+  if(n >= 1 && n <= 5) wert = NOTE_GEWICHT[n];
+  else if(maxGewicht > 0 && satz && satz.gewicht > 0){
     const rel = Math.min(1, satz.gewicht / maxGewicht);
-    return Math.round((0.6 + 0.4 * rel) * 100) / 100;
-  }
-  return 1;
+    wert = 0.6 + 0.4 * rel;
+  } else wert = 1;
+  // v189: Die gemessene Pause (v188) wiegt zusätzlich — klein und gedeckelt.
+  return Math.round(wert * pauseFaktor(satz && satz.pause) * 100) / 100;
+}
+
+/* v189 (ROADMAP, Belastungs-Modell A6, Teil 2): Die gemessene Pause geht in die
+   Rechnung ein. Kürzere Pausen erzeugen mehr Ermüdung je Satz — dasselbe
+   Gewicht, dieselben Wiederholungen, aber weniger Erholung dazwischen ist der
+   härtere Reiz.
+
+   WARUM SO KLEIN: Für „wie viele Satz-Äquivalente ist ein Satz mit 30 s Pause
+   wert" gibt es keine belastbare Zahl. Die Richtung ist gut belegt, die Größe
+   nicht. Also dieselbe Zurückhaltung wie bei Schlaf, Alter und Geschlecht:
+   höchstens ±10 % Ausschlag. Ohne Messwert bleibt es beim neutralen 1 — „kein
+   Wert, kein Effekt" (Nutzer-Ansage, gilt hier wie überall).
+
+   Die Stufen orientieren sich an den gängigen Trainings-Empfehlungen: unter
+   einer Minute ist Kraftausdauer-Dichte, 1–3 Minuten der übliche Bereich für
+   Hypertrophie, darüber liegt die vollere Erholung des Kraft-Trainings. */
+const PAUSE_STUFEN = [
+  { bis:45,       faktor:1.10 },   // sehr dicht
+  { bis:90,       faktor:1.05 },   // kurz
+  { bis:180,      faktor:1.00 },   // üblich — der neutrale Bereich
+  { bis:Infinity, faktor:0.95 }    // lang, gut erholt
+];
+
+/** Wie stark wiegt ein Satz wegen seiner Pause? 1 = neutral. Rein/testbar. */
+function pauseFaktor(pause){
+  if(typeof pause !== "number" || !isFinite(pause) || pause < 0) return 1;
+  const stufe = PAUSE_STUFEN.find(s => pause <= s.bis);
+  return stufe ? stufe.faktor : 1;
+}
+
+/** Liegen im Fenster überhaupt gemessene Pausen vor? Für die Grundlagen-Zeile —
+    sie soll sagen, was in der Einschätzung steckt. Rein/testbar. */
+function pausenGemessen(protokoll, heute, tage){
+  const fenster = tage || MUSKEL_HEAT_TAGE;
+  return (protokoll || []).some(e => {
+    if(!e || !e.datum) return false;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > fenster) return false;
+    return echteSaetze(e).some(s => s && typeof s.pause === "number");
+  });
 }
 
 /** Gewichtete Sätze je Muskel im Fenster + Tage seit dem letzten Reiz.
@@ -8350,6 +8402,13 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
   (alterJahre(p, heute) ? hat : fehlt).push("Alter");
   (schlafSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Schlaf");
   (befindenSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Befinden");   // v168
+  /* v189: Die Pausen kommen aus dem Training selbst — der einzige Posten der
+     Zeile, für den der Nutzer NICHTS eintragen kann. Deshalb stehen sie nur
+     unter „hat", nie unter „fehlt": Die Fehlt-Liste mündet in „Damit würde die
+     Einschätzung genauer", also in eine Aufforderung. Bei den Pausen gäbe es
+     nichts zu tun außer „trainiere mit der App statt nachzutragen" — das wäre
+     eine Belehrung, keine Hilfe. Fehlen sie, schweigt die Zeile darüber. */
+  if(pausenGemessen(protokoll, heute)) hat.push("Pausen");
   return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
            annahme: !e.erfahrung };
 }
@@ -13688,7 +13747,12 @@ async function trainingFortsetzenAnbieten(){
       bildschirmWachhalten();
       lauf = { plan: stand.plan, schritte: stand.schritte, index: stand.index,
                saetze: stand.saetze || [], timerId: null, ende: 0, dauer: 0,
-               startZeit: stand.startZeit || Date.now() };
+               startZeit: stand.startZeit || Date.now(),
+               /* v188: bewusst OHNE laufende Pause. Wer ein Training fortsetzt,
+                  war zwischendurch weg — wie lange die Pause wirklich war, weiß
+                  hier niemand. Der erste Satz nach der Wiederaufnahme bekommt
+                  deshalb keinen Pausen-Wert statt eines geratenen. */
+               pauseStart: null };
       zeige("view-training");
       schrittBetreten();
     });
@@ -14571,7 +14635,8 @@ function trainingLosgehts(){
   audioFreischalten();
   bildschirmWachhalten();
   lauf = { plan, schritte:ablaufErzeugen(plan), index:0, timerId:null, ende:0, dauer:0,
-           startZeit: Date.now(), saetze: [] };
+           startZeit: Date.now(), saetze: [],
+           pauseStart: null };   // v188: läuft eine Pause? (Beginn in ms)
   zeige("view-training");
   schrittBetreten();
 }
@@ -14648,6 +14713,34 @@ function istNeuerRekord(satz, vorherigeSaetze, historienBest){
   return wert > best;
 }
 
+/* v188 (ROADMAP, Belastungs-Modell Gruppe A, Punkt 6): Wie lange war die Pause
+   VOR diesem Satz wirklich?
+
+   WARUM gemessen und nicht aus dem Plan gelesen: `u.pause` ist die GEPLANTE
+   Pause. Wer 90 s im Plan stehen hat und 40 s macht, trainiert dichter — und
+   genau das ist die Aussage, um die es geht. Die geplante Zahl wüsste davon
+   nichts.
+
+   Gemessen wird die Wanduhr-Zeit von „Pause betreten" bis „Satz betreten",
+   inklusive eines „Bereitmachen"-Schritts und inklusive eines Anhaltens: Der
+   Muskel erholt sich auch dann, wenn die Uhr der App steht.
+
+   `PAUSE_MESS_MAX` verwirft Unsinn. Wer das Training weglegt und zwei Stunden
+   später weitermacht, hat keine „Pause von 7200 s" gemacht, sondern
+   unterbrochen. Über der Grenze wird NICHTS abgelegt — kein Wert ist ehrlicher
+   als ein falscher, dieselbe Linie wie beim Schlaf („kein Wert, kein Effekt"). */
+const PAUSE_MESS_MAX = 1800;   // 30 Minuten
+
+/** Gemessene Pause in Sekunden — oder `null`, wenn es keine belastbare Zahl
+    gibt (kein Start, Uhr verstellt, oder jenseits der Grenze). Rein/testbar. */
+function gemessenePause(startMs, jetztMs){
+  if(typeof startMs !== "number" || typeof jetztMs !== "number") return null;
+  if(!isFinite(startMs) || !isFinite(jetztMs)) return null;
+  const sek = Math.round((jetztMs - startMs) / 1000);
+  if(sek < 0 || sek > PAUSE_MESS_MAX) return null;
+  return sek;
+}
+
 function satzProtokollieren(schritt, istSekunden){
   // v135: Aufwärmsätze zählen nicht — sie sind Vorbereitung, kein Trainingsreiz.
   // Sonst verwässerten sie Volumen, Bestwerte und die Rekord-Meldung.
@@ -14667,6 +14760,11 @@ function satzProtokollieren(schritt, istSekunden){
   // und als solcher markiert. Die Markierung ist wichtig: `effektiveNote` (v113)
   // darf ihn nicht als „Soll verfehlt" lesen, er hat ja bewusst weniger Gewicht.
   if(schritt && schritt.drop) eintrag.drop = true;
+  /* v188: Die gemessene Pause VOR diesem Satz — additiv, und nur wenn es eine
+     belastbare Zahl gibt. Sie hängt am Schritt (nicht am `lauf`), damit jeder
+     Satz seinen eigenen Wert trägt und nichts über Schritte hinweg verrutscht.
+     Der erste Satz einer Übung hat keine und bekommt deshalb kein Feld. */
+  if(schritt && typeof schritt.istPause === "number") eintrag.pause = schritt.istPause;
   // v127: Vergleich VOR dem Anhängen ziehen — sonst wäre der Satz sein eigener Rekord.
   const vorher = lauf.saetze.slice();
   lauf.saetze.push(eintrag);
@@ -14705,6 +14803,17 @@ function schrittBetreten(){
   trainingSichern();   // v80: Zwischenstand je Schritt — überlebt einen App-Abbruch
 
   const s = lauf.schritte[lauf.index];
+  /* v188: Die Pausen-Messung. Sie steht VOR der Fallunterscheidung, damit sie
+     für beide Satz-Arten gilt und nicht in einem Zweig vergessen wird.
+     „Bereitmachen" beendet die Messung bewusst NICHT — es liegt zwischen Pause
+     und Satz, und in Position zu gehen ist noch Erholung. */
+  if(s.typ === "satz-wdh" || s.typ === "satz-zeit"){
+    const gemessen = gemessenePause(lauf.pauseStart, Date.now());
+    if(gemessen != null) s.istPause = gemessen;
+    lauf.pauseStart = null;
+  } else if(s.typ === "pause"){
+    lauf.pauseStart = Date.now();
+  }
   const laeuftUhr = s.typ !== "satz-wdh";
   pauseK.disabled = !laeuftUhr;
   document.getElementById("minus-knopf").disabled = !laeuftUhr || s.typ === "bereit";
