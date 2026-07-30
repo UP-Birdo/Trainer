@@ -589,6 +589,11 @@ body:not(.nav-an) #nav{display:none}
 .plan-zeile .plan-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* v109: Sportart-Kopf als Akkordeon-Zeile bei sehr vielen Plänen. */
 .plan-gruppe{margin-bottom:8px}
+/* v192: Marke „Übung"/„Plan" in der Liste — klein und ruhig, sie ordnet ein und
+   drängt sich nicht vor den Namen. */
+.art-marke{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);
+  border-radius:5px;padding:1px 5px;margin-right:6px;vertical-align:middle}
 
 /* v112: ganze Statistik-Karte antippbar (Muskelkarte / Kalender) statt eigener Knöpfe. */
 .stat-tap{cursor:pointer}
@@ -929,7 +934,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-plaene" class="view">
   <!-- v76: Auf Stufe 1/2 ist dies der „Notizblock"; der Titel wechselt und der
        „⋯ Mehr"-Knopf ersetzt die (dort ausgeblendete) Nav-Leiste. -->
-  <div class="kopf"><h1 id="plaene-titel">Pläne</h1>
+  <!-- v192: Der Tab heißt „Übungen" — er zeigt einzelne Übungen UND Pläne
+       (Etappe 1 der Übungs-Entscheidung). Auf Stufe 1/2 bleibt er der
+       „Notizblock", siehe notizblockKopfSetzen. -->
+  <div class="kopf"><h1 id="plaene-titel">Übungen</h1>
     <button id="plaene-info-knopf" class="info-knopf" hidden onclick="infoUmschalten('info-notizblock')" aria-label="Info">i</button>
     <button id="plaene-mehr" class="schmal" hidden onclick="einstellungenOeffnen()">⋯ Mehr</button></div>
   <!-- v123: Der Muster-Hinweis der Stufe 1 stand als Textwand über dem Notizblock.
@@ -1505,8 +1513,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      wenn die Suche nichts Passendes hergab.
      ============================================================ -->
 <section id="view-uebung-picker" class="view">
-  <div class="kopf"><h1>Übung hinzufügen</h1>
-    <button class="schmal" onclick="pickerZurueck()" data-zurueck>Fertig</button></div>
+  <!-- v192: Derselbe Bildschirm trägt jetzt zwei Wege — „Übung hinzufügen"
+       (aus dem Editor) und „Einzelne Übung" (der neue Weg). Titel und
+       Rück-Knopf sagen, welcher gerade läuft; pickerKopfSetzen stellt sie. -->
+  <div class="kopf"><h1 id="picker-titel">Übung hinzufügen</h1>
+    <button id="picker-zurueck" class="schmal" onclick="pickerZurueck()" data-zurueck>Fertig</button></div>
   <!-- v56: Eine gewählte Übung wartet auf ihre Sportart (mehrere Treffer). -->
   <div id="picker-wartet" class="karte" hidden></div>
   <div id="picker-suchkarte" class="karte">
@@ -1913,7 +1924,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      navAktualisieren(). Reihenfolge: Heute · Pläne · Statistik · Profil · Mehr. -->
 <nav id="nav">
   <button id="nav-start" onclick="navGehe('start')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/><path d="M10 20v-5h4v5"/></svg></span>Heute</button>
-  <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="16" rx="2.5"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg></span>Pläne</button>
+  <button id="nav-plaene" onclick="navGehe('plaene')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4" width="15" height="16" rx="2.5"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg></span>Übungen</button>
   <button id="nav-statistik" onclick="navGehe('statistik')"><span class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7.5 20v-6"/><path d="M12 20v-10"/><path d="M16.5 20v-4"/></svg></span>Statistik</button>
   <button id="nav-einst" onclick="navGehe('einstellungen')"><span class="sym"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></span>Mehr</button>
 </nav>
@@ -2595,7 +2606,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 191;
+const APP_VERSION = 192;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3666,7 +3677,7 @@ function notizblockKopfSetzen(){
   const mehr  = document.getElementById("plaene-mehr");
   const info  = document.getElementById("plaene-info-knopf");
   const text  = document.getElementById("info-notizblock");
-  if(titel) titel.textContent = einfach ? "Notizblock" : "Pläne";
+  if(titel) titel.textContent = einfach ? "Notizblock" : "Übungen";   // v192: Tab-Beschriftung
   if(mehr)  mehr.hidden = !einfach;
   /* v155 (Nutzer-Wunsch): Das „i" im Kopf ist entfallen. Es erklärte das
      Schreibmuster — seit der Autokorrektur (notizZeileDeuten) muss man es nicht
@@ -4424,6 +4435,42 @@ function sichtbarePlaene(){
    Schwellen bewusst konservativ: bis 4 Pläne volle Karten, ab 9 Plänen über
    mindestens 2 Sportarten nur die Sportart-Köpfe (Akkordeon), dazwischen
    schlanke Zeilen (Name links, Start rechts). */
+/* ------------------------------------------------------------
+   v192 — Etappe 1 der Übungs-Entscheidung: „Übung" oder „Plan"?
+
+   Der Nutzer hat die Grundeinheit umgedreht: Nicht mehr „alles ist ein Plan",
+   sondern „alles ist eine Übung, ein Plan bündelt und terminiert sie". Seine
+   Definition: **Ein Plan ist eine oder mehrere Übungen MIT Termin-Einstellungen;
+   eine Übung allein zeigt nur ihre Vorschau.**
+
+   Daraus folgt die Regel unten — und bewusst KEIN gespeichertes Feld: Die Art
+   wird aus dem Plan ABGELEITET. Ein Merkmal „ist eine Übung", das beim Anlegen
+   gesetzt würde, liefe sofort auseinander: Wer einer Übung einen Wochentag gibt
+   (Etappe 2) oder eine zweite Übung dazulegt, hat einen Plan — auch wenn das
+   Feld noch etwas anderes behauptete. Abgeleitet stimmt es immer, und der
+   Datenvertrag bleibt unberührt (kein neues Feld, keine Nachrüstung).
+
+   Ein Aktivitäts-Plan ohne Übungen (reine Stoppuhr: „Laufen 30 min") bleibt ein
+   Plan — er hat keine einzelne Übung, die man zeigen könnte, sondern eine
+   Vorgabe. Das ist kein Sonderfall, sondern dieselbe Regel: 0 Übungen ≠ 1 Übung.
+   ------------------------------------------------------------ */
+function planArt(plan){
+  if(!plan) return "plan";
+  const uebungen = plan.uebungen || [];
+  const tage     = plan.tage || [];
+  const termine  = plan.einzelTermine || [];
+  const terminiert = tage.length > 0 || termine.length > 0;
+  return (uebungen.length === 1 && !terminiert) ? "uebung" : "plan";
+}
+
+/** Die Marke, die in der Liste Übung von Plan unterscheidet (v192).
+    Beide bekommen eine — stünde sie nur an der Übung, müsste man wissen, dass
+    „keine Marke" Plan bedeutet. */
+function planArtName(plan){ return planArt(plan) === "uebung" ? "Übung" : "Plan"; }
+function planArtMarkeHtml(plan){
+  return '<span class="art-marke">' + planArtName(plan) + '</span>';
+}
+
 const PLAN_VOLL_MAX = 4;
 const PLAN_AKKORDEON_MIN = 9;
 let planGruppenOffen = new Set();   // im Akkordeon aufgeklappte Sportarten (leer = alle zu)
@@ -4453,7 +4500,9 @@ function planListeZeichnen(){
     // Beispielplan, Intervall-Plan, Nachtragen) liegt im gelben „+" darunter.
     // Ab Stufe 5 ist das der Assistent, darunter gibt es ihn nicht: dort ist
     // „Eigenen Plan" die eine Aktion, sonst stünde der Leer-Zustand ohne Weg da.
-    ziel.innerHTML = '<div class="leer">Noch kein Plan angelegt.<br><br>' +
+    // v192: Der Leer-Satz nennt keine Plan-Art mehr — hier fehlt jetzt beides,
+    // die einzelne Übung wie der Plan.
+    ziel.innerHTML = '<div class="leer">Noch nichts angelegt.<br><br>' +
       '<div class="knopfreihe">' +
       (stufe() >= 5
         ? '<button class="primaer schmal" onclick="einrichtungOeffnen()">Trainingsplanung</button>'
@@ -4494,7 +4543,10 @@ function planListeZeichnen(){
       // v132: rechts die Muskel-Map des GANZEN Plans (vorne + hinten) — so sieht
       // man von außen, was der Plan trifft, ohne ihn zu öffnen.
       '<div class="plan-kopfzeile"><div class="plan-text">' +
-      (marke ? '<div class="meta" style="margin-bottom:4px">' + marke + '</div>' : "") +
+      // v192: Übung oder Plan? Die Marke steht über dem Namen, wo bisher schon
+      // die Tage stehen — bei einer Übung ist diese Zeile ohnehin leer (v147).
+      '<div class="meta" style="margin-bottom:4px">' + planArtMarkeHtml(p) +
+        (marke ? text(marke) : "") + '</div>' +
       '<h2>' + haken + text(p.name) + '</h2>' +
       '<div class="meta">' +
         // v191: Bei wechselnden Einheiten steht hier, was als NÄCHSTES dran ist —
@@ -4521,7 +4573,10 @@ function planListeZeichnen(){
     const haken = planAuswahlModus ? '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span> ' : "";
     return '<div class="karte plan-zeile stat-tap' + (gewaehlt ? " plan-gewaehlt" : "") + '" data-plan="' + p.id + '" onclick="planTippen(\'' + p.id + '\')">' +
       '<div class="zeile">' +
-        '<span class="plan-name">' + haken + text(p.name) + '</span>' +
+        // v192: dieselbe Marke wie auf der Karte — die Liste unterscheidet
+        // Übung und Plan in JEDER Dichte, sonst hinge die Auskunft daran, wie
+        // viele Pläne man gerade hat.
+        '<span class="plan-name">' + haken + planArtMarkeHtml(p) + text(p.name) + '</span>' +
         (planAuswahlModus ? "" :
         '<button class="primaer schmal" onclick="event.stopPropagation();trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>') +
       '</div></div>';
@@ -4589,6 +4644,11 @@ function planDuplizieren(planId){
 function planNeuWege(stufeNr, sportarten){
   const liste = sportarten || [];
   const wege = [];
+  /* v192: „Einzelne Übung" steht GANZ OBEN — sie ist ab jetzt die Grundeinheit
+     (Etappe 1 der Übungs-Entscheidung), und der kürzeste Weg zum ersten
+     Training gehört an die erste Stelle. Der Assistent bleibt vorerst darunter
+     stehen; er verschwindet erst in Etappe 3, wenn der Ersatz trägt. */
+  wege.push("uebung");
   if(stufeNr >= 5) wege.push("assistent");
   wege.push("eigen");
   if(liste.includes("kraft")) wege.push("beispiel");
@@ -4607,6 +4667,7 @@ function planNeuMenue(){
   // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
   if(stufe() <= 2){ abschnittAnlegen(); return; }
   const wege = {
+    uebung:     { text:"Einzelne Übung",        tun: uebungAlleinAnlegen },   // v192
     assistent:  { text:"Plan mit Assistent",    tun: einrichtungOeffnen },
     eigen:      { text:"Eigenen Plan erstellen", tun: planAnlegen },
     beispiel:   { text:"Beispielplan laden",     tun: beispielLaden },
@@ -5724,6 +5785,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.192", punkte:[
+    "Du kannst jetzt eine einzelne Übung anlegen, ohne erst einen Plan zu bauen. Im „+“ steht ganz oben „Einzelne Übung“: aussuchen, fertig — sie liegt sofort startbar in der Liste, ganz ohne Namen, Wochentag und Einstellungen.",
+    "Der Tab heißt darum nicht mehr „Pläne“, sondern „Übungen“. Er zeigt beides, und jede Karte sagt jetzt, was sie ist: eine einzelne Übung oder ein Plan.",
+    "Der Unterschied ist einfach: Eine Übung ist eine Übung ohne festen Tag. Sobald sie einen Trainingstag bekommt oder eine zweite Übung dazukommt, ist sie ein Plan — dafür musst du nichts umstellen, die App sieht es dem Eintrag an.",
+    "Alles Bisherige bleibt: Der Assistent, der eigene Plan und der Beispielplan stehen weiter im „+“. Deine vorhandenen Pläne ändern sich nicht."
+  ]},
   { stand:"0.191", punkte:[
     "Ausdauer-Pläne laufen nicht mehr jedes Mal dasselbe. Ein Laufplan wechselt jetzt durch fünf Einheiten: Grundlagen, Tempo, Grundlagen, Regeneration, langer Lauf — und dann von vorn. Auf der Plan-Karte und in der Stoppuhr steht, was heute dran ist.",
     "Die Länge rechnet die App aus deiner Vorgabe: Der Grundlagen-Lauf ist deine Strecke, der lange das Anderthalbfache, Tempo und Regeneration entsprechend kürzer. Deine Zahl im Plan bleibt der Maßstab.",
@@ -12303,6 +12370,10 @@ function eigeneErstellen(){
   editorPlan.uebungen.push(eigeneUebungBauen(name, modus, saetze, wert, sport));
   editorUebungOffen = editorPlan.uebungen.length - 1;   // v105: neue Übung aufklappen
   eigenBauerOffen = false;
+  /* v192: Auch selbst geschrieben ist eine einzelne Übung fertig — Sätze und
+     Werte hat man ja gerade eben hier eingegeben. Nur im Editor-Weg geht es
+     zum Feinstellen weiter. */
+  if(einzelUebungAbschliessen()) return;
   /* v148: Eine selbst geschriebene Übung will man in aller Regel gleich einstellen
      (Sätze, Gewicht) — also zurück in den Editor, wo sie aufgeklappt wartet.
      Beim Auswählen aus der Liste ist es andersherum: dort bleibt man in der Suche. */
@@ -13027,6 +13098,7 @@ let editorPlan = null;
    zurückgesetzt — nichts davon gehört zum Plan. */
 let pickerFilter = { kat:"alle", geraet:"alle", art:"alle" };
 function planAnlegen(){
+  uebungEinzelModus = false;   // v192: der Editor-Weg, nicht der Einzel-Weg
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
@@ -13042,7 +13114,61 @@ function planAnlegen(){
   zeige("view-editor");
 }
 
+/* ------------------------------------------------------------
+   v192 — der Weg „Einzelne Übung" (Etappe 1 der Übungs-Entscheidung).
+
+   Bisher führte JEDER Weg zum ersten Training über einen Plan: Assistent oder
+   Editor, beide mit Namen, Wochentagen und Einstellungen. Wer nur „heute mal
+   Klimmzüge" machen will, musste dafür einen Plan bauen.
+
+   Der neue Weg nutzt bewusst DIESELBE Übungs-Suche wie der Editor
+   (`view-uebung-picker`) — Filter, Karten, Muskel-Figuren und „Eigene Übung
+   schreiben" gibt es damit geschenkt, und es gibt weiter nur EINEN Ort, an dem
+   Übungen ausgewählt werden. Der Unterschied steckt nur im Ausgang: Im
+   Einzel-Modus ist die erste gewählte Übung fertig — sie wird sofort abgelegt
+   (Name = Übungsname, kein fester Tag) und steht startbar in der Liste, statt
+   den Editor zu öffnen.
+   ------------------------------------------------------------ */
+let uebungEinzelModus = false;
+
+function uebungAlleinAnlegen(){
+  uebungEinzelModus = true;
+  editorMehr = {};
+  editorUebungOffen = null;
+  editorEinstOffen = false;
+  /* Aufwärmen und Dehnen stehen hier bewusst auf AUS (im Editor sind sie an):
+     Eine einzelne Übung ist der schnelle Griff, kein Trainingsablauf — wer sie
+     später terminiert (Etappe 2), kann beides im Editor dazuschalten. */
+  editorPlan = { id:neueId(), name:"", uebungen:[], reihenfolge:"klassisch",
+                 aufwaermen:false, dehnen:false, sportart:"", typ:"", tage:[],
+                 wochenTakt:1, wochenAnker:0, einzelTermine:[] };
+  const menueKnopf = document.getElementById("editor-menue-knopf");
+  if(menueKnopf) menueKnopf.hidden = true;
+  // Wie beim Plan-Anlegen (v126): eine einzige Profil-Sportart wird nicht gefragt.
+  const meine = sitzung.daten.einrichtung.sportarten || [];
+  if(meine.length === 1) planSportartSetzen(meine[0]); else editorZeichnen();
+  uebungPickerOeffnen();
+}
+
+/** Die gewählte Übung ist die ganze Sache: ablegen und zurück in die Liste.
+    Läuft über `planSichern` — es soll nur EINEN Ort geben, an dem etwas in die
+    Liste kommt. Rückgabe sagt, ob abgeschlossen wurde (der Picker hört dann auf,
+    weiterzuzeichnen). */
+function einzelUebungAbschliessen(){
+  if(!uebungEinzelModus) return false;
+  const u = editorPlan.uebungen[0];
+  if(!u) return false;
+  editorPlan.name = u.name;
+  editorPlan.tage = [];            // ohne festen Tag — sonst wäre es ein Plan (planArt)
+  editorPlan.einzelTermine = [];
+  eigeneUebungenAblegen(editorPlan);   // selbst geschriebene Übung ins Profil (v44)
+  uebungEinzelModus = false;
+  planSichern("Übung gespeichert");
+  return true;
+}
+
 function editorOeffnen(planId){
+  uebungEinzelModus = false;   // v192: ein bestehender Plan wird immer im Editor bearbeitet
   editorMehr = {};
   editorUebungOffen = null;   // v105: keine Übungs-Karte offen
   editorEinstOffen = false;   // v126/v131: Grundeinstellungen zugeklappt starten
@@ -13539,14 +13665,33 @@ function uebungPickerOeffnen(){
   uebungWartet = null;
   const feld = document.getElementById("picker-suche");
   if(feld) feld.value = "";
+  pickerKopfSetzen();
   pickerAnsichtZeichnen();
   zeige("view-uebung-picker");
 }
 
+/** v192: Kopf der Übungs-Suche je Weg. Im Einzel-Modus ist noch NICHTS
+    gespeichert — deshalb „Abbrechen"; im Editor-Weg stehen die gewählten
+    Übungen längst im Plan, deshalb dort weiterhin „Fertig". */
+function pickerKopfSetzen(){
+  const titel = document.getElementById("picker-titel");
+  const zurueck = document.getElementById("picker-zurueck");
+  if(titel) titel.textContent = uebungEinzelModus ? "Einzelne Übung" : "Übung hinzufügen";
+  if(zurueck) zurueck.textContent = uebungEinzelModus ? "Abbrechen" : "Fertig";
+}
+
 /** Zurück in den Editor — die Übungen sind schon drin (jede Karte fügt sofort
-    hinzu), es gibt hier nichts zu bestätigen. Darum „Fertig" statt „Abbrechen". */
+    hinzu), es gibt hier nichts zu bestätigen. Darum „Fertig" statt „Abbrechen".
+    v192: Im Einzel-Modus gibt es keinen Editor, in den man zurückkehren könnte —
+    dort ist der Knopf ein echtes Abbrechen und führt in die Liste. */
 function pickerZurueck(){
   uebungWartet = null;
+  if(uebungEinzelModus){
+    uebungEinzelModus = false;
+    planListeZeichnen();
+    zeige("view-plaene");
+    return;
+  }
   editorZeichnen();
   zeige("view-editor");
 }
@@ -13704,6 +13849,9 @@ function pickerKarteHinzu(name){
     else { meldung("Diese Übung gehört zu keiner deiner Sportarten."); return; }
   }
   uebungInPlanHinzufuegen(name);
+  // v192: Im Einzel-Modus ist die erste Übung schon die ganze Sache — ablegen
+  // und zurück in die Liste, statt in der Suche zu bleiben.
+  if(einzelUebungAbschliessen()) return;
   /* v148: Wir bleiben in der Suche — meist nimmt man mehrere Übungen auf einmal
      auf. Die eben gewählte fällt von selbst aus der Liste (sie steht ja im Plan);
      der Toast bestätigt, dass etwas passiert ist, obwohl die Ansicht bleibt. */
@@ -13750,6 +13898,7 @@ function pickerSportBestaetigen(sportId){
   const name = uebungWartet; uebungWartet = null;
   planSportartSetzen(sportId);            // Sportart + Typ festlegen (rendert)
   uebungInPlanHinzufuegen(name);          // dann die Übung anhängen (rendert)
+  if(einzelUebungAbschliessen()) return;  // v192: im Einzel-Modus ist sie damit fertig
   pickerAnsichtZeichnen();                // v148: zurück zur Suche, jetzt mit Filtern
   zeigenToast(name + " hinzugefügt", "erfolg");
 }
@@ -13823,11 +13972,19 @@ function editorSpeichern(){
   });
   // Eine Aktivität DARF ohne Übungen auskommen — die Dauer ist der Inhalt.
   if(!istAktivitaet && editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
-  // v44 (C3): eigene Übungen erst JETZT (beim Speichern) im Profil unter ihrer
-  // Sportart ablegen — von dort speisen sie Picker und Sportart-Seite.
+  eigeneUebungenAblegen(editorPlan);
+  planSichern();
+}
+
+/** v44 (C3): eigene Übungen erst beim Speichern im Profil unter ihrer Sportart
+    ablegen — von dort speisen sie Picker und Sportart-Seite.
+    v192: aus `editorSpeichern` herausgelöst, weil der Weg „Einzelne Übung"
+    dasselbe braucht; eine selbst geschriebene Übung darf nicht davon abhängen,
+    über welchen Weg sie entstanden ist. */
+function eigeneUebungenAblegen(plan){
   if(!sitzung.daten.eigeneUebungen) sitzung.daten.eigeneUebungen = {};
-  editorPlan.uebungen.filter(u => u.eigen).forEach(u => {
-    const sp = u.eigenSport || editorPlan.sportart;
+  (plan.uebungen || []).filter(u => u.eigen).forEach(u => {
+    const sp = u.eigenSport || plan.sportart;
     const liste = sitzung.daten.eigeneUebungen[sp] || (sitzung.daten.eigeneUebungen[sp] = []);
     if(!liste.some(x => x.name === u.name)){
       liste.push({ name:u.name, modus:u.modus, saetze:u.saetze,
@@ -13835,17 +13992,18 @@ function editorSpeichern(){
                    dauer: u.modus === "zeit" ? u.dauer : undefined });
     }
   });
-  planSichern();
 }
 
-/** Legt den bearbeiteten Plan ab — für beide Typen derselbe Weg. */
-function planSichern(){
+/** Legt den bearbeiteten Plan ab — für beide Typen derselbe Weg.
+    v192: Der Toast-Text ist übergebbar, damit der Weg „Einzelne Übung" nicht
+    „Plan gespeichert" meldet. Ohne Angabe bleibt alles wie bisher. */
+function planSichern(meldungText){
   const plaene = sitzung.daten.plaene;
   const index = plaene.findIndex(p => p.id === editorPlan.id);
   if(index >= 0) plaene[index] = editorPlan; else plaene.push(editorPlan);
   speichern();
   planListeZeichnen();
-  zeigenToast("Plan gespeichert", "erfolg");
+  zeigenToast(meldungText || "Plan gespeichert", "erfolg");
   zeige("view-plaene");
 }
 
@@ -15477,7 +15635,8 @@ function heuteKarteZeichnen(){
       '<div class="knopfreihe">' +
         (mitAssistent
           ? '<button class="primaer breit" onclick="einrichtungOeffnen()">Trainingsplanung starten</button>'
-          : '<button class="primaer breit" onclick="planListeZeichnen(); zeige(\'view-plaene\')">Zu den Plänen</button>') +
+          // v192: Der Tab heißt „Übungen" — der Knopf dorthin muss dasselbe Wort tragen.
+          : '<button class="primaer breit" onclick="planListeZeichnen(); zeige(\'view-plaene\')">Zu den Übungen</button>') +
       '</div></div>';
   } else {
     const istRuhe = sitzung.daten.ruhetage.includes(heuteAlsText());

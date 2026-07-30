@@ -52,7 +52,8 @@ pruefe("Kein-Training-Hinweis aus der Ansicht", !src.includes("Noch kein Trainin
 pruefe("Körpergewicht-Kachel volle Breite", src.includes("#stat-koerpergewicht{grid-column:1 / -1}"));
 pruefe("Kachel-Überschrift klein (11px)", src.includes(".stat-karte h2{font-size:11px"));
 pruefe("Heute: kein Eigenen-Plan-Knopf mehr", !src.includes(">Eigenen Plan erstellen</button>"));
-pruefe("Heute: Zu-den-Plaenen-Knopf vorhanden", src.includes(">Zu den Plänen</button>"));
+// v192: Der Tab heißt „Übungen" — der Knopf dorthin trägt dasselbe Wort.
+pruefe("Heute: Zu-den-Uebungen-Knopf vorhanden", src.includes(">Zu den Übungen</button>"));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

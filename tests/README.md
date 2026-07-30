@@ -4,9 +4,34 @@ Die Tests extrahieren die ECHTEN Funktionen aus `../index.html` (keine Kopien,
 die driften könnten) und prüfen sie mit Stubs. Jede Datei ist eigenständig
 lauffähig und bekommt den Pfad zur `index.html` als Argument.
 
+## So wird die Kette gefahren
+
+**Ein Aufruf, eine Zeile Antwort:**
+
+    .\tools\Test-Trainer.ps1
+
+Das fährt `tests/alle.js` in EINEM Prozess: erst den Syntax-Check des
+Script-Blocks, dann jede `testNN.js`. Ergebnis z. B.
+`92 Dateien, 2908 Pruefungen, 0 mit Fehlern, Syntax ok  ->  ALLES GRUEN`;
+Exitcode 0 = grün. Nur was fehlschlägt, wird ausführlich gezeigt (Datei, ihre
+Meldung, die `FEHLT`-Zeilen). Dauer: unter einer Sekunde.
+
+Schnelle Zwischenläufe beim Bauen: `.\tools\Test-Trainer.ps1 -Nur test191`.
+**Die volle Kette bleibt Pflicht vor jeder Übergabe.**
+
+*Warum es den Sammel-Läufer gibt (07/2026):* Vorher wurde jede Datei als eigener
+Prozess gestartet — über 90 Electron-Starts, mehr als eine Minute, und dazu ein
+jedes Mal neu getipptes PowerShell-Gerüst, das die Ausgabedateien wieder
+einsammelte. Das war langsam, laut und dreimal an derselben Stelle
+fehlgeschlagen (eine fehlende oder leere Ausgabedatei liefert `$null`, nicht
+`""`). Eine **neue Testdatei wird automatisch mitgefahren** — es gibt keine
+Liste mehr zu pflegen, weder hier noch in der CI (`.github/workflows/tests.yml`
+ruft denselben Läufer auf).
+
 | Datei | prüft |
 |---|---|
-| `extract.js` | zieht den `<script>`-Block aus der index.html (für `node --check`) |
+| `alle.js` | **Sammel-Läufer** (siehe oben): Syntax-Check + alle `testNN.js` in einem Prozess, eine Zeile Ergebnis, Exitcode 0/1 |
+| `extract.js` | zieht den `<script>`-Block aus der index.html (für `node --check` von Hand; die Kette prüft die Syntax selbst) |
 | `test79.js` | Notizblock: Muster-Zeilen ↔ Übungen, jede Zeile = Übung, Sportart aus Überschrift, Verschieben flach/gruppiert |
 | `test80.js` | v80: Beispielplan-Felder, „Letztes Mal", kraftErledigt, Verlauf-Robustheit + v79-Regressionen |
 | `test81.js` | GitHub-Issue: Repo-Ableitung aus der Pages-Adresse, URL-Bau, Fehlerfälle |
@@ -39,6 +64,7 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 | `test127.js` | Rekord-Moment: `satzWert`/`rekordText`/`istNeuerRekord` (Historie UND laufendes Training, zweiter gleicher Satz meldet nicht, erster Satz ohne Historie ist kein Rekord) + Verdrahtung (Kopie vor dem Anhängen, Toast) |
 | `test128.js` | Mehrfach-Auswahl von Plänen: `auswahlText` (1 Plan / N Pläne) + `eintraegeZurueck` (ein Rückgängig für die ganze Aktion — aufsteigend einsetzen, Rand-/Alles-Fälle, Übergabereihenfolge egal) + Verdrahtung (Menü-Einstieg, Tipp hakt an, Langdruck gesperrt, Tabwechsel beendet) |
 | `test129.js` | Leer-Zustand + „+"-Menü: `planNeuWege` (Assistent ab Stufe 5, Beispielplan nur bei Kraft, Intervall nur einmal trotz mehrerer Intervall-Sportarten, Nachtragen zuletzt) + Struktur (Leer-Zustand rendert genau einen Knopf, fester Intervall-Knopf weg) |
+| `test192.js` | Die Übung wird die Grundeinheit (Etappe 1): `planArt` als abgeleitete Regel (eine Übung ohne Termin = Übung, mit Tag/Einzeltermin oder zweiter Übung = Plan, 0 Übungen = Plan, alte Pläne ohne Felder fallen nicht um), die Marke in **beiden** Listendichten, `planNeuWege` mit „uebung" an erster Stelle, `uebungAlleinAnlegen` (Einzel-Modus, keine Tage, direkt in die Suche) und `einzelUebungAbschliessen` echt ausgeführt (Name, Toast, Liste, Modus aus; ohne Einzel-Modus und ohne Übung tut er nichts) + die drei Auswahl-Wege, der Rückweg, die Beschriftungen — und dass der Assistent in dieser Etappe **noch steht** |
 | `test191.js` | Ausdauer-Pläne mit wechselnden Einheiten: Register (fünf Einheiten, Grundlage = Faktor 1, lang länger, Tempo/Regeneration kürzer, keiner ≤ 0), **feste Folge** (jede Position kennt ihre Einheit, höchstens ein Drittel hart und mindestens eine, Grundlage am häufigsten, Wiederholung nach dem Ende, gleicher Wert = gleiches Ergebnis, kaputte Zahlen werfen nicht); `planWechselnd` (nur Ausdauer, nur mit Schalter, **Intervall-Plan ausgenommen**, Altbestand ohne Feld = aus, alle Ausdauer-Sportarten dürfen); `planGetan` über `planId`; `einheitText` (Strecke hoch-/runtergerechnet, Nachkommastelle lesbar, Rückfall auf Dauer, ohne beides nur Name, Einheit der Sportart) + Verdrahtung (Karte, Stoppuhr mit altem Rückfall, Editor-Schalter, Sportart-Wechsel räumt auf, Assistent schaltet ein — außer bei Runden) |
 | `test190.js` | Text-Diät an drei Stellen: Ziele-Leersatz wird nicht mehr ausgegeben (die v111-Gate-Regel bleibt, der andere Leer-Text der Ziele-Ansicht ebenfalls); `meilensteinText` als reine Funktion (ohne Serie leer, vor/auf/über jeder Marke, kein Emoji mehr) samt Beweis, dass die Zeile unter der Flamme restlos entfernt ist und der Text an den Kennzahlen hängt; Stufen-Auswahl mit Titel-only-Karte, eigenem „i" je Stufe **neben** dem Knopf (kein Knopf im Knopf), zugeklappter Info, aria-label, Flex-Reihe und gewandertem Außenabstand — die v173-Lesbarkeitsregel unangetastet |
 | `test189.js` | Die Pause wiegt mit (A6, Teil 2): `pauseFaktor` je Stufe samt **jeder Grenze** (45/90/180 s und der erste Wert darüber), ohne/kaputten Wert neutral, der **±10-%-Deckel** und die Ordnung der Stufen; `satzGewichtung` — alle v161-Zusagen Wert für Wert unverändert, mit Pause moduliert (auch der Gewichts-Zweig), Rangfolge der Noten bleibt; `pausenGemessen` (Fenster, Zukunft, Pause 0 zählt, kaputte Einträge); Verdrahtung an **einer** Stelle und „Pausen" nie in der Fehlt-Liste der Grundlagen-Zeile |
@@ -102,106 +128,21 @@ lauffähig und bekommt den Pfad zur `index.html` als Argument.
 
 ## Ausführen
 
-**Windows OHNE Node** (auf dem Entwicklungsrechner ist keins installiert —
-VS Codes Electron springt ein):
+**Ein Aufruf** (auf dem Entwicklungsrechner ist kein Node installiert — das
+Skript kapselt den Electron-Aufruf):
+
+    .\tools\Test-Trainer.ps1
+    .\tools\Test-Trainer.ps1 -Nur test191      # schneller Zwischenlauf
+    .\tools\Test-Trainer.ps1 -Leise            # nur Exitcode, keine Ausgabe
+
+Dahinter steht `tests/alle.js`, das Syntax-Check und alle `testNN.js` in EINEM
+Prozess fährt. Ohne das Skript geht es genauso direkt:
 
     $env:ELECTRON_RUN_AS_NODE = "1"
-    $code = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
-    & $code tests\extract.js index.html $env:TEMP\trainer_check.js
-    & $code --check $env:TEMP\trainer_check.js
-    & $code tests\test79.js index.html
-    & $code tests\test80.js index.html
-    & $code tests\test81.js index.html
-    & $code tests\test82.js index.html
-    & $code tests\test83.js index.html
-    & $code tests\test84.js index.html
-    & $code tests\test85.js index.html
-    & $code tests\test86.js index.html
-    & $code tests\test89.js index.html
-    & $code tests\test93.js index.html
-    & $code tests\test103.js index.html
-    & $code tests\test108.js index.html
-    & $code tests\test109.js index.html
-    & $code tests\test111.js index.html
-    & $code tests\test112.js index.html
-    & $code tests\test113.js index.html
-    & $code tests\test114.js index.html
-    & $code tests\test115.js index.html
-    & $code tests\test116.js index.html
-    & $code tests\test117.js index.html
-    & $code tests\test118.js index.html
-    & $code tests\test119.js index.html
-    & $code tests\test120.js index.html
-    & $code tests\test121.js index.html
-    & $code tests\test122.js index.html
-    & $code tests\test123.js index.html
-    & $code tests\test124.js index.html
-    & $code tests\test125.js index.html
-    & $code tests\test126.js index.html
-    & $code tests\test127.js index.html
-    & $code tests\test128.js index.html
-    & $code tests\test129.js index.html
-    & $code tests\test130.js index.html
-    & $code tests\test131.js index.html
-    & $code tests\test132.js index.html
-    & $code tests\test133.js index.html
-    & $code tests\test134.js index.html
-    & $code tests\test135.js index.html
-    & $code tests\test136.js index.html
-    & $code tests\test137.js index.html
-    & $code tests\test138.js index.html
-    & $code tests\test139.js index.html
-    & $code tests\test140.js index.html
-    & $code tests\test141.js index.html
-    & $code tests\test142.js index.html
-    & $code tests\test144.js index.html
-    & $code tests\test145.js index.html
-    & $code tests\test146.js index.html
-    & $code tests\test147.js index.html
-    & $code tests\test148.js index.html
-    & $code tests\test149.js index.html
-    & $code tests\test150.js index.html
-    & $code tests\test151.js index.html
-    & $code tests\test153.js index.html
-    & $code tests\test154.js index.html
-    & $code tests\test155.js index.html
-    & $code tests\test156.js index.html
-    & $code tests\test157.js index.html
-    & $code tests\test158.js index.html
-    & $code tests\test159.js index.html
-    & $code tests\test160.js index.html
-    & $code tests\test161.js index.html
-    & $code tests\test162.js index.html
-    & $code tests\test163.js index.html
-    & $code tests\test164.js index.html
-    & $code tests\test165.js index.html
-    & $code tests\test166.js index.html
-    & $code tests\test167.js index.html
-    & $code tests\test168.js index.html
-    & $code tests\test169.js index.html
-    & $code tests\test170.js index.html
-    & $code tests\test171.js index.html
-    & $code tests\test172.js index.html
-    & $code tests\test173.js index.html
-    & $code tests\test174.js index.html
-    & $code tests\test175.js index.html
-    & $code tests\test176.js index.html
-    & $code tests\test177.js index.html
-    & $code tests\test178.js index.html
-    & $code tests\test179.js index.html
-    & $code tests\test180.js index.html
-    & $code tests\test181.js index.html
-    & $code tests\test182.js index.html
-    & $code tests\test183.js index.html
-    & $code tests\test184.js index.html
-    & $code tests\test185.js index.html
-    & $code tests\test186.js index.html
-    & $code tests\test187.js index.html
-    & $code tests\test188.js index.html
-    & $code tests\test189.js index.html
-    & $code tests\test190.js index.html
-    & $code tests\test191.js index.html
+    & "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe" tests\alle.js index.html
 
+Einzelne Dateien lassen sich weiterhin so aufrufen, wie sie gebaut sind
+(`... tests\test191.js index.html`) — dafür ist keine Liste nötig.
 Mit echtem Node: `node` statt `Code.exe`, ohne die Umgebungsvariable.
 
 **GitHub Actions:** Dieselbe Kette läuft automatisch bei jedem Push

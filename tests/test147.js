@@ -53,8 +53,13 @@ pruefe("Editor-Figuren sind groesser als die auf der Karte", imEditor > aufKarte
    der Nutzer gerade beantwortet hat, und damit sinnvoll. */
 const liste = grabFn("planListeZeichnen");
 pruefe("die Plan-Karte sagt es nicht mehr", !liste.includes("ohne festen Tag"));
-pruefe("Tag-Zeile wird nur bei festen Tagen gebaut",
-  liste.includes('(marke ? \'<div class="meta" style="margin-bottom:4px">\' + marke + \'</div>\' : "")'));
+/* v192: Die Zeile ueber dem Plan-Namen traegt jetzt zusaetzlich die Marke
+   „Uebung"/„Plan" (Etappe 1 der Uebungs-Entscheidung) und steht deshalb immer.
+   Die v147-Zusage bleibt inhaltlich erhalten und wird hier genau so geprueft:
+   Ein Plan OHNE festen Tag bekommt dort weiterhin KEINEN Ersatztext, der nur
+   mitteilt, dass es nichts mitzuteilen gibt. */
+pruefe("Tag-Text wird nur bei festen Tagen gebaut",
+  liste.includes('(marke ? text(marke) : "")'));
 pruefe("ohne Tag ist die Marke leer",
   liste.includes('const marke = p.tage.length ? p.tage.map(t => WOCHENTAGE[t].slice(0,2)).join(", ") : "";'));
 

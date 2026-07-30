@@ -40,8 +40,11 @@ pruefe("Getan-Untertitel entfernt", !src.includes("Kurz festhalten, was du gemac
 const kopf = grabFn("notizblockKopfSetzen");
 pruefe("Info-Knopf erscheint auf keiner Stufe mehr", kopf.includes("info.hidden = true"));
 pruefe("und sein Text bleibt zugeklappt", kopf.includes("text.hidden = true"));
+// v192: Der Tab heißt ab Stufe 3 „Übungen" (Etappe 1 der Übungs-Entscheidung) —
+// die Zusage selbst (Titel wechselt mit der Stufe, „⋯ Mehr" nur auf Stufe 1/2)
+// bleibt unverändert.
 pruefe("Titel/Mehr-Verhalten unverändert (Regression)",
-  kopf.includes('einfach ? "Notizblock" : "Pläne"') && kopf.includes("mehr.hidden = !einfach"));
+  kopf.includes('einfach ? "Notizblock" : "Übungen"') && kopf.includes("mehr.hidden = !einfach"));
 
 /* 3) „Heute": Füll-Sätze weg, informativer Untertitel bleibt. */
 const heute = grabFn("heuteKarteZeichnen");
