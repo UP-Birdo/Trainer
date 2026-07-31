@@ -960,6 +960,13 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <span id="streak-flamme" class="kennzahl" style="font-size:19px" title="Trainings in Serie (bis zu 2 Ruhetage erlaubt)"></span>
   </div>
   <div id="heute-karte"></div>
+  <!-- v207: Wiedereinstieg nach einer langen Pause — steht über der Sicherung,
+       weil er das Training von heute betrifft. Inhalt kommt aus
+       wiedereinstiegZeichnen; ohne lange Pause bleibt der Kasten versteckt.
+       Bewusst eine „karte" mit gelbem Rand statt der roten `hinweis`-Klasse:
+       Das ist eine Empfehlung, kein Alarm (dieselbe Unterscheidung wie bei den
+       Belastungs-Hinweisen, v177). -->
+  <div id="wiedereinstieg-hinweis" class="karte" style="border-left:4px solid var(--signal)" hidden></div>
   <div id="sicherung-banner" class="hinweis" hidden>
     <span id="sicherung-banner-text"></span>
     <div class="knopfreihe"><button class="primaer schmal" onclick="sicherungTeilen()">Jetzt sichern</button></div>
@@ -2700,7 +2707,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 206;
+const APP_VERSION = 207;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2770,6 +2777,11 @@ function datenNachruesten(daten){
   // v106: welche optionalen Statistiken angezeigt werden (Standard: keine — nur
   // Kalender + Zuletzt trainiert stehen fest). Auswahl in „Darstellung".
   if(!Array.isArray(daten.einrichtung.statistiken)) daten.einrichtung.statistiken = [];
+  /* v207: Für welche Pause wurde der Wiedereinstieg schon abgehandelt? Gemerkt
+     wird der letzte Trainingstag von damals (nicht „gesehen: ja") — nach der
+     nächsten langen Pause steht dort ein anderer Tag, und der Hinweis kommt von
+     selbst wieder. Leer = noch nie abgehandelt. */
+  if(typeof daten.einrichtung.wiedereinstiegStand !== "string") daten.einrichtung.wiedereinstiegStand = "";
   daten.plaene.forEach(p => {
     if(!p.reihenfolge) p.reihenfolge = "klassisch";
     // v76 (Simpelheit): Roher Text der Stufe-1/2-Abschnitte. Bleibt auch nach dem
@@ -2793,7 +2805,13 @@ function datenNachruesten(daten){
       if(typeof p.dauer !== "number") p.dauer = 1800;       // 30 min als ehrlicher Startwert
       if(!p.zeitEinheit) p.zeitEinheit = "min";
       if(typeof p.strecke !== "number") p.strecke = hatStrecke(p.sportart) ? sportart(p.sportart).strecke.start : 0;
-      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
+      /* v207: Zähler für den Rückweg — wie oft in Folge blieb die Einheit
+         deutlich unter der Vorgabe? Er gehört ins steigerung-Objekt, weil er zur
+         selben Mechanik gehört. Eigene Zeile, weil Bestandspläne ein
+         steigerung-Objekt OHNE dieses Feld haben (additiver Datenvertrag:
+         nachgerüstet wird das FELD, nicht nur das Objekt). */
+      if(typeof p.steigerung.verfehlt !== "number") p.steigerung.verfehlt = 0;
     }
     /* tage ist DIE Wahrheit über den Wochentag (v26, Mehrfachauswahl).
        Diese Migration greift nur bei Altbestand, der noch kein tage hat:
@@ -3415,6 +3433,22 @@ document.addEventListener("visibilitychange", () => {
    ============================================================ */
 function begrenzen(w, min, max){ return Math.min(max, Math.max(min, w)); }
 
+/* v207: EINE Stufe runter — die Zahlen des Deloads, herausgelöst als eigene
+   Funktion. Grund: Der Wiedereinstieg nach einer langen Pause (v207) senkt
+   genau so, und zwei Stellen mit denselben Zahlen wären zwei Wahrheiten. Die
+   Regel selbst bleibt damit an EINER Stelle — hier. Arbeitet auf der übergebenen
+   Übung (die Aufrufer geben eine Kopie herein) und gibt sie zurück. */
+function stufeSenken(u){
+  if(u.modus === "zeit"){
+    u.dauer = begrenzen(Math.round(u.dauer * 0.8), 10, 600);
+  } else {
+    u.wdh = u.wdhMin;
+    if(u.gewichtSchritt > 0) u.gewicht = Math.max(0, Math.round((u.gewicht - u.gewichtSchritt)*4)/4);
+  }
+  u.pause = begrenzen(u.pause + 30, 30, 300);
+  return u;
+}
+
 function progressionAnwenden(uebung, note, verfehlt){
   const u = Object.assign({}, uebung);
   u.notenHistorie = (uebung.notenHistorie || []).concat(note).slice(-3);
@@ -3432,14 +3466,7 @@ function progressionAnwenden(uebung, note, verfehlt){
   if(u.notenHistorie.length === 3 && u.notenHistorie.every(n => n === 5)){
     u.deload = true;
     u.notenHistorie = [];
-    if(u.modus === "zeit"){
-      u.dauer = begrenzen(Math.round(u.dauer * 0.8), 10, 600);
-    } else {
-      u.wdh = u.wdhMin;
-      if(u.gewichtSchritt > 0) u.gewicht = Math.max(0, Math.round((u.gewicht - u.gewichtSchritt)*4)/4);
-    }
-    u.pause = begrenzen(u.pause + 30, 30, 300);
-    return u;
+    return stufeSenken(u);   // v207: die Senkung selbst steht jetzt in stufeSenken
   }
 
   /* v159: Zweimal in Folge das Soll verfehlt -> der Plan übernimmt, was du
@@ -4459,7 +4486,7 @@ function abschnittNameSetzen(id, wert){
       if(typeof p.dauer !== "number") p.dauer = 1800;
       if(!p.zeitEinheit) p.zeitEinheit = "min";
       if(typeof p.strecke !== "number") p.strecke = hatStrecke(sp.id) ? sportart(sp.id).strecke.start : 0;
-      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
     }
     zeigenToast("Als " + sp.name + " erkannt", "info");
   }
@@ -4667,7 +4694,7 @@ function notizEinheitUebernehmen(p, akt){
     if(typeof p.dauer !== "number") p.dauer = 1800;
     if(!p.zeitEinheit) p.zeitEinheit = "min";
     if(typeof p.strecke !== "number") p.strecke = hatStrecke(akt.sportart) ? sportart(akt.sportart).strecke.start : 0;
-    if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+    if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
   }
   if(akt.strecke != null) p.strecke = akt.strecke;
   if(akt.sekunden != null){ p.dauer = akt.sekunden; p.zeitEinheit = akt.zeitEinheit; }
@@ -4913,6 +4940,143 @@ function planAmTag(plan, iso){
   return (((wocheSeitEpoche(iso) % 2) + 2) % 2) === (plan.wochenAnker || 0);
 }
 
+/* ============================================================
+   #region Wiedereinstieg nach einer langen Pause (v207)
+
+   Der Befund aus dem vierten Persona-Durchgang („Wiedereinstieg nach acht
+   Wochen"): Die App merkt die Pause an keiner Stelle. Die Flamme ist aus, im
+   Kalender stehen acht Wochen automatische Ruhetage — die PLÄNE aber stehen
+   unverändert auf dem Stand von damals. Der erste Tag zurück beginnt also mit
+   den Gewichten des letzten guten Trainings, und der Weg nach unten führt
+   über drei gescheiterte Einheiten (dreimal Note 5 -> Deload).
+
+   Warum überhaupt eingegriffen wird: Kraftverlust nach vollständiger Pause ist
+   ab etwa zwei bis drei Wochen messbar; nach acht Wochen ist der Stand von
+   davor keine sinnvolle Vorgabe mehr. Deshalb der Schwellwert 21 Tage — unter
+   drei Wochen wäre es ein Nörgeln nach jedem Urlaub.
+
+   Wie eingegriffen wird — und wie NICHT:
+   * Es ist ein ANGEBOT, nie eine automatische Änderung. Die App senkt nichts,
+     solange der Nutzer nicht tippt (dieselbe Zurückhaltung wie bei der
+     Übungs-Erkennung der Stufe 1).
+   * Gesenkt wird um genau EINE Stufe — die Zahlen des Deloads (stufeSenken)
+     bzw. bei Ausdauer der Entlastungs-Anteil der App (70 %). Keine neue,
+     erfundene Zahl: Die App kennt genau einen Schritt nach unten, und den
+     nimmt sie auch hier.
+   * Rückgängig gibt es sofort (Undo-Toast mit tiefer Kopie der Pläne, Muster
+     v88) — die Aktion fasst ALLE Pläne an, da muss der Fehlgriff billig sein.
+   * Ab Stufe 4. Der Hinweis deutet und rät, und Leitplanke 8 sagt: Was gelesen
+     und gedeutet werden will, gehört ab 4. Stufe 1/2 fragt und bewertet die
+     App ohnehin nie.
+   ============================================================ */
+const WIEDEREINSTIEG_TAGE = 21;   // ab so vielen Tagen Pause ist der Stand von davor keine Vorgabe mehr
+
+/** Tage seit dem letzten Training — `null`, wenn noch nie trainiert wurde
+    (dann gibt es keine Pause, sondern einen Anfang). Rein/testbar. */
+function pauseTage(protokoll, heute){
+  const tage = (protokoll || []).map(e => e && e.datum).filter(Boolean).sort();
+  if(!tage.length) return null;
+  return tagDifferenz(tage[tage.length - 1], heute);
+}
+
+/** Ist der Wiedereinstieg fällig — und wurde er für GENAU diese Pause noch
+    nicht abgehandelt? `stand` ist der gemerkte letzte Trainingstag aus
+    `einrichtung.wiedereinstiegStand`. Rein/testbar. */
+function wiedereinstiegFaellig(protokoll, heute, stand){
+  const tage = pauseTage(protokoll, heute);
+  if(tage === null || tage < WIEDEREINSTIEG_TAGE) return false;
+  const letzter = (protokoll || []).map(e => e && e.datum).filter(Boolean).sort().pop();
+  return letzter !== stand;   // schon gesenkt/ausgeblendet für diese Pause?
+}
+
+/** Die Pause in Klartext — Wochen sind bei dieser Größenordnung die Einheit,
+    in der man denkt („acht Wochen", nicht „56 Tage"). Rein/testbar. */
+function pauseText(tage){
+  const wochen = Math.floor(tage / 7);
+  return wochen + (wochen === 1 ? " Woche" : " Wochen") +
+         (tage % 7 ? " und " + (tage % 7) + (tage % 7 === 1 ? " Tag" : " Tagen") : "");
+}
+
+/** Senkt EINEN Plan um eine Stufe. Kraft über stufeSenken (die Deload-Zahlen),
+    Aktivität über den Entlastungs-Anteil, den die App ohnehin empfiehlt.
+    Der Aufbau beginnt danach von vorn. Rein bis auf den übergebenen Plan. */
+function planSenken(p){
+  if(p.typ === "kraft"){
+    (p.uebungen || []).forEach(stufeSenken);
+    return;
+  }
+  if(p.strecke > 0) p.strecke = Math.round(p.strecke * ENTLASTUNG_ANTEIL * 100) / 100;
+  if(p.dauer > 0)   p.dauer   = Math.max(60, Math.round(p.dauer * ENTLASTUNG_ANTEIL));
+  if(p.steigerung){ p.steigerung.stufen = 0; p.steigerung.vorEntlastung = 0; p.steigerung.verfehlt = 0; }
+}
+
+/** Merkt sich, dass diese Pause abgehandelt ist — gesenkt ODER ausgeblendet.
+    Gemerkt wird der letzte Trainingstag, nicht „gesehen": So taucht der
+    Hinweis nach der nächsten langen Pause von selbst wieder auf. */
+function wiedereinstiegAbhaken(){
+  const tage = sitzung.daten.protokoll.map(e => e.datum).filter(Boolean).sort();
+  sitzung.daten.einrichtung.wiedereinstiegStand = tage.length ? tage[tage.length - 1] : "";
+}
+
+function wiedereinstiegAusblenden(){
+  wiedereinstiegAbhaken();
+  speichern();
+  wiedereinstiegZeichnen();
+}
+
+/** Das Angebot annehmen: alle Pläne eine Stufe runter, mit Rückgängig. */
+function wiedereinstiegSenken(){
+  const plaene = sitzung.daten.plaene;
+  if(!plaene.length){ wiedereinstiegAusblenden(); return; }
+  // Tiefe Kopie VOR der Änderung — Rückgängig muss den ganzen Stand zurückholen
+  // (Muster v88: die Aktion fasst mehrere Pläne an, ein Undo für alles).
+  const vorher = JSON.parse(JSON.stringify(plaene));
+  const standVorher = sitzung.daten.einrichtung.wiedereinstiegStand;
+  plaene.forEach(planSenken);
+  wiedereinstiegAbhaken();
+  speichern();
+  wiedereinstiegNeuZeichnen();
+  zeigenToast("Werte gesenkt — Wiedereinstieg", "info", () => {
+    sitzung.daten.plaene = vorher;
+    sitzung.daten.einrichtung.wiedereinstiegStand = standVorher;
+    speichern();
+    wiedereinstiegNeuZeichnen();
+  });
+}
+
+/** Was nach dem Senken (und nach dem Rückgängig) neu zu zeichnen ist: der
+    Hinweis selbst, die Heute-Karte (sie nennt Sätze und geschätzte Dauer) und
+    die Plan-Liste im Nachbar-Tab. An EINER Stelle, damit Hin- und Rückweg
+    nicht auseinanderlaufen. */
+function wiedereinstiegNeuZeichnen(){
+  wiedereinstiegZeichnen();
+  heuteKarteZeichnen();
+  planListeZeichnen();
+}
+
+/** Der Hinweis auf „Heute". Leer, solange keine lange Pause hinter dem Nutzer
+    liegt — dann steht dort auch nichts. */
+function wiedereinstiegZeichnen(){
+  const kasten = document.getElementById("wiedereinstieg-hinweis");
+  if(!kasten) return;
+  const heute = heuteAlsText();
+  const faellig = stufe() >= 4 &&
+    wiedereinstiegFaellig(sitzung.daten.protokoll, heute, sitzung.daten.einrichtung.wiedereinstiegStand);
+  kasten.hidden = !faellig;
+  if(!faellig){ kasten.innerHTML = ""; return; }
+  const tage = pauseTage(sitzung.daten.protokoll, heute);
+  kasten.innerHTML =
+    '<strong>Willkommen zurück</strong>' +
+    '<div class="meta" style="margin-top:6px;line-height:1.5">' +
+      'Dein letztes Training ist ' + text(pauseText(tage)) + ' her. Deine Pläne stehen noch ' +
+      'auf dem Stand von damals — nach so einer Pause ist das meist zu viel. Auf Wunsch senke ' +
+      'ich alle Pläne um eine Stufe: Wiederholungen auf das Minimum, ein Gewichtsschritt runter, ' +
+      'längere Pausen; bei Ausdauer auf 70 %. Von dort steigert die App wie immer weiter.' +
+    '</div>' +
+    '<div class="knopfreihe"><button class="schmal" onclick="wiedereinstiegSenken()">Werte senken</button>' +
+    '<button class="schmal" onclick="wiedereinstiegAusblenden()">Passt so</button></div>';
+}
+
 /** Der Start-Bildschirm ("Heute"): das Training von heute, wichtige Meldungen
     (Sicherung) und die Ziele. Zeichnet dieselben Bausteine wie früher der
     Pläne-Tab, nur ohne die Plan-Liste — die hat jetzt ihren eigenen Tab. */
@@ -4924,6 +5088,7 @@ function startOeffnen(){
   autoRuhetageEintragen();   // v103: Auto-Ruhetage + Meldung (einmal pro Sitzung)
   if(stufe() <= 2){ planListeZeichnen(); zeige("view-plaene"); return; }
   sicherungBannerZeichnen();
+  wiedereinstiegZeichnen();   // v207: lange Pause? Dann steht der Hinweis über allem anderen
   flammeZeichnen();
   heuteKarteZeichnen();
   zieleStartZeichnen();
@@ -5146,7 +5311,10 @@ function planListeZeichnen(){
         (istAkt ? (p.intervall ? intervallText(p)
                   : (einheitText(p, planGetan(p.id, sitzung.daten.protokoll)) || planZielText(p)))   // v121: planZielText trägt auch das Messgrößen-Ziel
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
-        (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div></div>' +
+        // v207: über datumKurz statt handgebaut — die Karte ließ das Jahr weg
+        // und behauptete damit bei einem Plan, der ein Jahr ruht, dasselbe wie
+        // bei einem von letzter Woche. Eine Datums-Schreibweise, eine Stelle.
+        (zuletzt ? ' · zuletzt ' + datumKurz(zuletzt) : ' · noch nie trainiert') + '</div></div>' +
       '</div>' + planFigurenHtml(p) + '</div>' +
       // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
       // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; die beiden Knöpfe teilen sich die Breite.
@@ -6451,6 +6619,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.207", punkte:[
+    "Ausdauer-Pläne kennen jetzt auch den Weg nach unten. Bisher stieg die Vorgabe oder blieb stehen — wer zweimal darunter blieb, las nur „Diesmal unter Plan“ und lief für immer gegen eine Zahl, die nicht mehr passte. Jetzt zieht der Plan beim zweiten Mal in Folge auf die wirklich gelaufene Strecke nach. Genau das macht dein Kraftplan seit 0.159.",
+    "Dein ZIEL bleibt dabei unangetastet. Gesenkt wird nur die Vorgabe für die nächste Einheit — das Ziel ist deine Ansage, nicht die der App.",
+    "Neu nach einer langen Pause: Waren es mehr als drei Wochen, begrüßt dich „Heute“ mit einem Hinweis und dem Angebot, alle Pläne um eine Stufe zu senken (Wiederholungen aufs Minimum, ein Gewichtsschritt runter, längere Pausen; bei Ausdauer auf 70 %). Nichts passiert von allein, und „Rückgängig“ holt alles sofort zurück. Ab Stufe 4.",
+    "Kleinigkeit: Auf der Plan-Karte steht bei „zuletzt“ jetzt auch das Jahr — vorher sah ein Plan, der ein Jahr ruht, aus wie einer von letzter Woche."
+  ]},
   { stand:"0.206", punkte:[
     "Neue Statistik: dein BMI-Verlauf. Die Kurve liegt über den Bereichen (Unter-, Normal-, Übergewicht, Adipositas), dazu eine gestrichelte Linie mit deinem Durchschnitt. Einschalten unter Mehr › Darstellung — sie erscheint, sobald deine Größe im Profil steht und ein Gewicht eingetragen ist.",
     "Die Skala steht fest von 15 bis 35 und wandert nicht mit deinen Werten mit: Es geht ja gerade darum, wo du zwischen den Bereichen liegst — bei einer mitwandernden Achse säßest du immer in der Mitte.",
@@ -13437,24 +13611,83 @@ const STEIGERUNG_MAX = 0.20;     // je Woche, nicht je Einheit
 const ENTLASTUNG_NACH = 3;       // nach 3 Steigerungswochen eine Entlastungswoche
 const ENTLASTUNG_ANTEIL = 0.70;
 
+/* v207 — DER RÜCKWEG (Gegenstück zu v159 beim Krafttraining).
+
+   Beim Kraftplan zieht die Vorgabe nach ZWEIMAL verfehltem Soll auf das
+   wirklich Geschaffte nach (progressionAnwenden, verfehltFolge). Der
+   Ausdauer-Plan konnte das bis v206 nicht: Er stieg (20 % je Woche) oder blieb
+   stehen — und meldete bei jeder zu kurzen Einheit denselben Satz „Diesmal
+   unter Plan". Wer nach einer Pause zurückkommt oder sich schlicht überschätzt
+   hat, lief damit für immer gegen eine Zahl, die nicht mehr passt. Genau die
+   Lage, die v159 beim Krafttraining beseitigt hat.
+
+   Die Regel spiegelt v159 Punkt für Punkt:
+   * Ein einzelner schwacher Tag schreibt NICHTS um — er wird nur gezählt.
+   * Beim zweiten Mal in Folge übernimmt der Plan die WIRKLICH gelaufene
+     Strecke (wie dort der wirklich geschaffte Satz: der aktuelle Wert, kein
+     Durchschnitt).
+   * Vorgabe gehalten -> Zähler zurück auf 0.
+   * Der Plan rutscht nicht unter sein eigenes Minimum: ein Schritt der
+     Sportart ist die Untergrenze.
+   * Das ZIEL bleibt unangetastet. Gesenkt wird die Wochen-Vorgabe, nicht das,
+     was der Nutzer sich vorgenommen hat.
+   Nach der Senkung beginnt der Aufbau von dort neu (stufen/vorEntlastung auf
+   0) — sonst folgte auf eine ohnehin gesenkte Zahl direkt eine
+   Entlastungswoche.
+
+   Den Rückweg gibt es genau dort, wo es auch den Hinweg gibt: bei Plänen mit
+   Strecken-Ziel. Ohne Ziel steigert die App nichts und senkt deshalb auch
+   nichts — der Plan gehört dann dem Nutzer allein. */
+const RUECKWEG_NACH = 2;        // so oft in Folge unter der Vorgabe
+const RUECKWEG_GRENZE = 0.9;    // „deutlich unter" = weniger als 90 % der Vorgabe
+
 /** Zieht die Ziele nach einer eingetragenen Aktivität nach und meldet,
-    was sich geändert hat. Steigert höchstens EINMAL pro Kalenderwoche. */
+    was sich geändert hat. Steigert höchstens EINMAL pro Kalenderwoche;
+    der Rückweg (v207) zählt dagegen je EINHEIT — er ist keine Steigerung. */
 function zieleAnwenden(plan, strecke, dauerS){
   if(plan.typ !== "aktivitaet") return [];
   const ziel = sitzung.daten.ziele.find(z => z.uebung.toLowerCase() === plan.name.toLowerCase() && z.art === "strecke");
   if(!ziel || !hatStrecke(plan.sportart)) return [];
 
   const woche = isoWoche(heuteAlsText());
-  if(!plan.steigerung) plan.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+  if(!plan.steigerung) plan.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
+  if(typeof plan.steigerung.verfehlt !== "number") plan.steigerung.verfehlt = 0;
+  const einheit = sportart(plan.sportart).strecke.einheit;
+  const schritt = sportart(plan.sportart).strecke.schritt;
+
+  /* v207: Die Wirklichkeit zuerst — VOR der Wochenbremse. Die bremst das
+     STEIGERN (drei Läufe in einer Woche dürfen nicht dreimal draufpacken); ein
+     Rückweg ist keine Steigerung und darf nicht davon abhängen, in welche
+     Woche die zweite schwache Einheit fällt. */
+  if(strecke > 0 && strecke < plan.strecke * RUECKWEG_GRENZE){
+    plan.steigerung.verfehlt++;
+    if(plan.steigerung.verfehlt < RUECKWEG_NACH)
+      return ["Diesmal unter Plan — die Vorgabe bleibt vorerst, wo sie ist."];
+    const vorher = plan.strecke;
+    /* ABGERUNDET auf einen Schritt der Sportart, nicht kaufmännisch gerundet:
+       Der Plan darf nach einer verfehlten Einheit nicht mehr verlangen, als
+       wirklich gelaufen wurde. Nach unten deckelt ein Schritt, nach oben die
+       bisherige Vorgabe (die Senkung ist eine Senkung — auch wenn eine
+       Vorgabe unter einem Schritt läge).
+       Das Epsilon ist kein Zierrat: 3000 / 100 ist in Fließkomma
+       29,999999999999996, und `Math.floor` machte daraus 2900 m statt 3000. */
+    const stufen = Math.floor(strecke / schritt + 1e-9);
+    plan.strecke = Math.min(vorher, Math.max(schritt, Math.round(stufen * schritt * 100) / 100));
+    plan.steigerung.verfehlt = 0;
+    plan.steigerung.stufen = 0;
+    plan.steigerung.vorEntlastung = 0;
+    return ["Zweimal in Folge unter der Vorgabe — der Plan geht auf " +
+            zahlKurz(plan.strecke) + " " + einheit + " zurück (vorher " +
+            zahlKurz(vorher) + "). Dein Ziel bleibt, wo es ist."];
+  }
+  plan.steigerung.verfehlt = 0;                         // Vorgabe gehalten
+
   if(plan.steigerung.woche === woche) return [];        // diese Woche schon gesteigert
   if(plan.strecke >= ziel.wert){
-    return ["Ziel erreicht — " + zahlKurz(plan.strecke) + " " + sportart(plan.sportart).strecke.einheit + " stehen im Plan."];
+    return ["Ziel erreicht — " + zahlKurz(plan.strecke) + " " + einheit + " stehen im Plan."];
   }
-  // Gesteigert wird nur, was auch geschafft wurde
-  if(strecke > 0 && strecke < plan.strecke * 0.9) return ["Diesmal unter Plan — die Vorgabe bleibt, wo sie ist."];
 
   plan.steigerung.woche = woche;
-  const einheit = sportart(plan.sportart).strecke.einheit;
 
   if(plan.steigerung.stufen >= ENTLASTUNG_NACH){
     plan.steigerung.vorEntlastung = plan.strecke;
@@ -13473,7 +13706,7 @@ function zieleAnwenden(plan, strecke, dauerS){
     plan.steigerung.vorEntlastung = 0;
     return ["Zurück auf " + zahlKurz(plan.strecke) + " " + einheit + " — nächste Woche geht es weiter hoch."];
   }
-  const schritt = sportart(plan.sportart).strecke.schritt;
+  // `schritt` steht oben (v207) — dieselbe Quelle für Steigerung und Rückweg.
   const zuwachs = Math.max(schritt, Math.round(plan.strecke * STEIGERUNG_MAX / schritt) * schritt);
   const alt = plan.strecke;
   plan.strecke = Math.min(ziel.wert, Math.round((plan.strecke + zuwachs) * 100) / 100);

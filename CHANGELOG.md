@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.207
+
+- Ausdauer-Pläne kennen jetzt auch den Weg nach unten. Bisher stieg die Vorgabe oder
+  blieb stehen — wer zweimal darunter blieb, las nur „Diesmal unter Plan“ und lief für
+  immer gegen eine Zahl, die nicht mehr passte. Jetzt zieht der Plan beim zweiten Mal in
+  Folge auf die wirklich gelaufene Strecke nach. Genau das macht dein Kraftplan seit
+  0.159.
+- Dein ZIEL bleibt dabei unangetastet. Gesenkt wird nur die Vorgabe für die nächste
+  Einheit — das Ziel ist deine Ansage, nicht die der App.
+- Neu nach einer langen Pause: Waren es mehr als drei Wochen, begrüßt dich „Heute“ mit
+  einem Hinweis und dem Angebot, alle Pläne um eine Stufe zu senken (Wiederholungen aufs
+  Minimum, ein Gewichtsschritt runter, längere Pausen; bei Ausdauer auf 70 %). Nichts
+  passiert von allein, und „Rückgängig“ holt alles sofort zurück. Ab Stufe 4.
+- Kleinigkeit: Auf der Plan-Karte steht bei „zuletzt“ jetzt auch das Jahr — vorher sah
+  ein Plan, der ein Jahr ruht, aus wie einer von letzter Woche.
+
 ## 0.206
 
 - Neue Statistik: dein BMI-Verlauf. Die Kurve liegt über den Bereichen (Unter-, Normal-,

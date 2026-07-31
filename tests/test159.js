@@ -24,6 +24,7 @@ function grabFn(name){
 const modul = { exports: {} };
 new Function("module", "exports", [
   grabFn("begrenzen"),
+  grabFn("stufeSenken"),   // v207: der Deload senkt ueber diese Funktion
   grabFn("sollVerfehlt"),
   grabFn("effektiveNote"),
   grabFn("progressionAnwenden"),
