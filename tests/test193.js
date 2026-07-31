@@ -103,8 +103,15 @@ pruefe("und eine leere Karte zeigt niemand",
   werkzeuge.includes('setzen("mehr-assistent-karte", mitAssistent || mitBeispiel)'));
 pruefe("der Beispielplan fuehrt jetzt auch in die Liste",
   grabFn("beispielLaden").includes('zeige("view-plaene")'));
-pruefe("die Ersteinrichtung ruft den Assistenten weiter",
-  src.includes("if(n >= 5) einrichtungOeffnen();"));
+/* v203 (Nutzer-Entscheidung): Die Ersteinrichtung ruft den Assistenten NICHT
+   mehr — sie fuehrt ab Stufe 3 direkt in die Uebungs-Auswahl. Damit ist Etappe 3
+   abgeschlossen. Geloescht ist er deshalb nicht (siehe Pruefung darunter): Er
+   bleibt unter „Mehr -> Werkzeuge" und funktioniert unveraendert. */
+pruefe("die Ersteinrichtung ruft den Assistenten nicht mehr",
+  !src.includes("if(n >= 5) einrichtungOeffnen();") &&
+  !grabFn("erstenWegOeffnen").includes("einrichtungOeffnen"));
+pruefe("der Assistent bleibt trotzdem aufrufbar",
+  (src.match(/einrichtungOeffnen\(\)/g) || []).length >= 1);
 pruefe("und die Wizard-Ansicht ist unangetastet",
   src.includes('id="view-wizard"') && src.includes("const WIZARD_FRAGEN"));
 /* Kein Weg darf nur noch ins Leere zeigen. */

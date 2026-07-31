@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.203
+
+- Der erste Start führt jetzt direkt in die Übungs-Auswahl: Stufe wählen, Übung
+  eintragen, loslegen. Bisher landete man auf Stufe 5 zwangsläufig im Plan-Assistenten —
+  er war damit der einzige Weg, den ein neuer Nutzer überhaupt zu sehen bekam.
+- Der Assistent ist deshalb nicht weg: Er steht unter „Mehr → Werkzeuge“ und
+  funktioniert unverändert. Ein Hinweis beim ersten Start sagt, wo er zu finden ist.
+- Auf den Stufen 1 und 2 ändert sich nichts — dort ist der Notizblock selbst die
+  Eingabe.
+
 ## 0.202
 
 - Bei Ausdauer-Sportarten ist jetzt „Eintragen“ die gelbe Hauptaktion, die Stoppuhr

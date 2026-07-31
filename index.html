@@ -2666,7 +2666,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 202;
+const APP_VERSION = 203;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2877,8 +2877,8 @@ async function kontoAnlegen(){
   Speicher.schreiben(tresor);
   sitzung = { kontoId: konto.id, datenSchluessel, dkBytes, daten };
   // v76: Nach dem Code-Bildschirm zuerst die Einfachheit fragen (Abschnitt 6.5).
-  // simpelheitWaehlen leitet danach je Stufe weiter: Stufe 5 in den Assistenten
-  // (der baut den ersten Plan), darunter aufs jeweilige Zuhause.
+  // v203: Danach leitet `erstenWegOeffnen` weiter — ab Stufe 3 direkt in die
+  // Übungs-Auswahl (nicht mehr in den Assistenten), auf 1/2 in den Notizblock.
   codeAnzeigen(() => simpelheitFrageOeffnen(true));
 }
 
@@ -3667,16 +3667,39 @@ function simpelheitFrageZeichnen(){
       '</div>').join("");
 }
 
+/** v203 (Nutzer-Entscheidung, Etappe 3 der Übungs-Entscheidung): Wohin führt
+    der ERSTE Start, nachdem die Stufe gewählt ist?
+
+    Bis v202 startete Stufe 5 den Plan-Assistenten — er war damit der einzige
+    Weg, den ein neuer Nutzer überhaupt zu sehen bekam. Genau das sollte die
+    Richtungs-Entscheidung umkehren: Nicht „erst einen Plan bauen, dann
+    trainieren", sondern **eine Übung eintragen und loslegen**. Deshalb führt der
+    erste Start jetzt direkt in die Übungs-Auswahl.
+
+    Zwei Dinge bleiben bewusst:
+    * **Stufe 1 und 2 gehen weiter auf ihr Zuhause** — dort IST der Notizblock
+      die Eingabe. Ein Picker davor wäre ein Umweg zu einer leeren Zeile.
+    * **Der Assistent ist nicht weg**, nur nicht mehr der Zwangsweg: Er steht
+      unter „Mehr → Werkzeuge" (seit v193). Damit ein neuer Nutzer davon
+      erfährt, sagt es der Toast — einmalig, im Moment des Übergangs, statt als
+      dauerhafter Satz im Leer-Zustand (dort soll EINE Aktion stehen, v129).
+
+    Was WIRD dabei nicht gelöscht: `WIZARD_FRAGEN`, `view-wizard`,
+    `plaeneErstellen` und `aktivitaetsPlaeneBauen` bleiben unangetastet — der
+    Assistent funktioniert unverändert, er ist nur nicht mehr die Startseite. */
+function erstenWegOeffnen(n){
+  if(n <= 2){ startOeffnen(); return; }
+  uebungAlleinAnlegen();
+  if(n >= 5) zeigenToast("Lieber geführt? Der Plan-Assistent steht unter Mehr → Werkzeuge.", "info");
+}
+
 function simpelheitWaehlen(n){
   const vorher = stufe();
   sitzung.daten.einrichtung.simpelheit = n;   // NUR die Sicht ändern — Daten bleiben unangetastet (die Invariante).
   speichern();
   if(simpelheitErstmalig){
     simpelheitErstmalig = false;
-    // Nur Stufe 5 startet direkt den Assistenten (der baut den ersten Plan).
-    // Darunter landet der Nutzer auf seinem Zuhause und legt selbst an.
-    if(n >= 5) einrichtungOeffnen();
-    else startOeffnen();
+    erstenWegOeffnen(n);
     return;
   }
   // Umschalten im Betrieb: nichts konvertieren, nur neu zeichnen. Beim Hochstufen
@@ -6365,6 +6388,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.203", punkte:[
+    "Der erste Start führt jetzt direkt in die Übungs-Auswahl: Stufe wählen, Übung eintragen, loslegen. Bisher landete man auf Stufe 5 zwangsläufig im Plan-Assistenten — er war damit der einzige Weg, den ein neuer Nutzer überhaupt zu sehen bekam.",
+    "Der Assistent ist deshalb nicht weg: Er steht unter „Mehr → Werkzeuge“ und funktioniert unverändert. Ein Hinweis beim ersten Start sagt, wo er zu finden ist.",
+    "Auf den Stufen 1 und 2 ändert sich nichts — dort ist der Notizblock selbst die Eingabe."
+  ]},
   { stand:"0.202", punkte:[
     "Bei Ausdauer-Sportarten ist jetzt „Eintragen“ die gelbe Hauptaktion, die Stoppuhr steht daneben. Der Stoppuhr-Bildschirm riet für lange Einheiten selbst davon ab (iOS friert die App im Hintergrund ein) — damit war der prominenteste Knopf für den Normalfall der falsche. Bei Intervall-Plänen bleibt „Runden“ vorn: Dort ist der Timer das Training.",
     "Und „Fertig — eintragen“ ohne gestartete Uhr führt jetzt einfach ins Eintragen-Formular, statt auf einen Weg zu verweisen, den es selbst nicht anbietet.",
