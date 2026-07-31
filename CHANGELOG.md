@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.199
+
+- Der Notizblock kennt jetzt auch Ausdauer: „Laufen 5 km 30 min“ in eine Zeile
+  geschrieben, und die App versteht Strecke und Zeit. Bisher zeigte ein Laufplan auf
+  Stufe 1 gar nichts — seine Werte hängen am Plan, nicht an einer Übung.
+- Die Einheit hat ihren eigenen Haken. Abhaken heißt „war laufen“ — und der Lauf zählt
+  damit in Kalender, Serie, Ausdauer-Statistik und seit v197 auch in deine Muskelkarte.
+- Erkannt wird eine Ausdauer-Zeile nur, wenn sie mit dem Namen der Sportart beginnt.
+  Sonst würde aus „Plank 45 s“ eine Ausdauer-Einheit statt einer Zeit-Übung.
+- Meter und Kilometer werden umgerechnet: „500 m“ sind beim Laufen 0,5 km, beim
+  Schwimmen bleiben es 500 m.
+
 ## 0.198
 
 - Der Notizblock (Stufe 1) besteht jetzt aus echten Zeilen: Jede Übung hat ihre eigene

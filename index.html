@@ -206,9 +206,10 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   background:var(--panel);border:1px solid var(--line);border-radius:8px;
   padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
 .notiz-haken.an{border-color:var(--signal)}
-.notiz-haken-text{flex:1;min-width:0;font-size:14px;line-height:1.25}
-.notiz-haken-text small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
-/* Stufe 2: nur das Kästchen, als erste Spalte der Zeile — gleiche Breite wie
+/* v199: Die breite Fassung mit Name und Zahlen (`.notiz-haken-text`) ist
+   entfallen — seit v198 steht der Haken in der Zeile, und dort steht der Name
+   schon im Feld daneben. Es gibt nur noch das Kästchen. */
+/* Nur das Kästchen, als erste Spalte der Zeile — gleiche Breite wie
    der ×-Knopf am anderen Ende, damit die Felder dazwischen bündig stehen. */
 .notiz-haken.klein{width:44px;flex:0 0 auto;justify-content:center;padding:0;margin:0}
 .notiz-kopf-haken{width:44px;flex:0 0 auto}   /* Spalte des Hakens */
@@ -2650,7 +2651,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 198;
+const APP_VERSION = 199;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3919,6 +3920,33 @@ function notizAbgehakt(protokoll, planId, datum, uebungId){
   return !!(e && (e.saetze || []).some(s => s.uebungId === uebungId));
 }
 
+/** v199: Ist die EINHEIT dieses Abschnitts an diesem Tag abgehakt („war
+    laufen")? Sie hängt nicht an einer Übung, deshalb ein eigenes Kennzeichen
+    am Eintrag — sparsam-additiv wie `messwert` in v115. Rein/testbar. */
+function notizEinheitAbgehakt(protokoll, planId, datum){
+  const e = notizEintragFinden(protokoll, planId, datum);
+  return !!(e && e.einheit);
+}
+
+/** Der EINE Notizblock-Eintrag dieses Abschnitts für heute — angelegt, falls es
+    ihn noch nicht gibt (v174, Zusage 3: ein Eintrag je Abschnitt und Tag).
+    Sein Typ kommt vom Abschnitt: In einem Laufabschnitt gehört auch ein
+    abgehakter Drill zur Lauf-Einheit und ist kein Krafttraining. */
+function notizEintragHolen(p, heute){
+  const protokoll = sitzung.daten.protokoll;
+  const da = notizEintragFinden(protokoll, p.id, heute);
+  if(da) return da;
+  const istAktivitaet = p.typ === "aktivitaet";
+  const e = { id: neueId(), datum: heute, plan: p.name || "Notizblock", planId: p.id,
+              sportart: p.sportart || "kraft", typ: istAktivitaet ? "aktivitaet" : "kraft",
+              sonder: !planAmTag(p, heute), quelle: "notizblock",
+              dauerMin: 0, notiz: "", saetze: [] };
+  if(istAktivitaet){ e.strecke = 0; e.zeitEinheit = p.zeitEinheit || "min"; }
+  protokoll.push(e);
+  protokoll.sort((a, b) => a.datum.localeCompare(b.datum));
+  return e;
+}
+
 /** Die Sätze, die EIN Haken schreibt — einer je geplantem Satz, alle mit
     demselben Zeitpunkt. Dieselbe Form wie `kraftErledigt`, damit die höheren
     Stufen nichts unterscheiden müssen. Rein/testbar. */
@@ -3941,7 +3969,10 @@ function notizSaetzeFuer(u, zeit){
 function notizEintragAuffrischen(e){
   e.saetze.sort((a, b) => String(a.zeit || "").localeCompare(String(b.zeit || "")) ||
                           (a.satz || 0) - (b.satz || 0));
-  e.dauerMin = Math.max(1, e.saetze.length * 2);
+  /* v199: Ist die Einheit selbst abgehakt, steht dort die WIRKLICHE Dauer der
+     Einheit („14 min") — die darf eine Schätzung aus der Satzzahl nicht
+     überschreiben. */
+  if(!e.einheit) e.dauerMin = Math.max(1, e.saetze.length * 2);
   return e;
 }
 
@@ -3962,17 +3993,12 @@ function notizHakenUmschalten(planId, uebungId){
     // Der letzte Haken weg = der Eintrag hat keinen Inhalt mehr. Er wandert
     // NICHT in den Papierkorb: Ein Fehlgriff soll spurlos verschwinden, nicht
     // als Leiche zum Wiederherstellen liegen bleiben.
-    if(!e.saetze.length) protokoll.splice(protokoll.indexOf(e), 1);
+    // v199: „kein Inhalt" heißt auch: die Einheit ist nicht abgehakt.
+    if(!e.saetze.length && !e.einheit) protokoll.splice(protokoll.indexOf(e), 1);
     else notizEintragAuffrischen(e);
     zeigenToast("Haken weg: " + u.name, "info");
   } else {
-    if(!e){
-      e = { id: neueId(), datum: heute, plan: p.name || "Notizblock", planId: p.id,
-            sportart: p.sportart || "kraft", typ: "kraft", sonder: !planAmTag(p, heute),
-            quelle: "notizblock", dauerMin: 0, notiz: "", saetze: [] };
-      protokoll.push(e);
-      protokoll.sort((a, b) => a.datum.localeCompare(b.datum));
-    }
+    if(!e) e = notizEintragHolen(p, heute);
     const zeit = jetztAlsZeit();
     e.saetze = e.saetze.concat(notizSaetzeFuer(u, zeit));
     notizEintragAuffrischen(e);
@@ -3983,23 +4009,63 @@ function notizHakenUmschalten(planId, uebungId){
   notizblockZeichnen();
 }
 
-/** Ein Haken als Knopf. `kompakt` = nur das Kästchen (Stufe 2, inmitten der
-    Zeile); sonst Kästchen + Name + Zahlen (Stufe 1, unter dem Textfeld).
+/** v199: Die Einheit eines Aktivitäts-Abschnitts abhaken — „ich war laufen".
+    Anders als beim Übungs-Haken trägt der Eintrag KEINE Soll-Sätze, sondern die
+    Werte, die in der Zeile stehen. Das ist kein Widerspruch zu v158: Sätze und
+    Wiederholungen sind eine PLANUNG, die man verfehlen kann; die Strecke und
+    die Zeit in dieser Zeile hat der Nutzer selbst hingeschrieben — sie sind
+    seine Notiz, nicht eine Vorgabe der App. Damit zählt der Lauf über v197
+    auch in die Muskelkarte, genau wie der Nutzer es wollte.
+    Gefragt und bewertet wird weiterhin nichts (Leitplanke 8). */
+function notizEinheitHakenUmschalten(planId){
+  const p = findePlan(planId); if(!p || p.typ !== "aktivitaet") return;
+  const heute = heuteAlsText();
+  const protokoll = sitzung.daten.protokoll;
+  const da = notizEintragFinden(protokoll, planId, heute);
+  if(da && da.einheit){
+    da.einheit = false;
+    da.strecke = 0;
+    if(!da.saetze.length) protokoll.splice(protokoll.indexOf(da), 1);
+    else notizEintragAuffrischen(da);
+    zeigenToast("Haken weg: " + sportartName(p.sportart), "info");
+  } else {
+    const e = notizEintragHolen(p, heute);
+    e.einheit = true;
+    e.strecke = p.strecke || 0;
+    e.zeitEinheit = p.zeitEinheit || "min";
+    e.dauerMin = Math.max(1, Math.round((p.dauer || 0) / 60));
+    zeigenToast("Gemacht um " + jetztAlsZeit() + ": " + aktivitaetAlsZeile(p), "erfolg");
+  }
+  speichern();
+  fortschrittNeuZeichnen();   // v153: Flamme, Heute, Kalender und Statistik ziehen mit
+  notizblockZeichnen();
+}
+
+/** Das Kästchen als Knopf — geteilt von Übungs- und Einheit-Haken (v199),
+    damit beide gleich aussehen und Vorlese-Programmen dasselbe sagen.
     Bewusst KEIN `.gewaehlt`: Die Haus-Regel „ausgewählt = gelb" färbt die
     ganze Fläche, und eine Liste erledigter Zeilen wäre eine Wand aus Gelb.
     Stattdessen dasselbe Bild wie die Mehrfach-Auswahl aus v163 — das Häkchen
     in der Signalfarbe, dazu eine farbige Kante. */
-function notizHakenHtml(p, u, kompakt){
-  const an = notizAbgehakt(sitzung.daten.protokoll, p.id, heuteAlsText(), u.id);
-  const kasten = '<span class="plan-haken">' + (an ? "☑" : "☐") + '</span>';
-  return '<button class="notiz-haken' + (kompakt ? " klein" : "") + (an ? " an" : "") + '" ' +
+function notizHakenKnopfHtml(an, name, klick){
+  return '<button class="notiz-haken klein' + (an ? " an" : "") + '" ' +
     'aria-pressed="' + (an ? "true" : "false") + '" ' +
-    'aria-label="' + (an ? "Haken entfernen: " : "Als gemacht abhaken: ") + text(u.name) + '" ' +
-    'onclick="notizHakenUmschalten(\'' + p.id + '\', \'' + u.id + '\')">' + kasten +
-    (kompakt ? "" :
-      '<span class="notiz-haken-text">' + text(u.name) +
-      '<small>' + text(uebungBeschreiben(u)) + '</small></span>') +
-    '</button>';
+    'aria-label="' + (an ? "Haken entfernen: " : "Als gemacht abhaken: ") + text(name) + '" ' +
+    'onclick="' + klick + '"><span class="plan-haken">' + (an ? "☑" : "☐") + '</span></button>';
+}
+
+/** Der Haken einer Übungs-Zeile (Stufe 1 und 2). */
+function notizHakenHtml(p, u){
+  const an = notizAbgehakt(sitzung.daten.protokoll, p.id, heuteAlsText(), u.id);
+  return notizHakenKnopfHtml(an, u.name,
+    "notizHakenUmschalten('" + p.id + "', '" + u.id + "')");
+}
+
+/** Der Haken der Einheit-Zeile (nur Aktivitäts-Abschnitte, Stufe 1). */
+function notizEinheitHakenHtml(p){
+  const an = notizEinheitAbgehakt(sitzung.daten.protokoll, p.id, heuteAlsText());
+  return notizHakenKnopfHtml(an, sportartName(p.sportart),
+    "notizEinheitHakenUmschalten('" + p.id + "')");
 }
 
 /* ------------------------------------------------------------
@@ -4031,9 +4097,16 @@ function notizHakenHtml(p, u, kompakt){
     Inhaltlich genau `abschnittTextErzeugen`, nur einzeln — leere Zeilen fallen
     weg, sie waren schon im Textfeld nur Optik. Rein/testbar. */
 function notizZeilenModell(p){
-  const zeilen = (p.uebungen || []).filter(u => u.name && u.name.trim())
-    .map(u => ({ text: uebungAlsZeile(u), uebung: u }));
-  (p.freitext || "").split(/\r?\n/).forEach(z => {
+  const zeilen = [];
+  /* v199: Bei einer Aktivität steht die EINHEIT ganz oben („Laufen 5 km
+     30 min"). Sie ist keine Übung — ihre Werte hängen am Plan selbst —, hat
+     aber denselben Haken: Ein Lauf ist genauso „heute gemacht" wie ein Satz
+     Kniebeugen. Vorher zeigte ein Laufplan im Notizblock gar nichts. */
+  if(p && p.typ === "aktivitaet" && p.sportart)
+    zeilen.push({ text: aktivitaetAlsZeile(p), uebung: null, einheit: true });
+  ((p && p.uebungen) || []).filter(u => u.name && u.name.trim())
+    .forEach(u => zeilen.push({ text: uebungAlsZeile(u), uebung: u }));
+  ((p && p.freitext) || "").split(/\r?\n/).forEach(z => {
     if(z.trim()) zeilen.push({ text: z, uebung: null });
   });
   return zeilen;
@@ -4043,8 +4116,9 @@ function notizZeilenModell(p){
     Eingabefeld, darunter der Platz für ihre Vorschläge. Der Platzhalter-Text
     steht nur in der leeren Zeile — in jeder Zeile stünde er als Textwand. */
 function notizZeileHtml(p, z){
-  const haken = z.uebung ? notizHakenHtml(p, z.uebung, true)
-                         : '<span class="notiz-kopf-haken"></span>';
+  const haken = z.einheit ? notizEinheitHakenHtml(p)
+              : z.uebung  ? notizHakenHtml(p, z.uebung)
+                          : '<span class="notiz-kopf-haken"></span>';
   return '<div class="notiz-reihe">' +
     '<div class="notiz-reihe-feld">' +
       '<span class="notiz-haken-slot">' + haken + '</span>' +
@@ -4109,8 +4183,9 @@ function notizZeilenAbgleichen(planId){
        käme zuerst, der Knopf unter dem Finger wäre schon ausgetauscht und der
        Klick liefe ins Leere. */
     const slot = reihe.querySelector(".notiz-haken-slot");
-    const neu = zeilen[i].uebung ? notizHakenHtml(p, zeilen[i].uebung, true)
-                                 : '<span class="notiz-kopf-haken"></span>';
+    const neu = zeilen[i].einheit ? notizEinheitHakenHtml(p)
+              : zeilen[i].uebung  ? notizHakenHtml(p, zeilen[i].uebung)
+                                  : '<span class="notiz-kopf-haken"></span>';
     if(slot && slot.innerHTML !== neu) slot.innerHTML = neu;
   });
   const letzte = reihen[reihen.length - 1];
@@ -4185,7 +4260,7 @@ function notizAbschnittHtml(p, s){
     const zeilen = (p.uebungen || []).map(u =>
       '<div class="notiz-zeile">' +
         (u.name && u.name.trim()
-          ? notizHakenHtml(p, u, true)
+          ? notizHakenHtml(p, u)
           : '<span class="notiz-kopf-haken"></span>') +
         '<input placeholder="Übung" value="' + text(u.name) + '" ' +
           'onchange="notizZeileNameSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
@@ -4318,6 +4393,126 @@ function notizZeileDeuten(zeile){
   return { name, saetze: Math.min(a, b), modus:"wdh", wert: Math.max(a, b), gewicht };
 }
 
+/* ------------------------------------------------------------
+   v199: Aktivitäten im Notizblock — „Laufen 2,11 km 14 min".
+
+   Der Wunsch aus der 47. Runde: „Aktivitäts-Sportarten stehen mit ihren Werten
+   im Notizblock." Bis v198 kannte der Block nur Kraft-Zeilen (Sätze, Wdh,
+   Gewicht) — ein Laufplan zeigte dort GAR NICHTS, weil seine Werte nicht an
+   einer Übung hängen, sondern am Plan selbst (`strecke`, `dauer`).
+
+   Die Regel, die das Raten verhindert: **Eine Aktivitäts-Zeile muss mit dem
+   Namen einer Aktivitäts-Sportart beginnen.** Sonst wäre „Plank 45 s" eine
+   Ausdauer-Einheit statt einer Zeit-Übung. Der Name genügt als Anker, weil er
+   ohnehin dasteht — genau so, wie der Nutzer es aufgeschrieben hat.
+
+   Kein Wert, kein Effekt (die Linie aus v172): Was die Zeile nicht nennt, kommt
+   als `null` zurück und ändert nichts. Wer „Laufen" ohne Zahlen schreibt, legt
+   damit die Sportart fest, nicht die Strecke.
+   ------------------------------------------------------------ */
+/* Strecke: Zahl + km/m. Der Nachschau-Ausdruck hält „14min" heraus — sonst
+   läse „m" die Minuten als Meter. */
+const NOTIZ_STRECKE = /(\d+(?:[.,]\d+)?)\s*(km|m)(?![a-zäöüß])/i;
+/* Dauer: Zahl + Zeiteinheit, lange Schreibweisen zuerst (sonst schluckt „min"
+   den Anfang von „minuten" und der Nachschau-Ausdruck wirft alles weg). */
+const NOTIZ_DAUER = /(\d+(?:[.,]\d+)?)\s*(stunden|std|minuten|min|sekunden|sek|h|s)(?![a-zäöüß])/i;
+
+/** Deutsch getippte Zahl („2,11") als Zahl. */
+function kommaZahl(s){ return parseFloat(String(s).replace(",", ".")); }
+
+/** Mit welcher Aktivitäts-Sportart beginnt diese Zeile? `null`, wenn mit keiner
+    — dann ist es eine ganz normale Übungs-Zeile (v79). Kraft steht bewusst
+    nicht zur Wahl: Ein Kraftplan rechnet in Sätzen, nicht in Kilometern.
+    Das erste Wort des Namens genügt („yoga" trifft „Yoga & Beweglichkeit");
+    bei mehreren Treffern gewinnt der längere. Rein/testbar. */
+function notizSportart(zeile){
+  const r = normName(zeile);
+  if(!r) return null;
+  let treffer = null;
+  SPORTARTEN.forEach(sp => {
+    if(sp.planTyp !== "aktivitaet") return;
+    const namen = [normName(sp.name), normName(sp.name.split(" ")[0])];
+    namen.forEach(n => {
+      if(r !== n && !r.startsWith(n + " ")) return;
+      if(!treffer || n.length > treffer.laenge) treffer = { id: sp.id, laenge: n.length };
+    });
+  });
+  return treffer ? treffer.id : null;
+}
+
+/** Die Strecke in der EINHEIT DER SPORTART: „500 m" sind beim Laufen 0,5 km,
+    „0,5 km" beim Schwimmen 500 m. Sportarten ohne Streckenmaß (Klettern, Yoga)
+    haben keine Strecke — dort bleibt es bei `null`. Rein/testbar. */
+function streckeInEinheit(zahl, getippt, sportartId){
+  const sp = sportart(sportartId);
+  if(!sp.strecke || !(zahl > 0)) return null;
+  const meter = String(getippt).toLowerCase() === "km" ? zahl * 1000 : zahl;
+  const wert = sp.strecke.einheit === "km" ? meter / 1000 : meter;
+  return Math.round(wert * 100) / 100;
+}
+
+/** Die getippte Zeiteinheit auf eine der drei bekannten abbilden
+    (`ZEITEINHEITEN`) — die Zeile darf „std", „Stunden" oder „h" sagen. */
+function notizZeitEinheit(getippt){
+  const g = String(getippt).toLowerCase();
+  if(/^(h|std|stunden)$/.test(g)) return "h";
+  if(/^(s|sek|sekunden)$/.test(g)) return "s";
+  return "min";
+}
+
+/** Eine Aktivitäts-Zeile deuten: Sportart + die genannten Werte.
+    `{ sportart, strecke, sekunden, zeitEinheit }` — oder `null`, wenn die Zeile
+    mit keiner Aktivitäts-Sportart beginnt. Rein/testbar. */
+function notizAktivitaetDeuten(zeile){
+  const id = notizSportart(zeile);
+  if(!id) return null;
+  const roh = String(zeile).trim();
+  const s = roh.match(NOTIZ_STRECKE);
+  // Die Strecke aus der Zeile nehmen, bevor die Dauer gesucht wird — sonst
+  // müsste jede Zeiteinheit auch noch wissen, was ein Kilometer ist.
+  const rest = s ? (roh.slice(0, s.index) + " " + roh.slice(s.index + s[0].length)) : roh;
+  const d = rest.match(NOTIZ_DAUER);
+  const einheit = d ? notizZeitEinheit(d[2]) : "min";
+  const sekunden = d && kommaZahl(d[1]) > 0
+    ? Math.min(MAX_DAUER_S, inSekunden(kommaZahl(d[1]), einheit)) : null;
+  return { sportart: id, strecke: s ? streckeInEinheit(kommaZahl(s[1]), s[2], id) : null,
+           sekunden, zeitEinheit: einheit };
+}
+
+/** Die Gegenrichtung: die Einheit eines Aktivitäts-Abschnitts als Zeile.
+    Bewusst OHNE Pace — die rechnet die App aus Strecke und Zeit aus; stünde sie
+    mit in der Zeile, läse der Parser sie als dritte Zahl (zwei Wahrheiten).
+    Der kurze Sportart-Name reicht, er wird beim Lesen wiedererkannt. */
+function aktivitaetAlsZeile(p){
+  const sp = sportart(p.sportart);
+  const teile = [sp.name.split(" ")[0]];
+  if(sp.strecke && p.strecke > 0) teile.push(zahlKurz(p.strecke) + " " + sp.strecke.einheit);
+  if(p.dauer > 0) teile.push(zeitKurz(p.dauer, p.zeitEinheit || "min"));
+  return teile.join(" ");
+}
+
+/** Die gedeutete Einheit in den Abschnitt übernehmen. Zwei Wachen:
+    1. Die SPORTART wechselt nur, solange keine Übungen im Abschnitt stehen —
+       dieselbe Regel wie im Editor (`planSportartSetzen`): Ein Plan gehört zu
+       genau einer Sportart, und die Übungen hängen daran.
+    2. Nur genannte Werte werden gesetzt (v172-Linie).
+    Rückgabe: hat es geklappt? */
+function notizEinheitUebernehmen(p, akt){
+  if((p.sportart || "kraft") !== akt.sportart){
+    if((p.uebungen || []).length) return false;
+    p.sportart = akt.sportart;
+    p.typ = planTypFuer(akt.sportart);
+    // Felder, die der Typ braucht — wie in abschnittNameSetzen und planSportartSetzen
+    if(typeof p.dauer !== "number") p.dauer = 1800;
+    if(!p.zeitEinheit) p.zeitEinheit = "min";
+    if(typeof p.strecke !== "number") p.strecke = hatStrecke(akt.sportart) ? sportart(akt.sportart).strecke.start : 0;
+    if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0 };
+  }
+  if(akt.strecke != null) p.strecke = akt.strecke;
+  if(akt.sekunden != null){ p.dauer = akt.sekunden; p.zeitEinheit = akt.zeitEinheit; }
+  return true;
+}
+
 /** Eine Übung als Muster-Zeile für den Stufe-1-Text. Zeit immer in Sekunden —
     eine Einheit in der Zeile („30 min“) müsste der Parser mitschleppen. */
 function uebungAlsZeile(u){
@@ -4354,9 +4549,19 @@ function abschnittTextSetzen(id, wert){
   const p = findePlan(id); if(!p) return;
   const pool = p.uebungen.slice();   // bisherige Übungen — Name-Matching statt Neuaufbau
   const uebungen = [], rest = [], frisch = [];
+  let einheit = null;                // v199: die Aktivitäts-Zeile, falls eine dasteht
   String(wert).split(/\r?\n/).forEach(zeile => {
     const t = zeile.trim();
     if(!t) return;                               // Leerzeilen sind nur Optik
+    /* v199: Beginnt die Zeile mit einer Aktivitäts-Sportart, gehört sie der
+       EINHEIT des Abschnitts (Strecke/Dauer am Plan) und wird keine Übung.
+       Nur die erste solche Zeile zählt — ein Abschnitt ist EINE Einheit; jede
+       weitere bleibt Text, statt die erste still zu überschreiben. */
+    const akt = notizAktivitaetDeuten(t);
+    if(akt){
+      if(einheit) rest.push(zeile); else einheit = akt;
+      return;
+    }
     const m = notizZeileDeuten(t);               // v155: Muster ODER Kurzform
     let name = m ? m.name : t;                   // ohne Mengen ist die ganze Zeile der Name
     // Doppelter Name in den Zeilen: die zweite bleibt Text (ein Plan führt
@@ -4400,6 +4605,16 @@ function abschnittTextSetzen(id, wert){
   while(rest.length && !rest[0].trim()) rest.shift();               // Leerzeilen an den Rändern
   while(rest.length && !rest[rest.length - 1].trim()) rest.pop();   // stammen vom Rendern, nicht vom Nutzer
   p.uebungen = uebungen;
+  /* v199: Die Einheit wird ERST JETZT übernommen — sie darf die Sportart nur
+     wechseln, wenn keine Übungen im Abschnitt stehen, und das steht erst nach
+     der Schleife fest. Klappt der Wechsel nicht, bleibt die Zeile als Text
+     stehen (nichts geht verloren) und sagt kurz, warum. */
+  if(einheit && !notizEinheitUebernehmen(p, einheit)){
+    rest.push(aktivitaetAlsZeile({ sportart:einheit.sportart, strecke:einheit.strecke,
+                                   dauer:einheit.sekunden, zeitEinheit:einheit.zeitEinheit }));
+    zeigenToast("Ein Abschnitt gehört zu einer Sportart — für " +
+                sportartName(einheit.sportart) + " einen eigenen anlegen", "info");
+  }
   p.freitext = rest.join("\n");
   speichern();
   /* v155: Die Felder bekommen die AUFGERÄUMTE Fassung zurück — genau die
@@ -6000,6 +6215,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.199", punkte:[
+    "Der Notizblock kennt jetzt auch Ausdauer: „Laufen 5 km 30 min“ in eine Zeile geschrieben, und die App versteht Strecke und Zeit. Bisher zeigte ein Laufplan auf Stufe 1 gar nichts — seine Werte hängen am Plan, nicht an einer Übung.",
+    "Die Einheit hat ihren eigenen Haken. Abhaken heißt „war laufen“ — und der Lauf zählt damit in Kalender, Serie, Ausdauer-Statistik und seit v197 auch in deine Muskelkarte.",
+    "Erkannt wird eine Ausdauer-Zeile nur, wenn sie mit dem Namen der Sportart beginnt. Sonst würde aus „Plank 45 s“ eine Ausdauer-Einheit statt einer Zeit-Übung.",
+    "Meter und Kilometer werden umgerechnet: „500 m“ sind beim Laufen 0,5 km, beim Schwimmen bleiben es 500 m."
+  ]},
   { stand:"0.198", punkte:[
     "Der Notizblock (Stufe 1) besteht jetzt aus echten Zeilen: Jede Übung hat ihre eigene Zeile — und ihr Häkchen steht direkt davor, statt in einer Liste darüber. Abhaken heißt weiterhin nur antippen.",
     "Enter legt die nächste Zeile an, die Rücktaste in einer leeren Zeile nimmt sie wieder weg, und unten wartet immer eine freie Zeile. Der Block bleibt also ein Block.",
@@ -8855,7 +9076,12 @@ function aktivitaetSaetze(dauerMin){
 function alsEinheitZaehlbar(eintrag){
   if(!eintrag || eintrag.typ !== "aktivitaet") return false;
   if(istSollEintrag(eintrag)) return false;
-  if(echteSaetze(eintrag).length > 0) return false;
+  /* v199 (nachgeschärft): WO SÄTZE STEHEN, ZÄHLEN DIE SÄTZE — egal ob gemessen
+     oder abgehakt. Bis v198 stand hier `echteSaetze`, was Soll-Sätze durchließ;
+     seit dem Notizblock kann ein Aktivitäts-Eintrag beides tragen (die Einheit
+     „Laufen 30 min" UND abgehakte Drills desselben Abschnitts), und dann wären
+     dieselben Minuten zweimal in der Rechnung. */
+  if((eintrag.saetze || []).length > 0) return false;
   return aktivitaetSaetze(eintrag.dauerMin) > 0 && !!SPORT_LAST_MUSKELN[eintrag.sportart];
 }
 

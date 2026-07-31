@@ -130,27 +130,38 @@ pruefe("ein Eintrag ohne Saetze wirft nicht",
   A.eintragZeitspanne({}) === "" && A.eintragZeitspanne(null) === "");
 pruefe("die Uhrzeit hat immer zwei Stellen", /^\d{2}:\d{2}$/.test(A.jetztAlsZeit()));
 
-/* ---------- 7) KOMPATIBEL: dieselbe Form wie kraftErledigt ---------- */
+/* ---------- 7) KOMPATIBEL: dieselbe Form wie kraftErledigt ----------
+   v199: Gebaut wird der Eintrag jetzt in `notizEintragHolen` — es gibt seither
+   zwei Haken (Uebung und Einheit), die sich EINEN Eintrag je Abschnitt und Tag
+   teilen. Die Zusage selbst ist unveraendert: dieselbe Form wie ueberall. */
 const umschalten = grabFn("notizHakenUmschalten");
+const holen = grabFn("notizEintragHolen");
 const erledigt = grabFn("kraftErledigt");
 ["datum:", "plan:", "planId:", "sportart:", "typ:", "sonder:", "dauerMin:", "notiz:", "saetze"]
   .forEach(feld => pruefe("der Eintrag hat dasselbe Feld wie kraftErledigt: " + feld,
-    umschalten.includes(feld) && erledigt.includes(feld)));
-pruefe("er traegt id: neueId() wie jeder andere", /id: neueId\(\)/.test(umschalten));
-pruefe("typ ist kraft — die Saetze sind die Kraft-Form", /typ: "kraft"/.test(umschalten));
+    holen.includes(feld) && erledigt.includes(feld)));
+pruefe("er traegt id: neueId() wie jeder andere", /id: neueId\(\)/.test(holen));
+pruefe("in einem Kraft-Abschnitt ist der Typ kraft (die Saetze sind die Kraft-Form)",
+  /istAktivitaet \? "aktivitaet" : "kraft"/.test(holen));
 pruefe("sonder wird wie ueberall aus planAmTag abgeleitet",
-  /sonder: !planAmTag\(p, heute\)/.test(umschalten));
+  /sonder: !planAmTag\(p, heute\)/.test(holen));
 pruefe("das Protokoll bleibt nach Datum sortiert",
-  /protokoll\.sort\(\(a, b\) => a\.datum\.localeCompare\(b\.datum\)\)/.test(umschalten));
+  /protokoll\.sort\(\(a, b\) => a\.datum\.localeCompare\(b\.datum\)\)/.test(holen));
 pruefe("der Notizblock-Eintrag ist als solcher markiert",
-  /quelle: "notizblock"/.test(umschalten));
+  /quelle: "notizblock"/.test(holen));
+pruefe("der Uebungs-Haken benutzt denselben Erzeuger",
+  /notizEintragHolen\(p, heute\)/.test(umschalten));
+pruefe("und legt keinen zweiten Eintrag daneben",
+  !/protokoll\.push\(/.test(umschalten));
 
 /* ---------- 8) Verhalten des Umschaltens ---------- */
 pruefe("es wird immer HEUTE abgehakt", /const heute = heuteAlsText\(\)/.test(umschalten));
 pruefe("eine namenlose Zeile ist nichts zum Abhaken",
   /if\(!u\.name \|\| !u\.name\.trim\(\)\) return;/.test(umschalten));
+/* v199: „leer" heisst seither auch „die Einheit ist nicht abgehakt" — in einem
+   Laufabschnitt kann derselbe Eintrag beides tragen. */
 pruefe("der letzte Haken weg entfernt den leeren Eintrag",
-  /if\(!e\.saetze\.length\) protokoll\.splice/.test(umschalten));
+  /if\(!e\.saetze\.length && !e\.einheit\) protokoll\.splice/.test(umschalten));
 /* Gesucht ist der AUFRUF, nicht das Wort — im Kommentar daneben steht, warum
    der Papierkorb hier bewusst nicht benutzt wird. */
 pruefe("und zwar OHNE Umweg ueber den Papierkorb",
@@ -173,9 +184,9 @@ const abschnitt = grabFn("notizAbschnittHtml");
 pruefe("Stufe 1 bekommt den Block mit Zeilen", abschnitt.includes("notizZeilenHtml(p)"));
 pruefe("die Haken-Leiste ist abgeloest", !src.includes("function notizHakenLeisteHtml("));
 pruefe("Stufe 1 traegt den Haken IN der Zeile",
-  grabFn("notizZeileHtml").includes("notizHakenHtml(p, z.uebung, true)"));
+  grabFn("notizZeileHtml").includes("notizHakenHtml(p, z.uebung)"));
 pruefe("Stufe 2 bekommt den Haken IN der Zeile",
-  abschnitt.includes("notizHakenHtml(p, u, true)"));
+  abschnitt.includes("notizHakenHtml(p, u)"));
 pruefe("eine namenlose Zeile bekommt stattdessen einen Platzhalter",
   abschnitt.includes('<span class="notiz-kopf-haken"></span>') &&
   grabFn("notizZeileHtml").includes('<span class="notiz-kopf-haken"></span>'));
@@ -183,11 +194,14 @@ pruefe("die Spaltenkoepfe haben die Haken-Spalte mitbekommen",
   /notiz-kopf"><span class="notiz-kopf-haken">/.test(abschnitt));
 pruefe("nur Zeilen MIT Uebung bekommen einen Haken",
   /filter\(u => u\.name && u\.name\.trim\(\)\)/.test(grabFn("notizZeilenModell")));
-const hakenHtml = grabFn("notizHakenHtml");
+/* v199: Das Kaestchen selbst baut `notizHakenKnopfHtml` — Uebungs- und
+   Einheit-Haken teilen es sich, damit sie gleich aussehen und gleich sprechen. */
+const hakenHtml = grabFn("notizHakenKnopfHtml");
 pruefe("der Knopf sagt Vorlese-Programmen seinen Zustand", /aria-pressed=/.test(hakenHtml));
 pruefe("und was er tut", /aria-label=/.test(hakenHtml));
 pruefe("er nutzt NICHT den gelben Vollton", !/gewaehlt/.test(hakenHtml));
 pruefe("sondern das Haus-Kaestchen aus v163", /plan-haken/.test(hakenHtml));
+pruefe("der Uebungs-Haken benutzt ihn", grabFn("notizHakenHtml").includes("notizHakenKnopfHtml("));
 pruefe("es gibt ein Stylesheet dafuer",
   /\.notiz-haken\{/.test(src) && /\.notiz-haken\.an\{/.test(src));
 pruefe("die kompakte Spalte ist so breit wie die des x-Knopfs",

@@ -68,7 +68,7 @@ pruefe("die eigene Haken-Leiste ist weg", !src.includes("function notizHakenLeis
 pruefe("und ihr Stylesheet auch", !/\.notiz-erledigt\{/.test(src));
 pruefe("Stufe 1 zeigt nur noch den Block", abschnitt.includes("notizZeilenHtml(p)"));
 const zeile = grabFn("notizZeileHtml");
-const iHaken = zeile.indexOf("notizHakenHtml(p, z.uebung, true)");
+const iHaken = zeile.indexOf("notizHakenHtml(p, z.uebung)");
 const iFeld = zeile.indexOf('class="notiz-feld"');
 pruefe("beide Teile sind in der Zeile", iHaken > 0 && iFeld > 0);
 pruefe("der Haken steht VOR dem Feld", iHaken < iFeld);
@@ -76,7 +76,7 @@ pruefe("die Vorschlags-Reihe steht darunter",
   zeile.indexOf("notiz-vorschlaege") > iFeld);
 /* Stufe 2 ist davon unberuehrt — dort sass der Haken schon seit v174 richtig. */
 pruefe("Stufe 2 behaelt den Haken in der Zeile",
-  abschnitt.includes("notizHakenHtml(p, u, true)"));
+  abschnitt.includes("notizHakenHtml(p, u)"));
 
 /* ---------- 3) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

@@ -87,7 +87,7 @@ pruefe("mit Freitext gilt dasselbe",
 
 /* ---------- 3) Die Zeile im Bild ---------- */
 const zeileHtml = grabFn("notizZeileHtml");
-const iHaken = zeileHtml.indexOf("notizHakenHtml(p, z.uebung, true)");
+const iHaken = zeileHtml.indexOf("notizHakenHtml(p, z.uebung)");
 const iFeld = zeileHtml.indexOf('class="notiz-feld"');
 /* Beide Teile MUESSEN da sein — sonst wuerde ein fehlender Haken (Index -1)
    die Reihenfolge-Pruefung von selbst bestehen. */
@@ -130,7 +130,7 @@ pruefe("das Feld unter dem Finger bleibt unberuehrt",
 pruefe("die uebrigen bekommen die aufgeraeumte Fassung",
   abgleich.includes("f.value = zeilen[i].text"));
 pruefe("die Haken werden nachgezogen",
-  abgleich.includes("notizHakenHtml(p, zeilen[i].uebung, true)"));
+  abgleich.includes("notizHakenHtml(p, zeilen[i].uebung)"));
 /* Ein Haken, der sich nicht aendert, darf nicht ersetzt werden — sonst ginge
    ein Tipp auf den Haken der Nachbarzeile verloren (der Knopf unter dem Finger
    waere schon ausgetauscht, bevor der Klick ankommt). */
@@ -164,7 +164,9 @@ pruefe("die Position kommt aus dem Bild, nicht aus einer festen Nummer",
 /* Der Verlauf der Stufe 1 (v174) bleibt derselbe: Ein Haken schreibt einen
    ganz normalen Protokoll-Eintrag mit Soll-Saetzen, einen je Abschnitt und Tag. */
 const umschalten = grabFn("notizHakenUmschalten");
-pruefe("der Haken schreibt weiter ins Protokoll", umschalten.includes('quelle: "notizblock"'));
+pruefe("der Haken schreibt weiter ins Protokoll",
+  grabFn("notizEintragHolen").includes('quelle: "notizblock"') &&
+  umschalten.includes("notizEintragHolen(p, heute)"));
 pruefe("und weiter mit Soll-Saetzen", grabFn("notizSaetzeFuer").includes("soll:true"));
 /* Leitplanke 8: Stufe 1 fragt nichts und bewertet nichts. */
 pruefe("der Block stellt keine Frage",

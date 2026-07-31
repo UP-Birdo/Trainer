@@ -56,6 +56,22 @@ const code = [
   grabFn("zahlKurz"),          // v172: uebungAlsZeile schreibt das Gewicht mit
   grabFn("toastListe"),        // v172: kuerzt die Toast-Liste
   grabFn("uebungAlsZeile"),
+  // v199: die Aktivitaets-Zeile („Laufen 5 km 30 min")
+  "const ZEITEINHEITEN = [{ id:'s', kurz:'s', faktor:1 },{ id:'min', kurz:'min', faktor:60 },{ id:'h', kurz:'h', faktor:3600 }];",
+  grabFn("zeitEinheit"),
+  grabFn("inEinheit"),
+  grabFn("inSekunden"),
+  grabFn("zeitKurz"),
+  grabLine("const NOTIZ_STRECKE"),
+  grabLine("const NOTIZ_DAUER"),
+  grabFn("kommaZahl"),
+  grabFn("notizSportart"),
+  grabFn("streckeInEinheit"),
+  grabFn("notizZeitEinheit"),
+  grabFn("notizAktivitaetDeuten"),
+  grabFn("aktivitaetAlsZeile"),
+  grabFn("notizEinheitUebernehmen"),
+  grabFn("sportartName"),
   grabFn("notizZeilenModell"),   // v198: die Text-Sicht baut auf dem Zeilen-Modell auf
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),
