@@ -2635,7 +2635,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 193;
+const APP_VERSION = 194;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4708,26 +4708,34 @@ function planNeuWege(stufeNr, sportarten){
        geklärt ist, wie ein neuer Nutzer ohne ihn zu seinem ersten Plan kommt.
      * **Beispielplan:** ebenfalls unter „Mehr → Werkzeuge". Er ist ein
        Nachschlage-Angebot („wie sieht ein fertiger Plan aus?"), kein Anlege-Weg.
-     * **Intervall-Plan:** der Editor kann Runden seit v133 selbst („Dauer /
-       Runden" bei Intervall-Sportarten) — der eigene Menü-Eintrag war seither
-       ein zweiter Weg zum selben Ziel. Die Ansicht bleibt, nur der Eintrag geht.
-
-     Die Signatur bleibt absichtlich unverändert (Stufe + Sportarten), damit die
-     Aufrufer gleich bleiben und ein späterer Weg wieder daran hängen kann. */
-  return ["uebung", "eigen"];
+     **v194 (Korrektur des Nutzers):** „Es sollten aus dem +-Menü nur ZWEI Punkte
+     herausgenommen werden — der Assistent und der Beispielplan. Der Rest sollte
+     so bleiben, bis auf dass Übung eintragen noch mit reinkommt."
+     Der **Intervall-Weg bleibt also** und hängt weiter an seiner Bedingung (nur
+     mit einer Intervall-Sportart im Profil, v118). Meine v193-Begründung, der
+     Editor könne Runden ohnehin, war kein Grund den Weg zu nehmen: Der
+     Editor-Umschalter (v133) liegt hinter Sportart-Wahl und Einstellungen — der
+     Menü-Eintrag legt einen Runden-Plan in einem Schritt an. Zwei Wege zum
+     selben Ziel sind hier kein Fehler, sondern verschieden lang. */
+  const liste = sportarten || [];
+  const wege = ["uebung", "eigen"];
+  if(liste.some(id => sportart(id).intervall)) wege.push("intervall");
+  return wege;
 }
 
 function planNeuMenue(){
   // v76: Auf Stufe 1/2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
   // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
   if(stufe() <= 2){ abschnittAnlegen(); return; }
-  /* v193: Nur noch die zwei Wege aus `planNeuWege`. Die Einträge für Assistent,
-     Beispielplan und Intervall sind hier entfallen, nicht nur ausgeblendet —
-     ein Eintrag, den keine Auswahl mehr nennt, wäre toter Code. Ihre Funktionen
-     leben weiter (Ersteinrichtung bzw. „Mehr → Werkzeuge"). */
+  /* v193/v194: Die Einträge für Assistent und Beispielplan sind hier entfallen,
+     nicht nur ausgeblendet — ein Eintrag, den keine Auswahl mehr nennt, wäre
+     toter Code. Ihre Funktionen leben weiter („Mehr → Werkzeuge", beim
+     Assistenten zusätzlich die Ersteinrichtung). Der Intervall-Weg blieb
+     (v194, Korrektur des Nutzers). */
   const wege = {
     uebung:     { text:"Übung eintragen",        tun: uebungAlleinAnlegen },   // v192/v193
-    eigen:      { text:"Plan erstellen",         tun: planAnlegen }
+    eigen:      { text:"Plan erstellen",         tun: planAnlegen },
+    intervall:  { text:"Intervall-Plan anlegen", tun: intervallPlanNeu }
   };
   aktionsMenue("Neu anlegen",
     planNeuWege(stufe(), sitzung.daten.einrichtung.sportarten || ["kraft"]).map(k => wege[k]));
@@ -5852,6 +5860,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.194", punkte:[
+    "Korrektur zu 0.193: „Intervall-Plan anlegen“ ist wieder im „+“. Aus dem Menü sollten nur zwei Dinge verschwinden — der Assistent und der Beispielplan; der Intervall-Weg war zu viel. Er erscheint weiterhin nur, wenn du eine Sportart mit Runden-Training betreibst."
+  ]},
   { stand:"0.193", punkte:[
     "Das „+“ bei den Übungen hat nur noch zwei Einträge: „Übung eintragen“ und „Plan erstellen“. Der Assistent und der Beispielplan sind dort ausgezogen — du findest beide unter „Mehr“ → „Werkzeuge“, und der Assistent führt weiterhin durch die Ersteinrichtung.",
     "Die Übungs-Suche hat Filter bekommen: zuerst die Sportart, darunter das Gerät (beim Krafttraining) oder Technik/Kondition. Vorher stand dort gar kein Filter, solange die Sportart noch nicht feststand — also gerade dann, wenn die Liste am längsten ist.",

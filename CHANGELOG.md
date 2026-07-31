@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.194
+
+- Korrektur zu 0.193: „Intervall-Plan anlegen“ ist wieder im „+“. Aus dem Menü sollten
+  nur zwei Dinge verschwinden — der Assistent und der Beispielplan; der Intervall-Weg
+  war zu viel. Er erscheint weiterhin nur, wenn du eine Sportart mit Runden-Training
+  betreibst.
+
 ## 0.193
 
 - Das „+“ bei den Übungen hat nur noch zwei Einträge: „Übung eintragen“ und „Plan

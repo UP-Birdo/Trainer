@@ -62,15 +62,15 @@ pruefe("und ruft dort auch kein eintragenOeffnen mehr auf",
 const wege = A.planNeuWege(5, ["kraft","laufen","kampfsport"]);
 pruefe("jeder Weg aus dem Register hat einen Eintrag im Menue",
   wege.every(k => new RegExp("\\b" + k + ":").test(menue)));
-/* v193 (Nutzer-Ansage): Assistent, Beispielplan und Intervall sind aus dem
-   „+"-Menue ausgezogen — es bleiben „uebung" und „eigen". Die v180-Zusage
-   selbst ist davon unberuehrt und steht unten weiter: Nachtragen gehoert nicht
-   in dieses Menue. test193 prueft die neue Auswahl. */
-pruefe("die zwei verbliebenen Wege sind vollstaendig",
-  ["uebung","eigen"].every(k => wege.includes(k)));
-pruefe("der Intervall-Weg steht in keinem Profil mehr im Menue (v193)",
+/* v193/v194 (Nutzer-Ansage): Assistent und Beispielplan sind aus dem „+"-Menue
+   ausgezogen — es bleiben „uebung", „eigen" und (bei passender Sportart) der
+   Intervall-Weg. Die v180-Zusage selbst ist davon unberuehrt und steht unten
+   weiter: Nachtragen gehoert nicht in dieses Menue. test193 prueft die Auswahl. */
+pruefe("die verbliebenen Wege sind vollstaendig",
+  ["uebung","eigen","intervall"].every(k => wege.includes(k)));
+pruefe("der Intervall-Weg bleibt an seine Sportarten gebunden",
   A.planNeuWege(5, ["kraft"]).indexOf("intervall") < 0 &&
-  A.planNeuWege(5, ["kraft","laufen"]).indexOf("intervall") < 0);
+  A.planNeuWege(5, ["kraft","laufen"]).includes("intervall"));
 
 /* ---------- 2) Der neue Weg am Kalender-Tag ---------- */
 const tag = grabFn("tagOeffnen");

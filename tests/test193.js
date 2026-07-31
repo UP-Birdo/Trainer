@@ -32,8 +32,9 @@ function grabFn(name){
 
 const modul = { exports: {} };
 new Function("module", "exports", [
+  // Laufen traegt intervall:true wie in SPORTARTEN — daran haengt der Intervall-Weg.
   "const SPORTARTEN = [{ id:'kraft', name:'Krafttraining' }," +
-  " { id:'laufen', name:'Laufen', strecke:{ einheit:'km', start:5 } }," +
+  " { id:'laufen', name:'Laufen', intervall:true, strecke:{ einheit:'km', start:5 } }," +
   " { id:'yoga', name:'Yoga' }];",
   "function sportart(id){ return SPORTARTEN.find(s => s.id === id) || {}; }",
   "function sportartName(id){ return (sportart(id).name) || id; }",
@@ -69,12 +70,24 @@ const A = modul.exports;
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
-/* ---------- 1) Das Plus-Menue hat genau zwei Wege ---------- */
-pruefe("genau zwei Wege", A.planNeuWege(5, ["kraft"]).length === 2);
-pruefe("und zwar Uebung zuerst, dann eigener Plan",
+/* ---------- 1) Aus dem Plus-Menue sind GENAU ZWEI Wege heraus ----------
+   v194 (Korrektur des Nutzers): Entfernt wurden Assistent und Beispielplan —
+   sonst nichts. Der Intervall-Weg bleibt und haengt weiter an seiner Bedingung
+   (nur mit Intervall-Sportart im Profil, v118). */
+pruefe("Kraft allein: Uebung + eigener Plan",
   A.planNeuWege(5, ["kraft"]).join(",") === "uebung,eigen");
-pruefe("unabhaengig von Stufe und Profil",
-  [1,3,4,5].every(s => A.planNeuWege(s, ["kraft","laufen","kampfsport"]).join(",") === "uebung,eigen") &&
+pruefe("die Uebung steht an erster Stelle", A.planNeuWege(5, ["kraft"])[0] === "uebung");
+pruefe("weder Assistent noch Beispielplan, auf keiner Stufe",
+  [1,3,4,5].every(s => {
+    const w = A.planNeuWege(s, ["kraft","laufen"]);
+    return !w.includes("assistent") && !w.includes("beispiel");
+  }));
+pruefe("der Intervall-Weg ist geblieben",
+  A.planNeuWege(5, ["laufen"]).includes("intervall"));
+pruefe("und bleibt an seine Sportarten gebunden",
+  !A.planNeuWege(5, ["kraft"]).includes("intervall") &&
+  !A.planNeuWege(5, []).includes("intervall"));
+pruefe("ohne Sportarten faellt nichts um",
   A.planNeuWege(5, []).join(",") === "uebung,eigen" &&
   A.planNeuWege(5).join(",") === "uebung,eigen");
 
