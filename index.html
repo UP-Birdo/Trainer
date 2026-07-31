@@ -1090,14 +1090,14 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
   <div class="karte stat-karte" id="stat-volumen" hidden>
     <h2 id="volumen-titel">Volumen</h2>
-    <div id="volumen-diagramm" class="abstand"></div>
+    <div id="volumen-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('volumen')"></div>
   </div>
 
   <!-- v80: Ausdauer-Pendant zum Volumen — km (bzw. Minuten) je Woche/Monat -->
   <div class="karte stat-karte" id="ausdauer-karte" hidden>
     <h2 id="ausdauer-titel">Ausdauer</h2>
     <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
-    <div id="ausdauer-diagramm" class="abstand"></div>
+    <div id="ausdauer-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('ausdauer')"></div>
   </div>
 
   <!-- v121: Messwerte — Beweglichkeit, Kletter-Schwierigkeit … je Einheit, nicht
@@ -1105,19 +1105,19 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte stat-karte" id="messwerte-karte" hidden>
     <h2 id="messwerte-titel">Messwerte</h2>
     <select id="messwerte-sport" class="abstand" onchange="messwerteSetzen(this.value)"></select>
-    <div id="messwerte-diagramm" class="abstand"></div>
+    <div id="messwerte-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('messwerte')"></div>
   </div>
 
   <div class="karte stat-karte" id="fortschritt-karte" hidden>
     <h2>Übungs-Fortschritt</h2>
     <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
-    <div id="fortschritt-diagramm" class="abstand"></div>
+    <div id="fortschritt-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('fortschritt')"></div>
   </div>
 
   <!-- v80: Bestwerte — der beste protokollierte Satz je Übung -->
   <div class="karte stat-karte" id="bestwerte-karte" hidden>
     <h2>Bestwerte</h2>
-    <div id="bestwerte-liste" class="abstand"></div>
+    <div id="bestwerte-liste" class="abstand stat-tap" onclick="statDetailOeffnen('bestwerte')"></div>
   </div>
 
   <!-- v196 (Nutzer-Ansage): Die Kachel öffnet den vollen Verlauf — wie Kalender
@@ -1837,6 +1837,18 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1>Trainings-Verlauf</h1>
     <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
+</section>
+
+<!-- ============================================================
+     Ansicht: Statistik-Details (v205) — die Einträge hinter einer ABGELEITETEN
+     Statistik (Volumen, Ausdauer, Messwerte, Übungs-Fortschritt, Bestwerte).
+     Eine Ansicht für alle fünf; was sie zeigt, steht in STAT_DETAILS.
+     ============================================================ -->
+<section id="view-statdetail" class="view">
+  <div class="kopf"><h1 id="statdetail-titel">Statistik</h1>
+    <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
+  <div id="statdetail-hinweis" class="meta"></div>
+  <div id="statdetail-liste" class="abstand">–</div>
 </section>
 
 <!-- ============================================================
@@ -2679,7 +2691,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 204;
+const APP_VERSION = 205;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3552,6 +3564,7 @@ const VIEW_MIN_STUFE = {
      verlangt, dass hier nur echte Sperren stehen und alles ab Stufe 1
      ausdrücklich in der Ab-Stufe-1-Liste des Tests geführt wird. */
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
+  "view-statdetail": 4,     // v205: die Einträge hinter einer abgeleiteten Statistik
   "view-koerpermasse": 4,   // v134
   "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
   "view-tagescheck": 4,     // v168: Fragenkatalog — Leitplanke 8: nichts fragen auf Stufe 1/2
@@ -5626,6 +5639,23 @@ const LISTEN_TYPEN = {
     // v153: Flamme, Heute-Karte und Statistik hängen am Protokoll — die müssen mit.
     zeichnen: () => { fortschrittNeuZeichnen(); verlaufListeZeichnen(); }
   },
+  /* v205: Die abgeleiteten Statistiken (Volumen, Ausdauer, Messwerte,
+     Fortschritt, Bestwerte) zeigen die TRAININGS dahinter — gelöscht wird also
+     im Protokoll, mit denselben Folgen wie im Verlauf (v182). Der Unterschied
+     zum `verlauf`-Eintrag ist einzig `sichtbar`: „Alle auswählen" darf nur
+     anhaken, was diese Statistik gerade zeigt. */
+  statdetail: {
+    ansicht:  "view-statdetail", ziel: "statdetail-liste",
+    einzahl:  "Training", mehrzahl: "Trainings",
+    liste:    () => sitzung.daten.protokoll,
+    setzen:   l => { sitzung.daten.protokoll = l; },
+    sichtbar: () => statDetailEintraege(),
+    kennung:  e => e.id,
+    korb:     e => ({ typ:"eintrag", name: datumKurz(e.datum) + " · " + (e.plan || "Training") }),
+    folgenZurueck: e => folgenZurueck(e),
+    folgenWieder: s => folgenWieder(s),
+    zeichnen: () => { fortschrittNeuZeichnen(); statDetailZeichnen(); }
+  },
   papierkorb: {
     ansicht:  "view-papierkorb", ziel: "papierkorb-liste",
     einzahl:  "Eintrag", mehrzahl: "Einträge",
@@ -6409,6 +6439,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.205", punkte:[
+    "Jetzt lässt sich JEDE Statistik öffnen: Volumen, Ausdauer, Messwerte, Übungs-Fortschritt und Bestwerte zeigen beim Antippen die Trainings, aus denen ihre Zahlen entstehen — mit Löschen einzeln und mehrfach, genau wie beim Körpergewicht.",
+    "Der Unterschied zu den anderen Kacheln, den die Ansicht sichtbar macht: Diese fünf haben keine eigenen Einträge, sie rechnen aus deinem Protokoll. Was du dort löschst, ist ein Training — samt seiner Folgen am Plan, und rückgängig machen kannst du es wie überall.",
+    "Gezeigt wird immer genau das, was die Kachel zeigt: Bei der Ausdauer die gewählte Sportart, beim Fortschritt die gewählte Übung, bei den Bestwerten nur Trainings mit gemessenen Sätzen (abgehakte zählen dort nie mit)."
+  ]},
   { stand:"0.204", punkte:[
     "Die Zahlen erscheinen jetzt beim Scrollen: Eine Plan-Karte zeigt eingeklappt ihren Namen und die Muskel-Figur — Sätze, Dauer und „zuletzt“ tauchen auf, sobald die Karte in die Mitte des Bildschirms kommt. Dasselbe in der Trainings-Vorschau mit „Satz 1/3 · 12 Wdh“.",
     "Der Trick dabei ist das schmale Band: Gemessen wird nicht der ganze Bildschirm, sondern nur sein mittleres Fünftel — sonst klappte einfach alles auf und der Effekt wäre umsonst.",
@@ -8613,6 +8648,94 @@ function verlaufListeZeichnen(){
 function verlaufOeffnen(){
   verlaufListeZeichnen();
   zeige("view-verlauf");
+}
+
+/* ------------------------------------------------------------
+   v205: Die ABGELEITETEN Statistiken lassen sich öffnen (47. Runde C).
+
+   Körpergewicht, Körpermaße und Tageswerte konnten es längst: antippen, Einträge
+   sehen, einzeln und mehrfach löschen. Die übrigen fünf Kacheln nicht — und der
+   Grund war ein echter Unterschied, kein Versäumnis: **Sie haben keine eigenen
+   Einträge.** Volumen, Ausdauer, Messwerte, Fortschritt und Bestwerte rechnen
+   aus dem Protokoll; was man dort „löschen" würde, sind Trainings.
+
+   Genau das macht diese Ansicht sichtbar: Sie zeigt die Trainings, aus denen die
+   Zahl entsteht — gefiltert auf das, was die Kachel gerade zeigt. Gelöscht wird
+   damit im Protokoll, mit allen Folgen (v182), und das ist die ehrliche Antwort
+   auf „was steckt hinter dieser Zahl?".
+
+   Deshalb EIN Register statt fünf Ansichten: Die fünf unterscheiden sich nur in
+   der Frage, WELCHE Einträge dazugehören. Alles andere — Liste, Auswahl-Modus,
+   Löschen, Rückgängig — kommt aus `LISTEN_TYPEN` (v163).
+   ------------------------------------------------------------ */
+const STAT_DETAILS = {
+  volumen: {
+    titel: "Volumen",
+    hinweis: "Die Trainings, aus denen sich das Volumen rechnet — Gewicht × Wiederholungen je Satz.",
+    eintraege: () => sitzung.daten.protokoll.filter(e => Array.isArray(e.saetze) && e.saetze.length)
+  },
+  ausdauer: {
+    // Die Kachel zeigt immer EINE Sportart — die Liste zeigt dieselbe.
+    titel: () => "Ausdauer" + (ausdauerSport ? " · " + sportartName(ausdauerSport) : ""),
+    hinweis: "Die Einheiten dieser Sportart, aus denen die Summen entstehen.",
+    eintraege: () => sitzung.daten.protokoll.filter(e =>
+      e.typ === "aktivitaet" && (!ausdauerSport || e.sportart === ausdauerSport))
+  },
+  messwerte: {
+    titel: () => "Messwerte" + (messwerteSport ? " · " + sportartName(messwerteSport) : ""),
+    hinweis: "Die Einheiten mit einem gemessenen Wert (Beweglichkeit, Schwierigkeitsgrad).",
+    eintraege: () => sitzung.daten.protokoll.filter(e =>
+      e.messwert !== undefined && e.messwert !== null && e.messwert !== "" &&
+      (!messwerteSport || e.sportart === messwerteSport))
+  },
+  fortschritt: {
+    titel: () => "Übungs-Fortschritt" + (fortschrittUebung ? " · " + fortschrittUebung : ""),
+    hinweis: "Die Trainings, in denen diese Übung vorkam.",
+    eintraege: () => sitzung.daten.protokoll.filter(e =>
+      (e.saetze || []).some(s => s && s.name === fortschrittUebung))
+  },
+  bestwerte: {
+    /* Bestwerte entstehen NUR aus gemessenen Sätzen (v158): Ein abgehaktes
+       Training trägt Sollwerte und darf keinen Rekord erzeugen. Die Liste zeigt
+       deshalb genau die Trainings, die überhaupt einen Bestwert setzen können. */
+    titel: "Bestwerte",
+    hinweis: "Die Trainings mit gemessenen Sätzen — nur aus ihnen entstehen Bestwerte.",
+    eintraege: () => sitzung.daten.protokoll.filter(e => echteSaetze(e).length > 0)
+  }
+};
+
+let statDetailArt = null;   // welche Statistik gerade offen ist
+
+/** Die Einträge der offenen Statistik, neueste zuerst. Rein bis auf die
+    Sitzung — dieselbe Quelle für Liste, Auswahl und Löschen. */
+function statDetailEintraege(){
+  const d = STAT_DETAILS[statDetailArt];
+  if(!d) return [];
+  return d.eintraege().filter(e => e && e.id).slice().reverse();
+}
+
+function statDetailZeichnen(){
+  const d = STAT_DETAILS[statDetailArt]; if(!d) return;
+  const titel = document.getElementById("statdetail-titel");
+  const hinweis = document.getElementById("statdetail-hinweis");
+  const ziel = document.getElementById("statdetail-liste");
+  if(titel) titel.textContent = typeof d.titel === "function" ? d.titel() : d.titel;
+  if(hinweis) hinweis.textContent = d.hinweis || "";
+  if(!ziel) return;
+  const liste = statDetailEintraege();
+  ziel.innerHTML = liste.length
+    ? listenKopfHtml("statdetail") +
+      liste.map(e => listenZeileHtml("statdetail", e.id, protokollEintragHtml(e, true))).join("")
+    : '<div class="meta">Noch keine Einträge.</div>';
+}
+
+/** Eine Statistik öffnen. Unbekannte Art tut nichts — so kann eine Kachel
+    nicht ins Leere führen, wenn ihr Register-Eintrag fehlt. */
+function statDetailOeffnen(art){
+  if(!STAT_DETAILS[art]) return;
+  statDetailArt = art;
+  statDetailZeichnen();
+  zeige("view-statdetail");
 }
 
 /* #region Muskelkarte (Bonus ab Stufe 4, aus der Statistik erreichbar).

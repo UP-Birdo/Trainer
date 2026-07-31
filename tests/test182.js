@@ -176,8 +176,18 @@ pruefe("der Wisch-Weg fragt das Register nach Folgen",
   /d\.folgenZurueck \? d\.folgenZurueck\(eintrag\) : null/.test(einzeln));
 pruefe("und stellt sie beim Rueckgaengig wieder her",
   /if\(d\.folgenWieder\) d\.folgenWieder\(folgen\);/.test(einzeln));
-pruefe("nur der Verlauf traegt die Folgen im Register",
-  (src.match(/folgenZurueck: e => folgenZurueck\(e\)/g) || []).length === 1);
+/* v205: Es gibt jetzt eine ZWEITE Liste auf demselben Protokoll — die Einträge
+   hinter einer abgeleiteten Statistik. Wer dort löscht, löscht ein Training,
+   also muessen dort dieselben Folgen greifen. Die Zusage lautet deshalb nicht
+   mehr „genau eine Liste", sondern: JEDE Liste auf dem Protokoll traegt sie —
+   und keine andere. */
+const protokollListen = (src.match(/setzen:\s*l => \{ sitzung\.daten\.protokoll = l; \}/g) || []).length;
+pruefe("es gibt mehr als eine Protokoll-Liste (Verlauf + Statistik-Details)",
+  protokollListen === 2);
+pruefe("jede Protokoll-Liste traegt die Folgen im Register",
+  (src.match(/folgenZurueck: e => folgenZurueck\(e\)/g) || []).length === protokollListen);
+pruefe("und nur sie (Gewicht, Masse, Tageswerte, Papierkorb haben keine)",
+  (src.match(/folgenZurueck:/g) || []).length === protokollListen);
 
 /* ---------- 7) Der Kalender-Weg ---------- */
 const tag = grabFn("tagOeffnen");

@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.205
+
+- Jetzt lässt sich JEDE Statistik öffnen: Volumen, Ausdauer, Messwerte,
+  Übungs-Fortschritt und Bestwerte zeigen beim Antippen die Trainings, aus denen ihre
+  Zahlen entstehen — mit Löschen einzeln und mehrfach, genau wie beim Körpergewicht.
+- Der Unterschied zu den anderen Kacheln, den die Ansicht sichtbar macht: Diese fünf
+  haben keine eigenen Einträge, sie rechnen aus deinem Protokoll. Was du dort löschst,
+  ist ein Training — samt seiner Folgen am Plan, und rückgängig machen kannst du es wie
+  überall.
+- Gezeigt wird immer genau das, was die Kachel zeigt: Bei der Ausdauer die gewählte
+  Sportart, beim Fortschritt die gewählte Übung, bei den Bestwerten nur Trainings mit
+  gemessenen Sätzen (abgehakte zählen dort nie mit).
+
 ## 0.204
 
 - Die Zahlen erscheinen jetzt beim Scrollen: Eine Plan-Karte zeigt eingeklappt ihren
