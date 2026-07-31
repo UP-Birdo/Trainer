@@ -154,10 +154,13 @@ pruefe("der Text bekommt eigenen Umbruch-Spielraum",
 pruefe("es gibt eine Schliess-Funktion", /function notizVorschlaegeSchliessen\(/.test(src));
 pruefe("das Textfeld raeumt beim Verlassen auf",
   /onblur="notizVorschlaegeSchliessen/.test(src));
+/* v198: Geschlossen wird jetzt ueber das FELD statt ueber die Plan-Nummer —
+   seit dem Zeilen-Umbau hat jede Zeile ihre eigene Vorschlags-Reihe. Die
+   Zusage bleibt dieselbe: eine Funktion fuer beide Ausloeser. */
 pruefe("die Auswahl nutzt dieselbe Funktion",
-  /notizVorschlaegeSchliessen\(planId\);/.test(grabFn("notizVorschlagWaehlen")));
+  /notizVorschlaegeSchliessen\(feld\);/.test(grabFn("notizVorschlagWaehlen")));
 pruefe("der Fokus-Trick beim Antippen bleibt",
-  /onmousedown="event\.preventDefault\(\)"/.test(grabFn("notizTippen")));
+  /onmousedown="event\.preventDefault\(\)"/.test(grabFn("notizZeileTippen")));
 pruefe("die Vorschlags-Reihe bricht um statt zu wischen",
   /\.notiz-vorschlaege\{[^}]*flex-wrap:wrap/.test(src));
 pruefe("die Filter-Reihen der Uebungs-Suche bleiben wischbar",

@@ -56,6 +56,7 @@ const code = [
   grabFn("zahlKurz"),          // v172: uebungAlsZeile schreibt das Gewicht mit
   grabFn("toastListe"),        // v172: kuerzt die Toast-Liste
   grabFn("uebungAlsZeile"),
+  grabFn("notizZeilenModell"),   // v198: die Text-Sicht baut auf dem Zeilen-Modell auf
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),
   grabFn("abschnittNameSetzen"),

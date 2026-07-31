@@ -55,31 +55,28 @@ pruefe("menueSchliessen haengt nur noch an zwei Stellen",
 pruefe("eine davon ist der Hintergrund (Tipp daneben schliesst weiter)",
   /<div id="menue-hintergrund" onclick="menueSchliessen\(event\)">/.test(src));
 
-/* ---------- 2) Stufe 1: Haken VOR dem Freitext ---------- */
+/* ---------- 2) Stufe 1: der Haken sitzt IN der Zeile ----------
+   Der urspruengliche Wunsch (47. Runde) lautete: „Die Checkbox gehoert IN die
+   Zeile des Freitextes." v174 legte die Haken darunter, v185 darueber — beide
+   Male, weil eine Textarea keine Knoepfe zwischen ihren Zeilen tragen kann.
+   v198 hat die Textarea durch echte Zeilen ersetzt und damit den Wunsch selbst
+   erfuellt; die Leiste ist entfallen. Was hier stand (Reihenfolge Leiste/Text),
+   ist damit gegenstandslos — geprueft wird jetzt, dass der Umweg nicht
+   zurueckkommt. */
 const abschnitt = grabFn("notizAbschnittHtml");
-const iLeiste = abschnitt.indexOf("notizHakenLeisteHtml(p)");
-const iText = abschnitt.indexOf("notiz-text");
-pruefe("beide Teile sind im Stufe-1-Zweig", iLeiste > 0 && iText > 0);
-pruefe("die Haken-Leiste steht VOR dem Textfeld", iLeiste < iText);
-pruefe("die Vorschlags-Reihe bleibt beim Textfeld",
-  abschnitt.indexOf("notiz-vorschlag-") > iText);
-pruefe("es gibt weiterhin nur EINEN Aufruf der Leiste",
-  (abschnitt.match(/notizHakenLeisteHtml\(/g) || []).length === 1);
-/* Stufe 2 ist davon unberuehrt — dort sitzt der Haken in der Zeile. */
+pruefe("die eigene Haken-Leiste ist weg", !src.includes("function notizHakenLeisteHtml("));
+pruefe("und ihr Stylesheet auch", !/\.notiz-erledigt\{/.test(src));
+pruefe("Stufe 1 zeigt nur noch den Block", abschnitt.includes("notizZeilenHtml(p)"));
+const zeile = grabFn("notizZeileHtml");
+const iHaken = zeile.indexOf("notizHakenHtml(p, z.uebung, true)");
+const iFeld = zeile.indexOf('class="notiz-feld"');
+pruefe("beide Teile sind in der Zeile", iHaken > 0 && iFeld > 0);
+pruefe("der Haken steht VOR dem Feld", iHaken < iFeld);
+pruefe("die Vorschlags-Reihe steht darunter",
+  zeile.indexOf("notiz-vorschlaege") > iFeld);
+/* Stufe 2 ist davon unberuehrt — dort sass der Haken schon seit v174 richtig. */
 pruefe("Stufe 2 behaelt den Haken in der Zeile",
   abschnitt.includes("notizHakenHtml(p, u, true)"));
-pruefe("die Leiste selbst ist unveraendert (nur ihr Platz)",
-  grabFn("notizHakenLeisteHtml").includes('class="notiz-erledigt"') &&
-  grabFn("notizHakenLeisteHtml").includes("Heute gemacht"));
-
-/* Die Trennlinie muss mitwandern: oben stehend darf sie nicht nach oben
-   trennen, sonst schneidet sie den Abschnittsnamen ab. */
-const stil = /\.notiz-erledigt\{([^}]*)\}/.exec(src);
-pruefe("es gibt ein Stylesheet fuer die Leiste", !!stil);
-pruefe("die Linie trennt nach unten", /border-bottom/.test(stil[1]));
-pruefe("und nicht mehr nach oben", !/border-top/.test(stil[1]));
-pruefe("der Abstand sitzt ebenfalls unten",
-  /margin-bottom/.test(stil[1]) && !/margin-top/.test(stil[1]));
 
 /* ---------- 3) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

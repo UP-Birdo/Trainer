@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.198
+
+- Der Notizblock (Stufe 1) besteht jetzt aus echten Zeilen: Jede Übung hat ihre eigene
+  Zeile — und ihr Häkchen steht direkt davor, statt in einer Liste darüber. Abhaken
+  heißt weiterhin nur antippen.
+- Enter legt die nächste Zeile an, die Rücktaste in einer leeren Zeile nimmt sie wieder
+  weg, und unten wartet immer eine freie Zeile. Der Block bleibt also ein Block.
+- Die Autokorrektur bleibt: Aus „bankdrücken 10 3“ wird beim Verlassen der Zeile
+  weiterhin „Sätze 3 Wdh 10 LH-Bankdrücken“. Die Vorschläge beim Tippen stehen jetzt
+  direkt unter der Zeile, an der du schreibst.
+- Damit zeigt Stufe 1 wieder nur den Notizblock und sonst nichts.
+
 ## 0.197
 
 - Deine Ausdauer zählt jetzt in der Muskelkarte mit: Warst du laufen, geht das in die

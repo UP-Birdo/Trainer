@@ -84,16 +84,23 @@ pruefe("Saetze kommen aus der Deutung", setzen.includes("begrenzen(m.saetze || 1
    ohne Mengen zu nennen („Bankdruecken 80 kg"). */
 pruefe("Mengen aendern nur, was die Zeile nennt", setzen.includes("if(m && m.saetze != null)"));
 pruefe("der Modus kommt aus der Deutung", setzen.includes('m.modus === "zeit"'));
-pruefe("das Feld bekommt die aufgeraeumte Fassung zurueck",
-  setzen.includes("if(feld) feld.value = abschnittTextErzeugen(p)"));
-pruefe("die Textarea reicht sich selbst durch",
-  grabFn("notizAbschnittHtml").includes("abschnittTextSetzen(\\'' + p.id + '\\', this.value, this)"));
-/* v157: `oninput` heisst jetzt `notizTippen` (waechst UND schlaegt vor). Der
-   Kern der v155-Zusage bleibt: Beim Tippen wird der Text NICHT umgeschrieben —
-   sonst spraenge der Cursor. Geprueft wird deshalb die Wirkung, nicht der Name. */
+/* v198: Die Autokorrektur schreibt weiterhin die aufgeraeumte Fassung zurueck —
+   nur nicht mehr aus dem Parser heraus in EIN Textfeld, sondern beim Abgleich
+   der Zeilen. Der Parser weiss seither nicht mehr, wie die Ansicht aussieht. */
+pruefe("der Parser fasst die Ansicht nicht mehr an", !setzen.includes("feld.value"));
+pruefe("die Zeilen bekommen die aufgeraeumte Fassung zurueck",
+  grabFn("notizZeilenAbgleichen").includes("f.value = zeilen[i].text"));
+pruefe("und zwar NIE das Feld, in dem gerade getippt wird",
+  grabFn("notizZeilenAbgleichen").includes("f !== document.activeElement"));
+pruefe("jede Zeile meldet ihre Aenderung an den Block",
+  grabFn("notizZeileHtml").includes("onchange=\"notizZeilenSpeichern(this,"));
+pruefe("gespeichert wird ueber denselben Parser",
+  grabFn("notizZeilenSpeichern").includes("abschnittTextSetzen(planId,"));
+/* Der Kern der v155-Zusage bleibt: Beim Tippen wird der Text NICHT
+   umgeschrieben — sonst spraenge der Cursor. Geprueft wird die Wirkung. */
 pruefe("beim Tippen wird NICHT umgeschrieben (Cursor)",
-  !grabFn("notizTippen").includes("abschnittTextSetzen") &&
-  grabFn("notizTippen").includes("notizTextWachsen(el)"));
+  !grabFn("notizZeileTippen").includes("abschnittTextSetzen") &&
+  !grabFn("notizZeileTippen").includes("notizZeilenSpeichern"));
 
 /* ---------- 6) Getan und das i sind weg ---------- */
 pruefe("die Getan-Karte ist entfallen", !src.includes("function notizGetanHtml("));

@@ -165,21 +165,24 @@ pruefe("der Zeitpunkt steht in der Rueckmeldung", /Gemacht um " \+ zeit/.test(um
 
 /* ---------- 9) Verdrahtung in beiden Stufen ---------- */
 const abschnitt = grabFn("notizAbschnittHtml");
-/* Die Leiste hing bis v184 unter dem Textfeld, seit v185 steht sie davor
-   (Nutzer-Ansage) — geprueft wird hier nur, DASS Stufe 1 sie bekommt; die
-   Reihenfolge selbst haelt test185 fest. */
-pruefe("Stufe 1 bekommt die Haken-Leiste",
-  abschnitt.includes("notizHakenLeisteHtml(p)"));
+/* Die Leiste hing bis v184 unter dem Textfeld, v185 stellte sie davor — beides
+   waren Notbehelfe, weil eine Textarea keine Knoepfe zwischen ihren Zeilen
+   tragen kann. Seit v198 gibt es echte Zeilen, der Haken sitzt in der Zeile,
+   und die Leiste ist entfallen. Der Verlauf selbst (Punkte 1-8 oben) bleibt
+   unveraendert — nur sein Bedienelement ist umgezogen. */
+pruefe("Stufe 1 bekommt den Block mit Zeilen", abschnitt.includes("notizZeilenHtml(p)"));
+pruefe("die Haken-Leiste ist abgeloest", !src.includes("function notizHakenLeisteHtml("));
+pruefe("Stufe 1 traegt den Haken IN der Zeile",
+  grabFn("notizZeileHtml").includes("notizHakenHtml(p, z.uebung, true)"));
 pruefe("Stufe 2 bekommt den Haken IN der Zeile",
   abschnitt.includes("notizHakenHtml(p, u, true)"));
 pruefe("eine namenlose Zeile bekommt stattdessen einen Platzhalter",
-  abschnitt.includes('<span class="notiz-kopf-haken"></span>'));
+  abschnitt.includes('<span class="notiz-kopf-haken"></span>') &&
+  grabFn("notizZeileHtml").includes('<span class="notiz-kopf-haken"></span>'));
 pruefe("die Spaltenkoepfe haben die Haken-Spalte mitbekommen",
   /notiz-kopf"><span class="notiz-kopf-haken">/.test(abschnitt));
-const leiste = grabFn("notizHakenLeisteHtml");
-pruefe("ohne Uebungen erscheint keine Leiste", /if\(!uebungen\.length\) return "";/.test(leiste));
-pruefe("namenlose Zeilen stehen nicht in der Leiste",
-  /filter\(u => u\.name && u\.name\.trim\(\)\)/.test(leiste));
+pruefe("nur Zeilen MIT Uebung bekommen einen Haken",
+  /filter\(u => u\.name && u\.name\.trim\(\)\)/.test(grabFn("notizZeilenModell")));
 const hakenHtml = grabFn("notizHakenHtml");
 pruefe("der Knopf sagt Vorlese-Programmen seinen Zustand", /aria-pressed=/.test(hakenHtml));
 pruefe("und was er tut", /aria-label=/.test(hakenHtml));

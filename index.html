@@ -176,8 +176,15 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    bekommt ihn automatisch lesbar — der v173-Fehler kann so nicht zurückkommen. */
 .stufe-wahl.gewaehlt .meta{color:#16181C;opacity:.85}
 .notiz-name{font-weight:700;font-size:16px}
-/* v79: wächst per JS mit dem Inhalt (notizTextWachsen) — kein internes Scrollen */
-.notiz-text{min-height:90px;overflow:hidden;resize:none}
+/* v198: Der Block der Stufe 1 besteht aus ECHTEN Zeilen — je Zeile ein Feld mit
+   dem Haken davor. Die frühere `<textarea>` (.notiz-text) ist damit entfallen;
+   sie konnte keine Knöpfe zwischen ihren Zeilen tragen, und genau das war der
+   Wunsch. Jede Reihe ist ein Block (Zeile + ihre Vorschläge darunter), damit
+   die Vorschläge dort stehen, wo getippt wird. */
+.notiz-block{display:flex;flex-direction:column;gap:6px}
+.notiz-reihe-feld{display:flex;gap:8px;align-items:center}
+.notiz-reihe-feld .notiz-feld{flex:1;min-width:0}
+.notiz-haken-slot{flex:0 0 auto;display:flex}
 .notiz-zeile{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .notiz-zeile input:first-child{flex:1}
 .notiz-zahl{width:64px;flex:0 0 auto;text-align:center}
@@ -192,10 +199,9 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    Zeilen wäre eine Wand aus Gelb. Stattdessen dasselbe Bild wie die
    Mehrfach-Auswahl aus v163 — das Häkchen in der Signalfarbe (.plan-haken),
    dazu eine farbige Kante am erledigten Knopf. */
-/* v185: Die Leiste steht jetzt VOR dem Textfeld (Nutzer-Ansage), darum trennt
-   die Linie nach UNTEN — sie soll die Haken vom Text absetzen, nicht vom
-   Abschnittsnamen darüber. */
-.notiz-erledigt{margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:10px}
+/* v185 hatte die Haken als eigene Leiste VOR das Textfeld gestellt; v198 hat
+   die Leiste abgelöst (der Haken sitzt jetzt in der Zeile selbst), darum ist
+   `.notiz-erledigt` entfallen. */
 .notiz-haken{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
   background:var(--panel);border:1px solid var(--line);border-radius:8px;
   padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
@@ -2644,7 +2650,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 197;
+const APP_VERSION = 198;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3749,37 +3755,23 @@ function notizblockZeichnen(){
   ziel.innerHTML = (plaene.length === 0
     ? '<div class="leer">Noch nichts notiert.</div>'
     : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
-  // v79: Textfelder an den Inhalt anpassen (Enter dehnt den Abschnitt aus,
-  // statt intern zu scrollen) + Langdruck-Menü auf den Abschnitts-Karten
-  // (Duplizieren/Verschieben/Löschen — der große Löschen-Knopf ist weg).
-  ziel.querySelectorAll(".notiz-text").forEach(notizTextWachsen);
+  // Langdruck-Menü auf den Abschnitts-Karten (Duplizieren/Verschieben/Löschen
+  // — der große Löschen-Knopf ist weg).
+  // v198: Das Anpassen der Textfeld-Höhe ist entfallen; die Stufe-1-Ansicht
+  // besteht seither aus echten Zeilen, die von selbst so hoch sind wie nötig.
   langdruckEinrichten();
-}
-
-/** Textarea wächst mit dem Inhalt — Enter dehnt den Abschnitt aus, statt im
-    Feld zu scrollen. +4 px = oberer + unterer Rand (box-sizing:border-box,
-    scrollHeight zählt die Ränder nicht mit). */
-function notizTextWachsen(el){
-  el.style.height = "auto";
-  el.style.height = (el.scrollHeight + 4) + "px";
 }
 
 /* ------------------------------------------------------------
    v157: Vorschläge beim Tippen im Notizblock.
    Die Autokorrektur (v155) nimmt einem das Muster ab; hier kommt der zweite
-   Teil des Wunsches — die App bietet an, was man gerade schreiben will. Alle
-   drei Bausteine sind rein und testbar; nur das Einsetzen fasst das Feld an.
-   ------------------------------------------------------------ */
+   Teil des Wunsches — die App bietet an, was man gerade schreiben will. Beide
+   Bausteine sind rein und testbar; nur das Einsetzen fasst das Feld an.
 
-/** Welche Zeile steht unter dem Cursor? Liefert Anfang, Ende und Text. Rein. */
-function notizAktuelleZeile(wert, pos){
-  const w = String(wert || "");
-  const p = Math.max(0, Math.min(typeof pos === "number" ? pos : w.length, w.length));
-  const start = w.lastIndexOf("\n", p - 1) + 1;
-  let ende = w.indexOf("\n", p);
-  if(ende < 0) ende = w.length;
-  return { start, ende, text: w.slice(start, ende) };
-}
+   v198: Die Frage „welche Zeile steht unter dem Cursor?" (`notizAktuelleZeile`)
+   gibt es nicht mehr — seit dem Zeilen-Umbau IST jede Zeile ein eigenes Feld,
+   der Feldinhalt ist die Zeile. Damit fällt die Cursor-Rechnerei ersatzlos weg.
+   ------------------------------------------------------------ */
 
 /** Vorschläge zum angefangenen Namen. Mengen in der Zeile stören nicht — es
     zählt der Name-Teil (dieselbe Deutung wie beim Speichern). Treffer am
@@ -3826,20 +3818,27 @@ function alleUebungsNamen(){
   return [...menge];
 }
 
-/** Beim Tippen: Feld mitwachsen lassen und die Vorschläge nachziehen. */
-function notizTippen(el, planId){
-  notizTextWachsen(el);
-  const zeile = notizAktuelleZeile(el.value, el.selectionStart).text;
-  const treffer = notizVorschlaege(zeile, alleUebungsNamen(), 5);
-  const ziel = document.getElementById("notiz-vorschlag-" + planId);
+/** Die Vorschlags-Reihe, die zu einem Zeilen-Feld gehört. Sie steht in
+    derselben Reihe wie das Feld — seit v198 hat jede Zeile ihre eigene, damit
+    die Vorschläge dort erscheinen, wo gerade getippt wird. */
+function notizVorschlagsReihe(feld){
+  const reihe = feld && feld.closest ? feld.closest(".notiz-reihe") : null;
+  return reihe ? reihe.querySelector(".notiz-vorschlaege") : null;
+}
+
+/** Beim Tippen die Vorschläge zur Zeile nachziehen. Der Feldinhalt IST die
+    Zeile — mehr braucht es seit v198 nicht. */
+function notizZeileTippen(feld){
+  const treffer = notizVorschlaege(feld.value, alleUebungsNamen(), 5);
+  const ziel = notizVorschlagsReihe(feld);
   if(!ziel) return;
   /* `onmousedown` mit preventDefault hält den Fokus im Textfeld: Ohne das
-     verlöre die Textarea beim Antippen den Fokus, `onchange` würde den
+     verlöre das Feld beim Antippen den Fokus, `onchange` würde den
      angefangenen Namen sofort als Übung anlegen — und der Vorschlag käme zu
      spät. Der Klick selbst bleibt davon unberührt. */
   ziel.innerHTML = treffer.map(n =>
-    '<button onmousedown="event.preventDefault()" onclick="notizVorschlagWaehlen(\'' + planId +
-    '\', \'' + n.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + '\')">' + text(n) + '</button>').join("");
+    '<button onmousedown="event.preventDefault()" onclick="notizVorschlagWaehlen(this, \'' +
+    n.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + '\')">' + text(n) + '</button>').join("");
   ziel.hidden = treffer.length === 0;
 }
 
@@ -3848,25 +3847,24 @@ function notizTippen(el, planId){
     Tastendruck irgendwo. Eine Stelle für beide Auslöser (Auswahl und Verlassen);
     der `onmousedown`-Trick oben sorgt dafür, dass ein Tipp AUF einen Vorschlag
     kein Verlassen ist. */
-function notizVorschlaegeSchliessen(planId){
-  const ziel = document.getElementById("notiz-vorschlag-" + planId);
+function notizVorschlaegeSchliessen(feld){
+  const ziel = notizVorschlagsReihe(feld);
   if(ziel){ ziel.innerHTML = ""; ziel.hidden = true; }
 }
 
-/** Einen Vorschlag übernehmen: Name in der aktuellen Zeile ersetzen, Cursor
-    dahinter, Vorschläge schließen. Gespeichert wird wie immer beim Verlassen
-    des Feldes — hier wird nur geschrieben, was der Nutzer gewählt hat. */
-function notizVorschlagWaehlen(planId, name){
-  const feld = document.querySelector('.karte[data-plan="' + planId + '"] .notiz-text');
+/** Einen Vorschlag übernehmen: Name in der Zeile ersetzen, Cursor dahinter,
+    Vorschläge schließen. Gespeichert wird wie immer erst beim Verlassen des
+    Feldes — hier wird nur geschrieben, was der Nutzer gewählt hat.
+    `knopf` ist der angetippte Vorschlag; sein Feld steht in derselben Reihe. */
+function notizVorschlagWaehlen(knopf, name){
+  const reihe = knopf.closest(".notiz-reihe");
+  const feld = reihe && reihe.querySelector(".notiz-feld");
   if(!feld) return;
-  const z = notizAktuelleZeile(feld.value, feld.selectionStart);
-  const neu = notizZeileMitName(z.text, name);
-  feld.value = feld.value.slice(0, z.start) + neu + feld.value.slice(z.ende);
-  const cursor = z.start + neu.length;
+  feld.value = notizZeileMitName(feld.value, name);
+  const cursor = feld.value.length;
   feld.focus();
   feld.setSelectionRange(cursor, cursor);
-  notizTextWachsen(feld);
-  notizVorschlaegeSchliessen(planId);
+  notizVorschlaegeSchliessen(feld);
 }
 
 /* ------------------------------------------------------------
@@ -4004,24 +4002,160 @@ function notizHakenHtml(p, u, kompakt){
     '</button>';
 }
 
-/** Die Haken-Leiste des Abschnitts (Stufe 1).
-    WARUM eine eigene Leiste und keine Knöpfe zwischen den Zeilen: Stufe 1 ist
-    EIN Textfeld — eine `<textarea>` kann keine Knöpfe zwischen ihren Zeilen
-    tragen, und sie zu Einzelzeilen umzubauen würde die Autokorrektur (v155)
-    und die Tipp-Vorschläge (v157) kosten. Die Leiste führt dieselben Übungen
-    in derselben Reihenfolge wie das Textfeld, das Kästchen steht links vom
-    Namen. Ohne Übungen (reiner Freitext) erscheint sie gar nicht.
+/* ------------------------------------------------------------
+   v198: Der Notizblock der Stufe 1 besteht aus ECHTEN ZEILEN.
 
-    v185 (Nutzer-Ansage): Sie steht jetzt VOR dem Textfeld, nicht darunter.
-    Der Grund liegt in der Benutzung: Der Text ist die Definition des
-    Abschnitts — den schreibt man einmal; die Haken sind die TÄGLICHE Handlung.
-    Was man jeden Tag tut, gehört nach oben, statt hinter einen Block, der mit
-    jeder Übung länger wird. */
-function notizHakenLeisteHtml(p){
-  const uebungen = (p.uebungen || []).filter(u => u.name && u.name.trim());
-  if(!uebungen.length) return "";
-  return '<div class="notiz-erledigt"><div class="filter-titel">Heute gemacht</div>' +
-    uebungen.map(u => notizHakenHtml(p, u, false)).join("") + '</div>';
+   Der Wunsch stand seit der 47. Runde: „Die Checkbox gehört IN die Zeile des
+   Freitextes." Zweimal wurde er umgangen, weil eine `<textarea>` keine Knöpfe
+   zwischen ihren Zeilen tragen kann — v174 legte die Haken als Liste darunter,
+   v185 darüber. Beides war dieselbe Ausrede in zwei Richtungen. Jetzt trägt
+   jede Zeile ihr eigenes Feld, und der Haken steht links davon.
+
+   Die beiden Zusagen, die den Umbau teuer machten, bleiben unangetastet:
+
+   1. AUTOKORREKTUR (v155). Geparst wird weiterhin mit `abschnittTextSetzen` —
+      derselbe Parser, dieselbe Duplikat-Regel, dieselben Toasts. Der Block
+      setzt seine Felder nur wieder zu einem Text zusammen. Eine Logik, zwei
+      Darstellungen: Wer die Deutung ändert, ändert sie an EINER Stelle.
+   2. VORSCHLÄGE (v157). Sie hängen jetzt an der Zeile statt am Abschnitt und
+      brauchen keine Cursor-Rechnung mehr — der Feldinhalt IST die Zeile.
+
+   Was der Umbau zusätzlich bringt: Enter legt eine Zeile an, Rücktaste in einer
+   leeren Zeile nimmt sie weg, und am Ende steht immer eine freie Zeile. Das ist
+   das Verhalten, das ein Block haben muss — die `<textarea>` hatte es geerbt,
+   die Zeilen mussten es bekommen.
+   ------------------------------------------------------------ */
+
+/** Die Zeilen der Stufe-1-Ansicht: erst die Übungen (je eine Muster-Zeile,
+    mit ihrer Übung dabei), danach der restliche Freitext (Zeilen ohne Übung).
+    Inhaltlich genau `abschnittTextErzeugen`, nur einzeln — leere Zeilen fallen
+    weg, sie waren schon im Textfeld nur Optik. Rein/testbar. */
+function notizZeilenModell(p){
+  const zeilen = (p.uebungen || []).filter(u => u.name && u.name.trim())
+    .map(u => ({ text: uebungAlsZeile(u), uebung: u }));
+  (p.freitext || "").split(/\r?\n/).forEach(z => {
+    if(z.trim()) zeilen.push({ text: z, uebung: null });
+  });
+  return zeilen;
+}
+
+/** Eine Zeile: Haken (oder Platzhalter, solange die Zeile keine Übung ist),
+    Eingabefeld, darunter der Platz für ihre Vorschläge. Der Platzhalter-Text
+    steht nur in der leeren Zeile — in jeder Zeile stünde er als Textwand. */
+function notizZeileHtml(p, z){
+  const haken = z.uebung ? notizHakenHtml(p, z.uebung, true)
+                         : '<span class="notiz-kopf-haken"></span>';
+  return '<div class="notiz-reihe">' +
+    '<div class="notiz-reihe-feld">' +
+      '<span class="notiz-haken-slot">' + haken + '</span>' +
+      '<input class="notiz-feld" type="text" value="' + text(z.text) + '"' +
+        (z.text ? "" : ' placeholder="Eine Übung je Zeile"') +
+        ' oninput="notizZeileTippen(this)"' +
+        ' onkeydown="notizZeileTaste(event, this, \'' + p.id + '\')"' +
+        ' onblur="notizVorschlaegeSchliessen(this)"' +
+        ' onchange="notizZeilenSpeichern(this, \'' + p.id + '\')">' +
+    '</div>' +
+    '<div class="filter-reihe notiz-vorschlaege" hidden></div>' +
+  '</div>';
+}
+
+/** Der ganze Block eines Abschnitts — am Ende immer eine freie Zeile. */
+function notizZeilenHtml(p){
+  return '<div class="notiz-block">' +
+    notizZeilenModell(p).map(z => notizZeileHtml(p, z)).join("") +
+    notizZeileHtml(p, { text:"", uebung:null }) + '</div>';
+}
+
+/** Die wievielte Reihe des Blocks ist das? (Position statt fester Nummer im
+    Attribut — sonst müsste jedes Löschen alle folgenden Zeilen umschreiben.) */
+function notizReihenIndex(feld){
+  const reihe = feld && feld.closest ? feld.closest(".notiz-reihe") : null;
+  return reihe ? [...reihe.parentNode.children].indexOf(reihe) : -1;
+}
+
+/** Eine Zeile wurde verlassen: den ganzen Block aus seinen Feldern
+    zusammensetzen und wie bisher parsen. Damit bleibt `abschnittTextSetzen`
+    die EINE Deutung — ob der Text aus einem Feld kommt oder aus vielen,
+    ändert an ihr nichts. */
+function notizZeilenSpeichern(feld, planId){
+  const karte = feld.closest(".karte");
+  if(!karte) return;
+  const felder = [...karte.querySelectorAll(".notiz-feld")];
+  abschnittTextSetzen(planId, felder.map(f => f.value).join("\n"));
+  notizZeilenAbgleichen(planId);
+}
+
+/** Die sichtbaren Zeilen an den gespeicherten Stand angleichen, OHNE die
+    Felder neu zu bauen: jedes gefüllte Feld bekommt seine aufgeräumte Fassung
+    (v155) und seinen Haken, am Ende steht wieder eine freie Zeile.
+    WARUM nicht einfach neu zeichnen: Wer von Zeile 1 direkt in Zeile 2 tippt,
+    verlöre den gerade gesetzten Fokus — das Feld unter seinem Finger wäre weg.
+    Deshalb wird das aktive Feld nie angefasst. Geht die Zuordnung wider
+    Erwarten nicht auf, zeichnet der Block sicherheitshalber ganz neu. */
+function notizZeilenAbgleichen(planId){
+  const p = findePlan(planId); if(!p) return;
+  const karte = document.querySelector('.karte[data-plan="' + planId + '"]');
+  const block = karte && karte.querySelector(".notiz-block");
+  if(!block) return;
+  const zeilen = notizZeilenModell(p);
+  const reihen = [...block.children];
+  const gefuellt = reihen.filter(r => r.querySelector(".notiz-feld").value.trim());
+  if(gefuellt.length !== zeilen.length){ notizblockZeichnen(); return; }
+  gefuellt.forEach((reihe, i) => {
+    const f = reihe.querySelector(".notiz-feld");
+    if(f !== document.activeElement && f.value !== zeilen[i].text) f.value = zeilen[i].text;
+    /* Der Haken wird nur ersetzt, wenn er sich WIRKLICH ändert. Sonst wäre ein
+       Tipp auf den Haken der Nachbarzeile verloren: Das Verlassen des Feldes
+       käme zuerst, der Knopf unter dem Finger wäre schon ausgetauscht und der
+       Klick liefe ins Leere. */
+    const slot = reihe.querySelector(".notiz-haken-slot");
+    const neu = zeilen[i].uebung ? notizHakenHtml(p, zeilen[i].uebung, true)
+                                 : '<span class="notiz-kopf-haken"></span>';
+    if(slot && slot.innerHTML !== neu) slot.innerHTML = neu;
+  });
+  const letzte = reihen[reihen.length - 1];
+  if(letzte && letzte.querySelector(".notiz-feld").value.trim())
+    block.insertAdjacentHTML("beforeend", notizZeileHtml(p, { text:"", uebung:null }));
+}
+
+/** In eine Zeile springen (Cursor ans Ende). `anlegen` hängt eine neue an, wenn
+    es die gesuchte noch nicht gibt — so wandert Enter aus der letzten Zeile in
+    eine frische. */
+function notizZeileFokus(planId, index, anlegen){
+  const karte = document.querySelector('.karte[data-plan="' + planId + '"]');
+  const block = karte && karte.querySelector(".notiz-block");
+  if(!block) return;
+  if(index >= block.children.length){
+    if(!anlegen) return;
+    block.insertAdjacentHTML("beforeend", notizZeileHtml(findePlan(planId), { text:"", uebung:null }));
+  }
+  const reihe = block.children[Math.min(index, block.children.length - 1)];
+  const f = reihe && reihe.querySelector(".notiz-feld");
+  if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+}
+
+/** Enter und Rücktaste — das, was ein Textfeld von selbst konnte.
+    Enter: Zeile abschließen und in die nächste (nötigenfalls neue) springen.
+    Rücktaste in einer LEEREN Zeile: die Zeile nehmen und ans Ende der
+    vorherigen springen. Beides passiert nur im Block, nie im Namensfeld. */
+function notizZeileTaste(ev, feld, planId){
+  if(ev.key === "Enter"){
+    ev.preventDefault();
+    if(!feld.value.trim()) return;              // eine leere Zeile bringt keine zweite
+    const i = notizReihenIndex(feld);
+    notizVorschlaegeSchliessen(feld);
+    feld.blur();                                // löst onchange aus: speichern + aufräumen
+    notizZeileFokus(planId, i + 1, true);
+    return;
+  }
+  if(ev.key === "Backspace" && !feld.value){
+    const i = notizReihenIndex(feld);
+    if(i <= 0) return;                          // die erste Zeile bleibt stehen
+    ev.preventDefault();
+    const reihe = feld.closest(".notiz-reihe");
+    reihe.parentNode.removeChild(reihe);        // leere Zeilen stehen nur im Bild,
+    notizZeileFokus(planId, i - 1, false);      // gespeichert war sie nie
+  }
 }
 
 function notizAbschnittHtml(p, s){
@@ -4029,22 +4163,17 @@ function notizAbschnittHtml(p, s){
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
   let koerper;
   if(s <= 1){
-    // Die Textarea zeigt die ÜBUNGEN des Plans als Zeilen — Stufe 1 sieht damit
+    // Der Block zeigt die ÜBUNGEN des Plans als Zeilen — Stufe 1 sieht damit
     // dieselben Daten wie Stufe 5. Beim Ändern parst abschnittTextSetzen alles
-    // zurück (v79: JEDE nicht-leere Zeile ist eine Übung). oninput lässt das
-    // Feld mitwachsen, statt intern zu scrollen.
+    // zurück (v79: JEDE nicht-leere Zeile ist eine Übung).
     // v123: kurzer Platzhalter — das volle Muster erklärt das „i" im Kopf.
-    // v157: `oninput` zieht zusätzlich die Vorschläge nach; die Chip-Reihe
-    // darunter bleibt leer, solange nichts passt.
+    // v157: `oninput` zieht die Vorschläge nach; die Chip-Reihe unter der Zeile
+    // bleibt leer, solange nichts passt.
     // v172: `onblur` räumt die Vorschläge weg — vorher blieben sie stehen.
-    // v185 (Nutzer-Ansage): die Haken-Leiste steht VOR dem Textfeld — sie ist
-    // die tägliche Handlung, der Text nur die Definition (s. notizHakenLeisteHtml).
-    koerper = notizHakenLeisteHtml(p) +   // v174: der Verlauf der Stufe 1
-      '<textarea class="notiz-text" placeholder="Eine Übung je Zeile" ' +
-      'oninput="notizTippen(this, \'' + p.id + '\')" ' +
-      'onblur="notizVorschlaegeSchliessen(\'' + p.id + '\')" ' +
-      'onchange="abschnittTextSetzen(\'' + p.id + '\', this.value, this)">' + text(abschnittTextErzeugen(p)) + '</textarea>' +
-      '<div class="filter-reihe notiz-vorschlaege" id="notiz-vorschlag-' + p.id + '" hidden></div>';
+    // v198 (Nutzer-Wunsch): echte Zeilen statt eines Textfeldes, der Haken
+    // steht IN der Zeile. Damit ist die eigene Haken-Leiste (v174/v185)
+    // entfallen — Stufe 1 zeigt nur noch den Block, sonst nichts.
+    koerper = notizZeilenHtml(p);
   } else {
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
@@ -4203,13 +4332,14 @@ function uebungAlsZeile(u){
     : "Sätze " + u.saetze + " Wdh " + u.wdh + " " + u.name + gew;
 }
 
-/** Stufe-1-Sicht eines Abschnitts: erst die Übungen als Muster-Zeilen
-    (dieselben Daten wie Stufe 5), darunter der restliche Freitext.
-    Reine SICHT — hier wird nichts verändert oder gespeichert. */
+/** Stufe-1-Sicht eines Abschnitts als EIN Text: erst die Übungen als
+    Muster-Zeilen (dieselben Daten wie Stufe 5), darunter der restliche
+    Freitext. Reine SICHT — hier wird nichts verändert oder gespeichert.
+    v198: baut auf `notizZeilenModell` auf, damit Text-Sicht und Zeilen-Sicht
+    nie auseinanderlaufen können — es ist dieselbe Aufstellung, einmal am
+    Stück und einmal einzeln. */
 function abschnittTextErzeugen(p){
-  const zeilen = (p.uebungen || []).filter(u => u.name && u.name.trim()).map(uebungAlsZeile);
-  const frei = (p.freitext || "").trim() ? p.freitext : "";
-  return zeilen.join("\n") + (zeilen.length && frei ? "\n" : "") + frei;
+  return notizZeilenModell(p).map(z => z.text).join("\n");
 }
 
 /** Parst den kompletten Textarea-Inhalt zurück in den Plan. v79: JEDE
@@ -4220,7 +4350,7 @@ function abschnittTextErzeugen(p){
     Schreibweise; gewichtSchritt 0 — Heben erfindet keine Gewichte). Übungen,
     deren Zeile fehlt, werden entfernt (Zeile gelöscht = Übung gelöscht, wie
     im Stufe-5-Editor). Zeilen-Reihenfolge = Übungs-Reihenfolge. */
-function abschnittTextSetzen(id, wert, feld){
+function abschnittTextSetzen(id, wert){
   const p = findePlan(id); if(!p) return;
   const pool = p.uebungen.slice();   // bisherige Übungen — Name-Matching statt Neuaufbau
   const uebungen = [], rest = [], frisch = [];
@@ -4272,13 +4402,14 @@ function abschnittTextSetzen(id, wert, feld){
   p.uebungen = uebungen;
   p.freitext = rest.join("\n");
   speichern();
-  /* v155: Das Feld bekommt die AUFGERÄUMTE Fassung zurück — genau die
+  /* v155: Die Felder bekommen die AUFGERÄUMTE Fassung zurück — genau die
      Autokorrektur, um die es geht: Aus „bankdrücken 10 3" wird
      „Sätze 3 Wdh 10 LH-Bankdrücken". Das ist sicher, weil `onchange` erst beim
-     Verlassen des Feldes feuert; beim Tippen (`oninput`) wird nichts angefasst,
-     sonst spränge der Cursor. Der Rest der Ansicht wird weiterhin NICHT neu
-     gezeichnet (Scroll-Position bleibt). */
-  if(feld) feld.value = abschnittTextErzeugen(p);
+     Verlassen der Zeile feuert; beim Tippen (`oninput`) wird nichts angefasst,
+     sonst spränge der Cursor.
+     v198: Das Zurückschreiben steht nicht mehr hier, sondern in
+     `notizZeilenAbgleichen` — seit dem Zeilen-Umbau gibt es nicht mehr EIN
+     Feld, und der Parser soll nicht wissen müssen, wie die Ansicht aussieht. */
   const weg = pool.filter(u => u.name && u.name.trim());
   // v172: Der Toast trug bei mehreren Übungen die ganze Liste — und lief aus
   // dem Bild. Zwei Namen genügen; der Rest wird gezählt.
@@ -5869,6 +6000,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.198", punkte:[
+    "Der Notizblock (Stufe 1) besteht jetzt aus echten Zeilen: Jede Übung hat ihre eigene Zeile — und ihr Häkchen steht direkt davor, statt in einer Liste darüber. Abhaken heißt weiterhin nur antippen.",
+    "Enter legt die nächste Zeile an, die Rücktaste in einer leeren Zeile nimmt sie wieder weg, und unten wartet immer eine freie Zeile. Der Block bleibt also ein Block.",
+    "Die Autokorrektur bleibt: Aus „bankdrücken 10 3“ wird beim Verlassen der Zeile weiterhin „Sätze 3 Wdh 10 LH-Bankdrücken“. Die Vorschläge beim Tippen stehen jetzt direkt unter der Zeile, an der du schreibst.",
+    "Damit zeigt Stufe 1 wieder nur den Notizblock und sonst nichts."
+  ]},
   { stand:"0.197", punkte:[
     "Deine Ausdauer zählt jetzt in der Muskelkarte mit: Warst du laufen, geht das in die Beine — und damit in die Warnung, wenn es zu viel wird. Bisher rechnete die Karte nur mit Sätzen, und ein Lauf trägt keine.",
     "Umgerechnet wird zurückhaltend: zehn Minuten entsprechen einem Satz, mehr als eine Stunde ändert nichts mehr. Wie viele Sätze Beine eine Stunde Laufen wirklich entspricht, ist nicht belegt — lieber eine vorsichtige Zahl als eine erfundene, dieselbe Linie wie bei Schlaf und Pausen.",

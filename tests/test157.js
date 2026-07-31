@@ -32,12 +32,11 @@ new Function("module", "exports", [
   grabFn("normName"),
   grabFn("zahlKurz"),                // v172: notizZeileMitName schreibt das Gewicht mit
   grabFn("notizZeileDeuten"),
-  grabFn("notizAktuelleZeile"),
   grabFn("notizVorschlaege"),
   grabFn("notizZeileMitName"),
-  "module.exports = { notizAktuelleZeile, notizVorschlaege, notizZeileMitName };"
+  "module.exports = { notizVorschlaege, notizZeileMitName };"
 ].join("\n"))(modul, modul.exports);
-const { notizAktuelleZeile, notizVorschlaege, notizZeileMitName } = modul.exports;
+const { notizVorschlaege, notizZeileMitName } = modul.exports;
 
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
@@ -45,18 +44,16 @@ function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEH
 const NAMEN = ["LH-Bankdrücken", "KH-Bankdrücken", "Schrägbankdrücken KH", "Kniebeugen",
                "Liegestütze", "Bankdrücken-Eigenbau", "Klimmzüge"];
 
-/* ---------- 1) Welche Zeile steht unter dem Cursor? ---------- */
-const text = "Kniebeugen\nBankdr\nKlimmzüge";
-pruefe("erste Zeile", notizAktuelleZeile(text, 3).text === "Kniebeugen");
-pruefe("Cursor ganz am Anfang", notizAktuelleZeile(text, 0).text === "Kniebeugen");
-pruefe("mittlere Zeile", notizAktuelleZeile(text, 14).text === "Bankdr");
-pruefe("letzte Zeile", notizAktuelleZeile(text, text.length).text === "Klimmzüge");
-pruefe("Anfang und Ende zeigen auf die Zeile",
-  (() => { const z = notizAktuelleZeile(text, 14); return text.slice(z.start, z.ende) === "Bankdr"; })());
-pruefe("ohne Cursor-Angabe zaehlt das Ende", notizAktuelleZeile(text).text === "Klimmzüge");
-pruefe("Cursor hinter dem Text wird geklemmt", notizAktuelleZeile(text, 9999).text === "Klimmzüge");
-pruefe("leerer Text ergibt eine leere Zeile", notizAktuelleZeile("", 0).text === "");
-pruefe("eine Zeile ohne Umbruch", notizAktuelleZeile("Dips", 2).text === "Dips");
+/* ---------- 1) Welche Zeile ist gemeint? ----------
+   Bis v197 musste die App das aus der Cursor-Position im Textfeld ausrechnen
+   (`notizAktuelleZeile`). Seit dem Zeilen-Umbau v198 IST jede Zeile ein
+   eigenes Feld — die Frage stellt sich nicht mehr, und die Rechnung ist
+   ersatzlos entfallen. Der Test haelt fest, dass sie nicht zurueckkommt und
+   dass die Vorschlaege stattdessen direkt vom Feldinhalt kommen. */
+pruefe("die Cursor-Rechnung ist entfallen", !src.includes("function notizAktuelleZeile("));
+pruefe("und niemand ruft sie noch", !src.includes("notizAktuelleZeile("));
+pruefe("die Vorschlaege kommen direkt aus dem Feld",
+  grabFn("notizZeileTippen").includes("notizVorschlaege(feld.value, alleUebungsNamen(), 5)"));
 
 /* ---------- 2) Was wird vorgeschlagen? ---------- */
 pruefe("Treffer am Anfang stehen vorn",
@@ -88,30 +85,29 @@ pruefe("Zeit-Uebungen bleiben Zeit-Uebungen",
   notizZeileMitName("Sätze 3 Zeit 45 pla", "Plank") === "Sätze 3 Zeit 45 Plank");
 pruefe("leere Zeile ergibt den Namen", notizZeileMitName("", "Dips") === "Dips");
 
-/* ---------- 4) Verdrahtung ---------- */
-const html = grabFn("notizAbschnittHtml");
-pruefe("die Textarea meldet jedes Tippen",
-  html.includes('oninput="notizTippen(this,') && !html.includes('oninput="notizTextWachsen(this)"'));
-pruefe("es gibt eine Reihe fuer die Vorschlaege", html.includes("notiz-vorschlag-' + p.id"));
-pruefe("sie startet versteckt", html.includes('class="filter-reihe notiz-vorschlaege"') && html.includes("hidden></div>"));
-const tippen = grabFn("notizTippen");
-pruefe("beim Tippen waechst das Feld weiter mit", tippen.includes("notizTextWachsen(el)"));
-pruefe("die Vorschlaege kommen aus der aktuellen Zeile",
-  tippen.includes("notizAktuelleZeile(el.value, el.selectionStart)"));
+/* ---------- 4) Verdrahtung (v198: an der ZEILE statt am Abschnitt) ---------- */
+const html = grabFn("notizZeileHtml");
+pruefe("jede Zeile meldet ihr Tippen", html.includes('oninput="notizZeileTippen(this)"'));
+pruefe("jede Zeile hat ihre eigene Vorschlags-Reihe",
+  html.includes('class="filter-reihe notiz-vorschlaege"'));
+pruefe("sie startet versteckt", html.includes('notiz-vorschlaege" hidden'));
+const tippen = grabFn("notizZeileTippen");
 pruefe("gesucht wird in ALLEN bekannten Namen", tippen.includes("alleUebungsNamen()"));
 pruefe("ohne Treffer bleibt die Reihe versteckt", tippen.includes("ziel.hidden = treffer.length === 0"));
+pruefe("gefuellt wird die Reihe DIESER Zeile", tippen.includes("notizVorschlagsReihe(feld)"));
 pruefe("der Fokus bleibt im Feld (sonst legt onchange den Halbsatz an)",
   tippen.includes('onmousedown="event.preventDefault()"'));
 const waehlen = grabFn("notizVorschlagWaehlen");
-pruefe("Auswaehlen ersetzt nur die eine Zeile", waehlen.includes("notizZeileMitName(z.text, name)"));
+pruefe("Auswaehlen ersetzt nur die eine Zeile", waehlen.includes("notizZeileMitName(feld.value, name)"));
 pruefe("der Cursor landet hinter dem Eingesetzten", waehlen.includes("setSelectionRange(cursor, cursor)"));
 /* v172: Das Schliessen liegt jetzt in einer eigenen Funktion — es gibt seither
    einen zweiten Ausloeser (Verlassen des Feldes), und beide sollen dasselbe
    tun. Geprueft wird die Delegation UND dass die Funktion wirklich schliesst. */
 pruefe("danach ist die Reihe wieder zu",
-  waehlen.includes("notizVorschlaegeSchliessen(planId)") &&
+  waehlen.includes("notizVorschlaegeSchliessen(feld)") &&
   grabFn("notizVorschlaegeSchliessen").includes("ziel.hidden = true"));
-pruefe("gespeichert wird weiter erst beim Verlassen", !waehlen.includes("abschnittTextSetzen"));
+pruefe("gespeichert wird weiter erst beim Verlassen",
+  !waehlen.includes("abschnittTextSetzen") && !waehlen.includes("notizZeilenSpeichern"));
 const pool = grabFn("alleUebungsNamen");
 pruefe("der Namens-Vorrat kennt Kraft, Drills und eigene",
   pool.includes("UEBUNGEN_DB") && pool.includes("SPORT_UEBUNGEN") && pool.includes("eigeneUebungen"));
