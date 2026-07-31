@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.206
+
+- Neue Statistik: dein BMI-Verlauf. Die Kurve liegt über den Bereichen (Unter-, Normal-,
+  Übergewicht, Adipositas), dazu eine gestrichelte Linie mit deinem Durchschnitt.
+  Einschalten unter Mehr › Darstellung — sie erscheint, sobald deine Größe im Profil
+  steht und ein Gewicht eingetragen ist.
+- Die Skala steht fest von 15 bis 35 und wandert nicht mit deinen Werten mit: Es geht ja
+  gerade darum, wo du zwischen den Bereichen liegst — bei einer mitwandernden Achse
+  säßest du immer in der Mitte.
+- Was die Kachel ausdrücklich dazusagt: Muskelmasse hebt den BMI, bei Trainierenden sagt
+  er wenig aus. In die Belastungs-Rechnung geht er weiterhin NICHT ein — dafür gibt es
+  keinen belegten Zusammenhang.
+
 ## 0.205
 
 - Jetzt lässt sich JEDE Statistik öffnen: Volumen, Ausdauer, Messwerte,

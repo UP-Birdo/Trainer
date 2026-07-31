@@ -1088,6 +1088,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="tageswert-diagramm" class="abstand stat-tap" onclick="tageswertDetailsOeffnen()"></div>
   </div>
 
+  <!-- v206: BMI — als Statistik zulässig, als Faktor der Belastungs-Rechnung
+       weiterhin abgelehnt (v160). Der Tipp führt zu den Gewichts-Einträgen,
+       aus denen er entsteht. -->
+  <div class="karte stat-karte" id="bmi-karte" hidden>
+    <h2>BMI</h2>
+    <div id="bmi-diagramm" class="abstand stat-tap" onclick="gewichtDetailsOeffnen()"></div>
+    <div id="bmi-info" class="meta abstand"></div>
+  </div>
+
   <div class="karte stat-karte" id="stat-volumen" hidden>
     <h2 id="volumen-titel">Volumen</h2>
     <div id="volumen-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('volumen')"></div>
@@ -2691,7 +2700,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 205;
+const APP_VERSION = 206;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6282,6 +6291,7 @@ function statistikOeffnen(){
    (`einrichtung.statistiken`). Je Stat-id die Karten-Element-id. */
 const STAT_OPTIONEN = [
   ["koerpergewicht", "Körpergewicht",       "stat-koerpergewicht"],
+  ["bmi",            "BMI",                 "bmi-karte"],           // v206
   ["koerpermasse",   "Körpermaße",          "stat-koerpermasse"],   // v134
   ["tageswert",      "Tageswerte",          "stat-tageswert"],      // v166: Schlaf, Befinden
   ["volumen",        "Volumen",             "stat-volumen"],
@@ -6313,6 +6323,8 @@ function statHatDaten(id){
   if(id === "koerpergewicht") return true;                                  // manuell
   if(id === "koerpermasse")   return true;                                  // v134: manuell, immer wählbar
   if(id === "tageswert")      return true;                                  // v166: manuell, immer wählbar
+  // v206: Der BMI braucht BEIDES — ohne Größe im Profil bliebe die Kachel leer.
+  if(id === "bmi") return (sitzung.daten.profil.groesse || 0) > 0 && (sitzung.daten.gewichte || []).length > 0;
   if(id === "trainings")      return p.length > 0;
   if(id === "ausdauer")       return p.some(e => e.typ === "aktivitaet");
   if(id === "messwerte")      return p.some(e => e.messwert != null && e.messwert !== "");   // v121
@@ -6439,6 +6451,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.206", punkte:[
+    "Neue Statistik: dein BMI-Verlauf. Die Kurve liegt über den Bereichen (Unter-, Normal-, Übergewicht, Adipositas), dazu eine gestrichelte Linie mit deinem Durchschnitt. Einschalten unter Mehr › Darstellung — sie erscheint, sobald deine Größe im Profil steht und ein Gewicht eingetragen ist.",
+    "Die Skala steht fest von 15 bis 35 und wandert nicht mit deinen Werten mit: Es geht ja gerade darum, wo du zwischen den Bereichen liegst — bei einer mitwandernden Achse säßest du immer in der Mitte.",
+    "Was die Kachel ausdrücklich dazusagt: Muskelmasse hebt den BMI, bei Trainierenden sagt er wenig aus. In die Belastungs-Rechnung geht er weiterhin NICHT ein — dafür gibt es keinen belegten Zusammenhang."
+  ]},
   { stand:"0.205", punkte:[
     "Jetzt lässt sich JEDE Statistik öffnen: Volumen, Ausdauer, Messwerte, Übungs-Fortschritt und Bestwerte zeigen beim Antippen die Trainings, aus denen ihre Zahlen entstehen — mit Löschen einzeln und mehrfach, genau wie beim Körpergewicht.",
     "Der Unterschied zu den anderen Kacheln, den die Ansicht sichtbar macht: Diese fünf haben keine eigenen Einträge, sie rechnen aus deinem Protokoll. Was du dort löschst, ist ein Training — samt seiner Folgen am Plan, und rückgängig machen kannst du es wie überall.",
@@ -8424,8 +8441,118 @@ function gewichtKurveHtml(eintraege, trainingstage){
     '</svg>';   // v104: „Gelbe Punkte …"-Erklärtext entfernt (unnötig, blähte auf)
 }
 
+/* ------------------------------------------------------------
+   v206: BMI als eigene Statistik (Ideen-Box, 8. Runde D).
+
+   Die Abgrenzung von v160 gilt weiter und ist der Grund, warum diese Kachel so
+   zurückhaltend beschriftet ist: Als **Faktor der Belastungs-Rechnung** bleibt
+   der BMI abgelehnt — er vermischt Muskel und Fett, und für „wie viele Sätze
+   verträgt dieser Muskel?" gibt es keinen belegten Zusammenhang. Als
+   **Statistik** ist er zulässig: Er ist eine gerechnete Zahl aus zwei Werten,
+   die der Nutzer selbst eingetragen hat, und er zeigt eine Richtung über Zeit.
+
+   Deshalb zeigt die Kachel die WHO-Bereiche als Hintergrund und nennt sie beim
+   Namen — aber sie fällt kein Urteil über den Nutzer, und sie sagt dazu, wo die
+   Zahl bei Trainierenden danebenliegt. Ein Kraftsportler mit viel Muskelmasse
+   landet regelmäßig über 25, ohne dass daran etwas ungesund wäre.
+   ------------------------------------------------------------ */
+/** Die WHO-Bereiche, aufsteigend. `bis` ist die Obergrenze (der letzte offen). */
+const BMI_BEREICHE = [
+  { bis:18.5, name:"Untergewicht", farbe:"#6FA8DC" },
+  { bis:25,   name:"Normalgewicht", farbe:"#6FBF73" },
+  { bis:30,   name:"Übergewicht",  farbe:"#E8C468" },
+  { bis:null, name:"Adipositas",   farbe:"#D96B6B" }
+];
+
+/** BMI aus Gewicht (kg) und Größe (cm). `null`, wenn eines fehlt — geraten wird
+    nichts. Rein/testbar. */
+function bmiWert(kg, groesseCm){
+  if(!(kg > 0) || !(groesseCm > 0)) return null;
+  return Math.round((kg / Math.pow(groesseCm / 100, 2)) * 10) / 10;
+}
+
+/** In welchen Bereich fällt dieser Wert? Rein/testbar. */
+function bmiBereich(bmi){
+  if(!(bmi > 0)) return null;
+  return BMI_BEREICHE.find(b => b.bis === null || bmi < b.bis) || BMI_BEREICHE[BMI_BEREICHE.length - 1];
+}
+
+/** Die BMI-Reihe zu den Gewichts-Einträgen. Ohne Größe leer — dann gibt es
+    nichts zu zeichnen, und die Kachel sagt, was fehlt. Rein/testbar. */
+function bmiReihe(gewichte, groesseCm){
+  return (gewichte || []).map(e => ({ datum: e.datum, bmi: bmiWert(e.kg, groesseCm) }))
+    .filter(p => p.bmi !== null);
+}
+
+/** Die Kurve mit den Bereichs-Bändern im Hintergrund und der Durchschnittslinie.
+    Gezeichnet wird über einen FESTEN Ausschnitt (15–35), nicht über Minimum und
+    Maximum der eigenen Werte: Die Aussage dieser Kurve ist die Lage zu den
+    Bereichen — bei einer mitwandernden Achse säße man immer in der Mitte. */
+function bmiKurveHtml(reihe){
+  const liste = reihe || [];
+  if(!liste.length) return '<div class="meta">Ab dem ersten Gewicht mit hinterlegter Größe erscheint hier der Verlauf.</div>';
+  const B = 560, H = 220, rand = 34, VON = 15, BIS = 35;
+  const y = bmi => H - rand - (begrenzen(bmi, VON, BIS) - VON) / (BIS - VON) * (H - 2*rand);
+  const x = i => liste.length === 1 ? B / 2 : rand + i * (B - 2*rand) / (liste.length - 1);
+
+  // Die Bänder: von der Untergrenze des Ausschnitts bis zur jeweiligen Grenze.
+  let unten = VON, baender = "";
+  BMI_BEREICHE.forEach(b => {
+    const oben = b.bis === null ? BIS : Math.min(b.bis, BIS);
+    if(oben <= unten) return;
+    baender += '<rect x="' + rand + '" y="' + y(oben).toFixed(1) + '" width="' + (B - 2*rand) +
+      '" height="' + (y(unten) - y(oben)).toFixed(1) + '" fill="' + b.farbe + '" opacity="0.13"/>' +
+      '<text x="' + (B - rand - 4) + '" y="' + (y(oben) + 12).toFixed(1) +
+      '" fill="var(--muted)" font-size="9" text-anchor="end">' + text(b.name) + '</text>';
+    unten = oben;
+  });
+
+  const schnitt = liste.reduce((a, p) => a + p.bmi, 0) / liste.length;
+  const linie = liste.map((p, i) => (i === 0 ? "M" : "L") + x(i).toFixed(1) + " " + y(p.bmi).toFixed(1)).join(" ");
+  const punkte = liste.map((p, i) =>
+    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p.bmi).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+
+  return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="BMI-Verlauf">' +
+    baender +
+    '<line x1="' + rand + '" y1="' + y(schnitt).toFixed(1) + '" x2="' + (B - rand) +
+      '" y2="' + y(schnitt).toFixed(1) + '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>' +
+    '<text x="' + rand + '" y="' + (y(schnitt) - 5).toFixed(1) +
+      '" fill="var(--muted)" font-size="10">Schnitt ' + schnitt.toFixed(1) + '</text>' +
+    (liste.length > 1 ? '<path d="' + linie + '" fill="none" stroke="var(--signal)" stroke-width="2"/>' : "") +
+    punkte + '</svg>';
+}
+
+function bmiZeichnen(){
+  const karte = document.getElementById("bmi-karte");
+  if(!karte) return;
+  const ziel = document.getElementById("bmi-diagramm");
+  const info = document.getElementById("bmi-info");
+  const groesse = sitzung.daten.profil.groesse || 0;
+  const reihe = bmiReihe(sitzung.daten.gewichte, groesse);
+  if(!groesse){
+    ziel.innerHTML = '<div class="meta">Für den BMI fehlt deine Größe — sie steht im Profil.</div>';
+    if(info) info.textContent = "";
+    return;
+  }
+  ziel.innerHTML = bmiKurveHtml(reihe);
+  if(info){
+    const letzter = reihe.length ? reihe[reihe.length - 1].bmi : null;
+    const b = bmiBereich(letzter);
+    /* Die Einordnung steht da, aber mit dem Vorbehalt, der bei Trainierenden
+       dazugehört — die Zahl kennt den Unterschied zwischen Muskel und Fett nicht. */
+    info.textContent = letzter
+      ? "Aktuell " + letzter.toFixed(1) + " · " + b.name +
+        " — Muskelmasse hebt den Wert, bei Trainierenden sagt er wenig aus."
+      : "";
+  }
+}
+
 function gewichtStatistikZeichnen(){
   gewichtInfoZeichnen();
+  /* v206: Der BMI hängt an denselben Daten (Gewichte + Größe) — er wird deshalb
+     hier mitgezeichnet und nicht an jedem Aufrufer einzeln. Wer ein Gewicht
+     einträgt oder löscht, sieht beide Kurven sofort nachziehen. */
+  bmiZeichnen();
   const diagramm = document.getElementById("gewicht-diagramm");
   const listeZiel = document.getElementById("gewicht-liste");
   const eintraege = sitzung.daten.gewichte;
