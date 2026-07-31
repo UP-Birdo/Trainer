@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.202
+
+- Bei Ausdauer-Sportarten ist jetzt „Eintragen“ die gelbe Hauptaktion, die Stoppuhr
+  steht daneben. Der Stoppuhr-Bildschirm riet für lange Einheiten selbst davon ab (iOS
+  friert die App im Hintergrund ein) — damit war der prominenteste Knopf für den
+  Normalfall der falsche. Bei Intervall-Plänen bleibt „Runden“ vorn: Dort ist der Timer
+  das Training.
+- Und „Fertig — eintragen“ ohne gestartete Uhr führt jetzt einfach ins
+  Eintragen-Formular, statt auf einen Weg zu verweisen, den es selbst nicht anbietet.
+- Die Stufen-Auswahl zeigt wieder eine kurze Zeile je Stufe („Nur ein Block zum
+  Reinschreiben.“). Auf diesem einen Bildschirm muss man ohne Vorwissen vergleichen
+  können; die ausführliche Fassung bleibt hinter dem „i“.
+- Der Tages-Check sagt bei „Schlecht geschlafen?“, worin er sich von den Schlafstunden
+  unterscheidet: Die Stunden gehen in die Belastungs-Rechnung, hier geht es darum, wie
+  du dich damit fühlst.
+
 ## 0.201
 
 - Eine Ausdauer-Einheit zeigt jetzt auch ihre Muskeln: „Laufen 30 min“ bekommt auf der

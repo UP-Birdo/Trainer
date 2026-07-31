@@ -59,10 +59,15 @@ pruefe("volle Karte traegt den Tipp",
   /karte stat-tap[\s\S]{0,120}data-plan="' \+ p\.id \+ '" onclick="planTippen/.test(src));
 pruefe("schlanke Zeile traegt den Tipp",
   /karte plan-zeile stat-tap[\s\S]{0,120}data-plan="' \+ p\.id \+ '" onclick="planTippen/.test(src));
+/* v202: Die beiden Karten-Knoepfe baut jetzt `planKnoepfeHtml` (die Hauptaktion
+   haengt am Typ) — geprueft wird weiter dieselbe Zusage: JEDER Knopf auf der
+   Karte stoppt die Weiterreichung, sonst loeste er zusaetzlich das Oeffnen aus. */
+const knoepfe = grabFn("planKnoepfeHtml");
 pruefe("Start-Knopf stoppt das Bubbling",
-  src.includes('onclick="event.stopPropagation();trainingStarten('));
+  knoepfe.includes('onclick="event.stopPropagation();'));
 pruefe("Erledigt-Knopf stoppt das Bubbling",
-  /onclick="event\.stopPropagation\(\);' \+ \(istAkt \? "planErledigt" : "kraftErledigt"\)/.test(src));
+  (knoepfe.match(/event\.stopPropagation\(\);/g) || []).length >= 1 &&
+  !/<button(?![^>]*stopPropagation)[^>]*onclick/.test(knoepfe));
 
 /* 3) Langdruck darf nach dem Loslassen keinen Kurz-Tipp ausloesen. */
 const binden = grabFn("langdruckBinden");

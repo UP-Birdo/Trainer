@@ -175,6 +175,10 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    dem „i"). Die Regel bleibt als Absicherung: Wer dort wieder Text hineinlegt,
    bekommt ihn automatisch lesbar — der v173-Fehler kann so nicht zurückkommen. */
 .stufe-wahl.gewaehlt .meta{color:#16181C;opacity:.85}
+/* v202: die eine kurze Zeile unter dem Namen — auf der gelben Karte dunkel,
+   damit sie lesbar bleibt (derselbe Grund wie oben bei `strong`). */
+.stufe-wahl small{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.3}
+.stufe-wahl.gewaehlt small{color:#16181C;opacity:.85}
 .notiz-name{font-weight:700;font-size:16px}
 /* v198: Der Block der Stufe 1 besteht aus ECHTEN Zeilen — je Zeile ein Feld mit
    dem Haken davor. Die frühere `<textarea>` (.notiz-text) ist damit entfallen;
@@ -2662,7 +2666,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 201;
+const APP_VERSION = 202;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3571,19 +3575,24 @@ const SIMPELHEIT_STUFEN = [
      Woche 82,5 kg einträgt, überschreibt die 80 von heute. Genau die
      Zielgruppe, die hier landen soll, wählte die Stufe also mit einer falschen
      Erwartung. Jetzt steht da, was sie WIRKLICH kann. */
-  { n:1, titel:"Notizblock",
+  /* v202: `kurz` ist der eine Halbsatz, der SICHTBAR unter dem Namen steht —
+     gerade so viel, dass man die fünf Stufen vergleichen kann, ohne fünf „i"
+     anzutippen. `fuer` und `text` bleiben die ausführliche Fassung dahinter.
+     Regel für diese Zeile: Sie nennt, was die Stufe ZEIGT, in höchstens einer
+     Zeile Bildschirmbreite — keine zweite Erklärung. */
+  { n:1, titel:"Notizblock", kurz:"Nur ein Block zum Reinschreiben.",
     fuer:"Für Erfahrene, die sich nur notieren wollen, was sie machen.",
     text:"Eine Seite, eine Übung je Zeile — dein Plan zum Nachschlagen, ohne Verlauf." },
-  { n:2, titel:"Notizblock + Zahlen",
+  { n:2, titel:"Notizblock + Zahlen", kurz:"Dazu Sätze und Wiederholungen.",
     fuer:"Für Erfahrene, die ihre Sätze und Wiederholungen dabeihaben wollen.",
     text:"Wie Notizblock, plus Sätze und Wiederholungen je Zeile — ebenfalls ohne Verlauf." },
-  { n:3, titel:"Plan + Training",
+  { n:3, titel:"Plan + Training", kurz:"Geführtes Training mit Pause-Timer.",
     fuer:"Wenn du weißt, was du tust, und nur die Führung willst.",
     text:"Echte Pläne, geführtes Training mit Pause-Timer, Protokoll." },
-  { n:4, titel:"+ Auswertung",
+  { n:4, titel:"+ Auswertung", kurz:"Dazu Kalender, Kurven und Fortschritt.",
     fuer:"Wenn du sehen willst, wie es über die Wochen läuft.",
     text:"Zusätzlich Kalender, Volumen, Gewichtskurve, Fortschritt." },
-  { n:5, titel:"Vollausbau",
+  { n:5, titel:"Vollausbau", kurz:"Alles, was die App kann.",
     fuer:"Für den Anfang — hier siehst du alles, was die App kann.",
     text:"Zusätzlich Trainingsplanung, Sportarten, Ziele, Ansagen." }
 ];
@@ -3641,6 +3650,14 @@ function simpelheitFrageZeichnen(){
       '<div class="stufe-reihe">' +
         '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
           '<strong>' + text(s.titel) + '</strong>' +
+          /* v202 (Nutzer-Entscheidung): EINE kurze Zeile je Stufe steht wieder
+             sichtbar da. v190 hatte alles hinter das „i" geräumt — das ist
+             überall richtig, nur nicht hier: Dies ist der eine Bildschirm, auf
+             dem ein neuer Nutzer OHNE VORWISSEN entscheiden muss, und fünf Namen
+             ohne Text kann man nicht vergleichen, ohne fünf „i" einzeln
+             anzutippen. Die ausführliche Fassung (`fuer` + `text`) bleibt im
+             „i" — sichtbar ist nur der Halbsatz, der die Stufen unterscheidet. */
+          '<small>' + text(s.kurz) + '</small>' +
         '</button>' +
         '<button class="info-knopf" onclick="infoUmschalten(\'stufe-info-' + s.n + '\')" ' +
           'aria-label="Was zeigt diese Stufe?">i</button>' +
@@ -4972,6 +4989,26 @@ function planGruppeUmschalten(sportId){
   planListeZeichnen();
 }
 
+/** v202: Die beiden Knöpfe einer Plan-Karte — die Hauptaktion zuerst und gelb.
+    Wer sie ist, hängt am Typ:
+      Kraft         → „Start" (geführtes Training), daneben „Erledigt".
+      Intervall     → „Runden" (der Timer IST das Training), daneben „Eintragen".
+      Ausdauer u. a.→ „Eintragen" (Nutzer-Entscheidung, s. Karte), daneben die Stoppuhr.
+    Rein/testbar: gibt beide Knöpfe als HTML zurück, in der Reihenfolge, in der
+    sie stehen sollen. */
+function planKnoepfeHtml(p){
+  const istAkt = p.typ === "aktivitaet";
+  const knopf = (klasse, aufruf, beschriftung) =>
+    '<button class="' + klasse + ' breit" onclick="event.stopPropagation();' + aufruf +
+    '(\'' + p.id + '\')">' + beschriftung + '</button>';
+  const eintragen = knopf("", "planErledigt", "Eintragen");
+  if(!istAkt) return knopf("primaer", "trainingStarten", "Start") +
+                     knopf("", "kraftErledigt", "Erledigt");
+  if(p.intervall) return knopf("primaer", "trainingStarten", "Runden") + eintragen;
+  return knopf("primaer", "planErledigt", "Eintragen") +
+         knopf("", "trainingStarten", "Stoppuhr");
+}
+
 function planListeZeichnen(){
   // v76: Kopf (Titel + „⋯ Mehr") auf die Stufe einstellen; auf Stufe 1/2 ist
   // dieser Tab der Notizblock (eine Seite, Abschnitte mit Freitext bzw.
@@ -5046,13 +5083,16 @@ function planListeZeichnen(){
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
         (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
       '</div>' + planFigurenHtml(p) + '</div>' +
-      (planAuswahlModus ? "" :
-      '<div class="knopfreihe">' +
-        '<button class="primaer breit" onclick="event.stopPropagation();trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>' +
-        // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
-        // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; Start/Erledigt teilen sich die Breite.
-        '<button class="breit" onclick="event.stopPropagation();' + (istAkt ? "planErledigt" : "kraftErledigt") + '(\'' + p.id + '\')">Erledigt</button>' +
-      '</div>') + '</div>';
+      // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
+      // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; die beiden Knöpfe teilen sich die Breite.
+      // v202 (Nutzer-Entscheidung): Bei einer Ausdauer-Sportart tauschen die
+      // beiden Plätze — „Eintragen" ist die gelbe Hauptaktion, die Stoppuhr
+      // steht daneben. Grund: Der Stoppuhr-Bildschirm rät für lange Einheiten
+      // selbst von sich ab (iOS friert die App im Hintergrund ein), damit war
+      // die prominenteste Aktion für den Normalfall die falsche. Beim
+      // INTERVALL-Plan bleibt „Runden" vorn: Dort ist der Timer nicht der
+      // bequemere Weg, sondern der Inhalt des Trainings.
+      (planAuswahlModus ? "" : '<div class="knopfreihe">' + planKnoepfeHtml(p) + '</div>') + '</div>';
   };
 
   /* v109: schlanke Zeile — Name links, Start rechts. Sekundär-Aktionen
@@ -5067,8 +5107,14 @@ function planListeZeichnen(){
         // Übung und Plan in JEDER Dichte, sonst hinge die Auskunft daran, wie
         // viele Pläne man gerade hat.
         '<span class="plan-name">' + haken + planArtMarkeHtml(p) + text(p.name) + '</span>' +
+        /* v202: In der schlanken Zeile steht nur die EINE Hauptaktion — und die
+           ist bei einer Ausdauer-Sportart jetzt „Eintragen" (s. planKnoepfeHtml).
+           Die Stoppuhr bleibt über den langen Druck erreichbar, wie schon
+           „Erledigt" seit v109. */
         (planAuswahlModus ? "" :
-        '<button class="primaer schmal" onclick="event.stopPropagation();trainingStarten(\'' + p.id + '\')">' + (p.intervall ? "Runden" : istAkt ? "Stoppuhr" : "Start") + '</button>') +
+        '<button class="primaer schmal" onclick="event.stopPropagation();' +
+          (p.intervall || !istAkt ? "trainingStarten" : "planErledigt") + '(\'' + p.id + '\')">' +
+          (p.intervall ? "Runden" : istAkt ? "Eintragen" : "Start") + '</button>') +
       '</div></div>';
   };
 
@@ -5234,7 +5280,14 @@ function planMenue(planId){
     const sichtbar = sichtbarePlaene();
     const gruppenAnzahl = SPORTARTEN.filter(x => sichtbar.some(q => (q.sportart || "kraft") === x.id)).length;
     if(planListenDichte(sichtbar, gruppenAnzahl) !== "voll")
-      aktionen.push({ text:"Erledigt", tun:() => (plan.typ === "aktivitaet" ? planErledigt : kraftErledigt)(planId) });
+      aktionen.push({ text: plan.typ === "aktivitaet" ? "Eintragen" : "Erledigt",
+                      tun:() => (plan.typ === "aktivitaet" ? planErledigt : kraftErledigt)(planId) });
+    /* v202: Seit die Ausdauer-Zeile „Eintragen" als Hauptaktion trägt, ist die
+       Stoppuhr der zweite Weg — und der gehört hierher, damit er in der
+       schlanken Liste nicht ganz verschwindet. Beim Intervall-Plan steht der
+       Timer schon an der Zeile. */
+    if(plan.typ === "aktivitaet" && !plan.intervall)
+      aktionen.push({ text:"Stoppuhr", tun:() => trainingStarten(planId) });
   }
   if(!einfach) aktionen.push({ text:"Bearbeiten", tun:() => editorOeffnen(planId) });
   aktionen.push({ text:"Duplizieren", tun:() => planDuplizieren(planId) });
@@ -6312,6 +6365,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.202", punkte:[
+    "Bei Ausdauer-Sportarten ist jetzt „Eintragen“ die gelbe Hauptaktion, die Stoppuhr steht daneben. Der Stoppuhr-Bildschirm riet für lange Einheiten selbst davon ab (iOS friert die App im Hintergrund ein) — damit war der prominenteste Knopf für den Normalfall der falsche. Bei Intervall-Plänen bleibt „Runden“ vorn: Dort ist der Timer das Training.",
+    "Und „Fertig — eintragen“ ohne gestartete Uhr führt jetzt einfach ins Eintragen-Formular, statt auf einen Weg zu verweisen, den es selbst nicht anbietet.",
+    "Die Stufen-Auswahl zeigt wieder eine kurze Zeile je Stufe („Nur ein Block zum Reinschreiben.“). Auf diesem einen Bildschirm muss man ohne Vorwissen vergleichen können; die ausführliche Fassung bleibt hinter dem „i“.",
+    "Der Tages-Check sagt bei „Schlecht geschlafen?“, worin er sich von den Schlafstunden unterscheidet: Die Stunden gehen in die Belastungs-Rechnung, hier geht es darum, wie du dich damit fühlst."
+  ]},
   { stand:"0.201", punkte:[
     "Eine Ausdauer-Einheit zeigt jetzt auch ihre Muskeln: „Laufen 30 min“ bekommt auf der Karte dieselbe kleine Figur wie ein Kraftplan. Bisher blieb sie leer, obwohl die App seit v197 weiß, was ein Lauf trifft — sie rechnet es ja in deine Auslastung ein.",
     "Stufe 2 (Notizblock mit Zahlen) kennt jetzt alle Sportarten: Über den Spalten Sätze und Wiederholungen steht bei einer Ausdauer-Sportart die Einheit selbst — mit Haken, Strecke und Zeit.",
@@ -7748,7 +7807,15 @@ const CHECK_SKALEN = {
    Mehrfach-Löschen, weil jede Frage ein normaler Tageswert ist. */
 const TAGES_FRAGEN = [
   { id:"erschoepft",  frage:"Fühlst du dich erschöpft?", skala:"stufe3", abzug:1 },
-  { id:"schlecht",    frage:"Schlecht geschlafen?",      skala:"stufe3", abzug:0.5 },
+  /* v202 (Nutzer-Entscheidung): Schlaf wird an zwei Stellen erfasst — als
+     Stundenzahl bei den Tageswerten (die rechnet seit v167 in der Belastung
+     mit) und hier als Empfinden (das geht ins Befinden). Fachlich sind das
+     zwei verschiedene Dinge: Sechs Stunden können sich gut oder mies anfühlen.
+     Für den Nutzer fühlte es sich trotzdem nach derselben Frage an — also sagt
+     die Frage jetzt selbst, worin der Unterschied liegt, statt eine der beiden
+     Seiten zu opfern. `notiz` ist dafür da und bleibt optional. */
+  { id:"schlecht",    frage:"Schlecht geschlafen?",      skala:"stufe3", abzug:0.5,
+    notiz:"Die Stundenzahl trägst du bei den Tageswerten ein — hier geht es darum, wie du dich damit fühlst." },
   { id:"kopfschmerz", frage:"Kopfschmerzen?",            skala:"janein", abzug:1 },
   { id:"krank",       frage:"Erkältet oder krank?",      skala:"janein", abzug:1.5 },
   { id:"stress",      frage:"Viel Stress gerade?",       skala:"stufe3", abzug:0.5 },
@@ -7915,6 +7982,8 @@ function tagesCheckZeichnen(){
   const profil = sitzung.daten.profil;
   document.getElementById("tagescheck-fragen").innerHTML = checkFragen(profil).map(f =>
     '<div class="karte"><h2>' + text(f.frage) + '</h2>' +
+    // v202: eine Frage darf sagen, wovon sie sich unterscheidet (nur wo nötig).
+    (f.notiz ? '<div class="meta" style="margin-bottom:8px">' + text(f.notiz) + '</div>' : "") +
     '<div class="wahl-raster">' + CHECK_SKALEN[f.skala].map(s =>
       '<button class="' + (checkAntworten[f.id] === s.wert ? "gewaehlt" : "") + '" ' +
       'onclick="tagesCheckAntwort(\'' + f.id + '\',' + s.wert + ')">' + text(s.text) + '</button>').join("") +
@@ -15388,12 +15457,16 @@ function stoppuhrKnopf(){
 
 function stoppuhrFertig(){
   const sekunden = Math.round(stoppuhrSekunden());
-  // Guard VOR dem Aufräumen: sonst steht die Uhr-Ansicht mit stoppuhr===null
-  // da und der nächste Tap auf Start/Fertig stürzt ab.
-  if(sekunden < 10){ meldung("Die Uhr lief noch nicht — erst starten oder die Zeit von Hand eintragen."); return; }
   const plan = stoppuhr.plan;
+  /* v202 (Fehler aus dem Persona-Durchgang): Lief die Uhr nicht, kam eine
+     Meldung, die aufs Eintragen von Hand verwies — das ging auf diesem
+     Bildschirm aber gar nicht. Eine Sackgasse, die auf einen Weg zeigt, den sie
+     selbst nicht anbietet. Jetzt führt der Knopf genau dorthin, ohne
+     Zwischenmeldung; eine 0 als Zeit lässt das Formular die Plan-Dauer
+     vorbelegen. Aufgeräumt wird die Uhr trotzdem, sonst bliebe eine tote
+     Ansicht zurück. */
   stoppuhrAufraeumen();
-  eintragenOeffnen(plan, sekunden);
+  eintragenOeffnen(plan, sekunden < 10 ? 0 : sekunden);
 }
 
 function stoppuhrAbbrechen(){

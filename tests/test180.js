@@ -92,9 +92,13 @@ pruefe("das Formular nimmt ein Datum entgegen",
   /function eintragenOeffnen\(plan, sekunden, datum\)/.test(oeffnen));
 pruefe("ohne Angabe bleibt es bei heute",
   /"ein-datum"\)\.value = datum \|\| heuteAlsText\(\)/.test(oeffnen));
-/* Die anderen Aufrufer geben keins mit — fuer sie aendert sich nichts. */
+/* Die anderen Aufrufer geben keins mit — fuer sie aendert sich nichts.
+   v202: Die Stoppuhr reicht die Sekunden jetzt durch eine Wache (lief die Uhr
+   nicht, geht eine 0 raus und das Formular belegt die Plan-Dauer vor) — das
+   DATUM gibt sie weiterhin nicht mit, und darum geht es hier. */
 pruefe("Stoppuhr und Intervall rufen unveraendert auf",
-  /eintragenOeffnen\(plan, sekunden\)/.test(src) && /eintragenOeffnen\(plan, el\)/.test(src));
+  /eintragenOeffnen\(plan, sekunden < 10 \? 0 : sekunden\)/.test(src) &&
+  /eintragenOeffnen\(plan, el\)/.test(src));
 
 /* ---------- 4) Der Rueckweg an EINER Stelle ---------- */
 const verlassen = grabFn("eintragenVerlassen");
