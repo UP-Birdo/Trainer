@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.208
+
+- Die Muskelkarte kennt jetzt Abschnitte: Neun Muskeln lassen sich feiner anschauen —
+  oberer, mittlerer und unterer Brustbereich, oberer und unterer Bauch, Außen-, Mittel-
+  und Innenschenkel, oberer/mittlerer/unterer Trapez, oberer und unterer Lat, die beiden
+  Köpfe von Bizeps und Trizeps, außen und innen beim Beinbeuger, Zwillings- und
+  Schollenmuskel in der Wade.
+- Tippe im Erkunden-Modus einen Muskel an: Unter den Übungen stehen seine Abschnitte.
+  Tippst du einen davon an, leuchtet genau dieser Teil auf der Figur — und darunter
+  stehen deine Übungen, die ihn treffen. Wer nur flach drückt, sieht so auf einen Blick,
+  dass der obere Brustbereich leer bleibt.
+- Die Figur selbst ist genauer geworden: Sägemuskel, seitliche Bauchmuskeln und beide
+  Waden waren falsch abgegrenzt und sind neu vermessen.
+- Was sich ausdrücklich NICHT ändert: Die Auslastungs-Rechnung zählt weiter je Muskel,
+  nicht je Abschnitt. Wie viele Sätze ein einzelner Abschnitt verträgt, ist nicht belegt
+  — und was die App nicht belegen kann, rechnet sie nicht.
+
 ## 0.207
 
 - Ausdauer-Pläne kennen jetzt auch den Weg nach unten. Bisher stieg die Vorgabe oder

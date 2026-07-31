@@ -2707,7 +2707,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 207;
+const APP_VERSION = 208;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6619,6 +6619,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.208", punkte:[
+    "Die Muskelkarte kennt jetzt Abschnitte: Neun Muskeln lassen sich feiner anschauen — oberer, mittlerer und unterer Brustbereich, oberer und unterer Bauch, Außen-, Mittel- und Innenschenkel, oberer/mittlerer/unterer Trapez, oberer und unterer Lat, die beiden Köpfe von Bizeps und Trizeps, außen und innen beim Beinbeuger, Zwillings- und Schollenmuskel in der Wade.",
+    "Tippe im Erkunden-Modus einen Muskel an: Unter den Übungen stehen seine Abschnitte. Tippst du einen davon an, leuchtet genau dieser Teil auf der Figur — und darunter stehen deine Übungen, die ihn treffen. Wer nur flach drückt, sieht so auf einen Blick, dass der obere Brustbereich leer bleibt.",
+    "Die Figur selbst ist genauer geworden: Sägemuskel, seitliche Bauchmuskeln und beide Waden waren falsch abgegrenzt und sind neu vermessen.",
+    "Was sich ausdrücklich NICHT ändert: Die Auslastungs-Rechnung zählt weiter je Muskel, nicht je Abschnitt. Wie viele Sätze ein einzelner Abschnitt verträgt, ist nicht belegt — und was die App nicht belegen kann, rechnet sie nicht."
+  ]},
   { stand:"0.207", punkte:[
     "Ausdauer-Pläne kennen jetzt auch den Weg nach unten. Bisher stieg die Vorgabe oder blieb stehen — wer zweimal darunter blieb, las nur „Diesmal unter Plan“ und lief für immer gegen eine Zahl, die nicht mehr passte. Jetzt zieht der Plan beim zweiten Mal in Folge auf die wirklich gelaufene Strecke nach. Genau das macht dein Kraftplan seit 0.159.",
     "Dein ZIEL bleibt dabei unangetastet. Gesenkt wird nur die Vorgabe für die nächste Einheit — das Ziel ist deine Ansage, nicht die der App.",
@@ -9105,10 +9111,70 @@ const MUSKEL_INFO = {
   tibialis:{name:"Schienbeinmuskel",latin:"M. tibialis anterior",region:"Beine",ex:["Zehenheben","Fersengang","Reverse Wadenheben"]},
   calves:{name:"Wadenmuskel",latin:"M. gastrocnemius / soleus",region:"Beine",ex:["Wadenheben stehend","Wadenheben sitzend","Sprünge"]}
 };
+/* ------------------------------------------------------------
+   v208 — TEILBEREICHE: die feinere Karte, ohne eine zweite Karte.
+
+   Neun der neunzehn Muskeln haben getrennt trainierbare Abschnitte. Der obere
+   Brustbereich wächst an der Schrägbank, der untere an Dips; wer nur flach
+   drückt, trainiert seit Jahren dieselbe Hälfte. Genau das konnte die Karte
+   bisher nicht sagen — sie kannte „Brust" und sonst nichts.
+
+   **Warum die Muskeln trotzdem 19 bleiben.** Ein Teilbereich ist eine ANSICHT
+   auf einen Muskel, kein eigener Muskel. Er hat keine eigene Kapazität („wie
+   viele Sätze verträgt der obere Brustbereich?" ist nicht belegt), er bekommt
+   keine eigene Auslastungs-Quote, und keine der 147 Übungs-Zuordnungen musste
+   umgeschrieben werden. Die Belastungs-Rechnung (v160/v167/v197) sieht die
+   Teilbereiche gar nicht. Das ist dieselbe Zurückhaltung wie beim BMI (v206):
+   Was die App nicht belegen kann, rechnet sie nicht.
+
+   **Wo sie herkommen.** Die Reihenfolge hier IST die Nummer im GRÜN-Kanal der
+   Index-Karte — `tools\Muskelkarte-Bauen.ps1` brennt sie beim Erzeugen hinein
+   (Rot = Muskel, Grün = Teilbereich). Gerechnet wird die Aufteilung also
+   einmal beim Bauen, nicht bei jedem Öffnen der Karte. Wer diese Tabelle
+   umsortiert, MUSS das Werkzeug erneut laufen lassen, sonst leuchtet der
+   falsche Abschnitt — dieselbe Regel wie bei `order` und dem Rot-Kanal.
+   ------------------------------------------------------------ */
+const MUSKEL_TEILE = {
+  pectoral:  [ {id:"upper",  name:"Oberer Brustbereich",     latin:"Pars clavicularis"},
+               {id:"mid",    name:"Mittlerer Brustbereich",  latin:"Pars sternocostalis"},
+               {id:"lower",  name:"Unterer Brustbereich",    latin:"Pars abdominalis"} ],
+  abs:       [ {id:"upper",  name:"Oberer Bauch",            latin:"obere Fasern des M. rectus abdominis"},
+               {id:"lower",  name:"Unterer Bauch",           latin:"untere Fasern des M. rectus abdominis"} ],
+  quadriceps:[ {id:"outer",  name:"Außenschenkel",           latin:"M. vastus lateralis"},
+               {id:"mid",    name:"Mittlerer Kopf",          latin:"M. rectus femoris"},
+               {id:"inner",  name:"Innenschenkel",           latin:"M. vastus medialis"} ],
+  biceps:    [ {id:"outer",  name:"Langer Kopf (außen)",     latin:"Caput longum"},
+               {id:"inner",  name:"Kurzer Kopf (innen)",     latin:"Caput breve"} ],
+  trapezius: [ {id:"upper",  name:"Oberer Trapez",           latin:"Pars descendens"},
+               {id:"mid",    name:"Mittlerer Trapez",        latin:"Pars transversa"},
+               {id:"lower",  name:"Unterer Trapez",          latin:"Pars ascendens"} ],
+  latissimus:[ {id:"upper",  name:"Oberer Lat",              latin:"obere Fasern"},
+               {id:"lower",  name:"Unterer Lat",             latin:"untere Fasern"} ],
+  triceps:   [ {id:"outer",  name:"Lateraler Kopf",          latin:"Caput laterale"},
+               {id:"inner",  name:"Langer Kopf",             latin:"Caput longum"} ],
+  hamstrings:[ {id:"outer",  name:"Bizeps femoris (außen)",  latin:"M. biceps femoris"},
+               {id:"inner",  name:"Semitendinosus (innen)",  latin:"M. semitendinosus"} ],
+  calves:    [ {id:"gastro", name:"Zwillingswadenmuskel",    latin:"M. gastrocnemius"},
+               {id:"soleus", name:"Schollenmuskel",          latin:"M. soleus"} ]
+};
+
+/** Die Teilbereiche eines Muskels — leeres Feld, wenn er keine hat. Rein/testbar. */
+function muskelTeile(key){ return (MUSKEL_TEILE[key] || []).slice(); }
+/** Ein Teilbereich nach seiner Id. `null`, wenn es ihn nicht gibt. Rein/testbar. */
+function muskelTeil(key, teilId){
+  return muskelTeile(key).find(t => t.id === teilId) || null;
+}
+/** Die Nummer im Grün-Kanal (1-basiert) — 0, wenn unbekannt. Rein/testbar. */
+function muskelTeilNummer(key, teilId){
+  const i = muskelTeile(key).findIndex(t => t.id === teilId);
+  return i < 0 ? 0 : i + 1;
+}
+
 /* v139: Die Namens-Tabelle gehört zur Karte — sie steht nur der Lesbarkeit halber
    für sich (sie ist lang) und wird hier an die Definition gehängt. Eine neue Karte
    bringt ihre eigene Tabelle mit und hängt sie genauso an. */
 MUSKELKARTEN.standard.info = MUSKEL_INFO;
+MUSKELKARTEN.standard.teile = MUSKEL_TEILE;   // v208: dito für die Teilbereiche
 /* Abgeleitete Kurznamen — der übrige Code (Zeichnen, Treffer, Heatmap) arbeitet
    unverändert damit weiter; er muss von der Karten-Verwaltung nichts wissen. */
 const MUSKEL_VIEWS = muskelKarteDef().views;
@@ -9121,7 +9187,7 @@ const MUSKEL_VIEWS = muskelKarteDef().views;
    wieder beim eigenen Körper. Die Markup-Klasse `muskel-an` steht deshalb jetzt
    am Heat-Tab — Default und Markup gehören zusammen, sonst zeigen Schalter und
    Inhalt Verschiedenes. */
-let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"trainiert" };   // modus: erkunden | trainiert (v86)
+let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"trainiert", teil:null };   // modus: erkunden | trainiert (v86); teil (v208) = { key, teil }
 const muskelDaten = {};   // je Ansicht { hit:Uint8Array, pixel:{gid:Int32Array} } — einmal geladen
 
 /** Eine CSS-Farbvariable (#rrggbb) als [r,g,b] aus dem aktuellen Theme lesen. */
@@ -9169,7 +9235,12 @@ function auslastungsQuoten(){
   return q;
 }
 
-/** Index-Karte einer Ansicht einmalig laden → Treffer-Array + Pixel-Listen. */
+/** Index-Karte einer Ansicht einmalig laden → Treffer-Array + Pixel-Listen.
+    v208: Dazu die TEILBEREICHE aus dem Grün-Kanal. Sie kosten einen zweiten
+    Eimer je Pixel und kein weiteres Bild — die Aufteilung steckt schon im
+    selben PNG (`tools\Muskelkarte-Bauen.ps1`). Schlüssel ist „Muskelnummer:
+    Teilnummer", beides 1-basiert; Grün 0 heißt „dieser Muskel hat keine
+    Teilbereiche" und erzeugt keinen Eintrag. */
 function muskelKarteLaden(v){
   return new Promise(res => {
     if(muskelDaten[v]){ res(); return; }
@@ -9179,21 +9250,38 @@ function muskelKarteLaden(v){
       const cx = c.getContext("2d", { willReadFrequently:true }); cx.drawImage(im, 0, 0);
       let data;
       try { data = cx.getImageData(0, 0, meta.w, meta.h).data; }
-      catch(e){ muskelDaten[v] = { hit:null, pixel:{} }; res(); return; }
-      const n = meta.w * meta.h, hit = new Uint8Array(n), roh = {};
-      for(let i=0;i<n;i++){ const id = data[i*4]; hit[i] = id; if(id){ (roh[id] || (roh[id] = [])).push(i); } }
+      catch(e){ muskelDaten[v] = { hit:null, pixel:{}, teilPixel:{} }; res(); return; }
+      const n = meta.w * meta.h, hit = new Uint8Array(n), roh = {}, rohTeil = {};
+      for(let i=0;i<n;i++){
+        const id = data[i*4]; hit[i] = id;
+        if(!id) continue;
+        (roh[id] || (roh[id] = [])).push(i);
+        const t = data[i*4 + 1];
+        if(t){ const k = id + ":" + t; (rohTeil[k] || (rohTeil[k] = [])).push(i); }
+      }
       const pixel = {}; for(const k in roh) pixel[k] = Int32Array.from(roh[k]);
-      muskelDaten[v] = { hit, pixel }; res();
+      const teilPixel = {}; for(const k in rohTeil) teilPixel[k] = Int32Array.from(rohTeil[k]);
+      muskelDaten[v] = { hit, pixel, teilPixel }; res();
     };
-    im.onerror = () => { muskelDaten[v] = { hit:null, pixel:{} }; res(); };
+    im.onerror = () => { muskelDaten[v] = { hit:null, pixel:{}, teilPixel:{} }; res(); };
     im.src = meta.karte;
   });
+}
+
+/** Die Pixel EINES Teilbereichs auf einer Ansicht — `null`, wenn die Karte
+    (noch) nicht geladen ist oder dieser Abschnitt dort nicht vorkommt. */
+function muskelTeilPixel(ansicht, key, teilId){
+  const d = muskelDaten[ansicht];
+  const nr = muskelTeilNummer(key, teilId);
+  if(!d || !d.teilPixel || !nr) return null;
+  return d.teilPixel[(MUSKEL_ORDER.indexOf(key) + 1) + ":" + nr] || null;
 }
 
 /** Öffnet die Muskelkarte (leere Auswahl, aktueller Modus + Ansicht). */
 function muskelnOeffnen(){
   if(!viewErlaubt("view-muskeln")) return;
   muskelStatus.gewaehlt = [];
+  muskelStatus.teil = null;   // v208: ein neuer Besuch beginnt ohne Teilbereich
   muskelModusAnwenden();
   muskelAnsicht(muskelStatus.ansicht || "front");
   zeige("view-muskeln");
@@ -9204,6 +9292,7 @@ function muskelnOeffnen(){
 function muskelModus(m){
   muskelStatus.modus = m;
   muskelStatus.gewaehlt = [];
+  muskelStatus.teil = null;
   muskelModusAnwenden();
   muskelAnsicht(muskelStatus.ansicht);
 }
@@ -9288,14 +9377,46 @@ function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer, quoten){
   cx.putImageData(bild, 0, 0);
 }
 
+/** v208: Einen einzelnen Teilbereich hervorheben — der ganze Muskel blass, der
+    gewählte Abschnitt kräftig. Beides in EINEM Durchgang, sonst überschriebe
+    der zweite Aufruf den ersten (`muskelnAufCanvas` löscht das Canvas). */
+function muskelTeilAufCanvas(cx, ansicht, key, teilId){
+  cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
+  const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
+  const [r, g, b] = muskelSignalRgb();
+  const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
+  const malen = (liste, a) => {
+    if(!liste) return;
+    for(let k = 0; k < liste.length; k++){ const p = liste[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
+  };
+  malen(d.pixel[MUSKEL_ORDER.indexOf(key) + 1], 55);   // der Muskel als Umfeld
+  malen(muskelTeilPixel(ansicht, key, teilId), 205);   // der Abschnitt als Aussage
+  cx.putImageData(bild, 0, 0);
+}
+
 /** Ausgewählte Muskeln einfärben — ohne Argument auf ALLEN gerade gezeigten
-    Figuren (bei „Beide" also vorne und hinten). */
+    Figuren (bei „Beide" also vorne und hinten).
+    v208: Ist ein Teilbereich gewählt, tritt seine Darstellung an die Stelle der
+    Muskel-Färbung — nicht daneben. Zwei Aussagen übereinander wären keine. */
 function muskelMalen(ansicht){
   const liste = ansicht ? [ansicht] : muskelAnsichten(muskelStatus.ansicht);
+  const teil = muskelStatus.teil;
   liste.forEach(a => {
     const cv = muskelCanvasFuer(a); if(!cv) return;
-    muskelnAufCanvas(cv.getContext("2d"), a, muskelStatus.gewaehlt, 165);
+    if(teil && muskelStatus.gewaehlt.indexOf(teil.key) >= 0){
+      muskelTeilAufCanvas(cv.getContext("2d"), a, teil.key, teil.teil);
+    } else {
+      muskelnAufCanvas(cv.getContext("2d"), a, muskelStatus.gewaehlt, 165);
+    }
   });
+}
+
+/** v208: Einen Teilbereich an- oder abwählen (nochmal tippen hebt auf). */
+function muskelTeilTippen(key, teilId){
+  const t = muskelStatus.teil;
+  muskelStatus.teil = (t && t.key === key && t.teil === teilId) ? null : { key: key, teil: teilId };
+  muskelMalen();
+  muskelAuswahlZeichnen();
 }
 
 /** v132: Welche Muskeln trifft ein GANZER Plan? Sammelt über alle Übungen und
@@ -10310,7 +10431,9 @@ function muskelTippen(e){
      Mehrfachauswahl erzeugte eine lange Kartenliste, durch die man scrollen
      musste, obwohl man nur wissen wollte, was ein Muskel macht. Der
      Heatmap-Modus war schon immer einfach-wählend; jetzt sind beide gleich. */
+  /* v208: Ein anderer Muskel raeumt den Teilbereich weg — er gehoerte zum alten. */
   muskelStatus.gewaehlt = muskelStatus.gewaehlt[0] === key ? [] : [key];
+  muskelStatus.teil = null;
   muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
 }
 
@@ -10378,8 +10501,39 @@ function muskelAuswahlZeichnen(){
     return '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
       '<span class="meta">' + text(m.region) + '</span></div>' +
       '<div class="meta" style="font-style:italic;margin-bottom:6px">' + text(m.latin) + '</div>' +
-      zeilen + hinweis + '</div>';
+      zeilen + hinweis + muskelTeileHtml(key) + '</div>';
   }).join("");
+}
+
+/* v208: Die Teilbereiche unter den Übungen — nicht darüber. Die Frage „womit
+   trainiere ich diesen Muskel?" bleibt die erste; „welchen Abschnitt davon?"
+   ist die zweite. Muskeln ohne Abschnitte zeigen hier gar nichts, dann steht
+   die Karte wie bisher da. */
+function muskelTeileHtml(key){
+  const teile = muskelTeile(key);
+  if(!teile.length) return "";
+  const gewaehlt = muskelStatus.teil && muskelStatus.teil.key === key ? muskelStatus.teil.teil : null;
+  const meineSport = sitzung.daten.einrichtung.sportarten || ["kraft"];
+  const zeilen = teile.map(t => {
+    const an = t.id === gewaehlt;
+    const liste = an ? topUebungenFuerTeil(key, t.id, meineGeraete("kraft"), meineSport) : [];
+    const uebungen = an
+      ? (liste.length
+          ? liste.map(u => '<div class="meta" style="padding:2px 0">→ ' + text(u.name) + '</div>').join("")
+          : '<div class="meta" style="padding:2px 0">Für diesen Abschnitt ist noch keine deiner Übungen hinterlegt.</div>')
+      : "";
+    const idJs = t.id.replace(/'/g, "\\'");
+    const keyJs = key.replace(/'/g, "\\'");
+    return '<div style="border-top:1px solid var(--line);padding:6px 0">' +
+      '<div onclick="muskelTeilTippen(\'' + keyJs + '\',\'' + idJs + '\')" style="cursor:pointer">' +
+        '<strong style="color:' + (an ? "var(--signal)" : "var(--chalk)") + '">' + text(t.name) + '</strong>' +
+        '<div class="meta" style="font-style:italic">' + text(t.latin) + '</div>' +
+      '</div>' + uebungen + '</div>';
+  }).join("");
+  return '<div style="margin-top:10px">' +
+    '<div class="meta" style="font-weight:700;margin-bottom:2px">Abschnitte</div>' +
+    '<div class="meta" style="margin-bottom:4px">Antippen zeigt den Abschnitt auf der Figur und deine Übungen dafür.</div>' +
+    zeilen + '</div>';
 }
 
 /** v167: Die Grundlagen-Zeile unter der Statuszeile — sie steht auf der
@@ -11392,6 +11546,167 @@ const UEBUNG_MUSKELN = {
   "Double Unders":["calves"], "Crosstrainer-Intervalle":["quadriceps","glutes"],
   "Intervall-Läufe":["quadriceps","hamstrings","calves"]
 };
+/* ------------------------------------------------------------
+   v208 — WELCHE ÜBUNG TRIFFT WELCHEN TEILBEREICH?
+
+   Die Schicht unter `UEBUNG_MUSKELN`: Dort steht, welche MUSKELN eine Übung
+   trifft; hier, welche ABSCHNITTE eines dieser Muskeln. Schlüssel ist der
+   Übungsname aus `UEBUNGEN_DB`, Wert je Muskel die Liste der Teil-Ids aus
+   `MUSKEL_TEILE`.
+
+   **Zurückhaltend gepflegt, wie die Muskel-Tabelle.** Eingetragen ist nur, wo
+   der Schwerpunkt wirklich bekannt ist — Schrägbank hebt den oberen Brust-
+   bereich, Dips den unteren, der Beinstrecker arbeitet über den mittleren
+   Kopf. Wo eine Bewegung keinen ehrlichen Schwerpunkt hat, steht sie NICHT
+   drin und die App sagt dazu nichts (v125-Linie: raten wäre schlechter als
+   schweigen). Eine Übung ohne Eintrag verliert nichts — sie trifft weiterhin
+   ihren ganzen Muskel.
+
+   **Warum die Liste nicht aus der Vorlage kopiert ist.** Die Claude-Vorlage
+   nennt generische Bewegungen („Flachbankdrücken"), die App führt 275 Übungen
+   mit ihrem Gerät im Namen („LH-Bankdrücken", „Smith-Bankdrücken", „Enge
+   Brustpresse"). Übernommen ist die REGEL der Vorlage, angewandt auf die
+   Namen, die es hier wirklich gibt — sonst zeigte die Karte Übungen, die kein
+   Nutzer je in einem Plan hat.
+   ------------------------------------------------------------ */
+const UEBUNG_TEILE = {
+  // -- Brust: Winkel entscheidet. Schräg hoch = oben, flach = Mitte, abwärts = unten.
+  "Schrägbankdrücken KH":      { pectoral:["upper"] },
+  "Schräge Brustpresse":       { pectoral:["upper"] },
+  "LH-Bankdrücken":            { pectoral:["mid"] },
+  "KH-Bankdrücken":            { pectoral:["mid"] },
+  "Smith-Bankdrücken":         { pectoral:["mid"] },
+  "Brustpresse":               { pectoral:["mid"] },
+  "Enge Brustpresse":          { pectoral:["mid"] },
+  "Butterfly":                 { pectoral:["mid"] },
+  "KH-Fliegende":              { pectoral:["mid"] },
+  "Kabel-Crossover":           { pectoral:["mid"] },
+  "Liegestütze":               { pectoral:["mid"] },
+  "Liegestütze mit Weste":     { pectoral:["mid"] },
+  "Parallettes-Liegestütze":   { pectoral:["mid"] },
+  "Schlingen-Liegestütze":     { pectoral:["mid"] },
+  "Dips am Barren":            { pectoral:["lower"], triceps:["outer","inner"] },
+  "Parallettes-Dips":          { pectoral:["lower"], triceps:["outer","inner"] },
+  "Negativ-Dips":              { pectoral:["lower"], triceps:["outer","inner"] },
+  // -- Rücken: breiter Griff über Kopf = oberer Lat, Ziehen zum Bauch = unterer.
+  "Klimmzüge":                 { latissimus:["upper"] },
+  "Klimmzüge mit Weste":       { latissimus:["upper"] },
+  "Negativ-Klimmzüge":         { latissimus:["upper"] },
+  "Latzug":                    { latissimus:["upper"] },
+  "Breites Rudern Maschine":   { latissimus:["upper"] },
+  "Kabel-Rudern":              { latissimus:["lower"], trapezius:["mid"] },
+  "Enges Rudern Maschine":     { latissimus:["lower"] },
+  "Rudermaschine":             { latissimus:["lower"] },
+  "LH-Rudern":                 { latissimus:["lower"], trapezius:["mid"] },
+  "KH-Rudern":                 { latissimus:["lower"], trapezius:["mid"] },
+  "Smith-Rudern":              { latissimus:["lower"] },
+  "Kettlebell-Rudern":         { latissimus:["lower"] },
+  "Schlingen-Rudern":          { latissimus:["lower"] },
+  "Band-Rudern":               { latissimus:["lower"] },
+  "Tisch-Rudern":              { latissimus:["lower"] },
+  "Renegade Rows":             { latissimus:["lower"] },
+  // -- Trapez: Heben = oben, Zurückziehen = Mitte, Arme über Kopf = unten.
+  //    Der untere Trapez dreht das Schulterblatt nach OBEN — er arbeitet beim
+  //    Überkopfdrücken, nicht beim Ziehen. Beide Schulterdrücken führen ihn
+  //    ohnehin als Sekundärmuskel; hier steht nur, WELCHER Teil davon.
+  "KH-Shrugs":                 { trapezius:["upper"] },
+  "LH-Kreuzheben":             { trapezius:["upper"], hamstrings:["outer","inner"] },
+  "LH-Kniebeugen":             { trapezius:["upper"], quadriceps:["outer","mid","inner"] },
+  "LH-Schulterdrücken":        { trapezius:["lower"] },
+  "KH-Schulterdrücken":        { trapezius:["lower"] },
+  "Face-Pulls am Kabel":       { trapezius:["mid"] },
+  "Band-Face-Pulls":           { trapezius:["mid"] },
+  "KH-Reverse-Flys":           { trapezius:["mid"] },
+  "Reverse Butterfly":         { trapezius:["mid"] },
+  // -- Bizeps: Ellbogen hinter dem Körper = langer Kopf, davor = kurzer.
+  "LH-Bizeps-Curls":           { biceps:["outer","inner"] },
+  "KH-Bizeps-Curls":           { biceps:["outer","inner"] },
+  "Bizeps-Curls am Kabel":     { biceps:["outer","inner"] },
+  "Band-Bizeps-Curls":         { biceps:["outer","inner"] },
+  "Scott-Curls":               { biceps:["inner"] },
+  "Scott-Curls Kurzhantel":    { biceps:["inner"] },
+  // -- Trizeps: Arm am Körper = lateraler Kopf, über Kopf gestreckt = langer.
+  "Trizeps am Kabel":          { triceps:["outer"] },
+  "Enge Liegestütze":          { triceps:["outer"], pectoral:["mid"] },
+  "Stuhl-Dips":                { triceps:["outer","inner"] },
+  "Trizeps-Dips an der Bank":  { triceps:["outer","inner"] },
+  "KH-Trizepsdrücken":         { triceps:["inner"] },
+  // -- Bauch: Oberkörper einrollen = oben, Becken anheben = unten.
+  "Crunches":                  { abs:["upper"] },
+  "Kabel-Crunches":            { abs:["upper"] },
+  "Bauchmaschine":             { abs:["upper"] },
+  "Hängendes Beinheben":       { abs:["lower"] },
+  "Beinheben an der Matte":    { abs:["lower"] },
+  "Beinheben liegend":         { abs:["lower"] },
+  "L-Sit an Parallettes":      { abs:["lower"] },
+  "Plank":                     { abs:["upper","lower"] },
+  "Schlingen-Plank":           { abs:["upper","lower"] },
+  "Hollow Hold":               { abs:["upper","lower"] },
+  "Bauchroller":               { abs:["upper","lower"] },
+  "Käfer (Dead Bug)":          { abs:["upper","lower"] },
+  "Bergsteiger":               { abs:["upper","lower"] },
+  // -- Oberschenkel: Beugen trifft alle drei Köpfe, Strecken den mittleren.
+  "Kniebeugen":                { quadriceps:["outer","mid","inner"] },
+  "LH-Frontkniebeugen":        { quadriceps:["outer","mid","inner"] },
+  "Frontkniebeugen im Rack":   { quadriceps:["outer","mid","inner"] },
+  "Rack-Kniebeugen":           { quadriceps:["outer","mid","inner"] },
+  "Smith-Kniebeugen":          { quadriceps:["outer","mid","inner"] },
+  "Band-Kniebeugen":           { quadriceps:["outer","mid","inner"] },
+  "Schlingen-Kniebeuge":       { quadriceps:["outer","mid","inner"] },
+  "Kniebeugen mit Weste":      { quadriceps:["outer","mid","inner"] },
+  "Einbeinige Kniebeuge":      { quadriceps:["outer","mid","inner"] },
+  "Bulgarische Kniebeuge":     { quadriceps:["outer","mid","inner"] },
+  "Goblet Squats":             { quadriceps:["outer","mid","inner"] },
+  "Kettlebell-Goblet-Squat":   { quadriceps:["outer","mid","inner"] },
+  "Beinpresse":                { quadriceps:["outer","mid","inner"] },
+  "Einbeinige Beinpresse":     { quadriceps:["outer","mid","inner"] },
+  "Ausfallschritte":           { quadriceps:["outer","mid","inner"] },
+  "KH-Ausfallschritte":        { quadriceps:["outer","mid","inner"] },
+  "Kettlebell-Ausfallschritte":{ quadriceps:["outer","mid","inner"] },
+  "Beinstrecker":              { quadriceps:["mid"] },
+  // -- Beinbeuger: Beugen im Knie trifft beide, Strecken der Hüfte den inneren.
+  "Beinbeuger":                { hamstrings:["outer","inner"] },
+  "Sitzender Beinbeuger":      { hamstrings:["outer"] },
+  "Rumän. Kreuzheben":         { hamstrings:["outer","inner"] },
+  "KH-Kreuzheben":             { hamstrings:["outer","inner"] },
+  "LH-Good-Mornings":          { hamstrings:["inner"] },
+  // -- Waden: gestrecktes Knie = Zwillingsmuskel, gebeugtes = Schollenmuskel.
+  "Wadenheben":                { calves:["gastro"] },
+  "KH-Wadenheben":             { calves:["gastro"] },
+  "Wadenheben Maschine":       { calves:["gastro"] },
+  "Wadenpresse (Beinpresse)":  { calves:["gastro"] },
+  "Seilspringen":              { calves:["gastro"] },
+  "Double Unders":             { calves:["gastro"] },
+  "Sitzendes Wadenheben":      { calves:["soleus"] }
+};
+
+/** Welche Teilbereiche eines Muskels trifft diese Übung? Leeres Feld, wenn
+    nichts hinterlegt ist — das ist kein Fehler, sondern Schweigen. Der Name
+    wird wie überall erst exakt, dann normalisiert gesucht. Rein/testbar. */
+function uebungTeileFuer(name, muskel){
+  if(!name || !muskel) return [];
+  let e = UEBUNG_TEILE[name];
+  if(!e){
+    const n = normName(name);
+    const treffer = Object.keys(UEBUNG_TEILE).find(k => normName(k) === n);
+    if(treffer) e = UEBUNG_TEILE[treffer];
+  }
+  const ids = (e && e[muskel]) || [];
+  // Nur Ids, die es an diesem Muskel wirklich gibt — ein Tippfehler in der
+  // Tabelle soll nichts anzeigen statt etwas Falsches.
+  return ids.filter(id => muskelTeil(muskel, id));
+}
+
+/** Die Übungen, die einen bestimmten Teilbereich treffen — aus derselben
+    Quelle und in derselben Reihenfolge wie `topUebungenFuer` (erst primär,
+    dann die schmalsten). Rein/testbar. */
+function topUebungenFuerTeil(muskel, teilId, geraete, sportarten, max){
+  if(!muskelTeil(muskel, teilId)) return [];
+  return topUebungenFuer(muskel, geraete, sportarten, 999)
+    .filter(u => uebungTeileFuer(u.name, muskel).indexOf(teilId) >= 0)
+    .slice(0, max || TOP_UEBUNGEN_MAX);
+}
+
 /* Kurze Info/Ausführungs-Tipp je Übung (v89, für die Karteikarten-Bibliothek).
    Schlüssel = Name aus UEBUNGEN_DB. Ein knapper Kernhinweis je Übung — die
    ausführlichen Beschreibungen (2–3 Sätze) sind ein eigener späterer Content-
