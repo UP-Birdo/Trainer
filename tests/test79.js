@@ -64,6 +64,7 @@ const code = [
   grabFn("zeitKurz"),
   grabLine("const NOTIZ_STRECKE"),
   grabLine("const NOTIZ_DAUER"),
+  grabLine("const NOTIZ_UHRZEIT"),
   grabFn("kommaZahl"),
   grabFn("notizSportart"),
   grabFn("streckeInEinheit"),

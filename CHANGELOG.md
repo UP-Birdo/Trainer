@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.200
+
+- Die Frage nach jeder Ausdauer-Einheit („War die Einheit zu leicht?“) lässt sich
+  endlich verneinen. Bisher gab es nur „OK“ — und damit stieg dein Ziel nach JEDER
+  eingetragenen Einheit, egal wie sie war. Wer dreimal die Woche läuft, dem wuchs das
+  Ziel schneller, als die Wochenbremse es je bremsen konnte.
+- Die Zeiteinheit beim Eintragen rechnet jetzt um: Aus „1 Stunde“ wird beim Umschalten
+  „60 Minuten“ statt stillschweigend „1 Minute“. Der Plan-Editor macht das seit je
+  richtig, das Eintragen-Formular nicht.
+- Stunden stehen wieder lesbar da: „1:04 h“ statt „1,06 h“. Dezimalstunden musste man im
+  Kopf umrechnen.
+- Kleinigkeiten aus demselben Durchgang: „1 Training gesamt“ statt „1 Trainings“, die
+  Tageswerte-Eingabe bleibt in ihrer Kachel, „Weitere Statistiken anzeigen“ springt
+  jetzt direkt zur Statistik-Auswahl statt an den Anfang der Seite, „Periode“ heißt in
+  der Liste nicht mehr „Tage“, und die Ausdauer-Kachel zeigt bei einer einzelnen Einheit
+  einen Hinweis statt eines Farbblocks.
+
 ## 0.199
 
 - Der Notizblock kennt jetzt auch Ausdauer: „Laufen 5 km 30 min“ in eine Zeile

@@ -80,6 +80,7 @@ new Function("module", "exports", [
   grabLine("const NOTIZ_GEWICHT"),
   grabLine("const NOTIZ_STRECKE"),
   grabLine("const NOTIZ_DAUER"),
+  grabLine("const NOTIZ_UHRZEIT"),
   grabFn("notizZeileDeuten"),
   grabFn("kommaZahl"),
   grabFn("notizSportart"),

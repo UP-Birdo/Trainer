@@ -219,6 +219,13 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   font-size:13px;color:var(--muted);border-radius:4px;margin-bottom:16px;line-height:1.6;box-shadow:var(--shadow-sm);transition:var(--transition)}
 .hinweis:hover{box-shadow:var(--shadow-md)}
 .raster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* v200 (Fehler aus dem Persona-Durchgang): In einer halbbreiten Statistik-Kachel
+   ragte das Tageswerte-Formular über den Rand — das Datumsfeld hat eine eigene
+   Mindestbreite, und ein Grid-Kind schrumpft von sich aus nicht unter die
+   Inhaltsbreite (`min-width:auto` ist der Grid-Standard). `width:100%` allein
+   hilft dagegen nicht; erst `min-width:0` erlaubt das Schrumpfen. */
+.raster > *{min-width:0}
+.raster input,.raster select{max-width:100%}
 .abstand{margin-top:16px}
 .geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
   background:var(--panel-2);border:2px dashed var(--signal);border-radius:6px;
@@ -1103,7 +1110,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
   <!-- v106: Weitere Statistiken wählt man in „Darstellung" — ein Sprung dorthin. -->
   <div class="karte">
-    <button class="breit einst-zeile" onclick="einstDarstellungOeffnen()"><span>Weitere Statistiken anzeigen …</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" onclick="einstDarstellungOeffnen('statistik')"><span>Weitere Statistiken anzeigen …</span><span class="meta">›</span></button>
   </div>
 
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -1666,7 +1673,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <!-- Aktivitäts-Felder (Dauer / Strecke) -->
     <div id="ein-aktivitaet">
       <div class="raster abstand">
-        <div><label for="ein-einheit">Zeiteinheit</label><select id="ein-einheit" onchange="eintragenZeichnen()"></select></div>
+        <div><label for="ein-einheit">Zeiteinheit</label><select id="ein-einheit" onchange="einEinheitWechseln(this.value)"></select></div>
         <div><label for="ein-dauer" id="ein-dauer-label">Dauer</label><input id="ein-dauer" type="number" inputmode="decimal" step="0.5"></div>
       </div>
       <div id="ein-strecke-feld" class="abstand"><label for="ein-strecke" id="ein-strecke-label">Strecke</label><input id="ein-strecke" type="number" inputmode="decimal" step="0.1"></div>
@@ -2651,7 +2658,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 199;
+const APP_VERSION = 200;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3215,9 +3222,22 @@ function inEinheit(sekunden, einheitId){
 }
 function inSekunden(wert, einheitId){ return Math.round(wert * zeitEinheit(einheitId).faktor); }
 
-/** Kurze Anzeige: "45 s" · "30 min" · "1,5 h" */
+/** Kurze Anzeige: "45 s" · "30 min" · "1:04 h"
+    v200 (Fehler aus dem Persona-Durchgang): Stunden standen als Dezimalzahl da
+    („Ziel angehoben: 10,6 km · 1,06 h"). Eine Läuferin liest 1:04 h oder 64 min,
+    nicht 1,06 — Dezimalstunden muss man im Kopf umrechnen. Deshalb werden
+    Stunden jetzt mit Minuten-Feld geschrieben; volle Stunden bleiben schlicht
+    („2 h"). Sekunden und Minuten sind unverändert. */
 function zeitKurz(sekunden, einheitId){
   const e = zeitEinheit(einheitId);
+  if(e.id === "h"){
+    const ganze = Math.floor(sekunden / 3600);
+    const min = Math.round((sekunden % 3600) / 60);
+    // Aufgerundete 60 Minuten sind eine Stunde mehr, nicht "1:60 h".
+    const std = ganze + (min === 60 ? 1 : 0);
+    const rest = min === 60 ? 0 : min;
+    return rest ? std + ":" + String(rest).padStart(2, "0") + " h" : std + " h";
+  }
   return String(inEinheit(sekunden, e.id)).replace(".", ",") + " " + e.kurz;
 }
 
@@ -4416,6 +4436,10 @@ const NOTIZ_STRECKE = /(\d+(?:[.,]\d+)?)\s*(km|m)(?![a-zäöüß])/i;
 /* Dauer: Zahl + Zeiteinheit, lange Schreibweisen zuerst (sonst schluckt „min"
    den Anfang von „minuten" und der Nachschau-Ausdruck wirft alles weg). */
 const NOTIZ_DAUER = /(\d+(?:[.,]\d+)?)\s*(stunden|std|minuten|min|sekunden|sek|h|s)(?![a-zäöüß])/i;
+/* v200: Stunden mit Minuten-Feld („1:04 h"). Seit `zeitKurz` sie so schreibt,
+   muss der Block sie auch wieder lesen können — sonst wäre die Zeile nicht mehr
+   verlustfrei, und aus 1:04 h würde beim nächsten Speichern eine Stunde. */
+const NOTIZ_UHRZEIT = /(\d+):([0-5]\d)\s*h(?![a-zäöüß])/i;
 
 /** Deutsch getippte Zahl („2,11") als Zahl. */
 function kommaZahl(s){ return parseFloat(String(s).replace(",", ".")); }
@@ -4471,12 +4495,17 @@ function notizAktivitaetDeuten(zeile){
   // Die Strecke aus der Zeile nehmen, bevor die Dauer gesucht wird — sonst
   // müsste jede Zeiteinheit auch noch wissen, was ein Kilometer ist.
   const rest = s ? (roh.slice(0, s.index) + " " + roh.slice(s.index + s[0].length)) : roh;
+  const strecke = s ? streckeInEinheit(kommaZahl(s[1]), s[2], id) : null;
+  // v200: „1:04 h" zuerst — sonst läse der Ausdruck darunter die 04 als Zahl.
+  const uhr = rest.match(NOTIZ_UHRZEIT);
+  if(uhr) return { sportart: id, strecke, zeitEinheit: "h",
+                   sekunden: Math.min(MAX_DAUER_S,
+                     parseInt(uhr[1], 10) * 3600 + parseInt(uhr[2], 10) * 60) };
   const d = rest.match(NOTIZ_DAUER);
   const einheit = d ? notizZeitEinheit(d[2]) : "min";
   const sekunden = d && kommaZahl(d[1]) > 0
     ? Math.min(MAX_DAUER_S, inSekunden(kommaZahl(d[1]), einheit)) : null;
-  return { sportart: id, strecke: s ? streckeInEinheit(kommaZahl(s[1]), s[2], id) : null,
-           sekunden, zeitEinheit: einheit };
+  return { sportart: id, strecke, sekunden, zeitEinheit: einheit };
 }
 
 /** Die Gegenrichtung: die Einheit eines Aktivitäts-Abschnitts als Zeile.
@@ -5912,7 +5941,12 @@ function einstellungenOeffnen(){
 }
 
 /** Untermenü „Darstellung & Bedienung" (Darstellung + Audio). */
-function einstDarstellungOeffnen(){
+/** `fokus:"statistik"` springt gleich zur Statistik-Auswahl.
+    v200 (Fehler aus dem Persona-Durchgang): „Weitere Statistiken anzeigen …"
+    führte zwar in die richtige Ansicht, aber an deren ANFANG — bei Hell/Dunkel,
+    während der gesuchte Block ganz unten hinter Darstellung und Audio liegt.
+    Wer einem Verweis folgt, will dort landen, wohin er zeigt. */
+function einstDarstellungOeffnen(fokus){
   darstellungKarteZeichnen();
   statAuswahlZeichnen();   // v106: Statistik-Auswahl
   /* v154: Nur zeigen, was die Stufe auch hat. Beides waren Einstellungen ohne
@@ -5923,6 +5957,12 @@ function einstDarstellungOeffnen(){
   document.getElementById("darst-audio-karte").hidden = stufe() < 3;
   document.getElementById("darst-statistik-karte").hidden = stufe() < 4;
   zeige("view-einst-darstellung");
+  /* Nach `zeige` — das setzt den Inhalt bewusst wieder nach oben (v80). Der
+     Sprung muss also danach kommen, sonst scrollt die Ansicht ihn gleich weg. */
+  if(fokus === "statistik"){
+    const karte = document.getElementById("darst-statistik-karte");
+    if(karte && !karte.hidden) karte.scrollIntoView({ block:"start" });
+  }
 }
 /** Untermenü „Werkzeuge" (Scheibenrechner + Bibliothek + Papierkorb), ab Stufe 3. */
 function einstWerkzeugeOeffnen(){
@@ -6215,6 +6255,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.200", punkte:[
+    "Die Frage nach jeder Ausdauer-Einheit („War die Einheit zu leicht?“) lässt sich endlich verneinen. Bisher gab es nur „OK“ — und damit stieg dein Ziel nach JEDER eingetragenen Einheit, egal wie sie war. Wer dreimal die Woche läuft, dem wuchs das Ziel schneller, als die Wochenbremse es je bremsen konnte.",
+    "Die Zeiteinheit beim Eintragen rechnet jetzt um: Aus „1 Stunde“ wird beim Umschalten „60 Minuten“ statt stillschweigend „1 Minute“. Der Plan-Editor macht das seit je richtig, das Eintragen-Formular nicht.",
+    "Stunden stehen wieder lesbar da: „1:04 h“ statt „1,06 h“. Dezimalstunden musste man im Kopf umrechnen.",
+    "Kleinigkeiten aus demselben Durchgang: „1 Training gesamt“ statt „1 Trainings“, die Tageswerte-Eingabe bleibt in ihrer Kachel, „Weitere Statistiken anzeigen“ springt jetzt direkt zur Statistik-Auswahl statt an den Anfang der Seite, „Periode“ heißt in der Liste nicht mehr „Tage“, und die Ausdauer-Kachel zeigt bei einer einzelnen Einheit einen Hinweis statt eines Farbblocks."
+  ]},
   { stand:"0.199", punkte:[
     "Der Notizblock kennt jetzt auch Ausdauer: „Laufen 5 km 30 min“ in eine Zeile geschrieben, und die App versteht Strecke und Zeit. Bisher zeigte ein Laufplan auf Stufe 1 gar nichts — seine Werte hängen am Plan, nicht an einer Übung.",
     "Die Einheit hat ihren eigenen Haken. Abhaken heißt „war laufen“ — und der Lauf zählt damit in Kalender, Serie, Ausdauer-Statistik und seit v197 auch in deine Muskelkarte.",
@@ -6925,7 +6971,8 @@ function kennzahlenZeichnen(){
   const meilenstein = meilensteinText(serie);
   document.getElementById("statistik-klein").textContent =
     streak + (streak === 1 ? " Woche" : " Wochen") + " in Folge · " +
-    protokoll.length + " Trainings gesamt · " +
+    // v200: Singular — die Zeile davor macht es richtig, diese hängte immer ein s an.
+    protokoll.length + (protokoll.length === 1 ? " Training" : " Trainings") + " gesamt · " +
     protokoll.filter(e => e.datum.startsWith(monat)).length + " diesen Monat" +
     (meilenstein ? " · " + meilenstein : "");
 }
@@ -7339,6 +7386,16 @@ function ausdauerZeichnen(){
   const sp = sportart(ausdauerSport);
   const mitStrecke = !!sp.strecke;
   const daten = eintraege.filter(e => e.sportart === ausdauerSport);
+  /* v200 (Fehler aus dem Persona-Durchgang): Bei EINEM Eintrag füllt der einzige
+     Balken die ganze Fläche und sieht aus wie ein Farbblock — ein Verlauf
+     braucht zwei Punkte. Das Körpergewicht sagt das seit je („Ab zwei Einträgen
+     erscheint hier der Verlauf."); die Ausdauer bekommt denselben Satz. */
+  if(daten.length < 2){
+    document.getElementById("ausdauer-titel").textContent = text(sportartName(ausdauerSport));
+    document.getElementById("ausdauer-diagramm").innerHTML =
+      '<div class="meta">Ab zwei Einheiten erscheint hier der Verlauf.</div>';
+    return;
+  }
   const erstes = daten.map(e => e.datum).sort()[0];
   const heute = heuteAlsText();
   const proMonat = Math.floor(tagDifferenz(erstes, heute) / 7) + 1 > 12;
@@ -7582,7 +7639,11 @@ const TAGESWERTE = [
   { id:"kater",       name:"Muskelkater",   einheit:"Regionen", min:0, max:12, schritt:1, nachkomma:0, check:true,
     hinweis:"Aus dem Tages-Check: wie viele Körperregionen betroffen sind." },
   // Erscheint nur bei entsprechendem Profil — wie die Frage selbst.
-  { id:"periode",     name:"Tage",          einheit:"", min:0, max:1, schritt:1, nachkomma:0, check:true,
+  /* v200: „Periode" statt „Tage". In der Frage („Hast du deine Tage?") ist es
+     klar; allein in der Liste neben Schlaf, Stress und Muskelkater las es sich
+     wie eine ANZAHL Tage. Der Schlüssel `periode` bleibt — die gespeicherten
+     Zeilen hängen daran (additiver Datenvertrag). */
+  { id:"periode",     name:"Periode",       einheit:"", min:0, max:1, schritt:1, nachkomma:0, check:true,
     nurWenn: p => p && p.geschlecht === "w",
     hinweis:"Aus dem Tages-Check: 0 = nein · 1 = ja." }
 ];
@@ -15574,8 +15635,9 @@ function eintragenOeffnen(plan, sekunden, datum){
   document.getElementById("ein-datum").value = datum || heuteAlsText();
   document.getElementById("ein-einheit").innerHTML = ZEITEINHEITEN.map(z =>
     '<option value="' + z.id + '">' + z.name + '</option>').join("");
-  const einheit = plan ? plan.zeitEinheit : "min";
+  const einheit = (plan && plan.zeitEinheit) || "min";
   document.getElementById("ein-einheit").value = einheit;
+  einDauerEinheit = einheit;   // v200: Ausgangspunkt für die Umrechnung beim Wechseln
   const dauerS = sekunden || (plan ? plan.dauer : 1800);
   document.getElementById("ein-dauer").value = inEinheit(dauerS, einheit);
   document.getElementById("ein-strecke").value = plan && plan.strecke ? plan.strecke : "";
@@ -15621,6 +15683,33 @@ function massVorbelegen(wert){
   if(!sp.mass) return;
   if(sp.mass.skala) document.getElementById("ein-mass-select").value = sp.mass.skala.includes(wert) ? wert : "";
   else document.getElementById("ein-mass").value = (wert > 0 ? wert : "");
+}
+
+/* Welche Einheit stand im Dauer-Feld, BEVOR der Nutzer umgeschaltet hat? Das
+   Dropdown trägt beim `onchange` schon die neue — die alte muss die App sich
+   merken. (Deklaration VOR ihrem Nutzer, v186-Lehre: Temporal Dead Zone.) */
+let einDauerEinheit = "min";
+
+/** v200 (Fehler aus dem Persona-Durchgang): Die Einheit zu wechseln darf die
+    DAUER nicht ändern — 90 s heißen danach 1,5 min. Vorher wanderte nur das
+    Label: Aus „Stunden 1" wurde beim Umschalten auf Minuten stillschweigend
+    eine Minute, und die Vorschau zeigte kommentarlos „10 km · 1 min". Der
+    Editor macht es seit je richtig (`zeitEinheitSetzen`, Regel 8d) — hier fehlte
+    die Umrechnung. Gerechnet wird über die SEKUNDEN, nicht über den
+    Anzeigewert: `inEinheit` rundet auf zwei Stellen, und ein Hin und Her
+    zwischen zwei Einheiten würde die Dauer sonst Stück für Stück verschieben.
+    `neuWert` ist die alte Dauer in der neuen Einheit. */
+function einEinheitWechseln(neueEinheit){
+  const feld = document.getElementById("ein-dauer");
+  const alt = document.getElementById("ein-einheit");
+  const zahl = parseFloat(String(feld.value).replace(",", ".")) || 0;
+  if(zahl > 0){
+    const sekunden = inSekunden(zahl, einDauerEinheit);
+    feld.value = inEinheit(sekunden, neueEinheit);
+  }
+  einDauerEinheit = neueEinheit;
+  if(alt) alt.value = neueEinheit;
+  eintragenZeichnen();
 }
 
 function eintragenZeichnen(){
@@ -15729,8 +15818,15 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
      heben — dann fragen wir gar nicht erst. */
   const steigerung = planGesteigert(echterPlan, sport, massReif);
   if(steigerung){
-    frage(eingetragen + "\n\nWar die Einheit zu leicht? Dann hebe ich " +
-          steigerungText(steigerung, sport) + " einen Schritt an.", false, ja => {
+    /* v200 (Fehler aus dem Persona-Durchgang): Die Frage war nicht zu
+       verneinen. `mitAbbrechen` stand auf `false`, damit gab es nur „OK" —
+       und „OK" heißt `ja === true`. Der Zweig `if(!ja) return` war toter Code,
+       das Ziel stieg nach JEDER eingetragenen Einheit. Bei drei Läufen die
+       Woche wächst es damit schneller, als die Wochenbremse es je bremsen
+       könnte. Eine Frage ohne Nein ist keine Frage. */
+    frage(eingetragen + "\n\nWar die Einheit zu leicht? Mit OK hebe ich " +
+          steigerungText(steigerung, sport) + " einen Schritt an — sonst bleibt alles, wie es ist.",
+          true, ja => {
       if(!ja) return;
       Object.assign(echterPlan, steigerung);
       speichern();
