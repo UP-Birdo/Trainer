@@ -179,6 +179,19 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    damit sie lesbar bleibt (derselbe Grund wie oben bei `strong`). */
 .stufe-wahl small{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.3}
 .stufe-wahl.gewaehlt small{color:#16181C;opacity:.85}
+/* v204: Zahlen, die erst im Blickfeld erscheinen (siehe fokusAufklappen).
+   `grid-template-rows` statt `max-height`: Damit klappt die Zeile genau auf ihre
+   eigene Höhe auf — eine geratene Maximalhöhe wäre entweder zu klein (Text
+   abgeschnitten) oder ließe die Animation ins Leere laufen. */
+.fokus-info{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows .22s ease,opacity .22s ease}
+.fokus-info > *{overflow:hidden;min-height:0}
+.im-fokus .fokus-info{grid-template-rows:1fr;opacity:1}
+/* Wer Bewegung reduziert hat, bekommt die Zahlen ohne Animation — und immer:
+   Ein Effekt, der Inhalt versteckt, darf nicht von einer Animation abhängen. */
+@media (prefers-reduced-motion: reduce){
+  .fokus-info{grid-template-rows:1fr;opacity:1;transition:none}
+}
 .notiz-name{font-weight:700;font-size:16px}
 /* v198: Der Block der Stufe 1 besteht aus ECHTEN Zeilen — je Zeile ein Feld mit
    dem Haken davor. Die frühere `<textarea>` (.notiz-text) ist damit entfallen;
@@ -2666,7 +2679,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 203;
+const APP_VERSION = 204;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5089,7 +5102,12 @@ function planListeZeichnen(){
     // dann weg (die Karte hat genau eine Bedeutung: gewählt oder nicht).
     const gewaehlt = planAuswahl.has(p.id);
     const haken = planAuswahlModus ? '<span class="plan-haken">' + (gewaehlt ? "☑" : "☐") + '</span> ' : "";
-    return '<div class="karte stat-tap' + (gewaehlt ? " plan-gewaehlt" : "") + '" data-plan="' + p.id + '" onclick="planTippen(\'' + p.id + '\')">' +
+    /* v204 (Nutzer-Wunsch): Eingeklappt zeigt die Karte Name, Marke und
+       Muskel-Figur; die Zahlen darunter erscheinen, sobald sie beim Scrollen
+       ins mittlere Band kommt. Im Auswahl-Modus bleibt alles offen — dort
+       vergleicht man Karten, statt sie zu lesen. */
+    return '<div class="karte stat-tap' + (planAuswahlModus ? "" : " auf-fokus") +
+      (gewaehlt ? " plan-gewaehlt" : "") + '" data-plan="' + p.id + '" onclick="planTippen(\'' + p.id + '\')">' +
       // v132: rechts die Muskel-Map des GANZEN Plans (vorne + hinten) — so sieht
       // man von außen, was der Plan trifft, ohne ihn zu öffnen.
       '<div class="plan-kopfzeile"><div class="plan-text">' +
@@ -5098,13 +5116,15 @@ function planListeZeichnen(){
       '<div class="meta" style="margin-bottom:4px">' + planArtMarkeHtml(p) +
         (marke ? text(marke) : "") + '</div>' +
       '<h2>' + haken + text(p.name) + '</h2>' +
-      '<div class="meta">' +
+      // v204: die Zahlen liegen in der Fokus-Hülle — eingeklappt bleibt der Name
+      // mit seiner Marke, aufgeklappt kommt diese Zeile dazu.
+      '<div class="fokus-info"><div class="meta">' +
         // v191: Bei wechselnden Einheiten steht hier, was als NÄCHSTES dran ist —
         // das ist die Information, die man vor dem Start braucht.
         (istAkt ? (p.intervall ? intervallText(p)
                   : (einheitText(p, planGetan(p.id, sitzung.daten.protokoll)) || planZielText(p)))   // v121: planZielText trägt auch das Messgrößen-Ziel
                 : p.uebungen.length + ' Übungen · ' + saetze + ' Sätze · ca. ' + dauerSchaetzen(p) + ' min' + zusatz) +
-        (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div>' +
+        (zuletzt ? ' · zuletzt ' + zuletzt.slice(8,10) + '.' + zuletzt.slice(5,7) + '.' : ' · noch nie trainiert') + '</div></div>' +
       '</div>' + planFigurenHtml(p) + '</div>' +
       // v80: „Erledigt" für BEIDE Typen — Kraft trägt die Sollwerte ein (kraftErledigt).
       // v104: ⋯ entfernt — das Plan-Menü öffnet der lange Druck; die beiden Knöpfe teilen sich die Breite.
@@ -5171,6 +5191,7 @@ function planListeZeichnen(){
   // dort sucht man sie, und sie bleibt ohne Scrollen erreichbar.
   ziel.innerHTML = (planAuswahlModus ? planAuswahlLeisteHtml() : "") + html;
   miniFigurenZeichnen("#plan-liste");   // v132: Plan-Muskelkarten nachzeichnen
+  fokusAufklappen("#plan-liste");       // v204: Zahlen zeigen, was gerade im Blick ist
   langdruckEinrichten();
 }
 
@@ -6388,6 +6409,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.204", punkte:[
+    "Die Zahlen erscheinen jetzt beim Scrollen: Eine Plan-Karte zeigt eingeklappt ihren Namen und die Muskel-Figur — Sätze, Dauer und „zuletzt“ tauchen auf, sobald die Karte in die Mitte des Bildschirms kommt. Dasselbe in der Trainings-Vorschau mit „Satz 1/3 · 12 Wdh“.",
+    "Der Trick dabei ist das schmale Band: Gemessen wird nicht der ganze Bildschirm, sondern nur sein mittleres Fünftel — sonst klappte einfach alles auf und der Effekt wäre umsonst.",
+    "Wer in den iPhone-Einstellungen „Bewegung reduzieren“ eingeschaltet hat, sieht die Zahlen ohne Animation und dauerhaft."
+  ]},
   { stand:"0.203", punkte:[
     "Der erste Start führt jetzt direkt in die Übungs-Auswahl: Stufe wählen, Übung eintragen, loslegen. Bisher landete man auf Stufe 5 zwangsläufig im Plan-Assistenten — er war damit der einzige Weg, den ein neuer Nutzer überhaupt zu sehen bekam.",
     "Der Assistent ist deshalb nicht weg: Er steht unter „Mehr → Werkzeuge“ und funktioniert unverändert. Ein Hinweis beim ersten Start sagt, wo er zu finden ist.",
@@ -8937,6 +8963,49 @@ function miniFigurenLazy(selektor){
     });
   }, { root: document.getElementById("inhalt"), rootMargin: "200px" });
   figuren.forEach(f => miniFigurBeobachter.observe(f));
+}
+
+/* ------------------------------------------------------------
+   v204: Die Zahlen erscheinen, wenn die Karte ins Blickfeld kommt.
+
+   Nutzer-Wunsch (52. Runde): „Ansonsten nur der Titel und die Muskel-Map —
+   die Infos sollen erst auftauchen, wenn man drüber hovert." Ein iPhone hat
+   kein Hovern; der Nutzer hat sich für die Lesart **„beim Scrollen"**
+   entschieden. Umgesetzt mit demselben Werkzeug wie die späten Figuren (v179),
+   nur mit einem anderen Fenster.
+
+   Der eine Kniff, an dem die Sache steht: Das Fenster ist NICHT der Bildschirm,
+   sondern ein schmales Band in seiner Mitte (`FOKUS_BAND`). Mit dem ganzen
+   Bildschirm als Fenster wären alle sichtbaren Karten „im Fokus" — dann klappte
+   einfach alles auf, und der Wunsch wäre ins Gegenteil verkehrt. Negative
+   Ränder schneiden oben und unten je 40 % weg; übrig bleibt das mittlere
+   Fünftel, also im Regelfall genau eine Karte.
+
+   Zwei Rückfälle, damit niemand vor leeren Karten sitzt:
+   * Ohne `IntersectionObserver` (sehr alte Browser) bleibt alles offen.
+   * Wer „Bewegung reduzieren" eingeschaltet hat, bekommt keine Animation —
+     die Zahlen sind dann einfach da (CSS, `prefers-reduced-motion`).
+   ------------------------------------------------------------ */
+const FOKUS_BAND = "-40% 0px -40% 0px";
+let fokusBeobachter = null;   // immer nur EINER — der vorige wird abgelöst
+
+/** Alle `.auf-fokus`-Elemente unter `selektor` beim Scrollen auf- und wieder
+    zuklappen. Ohne Beobachter bleibt alles offen (`im-fokus` fest gesetzt). */
+function fokusAufklappen(selektor){
+  if(fokusBeobachter){ fokusBeobachter.disconnect(); fokusBeobachter = null; }
+  const karten = [...document.querySelectorAll(selektor + " .auf-fokus")];
+  if(!karten.length) return;
+  if(typeof IntersectionObserver !== "function"){
+    karten.forEach(k => k.classList.add("im-fokus"));
+    return;
+  }
+  fokusBeobachter = new IntersectionObserver(eintraege => {
+    // Anders als bei den Figuren wird NICHT abgemeldet: Was aus dem Band
+    // hinausscrollt, klappt wieder zu — sonst stünde nach einmal Durchscrollen
+    // wieder alles offen da.
+    eintraege.forEach(e => e.target.classList.toggle("im-fokus", e.isIntersecting));
+  }, { root: document.getElementById("inhalt"), rootMargin: FOKUS_BAND });
+  karten.forEach(k => fokusBeobachter.observe(k));
 }
 
 /** v139: Ein `.mini-figur`-Element als HTML — EINE Quelle für alle Stellen
@@ -16142,11 +16211,18 @@ function vorschauZeichnen(){
       ? '<span class="tippbar" role="button" onclick="uebungErklaerungZeigen(\'' +
         jsArg(titel) + '\')">' + text(titel) + '</span>'
       : text(titel);
-    return '<div class="vs-zeile"><span class="vs-nr">' + nummer + '</span>' +
-           '<span class="vs-titel">' + nameHtml + '<small>' + text(unter) + '</small></span>' + figur + '</div>';
+    /* v204 (Nutzer-Wunsch): Eingeklappt steht hier Nummer, Name und Figur; die
+       Zahlen („Satz 1/3 · 12 Wdh") kommen, sobald die Zeile beim Scrollen ins
+       mittlere Band rutscht. Die Pausen-Zeilen dazwischen bleiben, wie sie
+       sind — sie SIND die Zahl, da gäbe es nichts einzuklappen. */
+    return '<div class="vs-zeile auf-fokus"><span class="vs-nr">' + nummer + '</span>' +
+           '<span class="vs-titel">' + nameHtml +
+             '<span class="fokus-info"><small>' + text(unter) + '</small></span>' +
+           '</span>' + figur + '</div>';
   }).join("");
   // v84: Figuren nachträglich zeichnen (Canvas + async Bild-/Kartenladung).
   miniFigurenZeichnen("#vorschau-liste");
+  fokusAufklappen("#vorschau-liste");   // v204
 }
 
 /** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */

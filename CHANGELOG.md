@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.204
+
+- Die Zahlen erscheinen jetzt beim Scrollen: Eine Plan-Karte zeigt eingeklappt ihren
+  Namen und die Muskel-Figur — Sätze, Dauer und „zuletzt“ tauchen auf, sobald die Karte
+  in die Mitte des Bildschirms kommt. Dasselbe in der Trainings-Vorschau mit „Satz 1/3 ·
+  12 Wdh“.
+- Der Trick dabei ist das schmale Band: Gemessen wird nicht der ganze Bildschirm,
+  sondern nur sein mittleres Fünftel — sonst klappte einfach alles auf und der Effekt
+  wäre umsonst.
+- Wer in den iPhone-Einstellungen „Bewegung reduzieren“ eingeschaltet hat, sieht die
+  Zahlen ohne Animation und dauerhaft.
+
 ## 0.203
 
 - Der erste Start führt jetzt direkt in die Übungs-Auswahl: Stufe wählen, Übung
