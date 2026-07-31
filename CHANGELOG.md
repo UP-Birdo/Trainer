@@ -3,6 +3,45 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.197
+
+- Deine Ausdauer zählt jetzt in der Muskelkarte mit: Warst du laufen, geht das in die
+  Beine — und damit in die Warnung, wenn es zu viel wird. Bisher rechnete die Karte nur
+  mit Sätzen, und ein Lauf trägt keine.
+- Umgerechnet wird zurückhaltend: zehn Minuten entsprechen einem Satz, mehr als eine
+  Stunde ändert nichts mehr. Wie viele Sätze Beine eine Stunde Laufen wirklich
+  entspricht, ist nicht belegt — lieber eine vorsichtige Zahl als eine erfundene,
+  dieselbe Linie wie bei Schlaf und Pausen.
+- Doppelt gezählt wird nicht: Hast du in der Einheit Übungen protokolliert, zählen die —
+  dann bleibt die Dauer außen vor. Und ein nur abgehaktes Training zählt weiterhin gar
+  nicht, weil dabei nichts gemessen wurde.
+- Drei Übungen haben ihre Muskeln bekommen, die bisher fehlten: Aufschlag-Training,
+  Aufschlag mit drittem Ball und Passgenauigkeit. Ohne Zuordnung bleiben nur noch die
+  reinen Atemübungen — dort wäre jede Angabe geraten.
+
+## 0.196
+
+- Die Trainings-Kachel in der Statistik lässt sich jetzt öffnen — wie Kalender und
+  Körpergewicht. Dahinter liegt die vollständige Liste aller Einheiten, in der du auch
+  mehrere auf einmal auswählen und löschen kannst.
+- Beim Körpergewicht steht die Kurve jetzt oben und die Einträge darunter. Vorher sah
+  man beim Öffnen nur die Liste.
+- Neu darüber: ein Zoom — Woche, Monat, Jahr oder alles. Er ist so gebaut, dass ihn die
+  anderen Kurven später übernehmen können.
+
+## 0.195
+
+- Die Muskelkarte öffnet jetzt mit deinem Körper: Was du zuletzt trainiert hast und wie
+  ausgelastet die Muskeln sind, steht sofort da. Früher begrüßte dich das
+  Nachschlagewerk, und die Auswertung lag hinter dem zweiten Tab.
+- „Erkunden“ bleibt daneben — und zeigt endlich die richtigen Übungen. Tippst du einen
+  Muskel an, stehen dort die Übungen aus der echten Zuordnung der App: erst die, für die
+  er die Hauptarbeit macht, dann die, wo er mitarbeitet. Angetippt öffnet sich die
+  Erklärung dazu.
+- Gezeigt wird, was zu deinen Geräten und Sportarten passt. Findet sich damit nichts,
+  siehst du trotzdem die passenden Übungen — mit dem Hinweis, dass sie nicht zu deiner
+  Ausstattung gehören.
+
 ## 0.194
 
 - Korrektur zu 0.193: „Intervall-Plan anlegen“ ist wieder im „+“. Aus dem Menü sollten

@@ -1085,7 +1085,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="bestwerte-liste" class="abstand"></div>
   </div>
 
-  <div class="karte stat-karte" id="stat-trainings" hidden>
+  <!-- v196 (Nutzer-Ansage): Die Kachel öffnet den vollen Verlauf — wie Kalender
+       und Körpergewicht. Der Weg dorthin lag bisher hinter einem Knopf UNTER der
+       Vorschau, den man erst ab sechs Trainings zu sehen bekam. -->
+  <div class="karte stat-karte stat-tap" id="stat-trainings" hidden onclick="verlaufOeffnen()">
     <h2>Trainings</h2>
     <div id="protokoll-liste" class="meta abstand">–</div>
   </div>
@@ -1807,8 +1810,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-gewicht" class="view">
   <div class="kopf"><h1>Körpergewicht</h1>
     <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
+  <!-- v196 (Nutzer-Ansage): erst die Kurve mit Zoom, dann die Einträge. -->
   <div class="karte">
+    <div id="gewicht-diagramm-detail"></div>
     <div id="gewicht-info" class="meta abstand"></div>
+  </div>
+  <div class="karte">
     <h2>Einträge</h2>
     <div id="gewicht-liste" class="abstand"></div>
   </div>
@@ -1889,8 +1896,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div class="karte">
     <div class="muskel-tabs zeile" style="margin-bottom:10px">
-      <button id="muskel-modus-info" class="muskel-tab muskel-an" onclick="muskelModus('erkunden')">Erkunden</button>
-      <button id="muskel-modus-heat" class="muskel-tab" onclick="muskelModus('trainiert')">Zuletzt trainiert</button>
+      <!-- v195: „Dein Körper" steht vorne (Nutzer-Ansage), „Erkunden" bleibt als
+           Neben-Tab zum Nachschlagen. -->
+      <button id="muskel-modus-heat" class="muskel-tab muskel-an" onclick="muskelModus('trainiert')">Dein Körper</button>
+      <button id="muskel-modus-info" class="muskel-tab" onclick="muskelModus('erkunden')">Erkunden</button>
     </div>
     <!-- v122: dritte Ansicht „Beide" — vorne und hinten nebeneinander (Nutzer-Wunsch). -->
     <div class="muskel-tabs zeile">
@@ -2635,7 +2644,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 194;
+const APP_VERSION = 197;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5860,6 +5869,22 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.197", punkte:[
+    "Deine Ausdauer zählt jetzt in der Muskelkarte mit: Warst du laufen, geht das in die Beine — und damit in die Warnung, wenn es zu viel wird. Bisher rechnete die Karte nur mit Sätzen, und ein Lauf trägt keine.",
+    "Umgerechnet wird zurückhaltend: zehn Minuten entsprechen einem Satz, mehr als eine Stunde ändert nichts mehr. Wie viele Sätze Beine eine Stunde Laufen wirklich entspricht, ist nicht belegt — lieber eine vorsichtige Zahl als eine erfundene, dieselbe Linie wie bei Schlaf und Pausen.",
+    "Doppelt gezählt wird nicht: Hast du in der Einheit Übungen protokolliert, zählen die — dann bleibt die Dauer außen vor. Und ein nur abgehaktes Training zählt weiterhin gar nicht, weil dabei nichts gemessen wurde.",
+    "Drei Übungen haben ihre Muskeln bekommen, die bisher fehlten: Aufschlag-Training, Aufschlag mit drittem Ball und Passgenauigkeit. Ohne Zuordnung bleiben nur noch die reinen Atemübungen — dort wäre jede Angabe geraten."
+  ]},
+  { stand:"0.196", punkte:[
+    "Die Trainings-Kachel in der Statistik lässt sich jetzt öffnen — wie Kalender und Körpergewicht. Dahinter liegt die vollständige Liste aller Einheiten, in der du auch mehrere auf einmal auswählen und löschen kannst.",
+    "Beim Körpergewicht steht die Kurve jetzt oben und die Einträge darunter. Vorher sah man beim Öffnen nur die Liste.",
+    "Neu darüber: ein Zoom — Woche, Monat, Jahr oder alles. Er ist so gebaut, dass ihn die anderen Kurven später übernehmen können."
+  ]},
+  { stand:"0.195", punkte:[
+    "Die Muskelkarte öffnet jetzt mit deinem Körper: Was du zuletzt trainiert hast und wie ausgelastet die Muskeln sind, steht sofort da. Früher begrüßte dich das Nachschlagewerk, und die Auswertung lag hinter dem zweiten Tab.",
+    "„Erkunden“ bleibt daneben — und zeigt endlich die richtigen Übungen. Tippst du einen Muskel an, stehen dort die Übungen aus der echten Zuordnung der App: erst die, für die er die Hauptarbeit macht, dann die, wo er mitarbeitet. Angetippt öffnet sich die Erklärung dazu.",
+    "Gezeigt wird, was zu deinen Geräten und Sportarten passt. Findet sich damit nichts, siehst du trotzdem die passenden Übungen — mit dem Hinweis, dass sie nicht zu deiner Ausstattung gehören."
+  ]},
   { stand:"0.194", punkte:[
     "Korrektur zu 0.193: „Intervall-Plan anlegen“ ist wieder im „+“. Aus dem Menü sollten nur zwei Dinge verschwinden — der Assistent und der Beispielplan; der Intervall-Weg war zu viel. Er erscheint weiterhin nur, wenn du eine Sportart mit Runden-Training betreibst."
   ]},
@@ -7690,6 +7715,76 @@ function gewichtDetailsOeffnen(){
 }
 
 /** Einfaches SVG-Liniendiagramm. Punkte an Trainingstagen sind gelb. */
+/* ------------------------------------------------------------
+   v196 — der Zoom für Kurven (Nutzer-Ansage, 48. Runde).
+
+   „Ein Schalter, wo ich raus und rein zoomen kann — also Wochen-, Monats- und
+   Jahressicht." Gebaut als Register plus zwei reine Funktionen, damit ihn die
+   anderen Kurven (Tageswerte, Körpermaße, Volumen …) später erben können, ohne
+   dass jemand die Logik nachbaut: Sie brauchen nur Einträge mit `datum`.
+
+   „Alles" bleibt die Voreinstellung — bisher gab es keinen Zoom, und wer die
+   Ansicht öffnet, will zuerst den ganzen Verlauf sehen. Der gewählte Zeitraum
+   wird je Kurve gemerkt (`zoomStand`), aber nicht gespeichert: Es ist eine
+   Blickrichtung, keine Einstellung.
+   ------------------------------------------------------------ */
+const ZOOM_STUFEN = [
+  { id:"woche", name:"Woche", tage:7 },
+  { id:"monat", name:"Monat", tage:31 },
+  { id:"jahr",  name:"Jahr",  tage:365 },
+  { id:"alle",  name:"Alles", tage:null }
+];
+const zoomStand = {};   // kurvenId -> Stufen-Id
+
+function zoomStufe(id){ return ZOOM_STUFEN.find(z => z.id === id) || ZOOM_STUFEN[ZOOM_STUFEN.length - 1]; }
+
+/** Die Einträge eines Zeitraums (Datum „JJJJ-MM-TT", heute inklusive).
+    `tage: null` heißt alles. Rein/testbar — kein Zugriff auf die Sitzung. */
+function zeitraumFilter(eintraege, tage, heute){
+  const liste = eintraege || [];
+  if(!tage || !heute) return liste.slice();
+  const von = tageVerschieben(heute, -(tage - 1));
+  return liste.filter(e => e && e.datum && e.datum >= von && e.datum <= heute);
+}
+
+/** Die Schalter-Reihe. `kurve` ist der Merk-Schlüssel, `neuZeichnen` der Name
+    der Funktion, die danach läuft — so bleibt der Schalter für jede Kurve gleich. */
+function zoomLeisteHtml(kurve, neuZeichnen){
+  const aktiv = zoomStand[kurve] || "alle";
+  return '<div class="muskel-tabs zeile" style="gap:6px;margin-bottom:8px">' +
+    ZOOM_STUFEN.map(z =>
+      '<button class="muskel-tab' + (z.id === aktiv ? " muskel-an" : "") +
+      '" onclick="zoomSetzen(\'' + kurve + '\',\'' + z.id + '\'); ' + neuZeichnen + '()">' +
+      text(z.name) + '</button>').join("") + '</div>';
+}
+function zoomSetzen(kurve, stufe){ zoomStand[kurve] = stufe; }
+
+/** Die Gewichtskurve als SVG. v196 aus `gewichtStatistikZeichnen` herausgelöst,
+    weil sie jetzt an ZWEI Stellen steht (Kachel und Detail-Ansicht mit Zoom) —
+    zwei Kopien wären zwei Kurven, die auseinanderlaufen können. */
+function gewichtKurveHtml(eintraege, trainingstage){
+  const liste = eintraege || [];
+  if(liste.length < 2) return '<div class="meta">Ab zwei Einträgen erscheint hier der Verlauf.</div>';
+  const tage = trainingstage || new Set();
+  const B = 560, H = 220, rand = 34;
+  const werte = liste.map(e => e.kg);
+  const min = Math.min(...werte), max = Math.max(...werte);
+  const spanne = (max - min) || 1;
+  const x = i => rand + i * (B - 2*rand) / (liste.length - 1);
+  const y = kg => H - rand - (kg - min) / spanne * (H - 2*rand);
+
+  const linie = liste.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.kg).toFixed(1)).join(" ");
+  const punkte = liste.map((e,i) =>
+    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.kg).toFixed(1) + '" r="4" fill="' +
+    (tage.has(e.datum) ? "var(--signal)" : "var(--rest)") + '"/>').join("");
+
+  return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Gewichtsverlauf">' +
+    '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' kg</text>' +
+    '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + min.toFixed(1) + ' kg</text>' +
+    '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte +
+    '</svg>';   // v104: „Gelbe Punkte …"-Erklärtext entfernt (unnötig, blähte auf)
+}
+
 function gewichtStatistikZeichnen(){
   gewichtInfoZeichnen();
   const diagramm = document.getElementById("gewicht-diagramm");
@@ -7703,27 +7798,18 @@ function gewichtStatistikZeichnen(){
     return;
   }
 
-  if(eintraege.length >= 2){
-    const B = 560, H = 220, rand = 34;
-    const werte = eintraege.map(e => e.kg);
-    const min = Math.min(...werte), max = Math.max(...werte);
-    const spanne = (max - min) || 1;
-    const x = i => rand + i * (B - 2*rand) / (eintraege.length - 1);
-    const y = kg => H - rand - (kg - min) / spanne * (H - 2*rand);
+  diagramm.innerHTML = gewichtKurveHtml(eintraege, trainingstage);
 
-    const linie = eintraege.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.kg).toFixed(1)).join(" ");
-    const punkte = eintraege.map((e,i) =>
-      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.kg).toFixed(1) + '" r="4" fill="' +
-      (trainingstage.has(e.datum) ? "var(--signal)" : "var(--rest)") + '"/>').join("");
-
-    diagramm.innerHTML =
-      '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Gewichtsverlauf">' +
-      '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' kg</text>' +
-      '<text x="' + rand + '" y="' + (H-8) + '" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + min.toFixed(1) + ' kg</text>' +
-      '<path d="' + linie + '" fill="none" stroke="var(--rest)" stroke-width="2"/>' + punkte +
-      '</svg>';   // v104: „Gelbe Punkte …"-Erklärtext entfernt (unnötig, blähte auf)
-  } else {
-    diagramm.innerHTML = '<div class="meta">Ab zwei Einträgen erscheint hier der Verlauf.</div>';
+  /* v196 (Nutzer-Ansage): Beim Öffnen der Details sah man nur die Liste — die
+     Kurve steht jetzt OBEN, mit Zoom darüber. Dieselbe Zeichen-Funktion wie in
+     der Kachel, nur mit gefilterten Einträgen: eine Kurve, zwei Orte. */
+  const detail = document.getElementById("gewicht-diagramm-detail");
+  if(detail){
+    const stufe = zoomStufe(zoomStand.gewicht || "alle");
+    const sicht = zeitraumFilter(eintraege, stufe.tage, heuteAlsText());
+    detail.innerHTML = zoomLeisteHtml("gewicht", "gewichtStatistikZeichnen") +
+      (sicht.length ? gewichtKurveHtml(sicht, trainingstage)
+                    : '<div class="meta">In diesem Zeitraum kein Eintrag.</div>');
   }
 
   listeZiel.innerHTML = listenKopfHtml("gewicht") +
@@ -7897,14 +7983,15 @@ function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
   const ziel = document.getElementById("protokoll-liste");
   if(p.length === 0){ ziel.innerHTML = "Noch kein Training abgeschlossen."; return; }
-  // B1: nur die letzten 5 als Vorschau — der komplette Verlauf (mit Datum) steckt
-  // hinter "Ganzen Verlauf zeigen", damit die Statistik nicht endlos scrollt.
+  // B1: nur die letzten 5 als Vorschau — der komplette Verlauf (mit Datum) liegt
+  // eine Ebene tiefer, damit die Statistik nicht endlos scrollt.
   const umgekehrt = p.slice().reverse();
+  /* v196: Der Knopf unter der Vorschau ist entfallen — die ganze Kachel öffnet
+     den Verlauf (Tap-Linie seit v112). Statt des Knopfs sagt eine Zeile, wie
+     viele Trainings es insgesamt sind; das ist die Information, der Weg dorthin
+     ist die Karte selbst. */
   ziel.innerHTML = umgekehrt.slice(0, 5).map(protokollEintragHtml).join("") +
-    (p.length > 5
-      ? '<div class="knopfreihe" style="margin-top:8px"><button class="schmal breit" ' +
-        'onclick="verlaufOeffnen()">Ganzen Verlauf zeigen (' + p.length + ')</button></div>'
-      : "");
+    (p.length > 5 ? '<div class="meta" style="margin-top:8px">' + p.length + ' Trainings insgesamt ›</div>' : "");
 }
 
 /** v163: Nur die Liste neu bauen — getrennt vom Öffnen, weil der
@@ -7997,7 +8084,16 @@ MUSKELKARTEN.standard.info = MUSKEL_INFO;
 /* Abgeleitete Kurznamen — der übrige Code (Zeichnen, Treffer, Heatmap) arbeitet
    unverändert damit weiter; er muss von der Karten-Verwaltung nichts wissen. */
 const MUSKEL_VIEWS = muskelKarteDef().views;
-let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"erkunden" };   // modus: erkunden | trainiert (v86)
+/* v195 (Nutzer-Ansage): Die Karte startet im Modus „trainiert" — „wenn ich auf
+   die Muskel-Map gehe, soll als Erstes dein derzeitiger Körper angezeigt werden".
+   Das ist mehr als eine Voreinstellung: Die Auslastungs-Rechnung (v160/v167) ist
+   die teuerste Auskunft der App und stand bisher hinter dem zweiten Tab, während
+   vorne ein Nachschlagewerk begrüßte. Innerhalb einer Sitzung bleibt der zuletzt
+   gewählte Tab erhalten (wie überall sonst); beim nächsten Start beginnt es
+   wieder beim eigenen Körper. Die Markup-Klasse `muskel-an` steht deshalb jetzt
+   am Heat-Tab — Default und Markup gehören zusammen, sonst zeigen Schalter und
+   Inhalt Verschiedenes. */
+let muskelStatus = { ansicht:"front", gewaehlt:[], modus:"trainiert" };   // modus: erkunden | trainiert (v86)
 const muskelDaten = {};   // je Ansicht { hit:Uint8Array, pixel:{gid:Int32Array} } — einmal geladen
 
 /** Eine CSS-Farbvariable (#rrggbb) als [r,g,b] aus dem aktuellen Theme lesen. */
@@ -8551,6 +8647,81 @@ function pausenGemessen(protokoll, heute, tage){
     Primärer Muskel zählt 1, mitarbeitender SEKUNDAER_ANTEIL; seit v161 wiegt
     jeder Satz zusätzlich nach Anstrengung (`satzGewichtung`). Soll-Sätze (v158)
     zählen NICHT — sie wurden nie geleistet. Rein/testbar. */
+/* ------------------------------------------------------------
+   v197 — Ausdauer zählt in der Muskelkarte mit (Nutzer-Ansage, 48. Runde).
+
+   „Wenn ich laufen war, soll das in meine Beine gehen und in die Rechnung mit
+   rein, sodass ich gewarnt werde, wenn es zu viel wird." Das schließt die Lücke,
+   die v184 nur BESCHRIEBEN hat („Läufe zählen hier nicht mit — die Karte rechnet
+   mit Sätzen").
+
+   **Welche Muskeln?** Eine Aktivitäts-Einheit ohne Drills hat keine Übung, aus
+   der man sie ableiten könnte — darum das Register `SPORT_LAST_MUSKELN`: je
+   Sportart die Muskeln, die eine Einheit dieser Sportart wirklich fordert
+   (primär) und welche mitarbeiten (sekundär). Es ist bewusst getrennt von
+   `SPORT_MUSKELN` (das ordnet DRILLS zu) — eine Stunde Laufen ist etwas anderes
+   als ein Steigerungslauf-Drill.
+
+   **Wie viel?** Das ist die heikle Zahl, und sie ist NICHT belegt. Wie viele
+   „Sätze Beine" eine Stunde Laufen entspricht, sagt keine Studie. Deshalb
+   dieselbe Zurückhaltung wie bei Schlaf (v167) und Pausen (v189):
+   * **10 Minuten = 1 Satz-Äquivalent** — grob die Größenordnung, in der ein Satz
+     Krafttraining und zehn Minuten Dauerbelastung an Erholung kosten;
+   * **Deckel bei 6 je Einheit** (also ab einer Stunde ändert sich nichts mehr).
+     Ohne Deckel würde eine lange Wanderung die Beine rechnerisch „überlasten",
+     obwohl sie eine ganz andere Belastungsart ist als schweres Beugen;
+   * **nur, wenn die Einheit KEINE gemessenen Sätze hat.** Wer seine Drills
+     protokolliert, dessen Belastung steht schon in der Rechnung — die Dauer
+     zusätzlich zu zählen wäre Doppelzählung und würde genau die Sätze-Grundlage
+     verwässern, die nicht verwässert werden soll.
+   * **Soll-Einträge zählen nicht** (v158-Linie): Ein per „Erledigt" abgehakter
+     Lauf ist eine Absicht, keine Messung.
+   ------------------------------------------------------------ */
+const AKTIVITAET_MINUTEN_JE_SATZ = 10;
+const AKTIVITAET_MAX_SAETZE = 6;
+
+/** Was eine EINHEIT dieser Sportart fordert (nicht ein einzelner Drill). */
+const SPORT_LAST_MUSKELN = {
+  laufen:      { p:["quadriceps","calves"],        s:["hamstrings","glutes","tibialis","abs"] },
+  radfahren:   { p:["quadriceps","glutes"],        s:["calves","hamstrings","lowerback"] },
+  wandern:     { p:["quadriceps","calves"],        s:["glutes","hamstrings","lowerback"] },
+  schwimmen:   { p:["latissimus","deltoid"],       s:["triceps","abs","glutes","pectoral"] },
+  rudern:      { p:["latissimus","quadriceps"],    s:["biceps","lowerback","glutes","deltoid"] },
+  klettern:    { p:["latissimus","forearm"],       s:["biceps","abs","quadriceps","deltoid"] },
+  tischtennis: { p:["quadriceps","obliques"],      s:["calves","deltoid","forearm"] },
+  tennis:      { p:["quadriceps","obliques"],      s:["calves","deltoid","glutes"] },
+  kampfsport:  { p:["obliques","deltoid"],         s:["quadriceps","abs","calves","triceps"] },
+  fussball:    { p:["quadriceps","calves"],        s:["adductors","glutes","hamstrings"] },
+  yoga:        { p:["abs","glutes"],               s:["hamstrings","deltoid","quadriceps","lowerback"] }
+};
+
+/** Ist im Fenster mindestens eine Ausdauer-Einheit eingeflossen? Für die
+    Grundlagen-Zeile — sie soll nennen, was wirklich drinsteckt. Rein/testbar. */
+function einheitenGezaehlt(protokoll, heute, tage){
+  const fenster = tage || MUSKEL_HEAT_TAGE;
+  return (protokoll || []).some(e => {
+    if(!e || !e.datum || !alsEinheitZaehlbar(e)) return false;
+    const d = tagDifferenz(e.datum, heute);
+    return d >= 0 && d <= fenster;
+  });
+}
+
+/** Satz-Äquivalente einer Aktivitäts-Einheit aus ihrer Dauer. Rein/testbar. */
+function aktivitaetSaetze(dauerMin){
+  const min = Number(dauerMin);
+  if(!(min > 0)) return 0;
+  return Math.min(AKTIVITAET_MAX_SAETZE, Math.round(min / AKTIVITAET_MINUTEN_JE_SATZ * 10) / 10);
+}
+
+/** Zählt dieser Protokoll-Eintrag als Ausdauer-Einheit (statt über Sätze)?
+    Rein/testbar — die drei Bedingungen aus dem Block oben an EINER Stelle. */
+function alsEinheitZaehlbar(eintrag){
+  if(!eintrag || eintrag.typ !== "aktivitaet") return false;
+  if(istSollEintrag(eintrag)) return false;
+  if(echteSaetze(eintrag).length > 0) return false;
+  return aktivitaetSaetze(eintrag.dauerMin) > 0 && !!SPORT_LAST_MUSKELN[eintrag.sportart];
+}
+
 function muskelLast(protokoll, heute, tage){
   const last = {};
   const fenster = tage || MUSKEL_HEAT_TAGE;
@@ -8559,6 +8730,18 @@ function muskelLast(protokoll, heute, tage){
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > fenster) return;
+    // v197: die Ausdauer-Einheit — dieselbe Ablage wie ein Satz, andere Herkunft.
+    if(alsEinheitZaehlbar(e)){
+      const satz = SPORT_LAST_MUSKELN[e.sportart];
+      const wiegt = aktivitaetSaetze(e.dauerMin);
+      [].concat(muskelnAufKarte(satz.p).map(m => [m, wiegt]),
+                muskelnAufKarte(satz.s).map(m => [m, SEKUNDAER_ANTEIL * wiegt]))
+        .forEach(([m, anteil]) => {
+          if(!last[m]) last[m] = { saetze:0, tageSeit:d };
+          last[m].saetze += anteil;
+          if(d < last[m].tageSeit) last[m].tageSeit = d;
+        });
+    }
     echteSaetze(e).forEach(s => {
       const info = uebungMuskeln(s.name);
       if(!info) return;
@@ -8618,6 +8801,10 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
      nichts zu tun außer „trainiere mit der App statt nachzutragen" — das wäre
      eine Belehrung, keine Hilfe. Fehlen sie, schweigt die Zeile darüber. */
   if(pausenGemessen(protokoll, heute)) hat.push("Pausen");
+  /* v197: Dasselbe für die Ausdauer-Einheiten — sie kommen aus dem Training
+     selbst, es gibt nichts nachzutragen. Also nur unter „hat", nie unter
+     „fehlt" (dieselbe Begründung wie bei den Pausen). */
+  if(einheitenGezaehlt(protokoll, heute)) hat.push("Ausdauer");
   return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
            annahme: !e.erfahrung };
 }
@@ -8670,6 +8857,10 @@ function satzloseEinheiten(protokoll, heute, tage){
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > fenster) return;
     if(echteSaetze(e).length) return;
+    // v197: Ausdauer-Einheiten zählen jetzt über ihre Dauer mit — sie gehören
+    // nicht mehr in diese Zeile. Übrig bleiben die, die WIRKLICH nicht zählen:
+    // abgehakte Soll-Einträge und Einheiten ohne Dauer bzw. ohne Zuordnung.
+    if(alsEinheitZaehlbar(e)) return;
     anzahl++;
     if(e.sportart && !sportarten.includes(e.sportart)) sportarten.push(e.sportart);
   });
@@ -9074,10 +9265,32 @@ function muskelAuswahlZeichnen(){
   }
   ziel.innerHTML = muskelStatus.gewaehlt.map(key => {
     const m = MUSKEL_INFO[key];
+    /* v195: die ECHTEN Top-Übungen aus der Muskel-Zuordnung statt der
+       handgepflegten Kurzliste `m.ex` (siehe topUebungenFuer). Gefiltert nach
+       den eigenen Geräten und Sportarten — eine Übung an einem Gerät, das man
+       nicht hat, ist keine Antwort auf „womit trainiere ich diesen Muskel?".
+       Findet sich damit nichts, wird OHNE Filter erneut gesucht und das auch
+       gesagt; erst dann bleibt die Karte still. */
+    const meineSport = sitzung.daten.einrichtung.sportarten || ["kraft"];
+    let liste = topUebungenFuer(key, meineGeraete("kraft"), meineSport);
+    let ohneFilter = false;
+    if(!liste.length){ liste = topUebungenFuer(key, null, null); ohneFilter = true; }
+    const zeilen = liste.map(u => {
+      const nameJs = u.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      const lesbar = uebungErklaerbar(u.name);
+      const rolle = u.primaer ? "" : ' <span class="meta">· mitbelastet</span>';
+      // v169-Muster: antippen öffnet Kurz-Tipp + Beschreibung, wo es welche gibt.
+      return '<div class="meta" style="padding:4px 0' + (lesbar ? ';cursor:pointer' : '') + '"' +
+        (lesbar ? ' onclick="uebungErklaerungZeigen(\'' + nameJs + '\')"' : '') +
+        '>→ ' + text(u.name) + rolle + (lesbar ? ' <span class="meta">ⓘ</span>' : '') + '</div>';
+    }).join("");
+    const hinweis = !liste.length
+      ? '<div class="meta">Für diesen Muskel ist noch keine Übung hinterlegt.</div>'
+      : (ohneFilter ? '<div class="meta" style="margin-top:6px">Keine davon passt zu deinen Geräten und Sportarten.</div>' : "");
     return '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
       '<span class="meta">' + text(m.region) + '</span></div>' +
       '<div class="meta" style="font-style:italic;margin-bottom:6px">' + text(m.latin) + '</div>' +
-      m.ex.map(x => '<div class="meta">→ ' + text(x) + '</div>').join("") + '</div>';
+      zeilen + hinweis + '</div>';
   }).join("");
 }
 
@@ -10878,6 +11091,76 @@ function uebungErklaerungZeigen(name){
   if(t) meldung(t);
 }
 
+/* ------------------------------------------------------------
+   v195 — die Top-Übungen je Muskel (Nutzer-Ansage zum Erkunden-Tab).
+
+   Der Erkunden-Modus zeigte bis hierher `MUSKEL_INFO[key].ex` — eine von Hand
+   gepflegte Dreier-Liste aus der Anfangszeit. Seit v86/v139 gibt es mit
+   `UEBUNG_MUSKELN` (147 Einträge, primär + sekundär) und seit v140 mit
+   `SPORT_MUSKELN` die ECHTE Zuordnung, aus der die Figuren gezeichnet werden.
+   Zwei Wahrheiten über dieselbe Frage — und die gepflegte war die ungenutzte:
+   Wer eine Übung aufnahm, trug sie in `UEBUNG_MUSKELN` ein, nie in `ex`.
+
+   `ex` bleibt im Datensatz stehen (additiver Vertrag, und die Namen sind als
+   Merkhilfe im Quelltext nützlich), wird aber nicht mehr angezeigt.
+
+   Reihenfolge — die eigentliche Entscheidung: Erst die Übungen, für die dieser
+   Muskel PRIMÄR arbeitet, dann die, wo er mitarbeitet. Innerhalb dessen zuerst
+   die mit den WENIGSTEN Primärmuskeln: Eine Übung, die fast nur diesen einen
+   Muskel trifft, ist für ihn die passendere Antwort als eine Verbundübung, die
+   ihn nebenbei mitnimmt. Bei Gleichstand alphabetisch, damit die Liste
+   reproduzierbar bleibt.
+   ------------------------------------------------------------ */
+const TOP_UEBUNGEN_MAX = 6;
+
+/** Alle Übungen mit Muskel-Zuordnung in EINER Form: Kraftübungen (mit Gerät)
+    und Sportart-Drills (mit Sportart). Rein/testbar — die Register kommen aus
+    dem Modul, gefiltert wird erst in `topUebungenFuer`. */
+function muskelUebungsQuellen(){
+  const liste = [];
+  Object.keys(UEBUNG_MUSKELN).forEach(name => {
+    const db = UEBUNGEN_DB.find(u => u.name === name);
+    liste.push({ name: name, satz: uebungMuskelSatz(UEBUNG_MUSKELN[name]),
+                 sport: "kraft", geraet: db ? db.geraet : null });
+  });
+  Object.keys(SPORT_MUSKELN).forEach(name => {
+    liste.push({ name: name, satz: uebungMuskelSatz(SPORT_MUSKELN[name]),
+                 sport: sportartZuDrill(name), geraet: null });
+  });
+  return liste;
+}
+
+/** Zu welcher Sportart gehört ein Drill? (Erster Treffer im Katalog.) */
+function sportartZuDrill(name){
+  const treffer = SPORTARTEN.find(s => s.id !== "kraft" &&
+    sportUebungen(s.id).some(v => v.name === name));
+  return treffer ? treffer.id : null;
+}
+
+/** Die passendsten Übungen für einen Muskel — nach der Regel oben sortiert.
+    `geraete` = erlaubte Geräte-Ids (null = kein Gerätefilter),
+    `sportarten` = eigene Sportarten (null = alle). Rein/testbar. */
+function topUebungenFuer(muskelKey, geraete, sportarten, max){
+  if(!muskelKey) return [];
+  const grenze = max || TOP_UEBUNGEN_MAX;
+  const treffer = [];
+  muskelUebungsQuellen().forEach(u => {
+    const primaer = u.satz.p.indexOf(muskelKey) >= 0;
+    const sekundaer = !primaer && u.satz.s.indexOf(muskelKey) >= 0;
+    if(!primaer && !sekundaer) return;
+    // Kraftübung: nur mit passendem Gerät. Drill: nur aus eigenen Sportarten.
+    if(u.sport === "kraft"){
+      if(geraete && u.geraet && geraete.indexOf(u.geraet) < 0) return;
+    } else if(sportarten && (!u.sport || sportarten.indexOf(u.sport) < 0)) return;
+    treffer.push({ name:u.name, primaer:primaer, breite:u.satz.p.length, sport:u.sport });
+  });
+  treffer.sort((a, b) =>
+    (a.primaer === b.primaer ? 0 : (a.primaer ? -1 : 1)) ||
+    (a.breite - b.breite) ||
+    a.name.localeCompare(b.name, "de"));
+  return treffer.slice(0, grenze);
+}
+
 /* ============================================================
    v140: Muskel-Zuordnung für die SPORTART-DRILLS.
    Bisher fanden nur Kraftübungen (UEBUNGEN_DB) eine Figur — bei einem Topspin
@@ -10941,6 +11224,15 @@ const SPORT_MUSKELN = {
   "Rückhand-Konter":                   { p:["deltoid","forearm"],           s:["obliques"] },
   "Vorhand/Rückhand im Wechsel":       { p:["obliques","deltoid"],          s:["forearm","quadriceps","calves"] },
   "Schupf-Sicherheit (Unterschnitt)":  { p:["forearm","deltoid"],           s:["obliques"] },
+  /* v197: die letzten drei Lücken der Drill-Zuordnung. In v145 galten sie als
+     „reine Technik ohne Schwerpunkt" — das stimmt für den Ablauf, nicht für die
+     Belastung: Ein Aufschlag ist eine Wurfbewegung aus Rumpfdrehung und Schulter,
+     ein Pass eine Standbein-Schussbein-Bewegung. Beide haben genug Schwerpunkt,
+     um ehrlich zugeordnet zu werden — zumal die Ausdauer-Rechnung (v197) jetzt
+     auf diesen Zuordnungen aufbaut. Ohne echten Schwerpunkt bleiben weiterhin die
+     zwei ATEM-Drills (Schwimmen, Yoga) — dort wäre jede Angabe geraten. */
+  "Aufschlag-Training":                { p:["obliques","forearm"],          s:["deltoid","quadriceps"] },
+  "Aufschlag und dritter Ball":        { p:["obliques","quadriceps"],       s:["deltoid","forearm","calves"] },
   "Beinarbeit / Footwork":             { p:["quadriceps","calves"],         s:["glutes","obliques"] },
   "Balleimer-Kondition":               { p:["quadriceps","obliques"],       s:["calves","deltoid","glutes"] },
   // -- Tennis --
@@ -10961,6 +11253,8 @@ const SPORT_MUSKELN = {
   "Seilspringen (Kondition)":          { p:["calves"],                      s:["quadriceps","forearm","deltoid"] },
   // -- Fußball --
   "Dribbling-Parcours":     { p:["quadriceps","calves"],                    s:["adductors","glutes"] },
+  // v197: dritte geschlossene Lücke — der Pass kommt aus Standbein und Innenseite.
+  "Passgenauigkeit (an die Wand)": { p:["adductors","quadriceps"],          s:["glutes","abs"] },
   "Ballan- und -mitnahme":  { p:["quadriceps","adductors"],                 s:["calves","abs"] },
   "Torschuss-Training":     { p:["quadriceps","adductors"],                 s:["glutes","obliques"] },
   "Flanken (beidfüßig)":    { p:["quadriceps","adductors"],                 s:["obliques","glutes"] },

@@ -77,8 +77,11 @@ pruefe("Kniebeugen weiter primaer Quadrizeps", kn.muskeln[0] === "quadriceps");
 pruefe("Kniebeugen haben Sekundaermuskeln (v139)", kn.sekundaer.length > 0);
 pruefe("Unbekanntes bleibt ohne Figur", T.uebungMuskeln("Phantasie-Uebung") === null);
 pruefe("leerer Name bleibt null", T.uebungMuskeln("") === null);
-/* Ein Drill-Name, der ABSICHTLICH nicht zugeordnet ist, bleibt figurlos. */
-pruefe("Aufschlag-Training bleibt bewusst ohne Figur", T.uebungMuskeln("Aufschlag-Training") === null);
+/* Ein Drill-Name, der ABSICHTLICH nicht zugeordnet ist, bleibt figurlos.
+   v197: „Aufschlag-Training" ist zugeordnet worden (es hat einen Schwerpunkt);
+   ohne Zuordnung bleiben die reinen ATEM-Drills — dort waere jede Angabe
+   geraten, und genau das ist die Zusage hier. */
+pruefe("die Atemuebung bleibt bewusst ohne Figur", T.uebungMuskeln("Atemübung (Pranayama)") === null);
 
 /* 3) Integritaet von SPORT_MUSKELN. */
 const drills = new Set();

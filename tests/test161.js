@@ -42,6 +42,12 @@ const code = [
   "function uebungMuskeln(n){ return KARTE[n] || null; }",
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
+  // v197: siehe test160 — die Ausdauer-Weiche wird mitgezogen, greift hier aber nie.
+  grabFn("istSollEintrag"),
+  "const SPORT_LAST_MUSKELN = " + grabLiteral("SPORT_LAST_MUSKELN") + ";",
+  "const AKTIVITAET_MINUTEN_JE_SATZ = 10, AKTIVITAET_MAX_SAETZE = 6;",
+  grabFn("aktivitaetSaetze"),
+  grabFn("alsEinheitZaehlbar"),
   /* v189: die gemessene Pause wiegt in satzGewichtung mit. Ohne Pausen-Feld ist
      der Faktor 1 — alle Zusagen dieser Datei gelten damit unveraendert weiter
      (test189 prueft sie zusaetzlich Wert fuer Wert nach). */

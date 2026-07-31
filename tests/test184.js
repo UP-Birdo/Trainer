@@ -32,6 +32,21 @@ function grabConst(name){
   if(!zeile) throw new Error("Konstante nicht gefunden: " + name);
   return zeile[0];
 }
+/** v197: ein mehrzeiliges Objekt-Literal holen (fuer SPORT_LAST_MUSKELN). */
+function grabLiteralV197(name){
+  const decl = "const " + name + " = ";
+  const i = src.indexOf(decl);
+  if(i < 0) throw new Error("Konstante nicht gefunden: " + name);
+  let start = i + decl.length;
+  while(start < src.length && src[start] !== "{" && src[start] !== "[") start++;
+  const auf = src[start], zu = auf === "{" ? "}" : "]";
+  let tiefe = 0;
+  for(let k = start; k < src.length; k++){
+    if(src[k] === auf) tiefe++;
+    else if(src[k] === zu){ tiefe--; if(tiefe === 0) return src.slice(start, k + 1); }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
 
 const HEUTE = "2026-07-27";
 const modul = { exports: {} };
@@ -43,6 +58,14 @@ new Function("module", "exports", [
   grabConst("MUSKEL_HEAT_TAGE"),
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
+  /* v197: Ausdauer-Einheiten zaehlen jetzt ueber ihre Dauer mit — sie gehoeren
+     damit NICHT mehr in die v184-Zeile. Die echten Funktionen werden mitgezogen,
+     damit dieser Test die neue Grenze wirklich prueft (unten ergaenzt). */
+  grabFn("istSollEintrag"),
+  "const SPORT_LAST_MUSKELN = " + grabLiteralV197("SPORT_LAST_MUSKELN") + ";",
+  "const AKTIVITAET_MINUTEN_JE_SATZ = 10, AKTIVITAET_MAX_SAETZE = 6;",
+  grabFn("aktivitaetSaetze"),
+  grabFn("alsEinheitZaehlbar"),
   grabFn("satzloseEinheiten"),
   grabFn("satzloseText"),
   "module.exports = { MUSKEL_HEAT_TAGE, satzloseEinheiten, satzloseText };"

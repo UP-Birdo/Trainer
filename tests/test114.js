@@ -31,8 +31,11 @@ const STAT_OPTIONEN = eval("(" + grabLiteral("STAT_OPTIONEN") + ")");
 
 /* 1) Die optionalen Statistiken liegen im Raster — je Option genau eine Kachel. */
 pruefe("stat-raster vorhanden", src.includes('<div class="stat-raster">'));
+/* v196: Die Trainings-Kachel traegt zusaetzlich `stat-tap` (sie oeffnet den
+   vollen Verlauf, wie Kalender und Koerpergewicht). Die v114-Zusage bleibt:
+   je Option genau EINE Kachel — nur das Muster darf den Zusatz vertragen. */
 pruefe("je STAT_OPTIONEN-Eintrag eine Kachel",
-  (src.match(/class="karte stat-karte"/g) || []).length === STAT_OPTIONEN.length);
+  (src.match(/class="karte stat-karte[^"]*" id="/g) || []).length === STAT_OPTIONEN.length);
 pruefe("mindestens die sechs Kern-Statistiken", STAT_OPTIONEN.length >= 6);
 pruefe("Raster nutzt auto-fit-Grid", /\.stat-raster\{[^}]*auto-fit/.test(src));
 

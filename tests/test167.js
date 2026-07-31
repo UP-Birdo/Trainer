@@ -25,6 +25,19 @@ function grabConst(name){
   if(!zeile) throw new Error("Konstante nicht gefunden: " + name);
   return zeile[0];
 }
+/** v197: ein mehrzeiliges OBJEKT-Literal holen (grabLiteral sucht nach „["). */
+function grabObjekt(name){
+  const decl = "const " + name + " = ";
+  const i = src.indexOf(decl);
+  if(i < 0) throw new Error("Konstante nicht gefunden: " + name);
+  const start = src.indexOf("{", i);
+  let tiefe = 0;
+  for(let k = start; k < src.length; k++){
+    if(src[k] === "{") tiefe++;
+    else if(src[k] === "}"){ tiefe--; if(tiefe === 0) return src.slice(start, k + 1); }
+  }
+  throw new Error("Klammern unausgeglichen: " + name);
+}
 function grabLiteral(name){
   const i = src.indexOf("const " + name + " = ");
   if(i < 0) throw new Error("Literal nicht gefunden: " + name);
@@ -68,6 +81,15 @@ new Function("module", "exports", [
      die Aussage in test189. */
   "const MUSKEL_HEAT_TAGE = 7;",
   grabFn("echteSaetze"),
+  /* v197: Die Grundlagen-Zeile nennt jetzt auch „Ausdauer", wenn im Fenster eine
+     gezaehlte Einheit liegt — dieselbe Regel wie bei den Pausen (nur unter
+     „hat", nie unter „fehlt"). Die echten Funktionen werden mitgezogen. */
+  grabFn("istSollEintrag"),
+  "const SPORT_LAST_MUSKELN = " + grabObjekt("SPORT_LAST_MUSKELN") + ";",
+  "const AKTIVITAET_MINUTEN_JE_SATZ = 10, AKTIVITAET_MAX_SAETZE = 6;",
+  grabFn("aktivitaetSaetze"),
+  grabFn("alsEinheitZaehlbar"),
+  grabFn("einheitenGezaehlt"),
   grabFn("pausenGemessen"),
   grabFn("rechnungsGrundlage"),
   grabFn("grundlageText"),

@@ -47,6 +47,15 @@ const code = [
   "function heuteAlsText(){ return '2026-07-27'; }",
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
+  /* v197: `muskelLast` rechnet jetzt auch Ausdauer-Einheiten mit. Die echten
+     Funktionen werden mitgezogen — dieser Test faehrt reine Kraft-Eintraege,
+     die Zusagen unten bleiben davon unberuehrt (die Weiche greift nur bei
+     typ:"aktivitaet" ohne gemessene Saetze). */
+  grabFn("istSollEintrag"),
+  "const SPORT_LAST_MUSKELN = " + grabLiteral("SPORT_LAST_MUSKELN") + ";",
+  "const AKTIVITAET_MINUTEN_JE_SATZ = 10, AKTIVITAET_MAX_SAETZE = 6;",
+  grabFn("aktivitaetSaetze"),
+  grabFn("alsEinheitZaehlbar"),
   grabFn("alterJahre"),
   /* v167: kapazitaetsFaktor rechnet jetzt Schlaf mit ein. Hier wird ohne
      Tageswerte aufgerufen — dann ist der Schlaf-Faktor 1 und alle Zusagen

@@ -101,8 +101,13 @@ Object.keys(SPORT_MUSKELN).forEach(k => {
 });
 pruefe("nur bekannte Muskeln" + (falscheMuskeln.length ? " (" + falscheMuskeln.join(", ") + ")" : ""),
   falscheMuskeln.length === 0);
-const AUSNAHMEN = ["Aufschlag-Training","Aufschlag und dritter Ball","Passgenauigkeit (an die Wand)",
-                   "Atem-Rhythmus (3er-Zug)","Atemübung (Pranayama)","Klimmzüge"];
+/* v197: Drei der sechs Ausnahmen sind gefallen — Aufschlag, dritter Ball und
+   Passgenauigkeit haben sehr wohl einen Schwerpunkt (Rumpfdrehung + Schulter
+   bzw. Standbein + Innenseite), und die Ausdauer-Rechnung baut jetzt auf diesen
+   Zuordnungen auf. Ohne ehrlichen Schwerpunkt bleiben die beiden ATEM-Drills;
+   „Klimmzüge" braucht keinen Eintrag, weil die Kraft-Tabelle sie schon kennt
+   (`uebungMuskeln` findet sie ueber UEBUNGEN_DB). */
+const AUSNAHMEN = ["Atem-Rhythmus (3er-Zug)","Atemübung (Pranayama)","Klimmzüge"];
 const ohneMuskeln = [...drillNamen].filter(n => !SPORT_MUSKELN[n]).sort();
 pruefe("genau die dokumentierten Drills bleiben ohne Muskeln (ist: " + ohneMuskeln.join(", ") + ")",
   JSON.stringify(ohneMuskeln) === JSON.stringify([...AUSNAHMEN].sort()));
