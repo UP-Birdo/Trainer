@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.201
+
+- Eine Ausdauer-Einheit zeigt jetzt auch ihre Muskeln: „Laufen 30 min“ bekommt auf der
+  Karte dieselbe kleine Figur wie ein Kraftplan. Bisher blieb sie leer, obwohl die App
+  seit v197 weiß, was ein Lauf trifft — sie rechnet es ja in deine Auslastung ein.
+- Stufe 2 (Notizblock mit Zahlen) kennt jetzt alle Sportarten: Über den Spalten Sätze
+  und Wiederholungen steht bei einer Ausdauer-Sportart die Einheit selbst — mit Haken,
+  Strecke und Zeit.
+- Damit ist der Notizblock für jede Sportart derselbe Notizblock, auf beiden einfachen
+  Stufen.
+
 ## 0.200
 
 - Die Frage nach jeder Ausdauer-Einheit („War die Einheit zu leicht?“) lässt sich

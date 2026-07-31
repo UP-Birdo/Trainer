@@ -188,6 +188,10 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .notiz-zeile{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .notiz-zeile input:first-child{flex:1}
 .notiz-zahl{width:64px;flex:0 0 auto;text-align:center}
+/* v201: Der Name der Einheit auf Stufe 2 ist Text, kein Feld — die Sportart
+   wechselt man nicht in einer Zahlen-Zeile (dafür ist der Abschnittsname da). */
+.notiz-einheit-name{flex:1;min-width:0;font-size:15px;color:var(--chalk);
+  display:flex;align-items:center;min-height:44px}
 /* v79: Spaltenköpfe der Stufe-2-Zeilen — gleiche Breiten wie die Felder darunter */
 .notiz-kopf{display:flex;gap:8px;margin-bottom:4px}
 .notiz-kopf label{margin:0}
@@ -2658,7 +2662,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 200;
+const APP_VERSION = 201;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4253,6 +4257,58 @@ function notizZeileTaste(ev, feld, planId){
   }
 }
 
+/* ------------------------------------------------------------
+   v201: Stufe 2 zeigt ALLE Sportarten (47. Runde B, letzter Punkt).
+
+   Stufe 2 ist die Zeilen-Ansicht mit Zahlen — und sie kannte bis v200 nur die
+   Kraft-Spalten (Sätze, Wdh). Ein Laufabschnitt zeigte dort seine Drills, aber
+   nicht die Einheit selbst; wer auf Stufe 2 lief, hatte dieselbe Leerstelle wie
+   Stufe 1 vor v199. Die Einheit bekommt deshalb eine eigene Zeile ÜBER den
+   Spaltenköpfen: Haken, Name der Sportart, Strecke, Zeit.
+
+   Warum eine eigene Zeile und keine zusätzlichen Spalten: Eine Einheit hat keine
+   Sätze und ein Drill keine Kilometer — eine gemeinsame Tabelle hätte in jeder
+   Zeile zwei leere Spalten. Getrennt sagt jede Zeile genau das, was sie hat.
+   ------------------------------------------------------------ */
+function notizEinheitZeileHtml(p){
+  if(!p || p.typ !== "aktivitaet" || !p.sportart) return "";
+  const sp = sportart(p.sportart);
+  const zahl = (wert, platz, einheit, handler) =>
+    '<input class="notiz-zahl" type="number" inputmode="decimal" step="any" ' +
+      'placeholder="' + platz + '" aria-label="' + text(einheit) + '" value="' + (wert > 0 ? zahlKurz(wert) : "") + '" ' +
+      'onchange="' + handler + '(\'' + p.id + '\', this.value)">';
+  return '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
+      '<label>Einheit</label>' +
+      (sp.strecke ? '<label class="notiz-zahl">' + text(sp.strecke.einheit) + '</label>' : "") +
+      '<label class="notiz-zahl">' + text(zeitEinheit(p.zeitEinheit).kurz) + '</label>' +
+      '<span class="notiz-kopf-frei"></span></div>' +
+    '<div class="notiz-zeile">' + notizEinheitHakenHtml(p) +
+      '<span class="notiz-einheit-name">' + text(sp.name) + '</span>' +
+      (sp.strecke ? zahl(p.strecke, "5", sp.strecke.einheit, "notizEinheitStreckeSetzen") : "") +
+      zahl(inEinheit(p.dauer || 0, p.zeitEinheit), "30", "Dauer", "notizEinheitDauerSetzen") +
+      '<span class="notiz-kopf-frei"></span>' +
+    '</div>';
+}
+
+/** Strecke der Einheit setzen — in der Einheit der Sportart, wie sie danebensteht.
+    Leer oder 0 lässt den bisherigen Wert stehen (dieselbe Regel wie bei den
+    Sätzen: kein Wert, kein Effekt). */
+function notizEinheitStreckeSetzen(planId, wert){
+  const p = findePlan(planId); if(!p) return;
+  const n = kommaZahl(wert);
+  if(n > 0) p.strecke = Math.round(n * 100) / 100;
+  speichern();
+}
+
+/** Dauer der Einheit setzen — die Zahl steht in `p.zeitEinheit`, gespeichert
+    wird wie überall in Sekunden. */
+function notizEinheitDauerSetzen(planId, wert){
+  const p = findePlan(planId); if(!p) return;
+  const n = kommaZahl(wert);
+  if(n > 0) p.dauer = Math.min(MAX_DAUER_S, inSekunden(n, p.zeitEinheit || "min"));
+  speichern();
+}
+
 function notizAbschnittHtml(p, s){
   const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
@@ -4292,7 +4348,8 @@ function notizAbschnittHtml(p, s){
           'onchange="notizZeileWdhSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
         '<button class="rund" aria-label="Zeile löschen" onclick="notizZeileLoeschen(\'' + p.id + '\', \'' + u.id + '\')">×</button>' +
       '</div>').join("");
-    koerper = '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
+    koerper = notizEinheitZeileHtml(p) +
+      '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
       '<label>Übung</label><label class="notiz-zahl">Sätze</label>' +
       '<label class="notiz-zahl">Wdh</label><span class="notiz-kopf-frei"></span></div>' +
       zeilen +
@@ -6255,6 +6312,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.201", punkte:[
+    "Eine Ausdauer-Einheit zeigt jetzt auch ihre Muskeln: „Laufen 30 min“ bekommt auf der Karte dieselbe kleine Figur wie ein Kraftplan. Bisher blieb sie leer, obwohl die App seit v197 weiß, was ein Lauf trifft — sie rechnet es ja in deine Auslastung ein.",
+    "Stufe 2 (Notizblock mit Zahlen) kennt jetzt alle Sportarten: Über den Spalten Sätze und Wiederholungen steht bei einer Ausdauer-Sportart die Einheit selbst — mit Haken, Strecke und Zeit.",
+    "Damit ist der Notizblock für jede Sportart derselbe Notizblock, auf beiden einfachen Stufen."
+  ]},
   { stand:"0.200", punkte:[
     "Die Frage nach jeder Ausdauer-Einheit („War die Einheit zu leicht?“) lässt sich endlich verneinen. Bisher gab es nur „OK“ — und damit stieg dein Ziel nach JEDER eingetragenen Einheit, egal wie sie war. Wer dreimal die Woche läuft, dem wuchs das Ziel schneller, als die Wochenbremse es je bremsen konnte.",
     "Die Zeiteinheit beim Eintragen rechnet jetzt um: Aus „1 Stunde“ wird beim Umschalten „60 Minuten“ statt stillschweigend „1 Minute“. Der Plan-Editor macht das seit je richtig, das Eintragen-Formular nicht.",
@@ -8696,14 +8758,26 @@ function muskelMalen(ansicht){
     Nicht-Kraft-Drills) zählen nicht mit. Rein/testbar. */
 function planMuskeln(plan){
   const front = [], back = [];
+  const dazu = liste => (liste || []).forEach(m => {
+    const ziel = MUSKEL_SEITE[m] === "back" ? back : front;
+    if(!ziel.includes(m)) ziel.push(m);
+  });
   ((plan && plan.uebungen) || []).forEach(u => {
     const info = uebungMuskeln(u && u.name);
-    if(!info || !info.muskeln) return;
-    info.muskeln.forEach(m => {
-      const ziel = MUSKEL_SEITE[m] === "back" ? back : front;
-      if(!ziel.includes(m)) ziel.push(m);
-    });
+    if(info && info.muskeln) dazu(info.muskeln);
   });
+  /* v201 (Nutzer-Wunsch): Eine AUSDAUER-EINHEIT hat keine Übungen — ihre Werte
+     hängen am Plan (v199). Bis v200 blieb sie deshalb ohne Figur: „Laufen
+     30 min" zeigte nicht, was es trifft, obwohl die App es seit v197 weiß
+     (`SPORT_LAST_MUSKELN` speist damit die Belastungs-Rechnung). Es wäre
+     widersprüchlich, einen Lauf in die Beine zu rechnen und ihn zugleich als
+     „keine Muskeln erkannt" zu zeichnen. Die Sportart-Muskeln kommen nur dazu,
+     wenn KEIN Drill sie schon genannt hat — sonst stünde die grobe Zuordnung
+     der Sportart neben der feineren der Übungen. */
+  if(plan && plan.typ === "aktivitaet" && !front.length && !back.length){
+    const satz = SPORT_LAST_MUSKELN[plan.sportart];
+    if(satz){ dazu(muskelnAufKarte(satz.p)); dazu(muskelnAufKarte(satz.s)); }
+  }
   return { front, back };
 }
 
