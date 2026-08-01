@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.209
+
+- Fehler behoben: Die korrigierte Muskelkarte aus 0.208 kam auf dem Gerät gar nicht an —
+  die Füße blieben gelb eingefärbt, obwohl sie kein Muskel sind. Schuld war nicht die
+  Karte, sondern der Offline-Speicher: Er holte sich die Bilder beim Aktualisieren aus
+  dem Browser-Zwischenspeicher und legte damit die ALTEN Bilder in den neuen Vorrat.
+- Ab jetzt holt er jede Datei beim Aktualisieren frisch vom Server. Solange sich nur die
+  App-Datei änderte, ist das nie aufgefallen — 0.208 war das erste Update mit einem
+  geänderten Bild.
+- Für dich heißt das: Nach diesem Update sind Schienbein und Füße auf der Figur nicht
+  mehr eingefärbt, und die Waden hören da auf, wo die Wade aufhört.
+
 ## 0.208
 
 - Die Muskelkarte kennt jetzt Abschnitte: Neun Muskeln lassen sich feiner anschauen —
