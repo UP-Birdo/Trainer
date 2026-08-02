@@ -53,7 +53,7 @@ new Function("module", "exports", [
   " { id:'yoga', name:'Yoga' }, { id:'klettern', name:'Klettern' }];",
   "const SPORT_UEBUNGEN = { laufen:[], yoga:[], klettern:[] };",
   "function sportUebungen(id){ return SPORT_UEBUNGEN[id] || []; }",
-  grabFn("sportartZuDrill"),
+  grabFn("normName"), grabFn("sportartFuerUebung"), grabFn("sportartZuDrill"),
   grabFn("muskelUebungsQuellen"),
   "const TOP_UEBUNGEN_MAX = " + (/const TOP_UEBUNGEN_MAX = (\d+);/.exec(src) || [])[1] + ";",
   grabFn("topUebungenFuer"),

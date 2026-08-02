@@ -181,7 +181,12 @@ const abschnitt = grabFn("notizAbschnittHtml");
    tragen kann. Seit v198 gibt es echte Zeilen, der Haken sitzt in der Zeile,
    und die Leiste ist entfallen. Der Verlauf selbst (Punkte 1-8 oben) bleibt
    unveraendert — nur sein Bedienelement ist umgezogen. */
-pruefe("Stufe 1 bekommt den Block mit Zeilen", abschnitt.includes("notizZeilenHtml(p)"));
+/* v212: Stufe 1 hat keine Abschnitts-Karten mehr — die Zeilen stehen flach in
+   `notizFlachHtml`. Der Haken pro Zeile bleibt (genau das war die Ansage). */
+pruefe("Stufe 1 bekommt ihre Zeilen aus der flachen Liste",
+  grabFn("notizFlachHtml").includes("notizZeileHtml(p, z)"));
+pruefe("und notizAbschnittHtml baut nur noch Stufe 2",
+  !abschnitt.includes("notizZeilenHtml(p)"));
 pruefe("die Haken-Leiste ist abgeloest", !src.includes("function notizHakenLeisteHtml("));
 pruefe("Stufe 1 traegt den Haken IN der Zeile",
   grabFn("notizZeileHtml").includes("notizHakenHtml(p, z.uebung)"));

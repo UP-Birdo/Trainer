@@ -2694,7 +2694,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 211;
+const APP_VERSION = 212;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3866,9 +3866,15 @@ function notizblockZeichnen(){
      zweite Eingabe unter dem Block und wurde nicht gebraucht — der Notizblock
      ist der Block, nicht Block plus Tagebuch. Schon eingetragene Notizen bleiben
      im Protokoll (additiver Datenvertrag) und stehen ab Stufe 4 im Verlauf. */
-  ziel.innerHTML = (plaene.length === 0
-    ? '<div class="leer">Noch nichts notiert.</div>'
-    : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
+  /* v212 (Nutzer-Ansage): „Bei Stufe 1 sollen die Blöcke mit der Überschrift
+     wieder weg, aber die Checkbox pro Zeile soll bleiben." Stufe 1 ist damit
+     EINE flache Liste — Stufe 2 behält ihre Abschnitte (dort tragen die Zeilen
+     Spalten, die ohne Überschrift nicht lesbar wären). */
+  ziel.innerHTML = s <= 1
+    ? notizFlachHtml()
+    : (plaene.length === 0
+        ? '<div class="leer">Noch nichts notiert.</div>'
+        : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
   // Langdruck-Menü auf den Abschnitts-Karten (Duplizieren/Verschieben/Löschen
   // — der große Löschen-Knopf ist weg).
   // v198: Das Anpassen der Textfeld-Höhe ist entfallen; die Stufe-1-Ansicht
@@ -4228,29 +4234,130 @@ function notizZeilenModell(p){
 /** Eine Zeile: Haken (oder Platzhalter, solange die Zeile keine Übung ist),
     Eingabefeld, darunter der Platz für ihre Vorschläge. Der Platzhalter-Text
     steht nur in der leeren Zeile — in jeder Zeile stünde er als Textwand. */
+/* v212: `p` darf jetzt `null` sein — das ist die freie Zeile am Ende der
+   flachen Liste, die noch zu keinem Abschnitt gehört. Ihre Reihe trägt einen
+   leeren `data-plan`; beim Speichern sucht `notizNeueZeileAblegen` den
+   passenden Abschnitt anhand der Übung. */
 function notizZeileHtml(p, z){
-  const haken = z.einheit ? notizEinheitHakenHtml(p)
-              : z.uebung  ? notizHakenHtml(p, z.uebung)
-                          : '<span class="notiz-kopf-haken"></span>';
-  return '<div class="notiz-reihe">' +
+  const pid = p ? p.id : "";
+  const haken = (p && z.einheit) ? notizEinheitHakenHtml(p)
+              : (p && z.uebung)  ? notizHakenHtml(p, z.uebung)
+                                 : '<span class="notiz-kopf-haken"></span>';
+  return '<div class="notiz-reihe" data-plan="' + pid + '">' +
     '<div class="notiz-reihe-feld">' +
       '<span class="notiz-haken-slot">' + haken + '</span>' +
       '<input class="notiz-feld" type="text" value="' + text(z.text) + '"' +
         (z.text ? "" : ' placeholder="Eine Übung je Zeile"') +
         ' oninput="notizZeileTippen(this)"' +
-        ' onkeydown="notizZeileTaste(event, this, \'' + p.id + '\')"' +
+        ' onkeydown="notizZeileTaste(event, this, \'' + pid + '\')"' +
         ' onblur="notizVorschlaegeSchliessen(this)"' +
-        ' onchange="notizZeilenSpeichern(this, \'' + p.id + '\')">' +
+        ' onchange="notizZeilenSpeichern(this, \'' + pid + '\')">' +
     '</div>' +
     '<div class="filter-reihe notiz-vorschlaege" hidden></div>' +
   '</div>';
 }
 
-/** Der ganze Block eines Abschnitts — am Ende immer eine freie Zeile. */
-function notizZeilenHtml(p){
-  return '<div class="notiz-block">' +
-    notizZeilenModell(p).map(z => notizZeileHtml(p, z)).join("") +
-    notizZeileHtml(p, { text:"", uebung:null }) + '</div>';
+/* ------------------------------------------------------------
+   v212 — STUFE 1 IST EINE LISTE, KEINE SAMMLUNG VON BLÖCKEN.
+
+   Nutzer-Ansage: „Bei Stufe 1 sollen die Blöcke wieder weg mit der Überschrift,
+   aber die Checkbox pro Zeile soll bleiben — er soll anhand der Übung die
+   Sportart ermitteln."
+
+   **Was sich NICHT ändert: die Daten.** Die Abschnitte bleiben Pläne, jede
+   Zeile bleibt eine Übung ihres Plans. Das ist die goldene Regel (Stufe =
+   Ansicht, nicht Format): Wer auf Stufe 1 herunterschaltet, verliert nur die
+   Überschriften — auf Stufe 3 stehen seine Pläne unverändert da. Gebaut ist es
+   deshalb als reiner Sicht-Wechsel: dieselben Zeilen, dieselben Haken,
+   derselbe Parser; nur die Karten drumherum fallen weg, und jede Reihe merkt
+   sich über `data-plan`, wohin sie gehört.
+
+   **Was die Überschrift ersetzt: die Übung selbst.** Bisher sagte der
+   Abschnittsname, worum es geht („Laufen" machte den Plan zum Laufplan, v79).
+   Ohne Überschrift muss die Zeile das leisten — `notizZielSportart` fragt
+   erst, ob die Zeile mit einer Sportart beginnt (v199: „Laufen 5 km"), sonst
+   schlägt sie den Namen in den Übungs-Katalogen nach. Eine neue Zeile landet
+   damit im Abschnitt der passenden Sportart; gibt es den noch nicht, entsteht
+   er still im Hintergrund.
+
+   **Warum Stufe 2 ihre Blöcke behält:** Dort ist eine Zeile eine Reihe aus
+   Spalten (Übung · Sätze · Wdh). Ohne Überschrift wüsste niemand, welche Zahl
+   welche ist — die Spaltenköpfe hängen am Block. Die Ansage galt Stufe 1.
+   ------------------------------------------------------------ */
+
+/** Die flache Liste: alle Zeilen aller Abschnitte untereinander, am Ende die
+    eine freie Zeile (sie gehört noch zu keinem Plan). */
+function notizFlachHtml(){
+  const reihen = sitzung.daten.plaene
+    .map(p => notizZeilenModell(p).map(z => notizZeileHtml(p, z)).join("")).join("");
+  return '<div class="karte"><div class="notiz-block">' + reihen +
+    notizZeileHtml(null, { text:"", uebung:null }) + '</div></div>';
+}
+
+/** Der Zeilen-Block der flachen Ansicht (Stufe 1). */
+function notizBlock(){ return document.querySelector("#plan-liste .notiz-block"); }
+
+/** In die freie Zeile am Ende springen (das „+" der Stufe 1). */
+function notizFreieZeileFokus(){
+  const block = notizBlock(); if(!block || !block.children.length) return;
+  const letzte = block.children[block.children.length - 1];
+  letzte.scrollIntoView({ block:"center" });
+  notizZeileFokusReihe(letzte);
+}
+
+/** Die DOM-Reihen EINES Plans. In der flachen Liste liegen sie zusammenhängend
+    beieinander, unterschieden nur durch `data-plan`. */
+function notizReihenVon(planId){
+  const b = notizBlock();
+  return b ? [...b.children].filter(r => r.getAttribute("data-plan") === planId) : [];
+}
+
+/** Welche Sportart nennt diese Zeile? Erst die Einheit („Laufen 5 km", v199),
+    dann der Übungsname im Katalog. Ohne Treffer Krafttraining — das ist der
+    Normalfall und die einzige Sportart, die jeder hat. Rein/testbar. */
+function notizZielSportart(zeile, eigene){
+  const akt = notizSportart(zeile);
+  if(akt) return akt;
+  const d = notizZeileDeuten(zeile);
+  const name = d ? d.name : String(zeile || "").trim();
+  // `eigene` = die Sportarten des Nutzers: Wer Fußball trainiert und kein
+  // Tennis, meint mit „Sprint-Intervalle" seinen Fußball.
+  return sportartFuerUebung(name, eigene) || "kraft";
+}
+
+/** Der Abschnitt, in den eine neue Zeile gehört — vorhandener der Sportart oder
+    ein neuer. Legt an, ändert aber nichts an bestehenden Abschnitten. */
+function notizZielPlan(zeile){
+  const id = notizZielSportart(zeile, sitzung.daten.einrichtung.sportarten || ["kraft"]);
+  const da = sitzung.daten.plaene.find(p => (p.sportart || "kraft") === id);
+  if(da) return da;
+  const p = neuerAbschnitt(sportartName(id));
+  p.sportart = id;
+  p.typ = planTypFuer(id);
+  if(p.typ === "aktivitaet"){
+    // dieselben Felder wie planSportartSetzen — ein Aktivitäts-Plan ohne sie
+    // wäre unvollständig, bis der nächste Login ihn nachrüstet.
+    p.dauer = 1800; p.zeitEinheit = "min";
+    p.strecke = hatStrecke(id) ? sportart(id).strecke.start : 0;
+    p.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
+    p.massZiel = sportart(id).mass ? sportart(id).mass.start : null;
+  }
+  sitzung.daten.plaene.push(p);
+  return p;
+}
+
+/** Eine neue Zeile ablegen (die freie Zeile am Ende hat noch keinen Plan). */
+function notizNeueZeileAblegen(roh){
+  const t = String(roh || "").trim();
+  if(!t) return;
+  const p = notizZielPlan(t);
+  // An den vorhandenen Text ANHÄNGEN und alles durch denselben Parser schicken —
+  // so gelten Autokorrektur und Duplikat-Regel auch für die neue Zeile.
+  abschnittTextSetzen(p.id, notizZeilenModell(p).map(z => z.text).concat(t).join("\n"));
+  speichern();
+  notizblockZeichnen();
+  const block = notizBlock();
+  if(block && block.children.length) notizZeileFokusReihe(block.children[block.children.length - 1]);
 }
 
 /** Die wievielte Reihe des Blocks ist das? (Position statt fester Nummer im
@@ -4265,9 +4372,15 @@ function notizReihenIndex(feld){
     die EINE Deutung — ob der Text aus einem Feld kommt oder aus vielen,
     ändert an ihr nichts. */
 function notizZeilenSpeichern(feld, planId){
-  const karte = feld.closest(".karte");
-  if(!karte) return;
-  const felder = [...karte.querySelectorAll(".notiz-feld")];
+  /* v212: Ohne Plan-Id ist es die freie Zeile am Ende der flachen Liste — sie
+     sucht sich ihren Abschnitt selbst (über die Übung). */
+  if(!planId){ notizNeueZeileAblegen(feld.value); return; }
+  /* Gesammelt wird über `data-plan`, nicht über die umgebende Karte: In der
+     flachen Liste (Stufe 1, v212) liegen die Zeilen ALLER Abschnitte in
+     derselben Karte. Über die Karte zu sammeln, hätte fremde Zeilen in den
+     Parser dieses Abschnitts geschoben. */
+  const felder = notizReihenVon(planId).map(r => r.querySelector(".notiz-feld")).filter(Boolean);
+  if(!felder.length) return;
   abschnittTextSetzen(planId, felder.map(f => f.value).join("\n"));
   notizZeilenAbgleichen(planId);
 }
@@ -4281,11 +4394,12 @@ function notizZeilenSpeichern(feld, planId){
     Erwarten nicht auf, zeichnet der Block sicherheitshalber ganz neu. */
 function notizZeilenAbgleichen(planId){
   const p = findePlan(planId); if(!p) return;
-  const karte = document.querySelector('.karte[data-plan="' + planId + '"]');
-  const block = karte && karte.querySelector(".notiz-block");
+  const block = notizBlock();
   if(!block) return;
   const zeilen = notizZeilenModell(p);
-  const reihen = [...block.children];
+  /* v212: Abgeglichen werden nur die Reihen DIESES Abschnitts — in der flachen
+     Liste liegen die der anderen daneben. */
+  const reihen = notizReihenVon(planId);
   const gefuellt = reihen.filter(r => r.querySelector(".notiz-feld").value.trim());
   if(gefuellt.length !== zeilen.length){ notizblockZeichnen(); return; }
   gefuellt.forEach((reihe, i) => {
@@ -4301,25 +4415,34 @@ function notizZeilenAbgleichen(planId){
                                   : '<span class="notiz-kopf-haken"></span>';
     if(slot && slot.innerHTML !== neu) slot.innerHTML = neu;
   });
-  const letzte = reihen[reihen.length - 1];
-  if(letzte && letzte.querySelector(".notiz-feld").value.trim())
-    block.insertAdjacentHTML("beforeend", notizZeileHtml(p, { text:"", uebung:null }));
+  /* v212: Die freie Zeile steht EINMAL am Ende der ganzen Liste (sie gehört zu
+     keinem Abschnitt) — nicht mehr je Abschnitt. Fehlt sie, kommt sie zurück. */
+  const letzte = block.children[block.children.length - 1];
+  if(!letzte || letzte.getAttribute("data-plan") ||
+     letzte.querySelector(".notiz-feld").value.trim())
+    block.insertAdjacentHTML("beforeend", notizZeileHtml(null, { text:"", uebung:null }));
 }
 
-/** In eine Zeile springen (Cursor ans Ende). `anlegen` hängt eine neue an, wenn
-    es die gesuchte noch nicht gibt — so wandert Enter aus der letzten Zeile in
-    eine frische. */
+/** In eine Reihe springen (Cursor ans Ende). */
+function notizZeileFokusReihe(reihe){
+  const f = reihe && reihe.querySelector(".notiz-feld");
+  if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+}
+
+/** In die Zeile an Position `index` springen. `anlegen` hängt eine freie an,
+    wenn es die gesuchte noch nicht gibt — so wandert Enter aus der letzten
+    Zeile in eine frische.
+    v212: Der Index zählt über die GANZE Liste, nicht mehr je Abschnitt — in
+    der flachen Ansicht ist „die nächste Zeile" genau das, auch wenn sie zum
+    nächsten Abschnitt gehört. */
 function notizZeileFokus(planId, index, anlegen){
-  const karte = document.querySelector('.karte[data-plan="' + planId + '"]');
-  const block = karte && karte.querySelector(".notiz-block");
+  const block = notizBlock();
   if(!block) return;
   if(index >= block.children.length){
     if(!anlegen) return;
-    block.insertAdjacentHTML("beforeend", notizZeileHtml(findePlan(planId), { text:"", uebung:null }));
+    block.insertAdjacentHTML("beforeend", notizZeileHtml(null, { text:"", uebung:null }));
   }
-  const reihe = block.children[Math.min(index, block.children.length - 1)];
-  const f = reihe && reihe.querySelector(".notiz-feld");
-  if(f){ f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  notizZeileFokusReihe(block.children[Math.min(index, block.children.length - 1)]);
 }
 
 /** Enter und Rücktaste — das, was ein Textfeld von selbst konnte.
@@ -4402,19 +4525,13 @@ function notizAbschnittHtml(p, s){
   const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
     'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
   let koerper;
-  if(s <= 1){
-    // Der Block zeigt die ÜBUNGEN des Plans als Zeilen — Stufe 1 sieht damit
-    // dieselben Daten wie Stufe 5. Beim Ändern parst abschnittTextSetzen alles
-    // zurück (v79: JEDE nicht-leere Zeile ist eine Übung).
-    // v123: kurzer Platzhalter — das volle Muster erklärt das „i" im Kopf.
-    // v157: `oninput` zieht die Vorschläge nach; die Chip-Reihe unter der Zeile
-    // bleibt leer, solange nichts passt.
-    // v172: `onblur` räumt die Vorschläge weg — vorher blieben sie stehen.
-    // v198 (Nutzer-Wunsch): echte Zeilen statt eines Textfeldes, der Haken
-    // steht IN der Zeile. Damit ist die eigene Haken-Leiste (v174/v185)
-    // entfallen — Stufe 1 zeigt nur noch den Block, sonst nichts.
-    koerper = notizZeilenHtml(p);
-  } else {
+  {
+    /* v212: Der Stufe-1-Zweig ist hier entfallen — Stufe 1 zeichnet seit v212
+       eine flache Liste ohne Abschnitts-Karten (`notizFlachHtml`). Diese
+       Funktion baut nur noch die Karten der STUFE 2. Der Block bleibt als
+       Block stehen, damit `s` weiterhin klar hierher gehört und ein späterer
+       dritter Fall wieder eine Bedingung bekommt. */
+    void s;
     // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
     // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
     /* v174: Der Haken sitzt hier IN der Zeile, ganz links — die Zeile ist auf
@@ -5438,7 +5555,12 @@ function planNeuWege(stufeNr, sportarten){
 }
 
 function planNeuMenue(){
-  // v76: Auf Stufe 1/2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
+  /* v212: Auf Stufe 1 gibt es keine Abschnitte mehr zum Anlegen — die Liste ist
+     flach und hat immer eine freie Zeile am Ende. Das „+" springt deshalb
+     dorthin; einen leeren Abschnitt anzulegen, den niemand sieht, wäre eine
+     Aktion ohne sichtbare Wirkung. */
+  if(stufe() <= 1){ notizFreieZeileFokus(); return; }
+  // v76: Auf Stufe 2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
   // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
   if(stufe() <= 2){ abschnittAnlegen(); return; }
   /* v193/v194: Die Einträge für Assistent und Beispielplan sind hier entfallen,
@@ -6613,6 +6735,13 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.212", punkte:[
+    "Stufe 1 ist jetzt eine einzige Liste: Die Abschnitts-Überschriften sind weg, die Zeilen stehen einfach untereinander — und der Haken bleibt in jeder Zeile, wo er hingehört.",
+    "Was die Überschrift ersetzt, ist die Übung selbst. Tippst du eine neue Zeile, sucht die App die Sportart dazu: „Laufen 5 km“ wird eine Lauf-Einheit, „Bankdrücken 3x10“ landet beim Krafttraining. Gibt es den passenden Abschnitt noch nicht, legt sie ihn im Hintergrund an.",
+    "Deine Daten ändern sich dabei nicht. Ab Stufe 3 stehen deine Pläne unverändert da, mit ihren Namen — Stufe 1 blendet die Überschriften nur aus. Herunterschalten kostet nie etwas.",
+    "Stufe 2 behält ihre Abschnitte: Dort ist eine Zeile eine Reihe aus Spalten (Übung, Sätze, Wdh), und ohne Überschrift wüsste niemand, welche Zahl welche ist.",
+    "Das „+“ springt auf Stufe 1 jetzt in die freie Zeile am Ende, statt einen leeren Abschnitt anzulegen, den man ohnehin nicht sieht."
+  ]},
   { stand:"0.211", punkte:[
     "Fehler behoben: Ein Lauf färbte die Muskelkarte nicht mit ein. „Zuletzt trainiert“ lief nur über gezählte Sätze — und eine reine Ausdauer-Einheit hat keine, also blieb die Figur nach dem Laufen grau. Dabei rechnet die App den Lauf seit 0.197 längst in die Belastung: Sie warnte dich vor zu viel Beinarbeit und zeigte die Beine dabei ungefärbt.",
     "Jetzt zählt der Lauf auch für die Farbe — mit derselben Umrechnung wie in der Belastungs-Rechnung (10 Minuten = ein Satz-Äquivalent, gedeckelt bei sechs). Tippst du den Muskel an, steht die Einheit auch in der Liste darunter.",
@@ -12626,11 +12755,35 @@ function muskelUebungsQuellen(){
   return liste;
 }
 
-/** Zu welcher Sportart gehört ein Drill? (Erster Treffer im Katalog.) */
+/* v212: Zu welcher Sportart gehört eine Übung? EINE Antwort für zwei Fragen —
+   der Erkunden-Modus will wissen, ob ein Name ein Drill ist, und der Notizblock
+   der Stufe 1 muss aus der Übung die Sportart ableiten (Nutzer-Ansage: „er soll
+   anhand der Übung die Sportart ermitteln"). Zwei Suchen über dieselben Kataloge
+   wären zwei Wahrheiten.
+   Kraft zuerst: Steht ein Name in `UEBUNGEN_DB`, ist er Krafttraining — auch
+   wenn ihn zufällig eine Sportart als Drill führt. Unbekannt = `null`; geraten
+   wird nichts, der Aufrufer entscheidet, was das heißt. */
+function sportartFuerUebung(name, bevorzugt){
+  const n = normName(name || "");
+  if(!n) return null;
+  if(UEBUNGEN_DB.some(u => normName(u.name) === n)) return "kraft";
+  const treffer = SPORTARTEN.filter(s => s.id !== "kraft" &&
+    sportUebungen(s.id).some(v => normName(v.name) === n)).map(s => s.id);
+  if(!treffer.length) return null;
+  /* Manche Drills heißen in mehreren Sportarten gleich („Aufschlag-Training"
+     bei Tennis und Tischtennis, „Sprint-Intervalle" bei Laufen und Fußball).
+     Der Name allein entscheidet dann nicht — deshalb darf der Aufrufer sagen,
+     welche Sportarten IHN interessieren (beim Notizblock: die eigenen). Ohne
+     Vorgabe gewinnt die Reihenfolge in SPORTARTEN, damit die Antwort
+     reproduzierbar bleibt. */
+  const eigen = (bevorzugt || []).find(id => treffer.indexOf(id) >= 0);
+  return eigen || treffer[0];
+}
+
+/** Zu welcher Sportart gehört ein Drill? (Kraft zählt hier nicht als Treffer.) */
 function sportartZuDrill(name){
-  const treffer = SPORTARTEN.find(s => s.id !== "kraft" &&
-    sportUebungen(s.id).some(v => v.name === name));
-  return treffer ? treffer.id : null;
+  const id = sportartFuerUebung(name);
+  return (id && id !== "kraft") ? id : null;
 }
 
 /** Die passendsten Übungen für einen Muskel — nach der Regel oben sortiert.

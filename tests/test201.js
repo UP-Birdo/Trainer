@@ -169,8 +169,11 @@ pruefe("Stufe 2 baut sie ein — VOR den Uebungs-Spalten",
   (() => { const a = grabFn("notizAbschnittHtml");
            return a.indexOf("notizEinheitZeileHtml(p)") > 0 &&
                   a.indexOf("notizEinheitZeileHtml(p)") < a.indexOf('<label>Übung</label>'); })());
-pruefe("Stufe 1 bleibt bei ihrem Zeilen-Block (v198)",
-  grabFn("notizAbschnittHtml").includes("notizZeilenHtml(p)"));
+/* v212: Stufe 1 zeichnet flach — die Einheit-Zeile kommt dort aus
+   `notizZeilenModell` (sie steht als erste Zeile des Abschnitts drin). */
+pruefe("Stufe 1 bekommt die Einheit ueber das Zeilen-Modell",
+  grabFn("notizZeilenModell").includes("einheit: true") &&
+  grabFn("notizFlachHtml").includes("notizZeilenModell(p)"));
 
 /* ---------- 3) Die Felder speichern richtig ---------- */
 A.sitzung.daten.plaene = [{ id:"p9", sportart:"laufen", typ:"aktivitaet",

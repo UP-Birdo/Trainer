@@ -66,7 +66,10 @@ pruefe("eine davon ist der Hintergrund (Tipp daneben schliesst weiter)",
 const abschnitt = grabFn("notizAbschnittHtml");
 pruefe("die eigene Haken-Leiste ist weg", !src.includes("function notizHakenLeisteHtml("));
 pruefe("und ihr Stylesheet auch", !/\.notiz-erledigt\{/.test(src));
-pruefe("Stufe 1 zeigt nur noch den Block", abschnitt.includes("notizZeilenHtml(p)"));
+/* v212: Stufe 1 zeigt die Zeilen flach, ohne Abschnitts-Karte. */
+pruefe("Stufe 1 zeigt nur noch die Zeilen (flach, ohne Ueberschrift)",
+  grabFn("notizFlachHtml").includes("notizZeileHtml(p, z)") &&
+  !grabFn("notizFlachHtml").includes("notiz-name"));
 const zeile = grabFn("notizZeileHtml");
 const iHaken = zeile.indexOf("notizHakenHtml(p, z.uebung)");
 const iFeld = zeile.indexOf('class="notiz-feld"');

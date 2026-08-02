@@ -104,17 +104,24 @@ pruefe("Tippen, Tasten, Verlassen und Speichern haengen an der Zeile",
   zeileHtml.includes("onkeydown=\"notizZeileTaste(event, this,") &&
   zeileHtml.includes('onblur="notizVorschlaegeSchliessen(this)"') &&
   zeileHtml.includes("onchange=\"notizZeilenSpeichern(this,"));
-const blockHtml = grabFn("notizZeilenHtml");
+/* v212: Der Block gehoert nicht mehr zu EINEM Abschnitt — Stufe 1 zeichnet alle
+   Zeilen flach in einen Block (`notizFlachHtml`). Die Zusagen selbst gelten
+   unveraendert: ein eigener Behaelter, am Ende immer eine freie Zeile. */
+const blockHtml = grabFn("notizFlachHtml");
 pruefe("der Block ist ein eigener Behaelter", blockHtml.includes('class="notiz-block"'));
 pruefe("am Ende wartet immer eine freie Zeile",
-  blockHtml.includes('notizZeileHtml(p, { text:"", uebung:null })'));
+  blockHtml.includes('notizZeileHtml(null, { text:"", uebung:null })'));
 pruefe("es gibt ein Stylesheet dafuer",
   /\.notiz-block\{/.test(src) && /\.notiz-reihe-feld\{/.test(src));
 pruefe("die Textarea ist verschwunden", !/class="notiz-text"/.test(src));
 
 /* ---------- 4) Speichern: EIN Parser, nicht zwei ---------- */
 const speichern = grabFn("notizZeilenSpeichern");
-pruefe("gespeichert wird der ganze Block", speichern.includes('querySelectorAll(".notiz-feld")'));
+/* v212: Gesammelt wird ueber `data-plan` statt ueber die Karte — in der flachen
+   Liste liegen die Zeilen aller Abschnitte in derselben Karte. */
+pruefe("gespeichert werden die Zeilen GENAU dieses Abschnitts",
+  speichern.includes("notizReihenVon(planId)") &&
+  speichern.includes('r.querySelector(".notiz-feld")'));
 pruefe("zusammengefuegt mit Zeilenumbruch", speichern.includes('felder.map(f => f.value).join("\\n")'));
 pruefe("geparst wird mit dem bekannten Parser", speichern.includes("abschnittTextSetzen(planId,"));
 pruefe("danach wird abgeglichen", speichern.includes("notizZeilenAbgleichen(planId)"));
@@ -154,9 +161,13 @@ pruefe("die Ruecktaste raeumt nur LEERE Zeilen weg",
 pruefe("die erste Zeile bleibt dabei stehen", /if\(i <= 0\) return;/.test(taste));
 pruefe("danach steht der Cursor in der Zeile davor",
   taste.includes("notizZeileFokus(planId, i - 1, false)"));
-const fokus = grabFn("notizZeileFokus");
+/* v212: Das Setzen des Cursors ist nach `notizZeileFokusReihe` herausgeloest —
+   die flache Liste springt an zwei Stellen in eine Reihe (Enter und das „+"). */
 pruefe("der Cursor landet am Zeilenende",
-  fokus.includes("setSelectionRange(f.value.length, f.value.length)"));
+  grabFn("notizZeileFokusReihe").includes("setSelectionRange(f.value.length, f.value.length)"));
+pruefe("und beide Sprung-Wege nutzen dieselbe Stelle",
+  grabFn("notizZeileFokus").includes("notizZeileFokusReihe(") &&
+  grabFn("notizFreieZeileFokus").includes("notizZeileFokusReihe("));
 pruefe("die Position kommt aus dem Bild, nicht aus einer festen Nummer",
   grabFn("notizReihenIndex").includes("[...reihe.parentNode.children].indexOf(reihe)"));
 

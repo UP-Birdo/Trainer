@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.212
+
+- Stufe 1 ist jetzt eine einzige Liste: Die Abschnitts-Überschriften sind weg, die
+  Zeilen stehen einfach untereinander — und der Haken bleibt in jeder Zeile, wo er
+  hingehört.
+- Was die Überschrift ersetzt, ist die Übung selbst. Tippst du eine neue Zeile, sucht
+  die App die Sportart dazu: „Laufen 5 km“ wird eine Lauf-Einheit, „Bankdrücken 3x10“
+  landet beim Krafttraining. Gibt es den passenden Abschnitt noch nicht, legt sie ihn im
+  Hintergrund an.
+- Deine Daten ändern sich dabei nicht. Ab Stufe 3 stehen deine Pläne unverändert da, mit
+  ihren Namen — Stufe 1 blendet die Überschriften nur aus. Herunterschalten kostet nie
+  etwas.
+- Stufe 2 behält ihre Abschnitte: Dort ist eine Zeile eine Reihe aus Spalten (Übung,
+  Sätze, Wdh), und ohne Überschrift wüsste niemand, welche Zahl welche ist.
+- Das „+“ springt auf Stufe 1 jetzt in die freie Zeile am Ende, statt einen leeren
+  Abschnitt anzulegen, den man ohnehin nicht sieht.
+
 ## 0.211
 
 - Fehler behoben: Ein Lauf färbte die Muskelkarte nicht mit ein. „Zuletzt trainiert“
