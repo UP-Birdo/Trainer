@@ -67,14 +67,24 @@ pruefe("die Standardwerte sind unveraendert 8/30/15",
   A.IV_STANDARD.runden === 8 && A.IV_STANDARD.belastung === 30 && A.IV_STANDARD.pause === 15);
 pruefe("der Editor-Umschalter nutzt die Konstante",
   grabFn("planIntervallSetzen").includes("IV_STANDARD"));
-pruefe("die Intervall-Anlage nutzt sie auch",
-  grabFn("intervallPlanNeu").includes("IV_STANDARD"));
-/* Genau DREI Stellen duerfen die Zahlen kennen: die Konstante selbst und die
+/* v211 (Nutzer-Ansage): Der eigene Anlege-Bildschirm ist entfallen — Runden
+   sind eine Entscheidung IM Plan, keine eigene Plan-Art. Damit gibt es
+   `intervallPlanNeu` nicht mehr; die Zusage wird zur Gegenprobe, dass wirklich
+   NICHTS davon zurueckgeblieben ist. */
+/* Geprueft wird auf CODE, nicht auf Text: Der Quelltext erklaert an zwei
+   Stellen, was hier entfallen ist, und nennt die Namen dabei — ein bloszes
+   Suchen nach dem Wort schluege auf dem eigenen Merkzettel an. */
+pruefe("die eigene Intervall-Anlage ist restlos entfallen",
+  !/function intervallPlanNeu\(/.test(src) &&
+  !/function intervallPlanSpeichern\(/.test(src) &&
+  !/function intervallSportarten\(/.test(src) &&
+  !/<section id="view-intervall-neu"/.test(src) &&
+  !/zeige\("view-intervall-neu"\)/.test(src) &&
+  !/id="iv-runden"/.test(src));
+/* Genau ZWEI Stellen duerfen die Zahlen kennen: die Konstante selbst und die
    Stelle, die sie in IV_GRENZEN abgrenzt — nirgends sonst noch ein 8/30/15. */
 pruefe("keine hartkodierte Kopie mehr im Editor",
   !/intervall = \{ runden:8/.test(src));
-pruefe("und keine in der Intervall-Anlage",
-  !/iv-runden"\)\.value = 8/.test(src));
 
 /* ---------- 2) ivStandardFuer ---------- */
 pruefe("ohne eigene Vorgabe kommt der Haus-Standard", (() => {
@@ -103,7 +113,7 @@ pruefe("die eigene Vorgabe steht nur an der Sportart",
   A.SPORTARTEN.filter(s => s.intervallStandard).length);
 pruefe("und wird an genau einer Stelle gelesen",
   grabFn("ivStandardFuer").includes(".intervallStandard") &&
-  ["planIntervallSetzen", "intervallPlanNeu", "aktivitaetsPlaeneBauen", "wzZusammenfassung"]
+  ["planIntervallSetzen", "aktivitaetsPlaeneBauen", "wzZusammenfassung"]
     .every(fn => !grabFn(fn).includes("intervallStandard")));
 
 /* DIE LADEREIHENFOLGE — teuer bezahlt in genau dieser Version.

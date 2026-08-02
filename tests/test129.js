@@ -47,12 +47,14 @@ pruefe("Stufe 5 mit Kraft: nur Uebung + eigener Plan", w(5, ["kraft"]) === "uebu
 pruefe("Stufe 3 genauso", w(3, ["kraft"]) === "uebung,eigen");
 pruefe("Stufe 4 genauso", w(4, ["kraft"]) === "uebung,eigen");
 pruefe("ohne Kraft genauso", w(5, ["yoga"]) === "uebung,eigen");
-/* v194 (Korrektur des Nutzers): Entfernt wurden NUR Assistent und Beispielplan.
-   Der Intervall-Weg bleibt und haengt weiter an seiner Bedingung (v118). */
-pruefe("Intervall-Sportart bringt den Intervall-Weg",
-  w(5, ["kraft","laufen"]) === "uebung,eigen,intervall");
-pruefe("zwei Intervall-Sportarten bringen ihn nur EINMAL",
-  w(5, ["laufen","kampfsport"]) === "uebung,eigen,intervall");
+/* v194 hatte den Intervall-Weg stehen lassen; **v211 (Nutzer-Ansage) nimmt ihn
+   heraus**: Runden sind keine eigene Plan-Art, sondern eine Entscheidung IM
+   Plan (Editor „Dauer / Runden", v133). Das Menue hat damit auf jeder Stufe und
+   bei jedem Profil genau ZWEI Eintraege — ohne Bedingung. */
+pruefe("eine Intervall-Sportart aendert nichts mehr",
+  w(5, ["kraft","laufen"]) === "uebung,eigen");
+pruefe("zwei Intervall-Sportarten auch nicht",
+  w(5, ["laufen","kampfsport"]) === "uebung,eigen");
 pruefe("ohne Sportarten bleibt es dabei", w(5, []) === "uebung,eigen");
 pruefe("undefined faellt nicht um", w(5, undefined) === "uebung,eigen");
 pruefe("Nachtragen ist aus dem Plus-Menue verschwunden",
@@ -80,10 +82,11 @@ pruefe("und keine Stufen-Verzweigung mehr", !leerBlock.includes("stufe()"));
 /* 3) Das Menue haengt an der reinen Auswahl. */
 const menue = grabFn("planNeuMenue");
 pruefe("Menue nutzt planNeuWege", menue.includes("planNeuWege(stufe()"));
-pruefe("alle Wege sind verdrahtet",   // v194: Uebung, eigener Plan, Intervall
-  ["uebung:", "eigen:", "intervall:"].every(k => menue.includes(k)));
-pruefe("und kein toter Eintrag bleibt zurueck (v180/v193)",
-  !menue.includes("nachtragen") && !menue.includes("assistent:") && !menue.includes("beispiel:"));
+pruefe("alle Wege sind verdrahtet",   // v211: nur noch Uebung und eigener Plan
+  ["uebung:", "eigen:"].every(k => menue.includes(k)));
+pruefe("und kein toter Eintrag bleibt zurueck (v180/v193/v211)",
+  !menue.includes("nachtragen") && !menue.includes("assistent:") &&
+  !menue.includes("beispiel:") && !menue.includes("intervall:"));
 pruefe("Stufe 1/2 legt weiter direkt einen Abschnitt an", menue.includes("abschnittAnlegen()"));
 
 console.log(ok + " ok, " + fehler + " Fehler");

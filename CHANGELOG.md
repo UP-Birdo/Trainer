@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.211
+
+- Fehler behoben: Ein Lauf färbte die Muskelkarte nicht mit ein. „Zuletzt trainiert“
+  lief nur über gezählte Sätze — und eine reine Ausdauer-Einheit hat keine, also blieb
+  die Figur nach dem Laufen grau. Dabei rechnet die App den Lauf seit 0.197 längst in
+  die Belastung: Sie warnte dich vor zu viel Beinarbeit und zeigte die Beine dabei
+  ungefärbt.
+- Jetzt zählt der Lauf auch für die Farbe — mit derselben Umrechnung wie in der
+  Belastungs-Rechnung (10 Minuten = ein Satz-Äquivalent, gedeckelt bei sechs). Tippst du
+  den Muskel an, steht die Einheit auch in der Liste darunter.
+- „Intervall-Plan anlegen“ ist aus dem +-Menü verschwunden. Runden sind keine eigene
+  Plan-Art, sondern eine Entscheidung IM Plan: Beim Plan erstellen steht bei jeder
+  Sportart mit Runden-Training der Umschalter „Dauer / Runden“. Das +-Menü hat damit
+  überall genau zwei Einträge.
+
 ## 0.210
 
 - Die Zeitachse deiner Kurven ist jetzt wirklich eine Zeitachse. Bisher standen alle

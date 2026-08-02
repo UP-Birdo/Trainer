@@ -1667,24 +1667,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="meta" style="margin-top:12px">Die App muss dafür im Vordergrund bleiben — <span id="stopp-warnung"></span> friert sie sonst ein. Für lange Einheiten lieber hinterher eintragen.</div>
 </section>
 
-<!-- v118 (Nicht-Kraft, Etappe 3): Intervall-Plan anlegen -->
-<section id="view-intervall-neu" class="view">
-  <div class="kopf"><h1>Intervall-Plan</h1></div>
-  <label class="abstand" for="iv-name">Name</label>
-  <input id="iv-name" type="text" placeholder="z. B. Box-Runden">
-  <label class="abstand" for="iv-sport">Sportart</label>
-  <select id="iv-sport"></select>
-  <div class="raster abstand">
-    <div><label for="iv-runden">Runden</label><input id="iv-runden" type="number" inputmode="numeric" min="1" step="1" value="8" oninput="intervallVorschau()"></div>
-    <div><label for="iv-belastung">Belastung (Sek.)</label><input id="iv-belastung" type="number" inputmode="numeric" min="5" step="5" value="30" oninput="intervallVorschau()"></div>
-  </div>
-  <div class="abstand"><label for="iv-pause">Pause (Sek.)</label><input id="iv-pause" type="number" inputmode="numeric" min="0" step="5" value="15" oninput="intervallVorschau()"></div>
-  <div id="iv-vorschau" class="meta abstand"></div>
-  <div class="knopfreihe">
-    <button class="primaer schmal" onclick="intervallPlanSpeichern()">Plan speichern</button>
-    <button class="schmal" onclick="planListeZeichnen(); zeige('view-plaene')">Abbrechen</button>
-  </div>
-</section>
+<!-- v211: Der eigene Bildschirm „Intervall-Plan anlegen" ist entfallen
+     (Nutzer-Ansage). Runden sind keine eigene PLAN-ART, sondern eine
+     Entscheidung INNERHALB eines Plans — und die steht im Editor bei jeder
+     Sportart mit Runden-Training als Umschalter „Dauer / Runden" (v133,
+     `akt-art-block`). Der geführte Timer selbst (view-intervall) bleibt. -->
 
 <!-- v118: geführter Intervall-Timer -->
 <section id="view-intervall" class="view">
@@ -2707,7 +2694,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 210;
+const APP_VERSION = 211;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3581,7 +3568,7 @@ function stufe(){
 const VIEW_MIN_STUFE = {
   "view-start": 3,                                   // "Heute" gibt es erst mit echtem Training
   "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
-  "view-intervall": 3, "view-intervall-neu": 3,        // v118: Intervall-Timer + Anlage
+  "view-intervall": 3,                                 // v118: Intervall-Timer (die eigene Anlage entfiel mit v211)
   "view-eintragen": 3, "view-bewertung": 3, "view-ergebnis": 3,
   "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
   "view-uebung-picker": 3,                           // v148: Übungs-Suche als eigene Ansicht
@@ -5430,18 +5417,24 @@ function planNeuWege(stufeNr, sportarten){
      * **Beispielplan:** ebenfalls unter „Mehr → Werkzeuge". Er ist ein
        Nachschlage-Angebot („wie sieht ein fertiger Plan aus?"), kein Anlege-Weg.
      **v194 (Korrektur des Nutzers):** „Es sollten aus dem +-Menü nur ZWEI Punkte
-     herausgenommen werden — der Assistent und der Beispielplan. Der Rest sollte
-     so bleiben, bis auf dass Übung eintragen noch mit reinkommt."
-     Der **Intervall-Weg bleibt also** und hängt weiter an seiner Bedingung (nur
-     mit einer Intervall-Sportart im Profil, v118). Meine v193-Begründung, der
-     Editor könne Runden ohnehin, war kein Grund den Weg zu nehmen: Der
-     Editor-Umschalter (v133) liegt hinter Sportart-Wahl und Einstellungen — der
-     Menü-Eintrag legt einen Runden-Plan in einem Schritt an. Zwei Wege zum
-     selben Ziel sind hier kein Fehler, sondern verschieden lang. */
+     herausgenommen werden — der Assistent und der Beispielplan."
+     Der Intervall-Weg blieb daraufhin stehen.
+
+     **v211 (Nutzer-Ansage, hebt v194 in diesem Punkt auf):** „Warum ist
+     Intervall-Plan eintragen drin unter dem Plus? Das soll als Entscheidung bei
+     Plan erstellen drin sein, unter den entsprechenden Sportarten."
+     Damit ist die Frage anders gestellt als in v194 — es geht nicht um einen
+     kürzeren zweiten Weg, sondern darum, was Runden überhaupt SIND: **keine
+     eigene Plan-Art, sondern eine Entscheidung innerhalb eines Plans.** Genau so
+     steht sie im Editor seit v133 („Dauer / Runden", sichtbar bei jeder Sportart
+     mit Runden-Training) und im Assistenten seit v186. Ein eigener Anlege-Weg
+     daneben behauptete das Gegenteil.
+
+     Das „+" hat damit wieder genau ZWEI Einträge — auf jeder Stufe und bei
+     jedem Profil, ohne Bedingung. */
   const liste = sportarten || [];
-  const wege = ["uebung", "eigen"];
-  if(liste.some(id => sportart(id).intervall)) wege.push("intervall");
-  return wege;
+  void liste;   // die Wege hängen seit v211 an keiner Sportart mehr
+  return ["uebung", "eigen"];
 }
 
 function planNeuMenue(){
@@ -5455,8 +5448,9 @@ function planNeuMenue(){
      (v194, Korrektur des Nutzers). */
   const wege = {
     uebung:     { text:"Übung eintragen",        tun: uebungAlleinAnlegen },   // v192/v193
-    eigen:      { text:"Plan erstellen",         tun: planAnlegen },
-    intervall:  { text:"Intervall-Plan anlegen", tun: intervallPlanNeu }
+    eigen:      { text:"Plan erstellen",         tun: planAnlegen }
+    // v211: „Intervall-Plan anlegen" ist entfallen — Runden sind eine
+    // Entscheidung IM Plan (Editor: „Dauer / Runden"), keine eigene Plan-Art.
   };
   aktionsMenue("Neu anlegen",
     planNeuWege(stufe(), sitzung.daten.einrichtung.sportarten || ["kraft"]).map(k => wege[k]));
@@ -6619,6 +6613,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.211", punkte:[
+    "Fehler behoben: Ein Lauf färbte die Muskelkarte nicht mit ein. „Zuletzt trainiert“ lief nur über gezählte Sätze — und eine reine Ausdauer-Einheit hat keine, also blieb die Figur nach dem Laufen grau. Dabei rechnet die App den Lauf seit 0.197 längst in die Belastung: Sie warnte dich vor zu viel Beinarbeit und zeigte die Beine dabei ungefärbt.",
+    "Jetzt zählt der Lauf auch für die Farbe — mit derselben Umrechnung wie in der Belastungs-Rechnung (10 Minuten = ein Satz-Äquivalent, gedeckelt bei sechs). Tippst du den Muskel an, steht die Einheit auch in der Liste darunter.",
+    "„Intervall-Plan anlegen“ ist aus dem +-Menü verschwunden. Runden sind keine eigene Plan-Art, sondern eine Entscheidung IM Plan: Beim Plan erstellen steht bei jeder Sportart mit Runden-Training der Umschalter „Dauer / Runden“. Das +-Menü hat damit überall genau zwei Einträge."
+  ]},
   { stand:"0.210", punkte:[
     "Die Zeitachse deiner Kurven ist jetzt wirklich eine Zeitachse. Bisher standen alle Punkte gleich weit auseinander — egal ob ein Tag oder acht Wochen dazwischen lagen. Eine Pause war damit unsichtbar, und dieselben zwei Werte sahen nach steilem Fortschritt aus, ganz gleich wie lange du dafür gebraucht hast.",
     "Betrifft Körpergewicht, BMI und den Übungs-Fortschritt. Am deutlichsten wird es mit dem Zoom (Woche/Monat/Jahr): Der hat den Zeitraum immer schon richtig gefiltert, aber innerhalb des Fensters log der Abstand — je enger das Fenster, desto größer der Fehler.",
@@ -10352,18 +10351,46 @@ function auslastungText(muskel, a, reicht){
   }
 }
 
+/* ------------------------------------------------------------
+   v211 — der Lauf färbt die Figur mit (Nutzer-Fund, 55. Runde).
+
+   „Wenn ich gelaufen bin, trägt er das Training nicht richtig in die
+   ‚zuletzt trainiert'-Muskelkarte ein." Bestätigt: Diese Funktion lief NUR über
+   `e.saetze` — und eine reine Ausdauer-Einheit hat keine. Die Figur blieb nach
+   einem Lauf grau.
+
+   Das Ärgerliche daran: Die App WEISS es längst. Seit v197 rechnet `muskelLast`
+   genau diese Einheiten in die Belastung (10 min = 1 Satz-Äquivalent, gedeckelt
+   bei 6, Muskeln aus `SPORT_LAST_MUSKELN`). Es waren also nicht zwei Meinungen,
+   sondern eine Rechnung und eine Einfärbung, die sie nicht kannte: Die Karte
+   warnte einen vor zu viel Beinarbeit und zeigte die Beine dabei ungefärbt.
+
+   Deshalb kommt hier KEINE zweite Regel dazu — es sind dieselben Bausteine
+   (`alsEinheitZaehlbar`, `aktivitaetSaetze`, `SPORT_LAST_MUSKELN`). Nur die
+   Zählweise ist die dieser Funktion: **primäre Muskeln, so viele Punkte wie
+   Satz-Äquivalente.** Mitarbeitende Muskeln bleiben draußen, weil sie hier auch
+   beim Krafttraining draußen sind — die Heatmap zeigt, was gearbeitet hat,
+   nicht wer mitgehalten hat.
+   ------------------------------------------------------------ */
 /** Zählt je Muskel, wie oft er in den letzten `tage` Tagen trainiert wurde (ein
-    Satz = ein Punkt je primärem Muskel). Pure Funktion (testbar). */
+    Satz = ein Punkt je primärem Muskel; eine Ausdauer-Einheit über ihre
+    Satz-Äquivalente). Pure Funktion (testbar). */
 function trainierteMuskeln(protokoll, heute, tage){
   const zaehler = {};
+  const dazu = (m, wieviel) => { zaehler[m] = (zaehler[m] || 0) + wieviel; };
   for(const e of (protokoll || [])){
     if(!e.datum) continue;
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > tage) continue;
+    // v211: die Ausdauer-Einheit — dieselbe Bedingung wie in muskelLast (v197).
+    if(alsEinheitZaehlbar(e)){
+      const wiegt = aktivitaetSaetze(e.dauerMin);
+      muskelnAufKarte(SPORT_LAST_MUSKELN[e.sportart].p).forEach(m => dazu(m, wiegt));
+    }
     for(const s of (e.saetze || [])){
       const info = uebungMuskeln(s.name);
       if(!info || !info.muskeln) continue;
-      for(const m of info.muskeln){ zaehler[m] = (zaehler[m] || 0) + 1; }
+      for(const m of info.muskeln){ dazu(m, 1); }
     }
   }
   return zaehler;
@@ -10416,6 +10443,14 @@ function muskelTrainingDetail(key){
     if(!e.datum) continue;
     const d = tagDifferenz(e.datum, heute); if(d < 0 || d > MUSKEL_HEAT_TAGE) continue;
     const namen = [];
+    /* v211: Die Einfärbung zählt den Lauf jetzt mit (s. trainierteMuskeln) —
+       dann muss er auch in der Liste darunter stehen. Sonst wäre ein Muskel
+       gefärbt, und die Antwort auf „wovon?" bliebe leer. Der Name ist der des
+       Plans; `aktivitaetAblegen` setzt ihn immer (ersatzweise die Sportart). */
+    if(alsEinheitZaehlbar(e) && muskelnAufKarte(SPORT_LAST_MUSKELN[e.sportart].p).includes(key)){
+      const name = e.plan || sportartName(e.sportart);
+      if(!namen.includes(name)) namen.push(name);
+    }
     for(const s of (e.saetze || [])){
       const info = uebungMuskeln(s.name);
       if(info && info.muskeln && info.muskeln.includes(key) && !namen.includes(s.name)) namen.push(s.name);
@@ -16444,7 +16479,6 @@ function stoppuhrAufraeumen(){
    die Audio-Uhr). Nur für Sportarten mit `intervall:true`; ein Intervall-Plan ist
    ein Aktivitäts-Plan mit `intervall:{runden,belastung,pause}`.
    ============================================================ */
-function intervallSportarten(){ return SPORTARTEN.filter(s => s.intervall); }
 
 /** Reine Phasen-Liste: je Runde eine Belastung, dazwischen (NICHT nach der
     letzten Runde) eine Pause. Jede Phase mit Start-Offset `ab` in Sekunden. */
@@ -16482,53 +16516,20 @@ function intervallPhaseBei(phasen, sek){
   return null;
 }
 
-/* ---- Anlegen ---- */
-function intervallPlanNeu(){
-  if(!viewErlaubt("view-intervall-neu")) return;
-  document.getElementById("iv-sport").innerHTML =
-    intervallSportarten().map(s => '<option value="' + s.id + '">' + text(s.name) + '</option>').join("");
-  document.getElementById("iv-name").value = "";
-  document.getElementById("iv-runden").value = IV_STANDARD.runden;          // v186: eine Wahrheit
-  document.getElementById("iv-belastung").value = IV_STANDARD.belastung;
-  document.getElementById("iv-pause").value = IV_STANDARD.pause;
-  intervallVorschau();
-  zeige("view-intervall-neu");
-}
-function intervallWerteLesen(){
-  return {
-    runden:    Math.max(1, Math.round(parseFloat(document.getElementById("iv-runden").value) || 0)),
-    belastung: Math.max(5, Math.round(parseFloat(document.getElementById("iv-belastung").value) || 0)),
-    pause:     Math.max(0, Math.round(parseFloat(document.getElementById("iv-pause").value) || 0))
-  };
-}
-function intervallVorschau(){
-  const w = intervallWerteLesen();
-  const gesamt = intervallGesamt(intervallPhasen(w.runden, w.belastung, w.pause));
-  document.getElementById("iv-vorschau").textContent =
-    w.runden + " Runden · " + w.belastung + " s Belastung + " + w.pause + " s Pause · gesamt " + uhrText(gesamt);
-}
+/* ---- Anlegen ----
+   v211 (Nutzer-Ansage): Der eigene Anlege-Weg ist entfallen — mit ihm
+   `intervallPlanNeu`, `intervallWerteLesen`, `intervallVorschau`,
+   `intervallPlanSpeichern` und `intervallSportarten`. Sie hingen alle am
+   Bildschirm `view-intervall-neu`, den nichts mehr aufruft; stehen zu bleiben
+   hätte einen zweiten Anlege-Pfad ergeben, den niemand mehr pflegt. Runden
+   sind eine Entscheidung IM Plan (Editor: „Dauer / Runden"), keine eigene
+   Plan-Art. Die Begründung steht in `docs/DECISIONS.md`, v211. */
+
 /** Kurzform fürs Plan-Kärtchen: "8 × 30/15 s · 6:00". */
 function intervallText(plan){
   const iv = plan.intervall;
   return iv.runden + " × " + iv.belastung + "/" + iv.pause + " s · " +
     uhrText(intervallGesamt(intervallPhasen(iv.runden, iv.belastung, iv.pause)));
-}
-function intervallPlanSpeichern(){
-  const w = intervallWerteLesen();
-  const sport = document.getElementById("iv-sport").value;
-  const gesamt = intervallGesamt(intervallPhasen(w.runden, w.belastung, w.pause));
-  const name = (document.getElementById("iv-name").value || "").trim() || (sportartName(sport) + " Intervall");
-  sitzung.daten.plaene.push({
-    id: neueId(), name, sportart: sport, typ:"aktivitaet", quelle:"eigen",
-    tage:[], wochenTakt:1, wochenAnker:0, einzelTermine:[],
-    intervall: { runden:w.runden, belastung:w.belastung, pause:w.pause },
-    dauer: gesamt, zeitEinheit:"min", strecke:0, uebungen:[],
-    reihenfolge:"klassisch", aufwaermen:false, dehnen:false
-  });
-  speichern();
-  planListeZeichnen();
-  zeige("view-plaene");
-  zeigenToast("Intervall-Plan angelegt", "erfolg");
 }
 
 /* ---- Timer ---- */

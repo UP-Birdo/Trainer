@@ -14,6 +14,14 @@ function grabFn(name){
   }
   throw new Error("Klammern unausgeglichen: " + name);
 }
+/* v211: grabConst sucht die naechste Klammer und taugt darum nur fuer Objekte
+   und Felder — bei `const X = 10;` griffe es bis zur uebernaechsten Konstante.
+   Fuer schlichte Werte dieser Leser: bis zum ersten Semikolon. */
+function grabZahl(name){
+  const t = new RegExp("^const " + name + " = [^;\\n]*;", "m").exec(src);
+  if(!t) throw new Error("const nicht gefunden: " + name);
+  return t[0];
+}
 function grabConst(name){
   const i = src.indexOf("const " + name + " =");
   if(i < 0) throw new Error("const nicht gefunden: " + name);
@@ -46,6 +54,10 @@ const code = [
   // Anzeige-Form mit ihnen.
   grabConst("SPORT_MUSKELN"), grabFn("muskelSatzAnzeige"),
   grabFn("normName"), grabFn("uebungMuskeln"),
+  // v211: die Heatmap zählt jetzt auch Ausdauer-Einheiten (dieselben Bausteine wie v197).
+  grabZahl("AKTIVITAET_MINUTEN_JE_SATZ"), grabZahl("AKTIVITAET_MAX_SAETZE"),
+  grabConst("SPORT_LAST_MUSKELN"), grabFn("istSollEintrag"),
+  grabFn("aktivitaetSaetze"), grabFn("alsEinheitZaehlbar"),
   grabFn("tagDifferenz"), grabFn("trainierteMuskeln"),
   "const HEAT_MAX_ALPHA = " + heatMax + ";", grabFn("heatAlpha"),
   "module.exports = { MUSKEL_ORDER, MUSKEL_SEITE, UEBUNGEN_DB, UEBUNG_MUSKELN," +

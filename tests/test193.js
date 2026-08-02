@@ -82,11 +82,15 @@ pruefe("weder Assistent noch Beispielplan, auf keiner Stufe",
     const w = A.planNeuWege(s, ["kraft","laufen"]);
     return !w.includes("assistent") && !w.includes("beispiel");
   }));
-pruefe("der Intervall-Weg ist geblieben",
-  A.planNeuWege(5, ["laufen"]).includes("intervall"));
-pruefe("und bleibt an seine Sportarten gebunden",
-  !A.planNeuWege(5, ["kraft"]).includes("intervall") &&
-  !A.planNeuWege(5, []).includes("intervall"));
+/* v211 (Nutzer-Ansage, hebt v194 in diesem Punkt auf): Auch der Intervall-Weg
+   ist weg. Runden sind eine Entscheidung IM Plan (Editor „Dauer / Runden",
+   v133), keine eigene Plan-Art — ein eigener Anlege-Weg behauptete das
+   Gegenteil. Das Menue hat damit ueberall genau zwei Eintraege. */
+pruefe("der Intervall-Weg ist ebenfalls raus",
+  !A.planNeuWege(5, ["laufen"]).includes("intervall"));
+pruefe("und zwar unabhaengig von den Sportarten",
+  [["kraft"], ["laufen"], ["kampfsport","laufen"], []].every(s =>
+    A.planNeuWege(5, s).join(",") === "uebung,eigen"));
 pruefe("ohne Sportarten faellt nichts um",
   A.planNeuWege(5, []).join(",") === "uebung,eigen" &&
   A.planNeuWege(5).join(",") === "uebung,eigen");
