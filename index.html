@@ -2707,7 +2707,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 209;
+const APP_VERSION = 210;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6619,6 +6619,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.210", punkte:[
+    "Die Zeitachse deiner Kurven ist jetzt wirklich eine Zeitachse. Bisher standen alle Punkte gleich weit auseinander — egal ob ein Tag oder acht Wochen dazwischen lagen. Eine Pause war damit unsichtbar, und dieselben zwei Werte sahen nach steilem Fortschritt aus, ganz gleich wie lange du dafür gebraucht hast.",
+    "Betrifft Körpergewicht, BMI und den Übungs-Fortschritt. Am deutlichsten wird es mit dem Zoom (Woche/Monat/Jahr): Der hat den Zeitraum immer schon richtig gefiltert, aber innerhalb des Fensters log der Abstand — je enger das Fenster, desto größer der Fehler.",
+    "Wo es keine echte Zeitachse gibt — etwa wenn alle Einträge auf denselben Tag fallen —, stehen die Punkte weiter gleichmäßig. Dann ist die Reihenfolge das Ehrlichste, was sich zeichnen lässt.",
+    "Die Balken (Volumen, Ausdauer) bleiben, wie sie waren: Die zählen ohnehin Woche für Woche durch, ein leerer Balken IST dort schon die sichtbare Pause."
+  ]},
   { stand:"0.209", punkte:[
     "Fehler behoben: Die korrigierte Muskelkarte aus 0.208 kam auf dem Gerät gar nicht an — die Füße blieben gelb eingefärbt, obwohl sie kein Muskel sind. Schuld war nicht die Karte, sondern der Offline-Speicher: Er holte sich die Bilder beim Aktualisieren aus dem Browser-Zwischenspeicher und legte damit die ALTEN Bilder in den neuen Vorrat.",
     "Ab jetzt holt er jede Datei beim Aktualisieren frisch vom Server. Solange sich nur die App-Datei änderte, ist das nie aufgefallen — 0.208 war das erste Update mit einem geänderten Bild.",
@@ -8600,6 +8606,51 @@ function zoomLeisteHtml(kurve, neuZeichnen){
 }
 function zoomSetzen(kurve, stufe){ zoomStand[kurve] = stufe; }
 
+/* ------------------------------------------------------------
+   v210 — die Zeitachse ist eine ZEITACHSE (54. Runde, dritter Befund).
+
+   Bis v209 setzten Körpergewicht, BMI und Übungs-Fortschritt ihre Punkte über
+   den INDEX: `x = i => rand + i * (B - 2*rand) / (n - 1)`. Zwei Messungen an
+   aufeinanderfolgenden Tagen standen damit genauso weit auseinander wie zwei
+   mit acht Wochen dazwischen. Eine Pause war in der Kurve unsichtbar, und die
+   Steigung log: Dieselben zwei Werte sahen nach steilem Fortschritt aus, egal
+   ob eine Woche oder ein halbes Jahr dazwischen lag.
+
+   Besonders schief wurde es durch den Zoom (v196): Er verspricht „Woche" bzw.
+   „Monat" und filtert auch richtig nach Datum — aber INNERHALB des Fensters
+   blieb der Abstand gleich. Je enger das Fenster, desto größer der Fehler.
+
+   `kurvenAnteile` liefert je Eintrag seinen Platz auf der Achse als Anteil
+   0..1, gerechnet aus den Daten. Der RÜCKFALL auf gleiche Abstände ist kein
+   Notnagel, sondern eine Aussage: Wo kein brauchbares Datum steht — oder alle
+   Einträge auf denselben Tag fallen —, gibt es keine Zeitachse. Dann ist die
+   Reihenfolge das Ehrlichste, was sich zeichnen lässt.
+
+   Die BALKEN-Diagramme (Volumen, Ausdauer) sind bewusst nicht betroffen: Sie
+   bauen ihre Achse längst lückenlos aus Wochen bzw. Monaten auf — ein leerer
+   Balken IST dort schon die sichtbare Pause. Rein/testbar. */
+function kurvenAnteile(eintraege){
+  const liste = eintraege || [];
+  const n = liste.length;
+  if(n === 0) return [];
+  if(n === 1) return [0.5];                     // ein einzelner Punkt gehört in die Mitte
+  const gleich = () => liste.map((e, i) => i / (n - 1));
+  const tage = liste.map(e =>
+    (e && typeof e.datum === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.datum)) ? e.datum : null);
+  if(tage.some(d => d === null)) return gleich();
+  const sortiert = tage.slice().sort();
+  const von = sortiert[0], spanne = tagDifferenz(von, sortiert[sortiert.length - 1]);
+  if(!(spanne > 0)) return gleich();            // alles am selben Tag
+  return tage.map(d => tagDifferenz(von, d) / spanne);
+}
+
+/** Aus den Anteilen die fertige x-Funktion einer Kurve. Eine Stelle, damit
+    Gewicht, BMI und Fortschritt nie unterschiedlich rechnen. Rein/testbar. */
+function kurvenX(eintraege, breite, rand){
+  const anteile = kurvenAnteile(eintraege);
+  return i => rand + (anteile[i] || 0) * (breite - 2 * rand);
+}
+
 /** Die Gewichtskurve als SVG. v196 aus `gewichtStatistikZeichnen` herausgelöst,
     weil sie jetzt an ZWEI Stellen steht (Kachel und Detail-Ansicht mit Zoom) —
     zwei Kopien wären zwei Kurven, die auseinanderlaufen können. */
@@ -8611,7 +8662,7 @@ function gewichtKurveHtml(eintraege, trainingstage){
   const werte = liste.map(e => e.kg);
   const min = Math.min(...werte), max = Math.max(...werte);
   const spanne = (max - min) || 1;
-  const x = i => rand + i * (B - 2*rand) / (liste.length - 1);
+  const x = kurvenX(liste, B, rand);   // v210: aus dem Datum, nicht aus der Reihenfolge
   const y = kg => H - rand - (kg - min) / spanne * (H - 2*rand);
 
   const linie = liste.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.kg).toFixed(1)).join(" ");
@@ -8678,7 +8729,7 @@ function bmiKurveHtml(reihe){
   if(!liste.length) return '<div class="meta">Ab dem ersten Gewicht mit hinterlegter Größe erscheint hier der Verlauf.</div>';
   const B = 560, H = 220, rand = 34, VON = 15, BIS = 35;
   const y = bmi => H - rand - (begrenzen(bmi, VON, BIS) - VON) / (BIS - VON) * (H - 2*rand);
-  const x = i => liste.length === 1 ? B / 2 : rand + i * (B - 2*rand) / (liste.length - 1);
+  const x = kurvenX(liste, B, rand);   // v210: aus dem Datum, nicht aus der Reihenfolge
 
   // Die Bänder: von der Untergrenze des Ausschnitts bis zur jeweiligen Grenze.
   let unten = VON, baender = "";
@@ -8837,7 +8888,9 @@ function fortschrittZeichnen(){
   const alleWerte = zielWert != null ? werte.concat(zielWert) : werte;
   const min = Math.min(...alleWerte), max = Math.max(...alleWerte);
   const spanne = (max - min) || 1;
-  const x = i => rand + i * (B - 2*rand) / (tage.length - 1);
+  // v210: echte Zeitachse — `tage` sind Datums-Zeichenketten, kurvenX will
+  // Einträge mit `datum`. Die Trainingstage sind aufsteigend sortiert (s. o.).
+  const x = kurvenX(tage.map(t => ({ datum:t })), B, rand);
   const y = v => H - rand - (v - min) / spanne * (H - 2*rand);
   const linie = werte.map((v,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
   const punkte = werte.map((v,i) =>

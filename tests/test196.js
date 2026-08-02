@@ -44,6 +44,9 @@ new Function("module", "exports", [
   grabFn("zeitraumFilter"),
   grabFn("zoomLeisteHtml"),
   grabFn("zoomSetzen"),
+  grabFn("tagDifferenz"),      // v210: die Kurve rechnet ihre x-Achse aus dem Datum
+  grabFn("kurvenAnteile"),
+  grabFn("kurvenX"),
   grabFn("gewichtKurveHtml"),
   "module.exports = { ZOOM_STUFEN, zoomStufe, zeitraumFilter, zoomLeisteHtml, zoomSetzen," +
   " gewichtKurveHtml, zoomStand };"

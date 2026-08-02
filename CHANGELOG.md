@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.210
+
+- Die Zeitachse deiner Kurven ist jetzt wirklich eine Zeitachse. Bisher standen alle
+  Punkte gleich weit auseinander — egal ob ein Tag oder acht Wochen dazwischen lagen.
+  Eine Pause war damit unsichtbar, und dieselben zwei Werte sahen nach steilem
+  Fortschritt aus, ganz gleich wie lange du dafür gebraucht hast.
+- Betrifft Körpergewicht, BMI und den Übungs-Fortschritt. Am deutlichsten wird es mit
+  dem Zoom (Woche/Monat/Jahr): Der hat den Zeitraum immer schon richtig gefiltert, aber
+  innerhalb des Fensters log der Abstand — je enger das Fenster, desto größer der
+  Fehler.
+- Wo es keine echte Zeitachse gibt — etwa wenn alle Einträge auf denselben Tag fallen —,
+  stehen die Punkte weiter gleichmäßig. Dann ist die Reihenfolge das Ehrlichste, was
+  sich zeichnen lässt.
+- Die Balken (Volumen, Ausdauer) bleiben, wie sie waren: Die zählen ohnehin Woche für
+  Woche durch, ein leerer Balken IST dort schon die sichtbare Pause.
+
 ## 0.209
 
 - Fehler behoben: Die korrigierte Muskelkarte aus 0.208 kam auf dem Gerät gar nicht an —

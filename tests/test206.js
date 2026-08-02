@@ -45,6 +45,9 @@ new Function("module", "exports", [
   grabFn("bmiWert"),
   grabFn("bmiBereich"),
   grabFn("bmiReihe"),
+  grabFn("tagDifferenz"),      // v210: die Kurve rechnet ihre x-Achse aus dem Datum
+  grabFn("kurvenAnteile"),
+  grabFn("kurvenX"),
   grabFn("bmiKurveHtml"),
   "module.exports = { BMI_BEREICHE, bmiWert, bmiBereich, bmiReihe, bmiKurveHtml };"
 ].join("\n"))(modul, modul.exports);
