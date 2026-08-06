@@ -2696,7 +2696,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 213;
+const APP_VERSION = 214;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6690,7 +6690,9 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Bis zu 2 Ruhetage am Stück</strong> kosten die Flamme nie. Erst mehr als 3 Tage Abstand reißen die Kette.",
       "Ein Mo/Mi/Fr-Rhythmus läuft also dauerhaft durch.",
       "Mehrere Trainings am selben Tag zählen als eines.",
-      "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos."
+      "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos.",
+      "<strong style='color:var(--chalk)'>Nachtragen holt die Flamme zurück.</strong> Die Serie wird immer neu aus deinen Trainings gerechnet, nie gespeichert: Trägst du am vierten Tag noch ein Training von einem der drei Tage davor nach, brennt sie wieder — als wäre sie nie ausgegangen.",
+      "Nachtragen geht über den Kalender, für beliebig weit zurückliegende Tage. Die Serie lebt aber nur auf, wenn der nachgetragene Tag die Lücke wirklich schließt."
     ]) +
     abschnitt("Training", [
       "<strong style='color:var(--chalk)'>„Letztes Mal“</strong> unter der Uhr zeigt, was du bei der Übung zuletzt wirklich geschafft hast — das kann kein Papier-Heft.",
@@ -6737,6 +6739,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.214", punkte:[
+    "Die Kachel „Trainings“ misst jetzt die ZEIT statt der Anzahl: Jeder Tagesbalken ist so hoch, wie du an dem Tag trainiert hast. Drei schnell abgehakte Einheiten sahen vorher aus wie ein 90-Minuten-Training — das stimmte nicht.",
+    "Unter dem Diagramm steht die Summe der letzten zwei Wochen, daneben weiterhin die Zahl der Einheiten und die Gesamtzahl deiner Trainings.",
+    "Trägst du ein Training nach, holt es die Flamme zurück — und die App sagt es dir jetzt auch. Beispiel: drei Tage nichts gemacht, die Flamme ist am vierten Tag aus; trägst du dann noch ein Training von einem der drei Tage nach, brennt sie wieder, als wäre sie nie ausgegangen.",
+    "Nachgetragene Trainings schlagen außerdem sofort überall durch — Flamme, „Heute“, Kalender und alle Statistiken. Bisher zeigten sie den alten Stand, bis man den Tab wechselte."
+  ]},
   { stand:"0.213", punkte:[
     "Volleyball ist als Sportart dazugekommen — mit acht Übungen vom Pritschen bis zur Sprung-Serie, jeweils mit Kurz-Tipp, Beschreibung und Muskelkarte. Du findest sie im Profil, im Plan-Assistenten und in der Bibliothek wie jede andere Sportart auch.",
     "Die Kachel „Trainings“ in der Statistik zeigt jetzt ein Diagramm statt einer Liste: ein Balken je Tag der letzten zwei Wochen, so hoch wie die Zahl deiner Einheiten an diesem Tag. Trainingsfreie Tage bleiben als Lücke sichtbar.",
@@ -7428,16 +7436,36 @@ function tagDifferenz(a, b){
     liegen — bis zu 2 Ruhetage am Stück kosten die Flamme also nie. */
 const MAX_LUECKE = 3;
 
-function trainingsSerie(){
-  const tage = [...new Set(sitzung.daten.protokoll.map(e => e.datum))].sort();
+/** v214: Dieselbe Rechnung, aber REIN — Protokoll und Datum kommen herein,
+    sonst wird nichts gelesen. Damit lässt sich die Nutzer-Zusage „ein
+    nachgetragenes Training holt die Flamme zurück" als Test festhalten: Die
+    Serie wird bei jedem Zeichnen NEU aus dem Protokoll gerechnet und nirgends
+    gespeichert — deshalb wirkt ein Nachtrag rückwirkend, ganz von selbst.
+    Schließt der nachgetragene Tag die Lücke auf höchstens MAX_LUECKE Tage
+    (vorwärts wie rückwärts), brennt die Flamme wieder. */
+function serieAus(protokoll, heute){
+  const tage = [...new Set((protokoll || []).map(e => e && e.datum).filter(Boolean))].sort();
   if(tage.length === 0) return 0;
-  if(tagDifferenz(tage[tage.length - 1], heuteAlsText()) > MAX_LUECKE) return 0;   // Kette bereits gerissen
+  if(tagDifferenz(tage[tage.length - 1], heute) > MAX_LUECKE) return 0;   // Kette bereits gerissen
   let serie = 1;
   for(let i = tage.length - 1; i > 0; i--){
     if(tagDifferenz(tage[i-1], tage[i]) <= MAX_LUECKE) serie++;
     else break;
   }
   return serie;
+}
+
+function trainingsSerie(){
+  return serieAus(sitzung.daten.protokoll, heuteAlsText());
+}
+
+/** Satz zur Flamme nach einem NACHGETRAGENEN Training — leer, wenn es nichts zu
+    sagen gibt. Gesagt wird nur der eine Fall, den man sonst nicht bemerkt: Die
+    Flamme war aus und ist durch den Nachtrag wieder da. Rein/testbar. */
+function flammeNachtragText(serieVorher, serieNachher){
+  if(serieVorher > 0 || !(serieNachher > 0)) return "";
+  return "Deine Flamme ist wieder da: 🔥 " + serieNachher +
+         (serieNachher === 1 ? " Training" : " Trainings") + " in Serie.";
 }
 
 /* v103: Grenzdatum der Flamme = letzter Trainingstag + MAX_LUECKE + 1 — der Tag,
@@ -9133,48 +9161,67 @@ function protokollEintragHtml(e, mitAktionen){
    wie viel gemacht?". Deshalb ein festes Fenster der letzten 14 Tage statt der
    Zoom-Leiter von `volumenZeichnen` — die Einträge selbst liegen eine Ebene
    tiefer im Verlauf, den die Kachel beim Antippen öffnet.
+
+   v214 (Nutzer-Ansage): „die anzahl der trainigs einheit macht kein sinn eher
+   die auslastung oder die zeit wie lange ich trainiert habe". Der Balken misst
+   deshalb die TRAININGSZEIT des Tages, nicht mehr die Zahl der Einträge — drei
+   abgehakte Kurz-Einheiten standen bis dahin so hoch wie ein 90-Minuten-Training.
+
+   Warum Zeit und nicht Auslastung (Nutzer-Entscheidung 08/2026, angeboten
+   waren beide): Die Belastungs-Rechnung der App ist je MUSKEL und je WOCHE
+   gebaut (Sätze gegen einen Wochen-Richtwert, v160) — eine Tages-Auslastung
+   über den ganzen Körper gibt es dort nicht und müsste erfunden werden. Die
+   Dauer liegt dagegen an jedem Eintrag vor (gemessen beim Training, geschätzt
+   beim Nachtragen und im Notizblock) und ist über alle Sportarten vergleichbar.
    ------------------------------------------------------------ */
 const TRAININGS_FENSTER_TAGE = 14;
 
-/** Einheiten je Tag im Fenster bis `heute`, lückenlos (leere Tage = 0).
-    Rein/testbar: bekommt Protokoll und Datum, greift auf nichts zu. */
+/** Trainingszeit und Einheiten je Tag im Fenster bis `heute`, lückenlos
+    (leere Tage = 0 Minuten). Rein/testbar: bekommt Protokoll und Datum,
+    greift auf nichts zu. */
 function trainingsProTag(protokoll, heute, tage){
   const fenster = tage || TRAININGS_FENSTER_TAGE;
-  const anzahl = {};
+  const anzahl = {}, minuten = {};
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     anzahl[e.datum] = (anzahl[e.datum] || 0) + 1;
+    minuten[e.datum] = (minuten[e.datum] || 0) + Math.max(0, Math.round(Number(e.dauerMin) || 0));
   });
   const punkte = [];
   for(let i = fenster - 1; i >= 0; i--){
     const datum = tageVerschieben(heute, -i);
-    punkte.push({ datum: datum, label: String(Number(datum.slice(8,10))), anzahl: anzahl[datum] || 0 });
+    punkte.push({ datum: datum, label: String(Number(datum.slice(8,10))),
+                  anzahl: anzahl[datum] || 0, minuten: minuten[datum] || 0 });
   }
   return punkte;
 }
 
 /** Balken-Diagramm der Tage — gespiegelt nach `volumenZeichnen` (gleiche Maße,
     gleiche Farben), bewusst nicht geteilt: dort sind es Summen je Woche, hier
-    Anzahlen je Tag. Rein/testbar, damit der Test die Balken zählen kann. */
+    Minuten je Tag. Rein/testbar, damit der Test die Balken zählen kann.
+
+    Ein Tag MIT Training, aber ohne Dauer (Altdaten aus der Zeit vor der
+    Dauer-Schätzung), bekommt trotzdem seine Beschriftung „—": Ein leerer Balken
+    darf nicht wie ein trainingsfreier Tag aussehen. */
 function trainingsDiagrammHtml(punkte){
-  const werte = punkte.map(p => p.anzahl);
-  const max = Math.max(...werte, 1);
+  const max = Math.max(...punkte.map(p => p.minuten), 1);
   const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / punkte.length;
   let balken = "";
   punkte.forEach((p, i) => {
-    const h = (p.anzahl / max) * (H - 2*rand - 16);
+    const h = (p.minuten / max) * (H - 2*rand - 16);
     const x = rand + i * spalte + spalte * 0.15;
     const istHeute = i === punkte.length - 1;
+    const zahl = p.minuten > 0 ? String(p.minuten) : (p.anzahl > 0 ? "—" : "");
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
       '" rx="2" fill="' + (istHeute ? "var(--signal)" : "var(--rest)") + '"/>' +
-      (p.anzahl > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
-      '" fill="var(--muted)" font-size="10" text-anchor="middle">' + p.anzahl + '</text>' : '') +
+      (zahl ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
+      '" fill="var(--muted)" font-size="10" text-anchor="middle">' + zahl + '</text>' : '') +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
       '" fill="var(--muted)" font-size="9" text-anchor="middle">' + p.label + '</text>';
   });
   return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H +
-    '" role="img" aria-label="Trainingseinheiten je Tag">' + balken + '</svg>';
+    '" role="img" aria-label="Trainingszeit je Tag in Minuten">' + balken + '</svg>';
 }
 
 function protokollZeichnen(){
@@ -9182,15 +9229,18 @@ function protokollZeichnen(){
   const ziel = document.getElementById("protokoll-liste");
   if(p.length === 0){ ziel.innerHTML = '<div class="meta">Noch kein Training abgeschlossen.</div>'; return; }
   const punkte = trainingsProTag(p, heuteAlsText());
-  const imFenster = punkte.reduce((a, x) => a + x.anzahl, 0);
+  const einheiten = punkte.reduce((a, x) => a + x.anzahl, 0);
+  const minuten = punkte.reduce((a, x) => a + x.minuten, 0);
   /* v196: Der Knopf unter der Vorschau ist entfallen — die ganze Kachel öffnet
      den Verlauf (Tap-Linie seit v112). Statt des Knopfs sagt eine Zeile, wie
      viele Trainings es insgesamt sind; das ist die Information, der Weg dorthin
-     ist die Karte selbst. Seit v213 steht darüber das Diagramm. */
+     ist die Karte selbst. Seit v213 steht darüber das Diagramm, seit v214 nennt
+     die Zeile die Summe der Zeit — dasselbe Maß wie die Balken. */
   ziel.innerHTML = trainingsDiagrammHtml(punkte) +
-    '<div class="meta" style="margin-top:6px">' + imFenster +
-    (imFenster === 1 ? ' Einheit' : ' Einheiten') + ' in den letzten ' +
-    TRAININGS_FENSTER_TAGE + ' Tagen · ' + p.length + ' Trainings insgesamt ›</div>';
+    '<div class="meta" style="margin-top:6px">' + zeitKurz(minuten * 60, minuten >= 60 ? "h" : "min") +
+    ' in ' + TRAININGS_FENSTER_TAGE + ' Tagen · ' + einheiten +
+    (einheiten === 1 ? ' Einheit' : ' Einheiten') + ' · ' + p.length +
+    ' Trainings insgesamt ›</div>';
 }
 
 /** v163: Nur die Liste neu bauen — getrennt vom Öffnen, weil der
@@ -16969,14 +17019,25 @@ function kraftNachtragen(){
     for(let i = 1; i <= Math.min(s, 20); i++)
       saetze.push({ uebungId:null, name:uebung, modus:"wdh", satz:i, wdh:w, gewicht:kg, note:null });
   }
+  // v214: die Serie VOR dem Eintrag merken — nur so ist hinterher zu sagen, ob
+  // der Nachtrag die Flamme zurückgeholt hat.
+  const serieVorher = trainingsSerie();
   sitzung.daten.protokoll.push({
     id: neueId(), datum, plan:uebung, planId:null, sportart:"kraft", typ:"kraft", sonder:true,
     dauerMin: Math.max(1, saetze.length * 2), notiz, saetze
   });
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
   speichern();
+  /* v214: Flamme, Heute-Karte, Kalender und Statistik ziehen sofort mit. Bisher
+     tat das nur der Lösch-/Papierkorb-Weg (v153) — ein Nachtrag wirkte zwar
+     genauso rückwirkend, aber die schon gezeichneten Ansichten zeigten bis zum
+     nächsten Tab-Wechsel den alten Stand. Genau das sah aus wie „die Flamme
+     kommt nicht zurück". */
+  fortschrittNeuZeichnen();
+  const flammeSatz = flammeNachtragText(serieVorher, trainingsSerie());
   meldung("Krafttraining eingetragen: " + uebung +
-    (saetze.length ? " · " + saetze.length + "×" + w + (kg ? " · " + kg + " kg" : "") : ""));
+    (saetze.length ? " · " + saetze.length + "×" + w + (kg ? " · " + kg + " kg" : "") : "") +
+    (flammeSatz ? "\n\n" + flammeSatz : ""));
   eintragenVerlassen(false);   // v180
 }
 
@@ -17125,6 +17186,7 @@ function aktivitaetSpeichern(){
 function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   // Sondertraining = nichts stand für diesen Tag im Plan
   const geplant = eintragPlan ? planAmTag(eintragPlan, datum) : false;
+  const serieVorher = trainingsSerie();   // v214: für die Flammen-Meldung beim Nachtragen
   const notizFeld = document.getElementById("ein-notiz");
   const neu = {
     id: neueId(),
@@ -17151,6 +17213,12 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   planStandMerken(eintrag, eintragPlan ? sitzung.daten.plaene.find(p => p.id === eintragPlan.id) : null);
   const bericht = eintragPlan ? zieleAnwenden(eintragPlan, strecke, dauerS) : [];
   speichern();
+  /* v214: wie beim Kraft-Nachtrag — alles aus dem Protokoll Abgeleitete zieht
+     sofort mit, und der eine Fall, den man sonst übersieht, wird gesagt: Die
+     Flamme war aus und ist durch diesen Nachtrag wieder da. */
+  fortschrittNeuZeichnen();
+  const flammeSatz = flammeNachtragText(serieVorher, trainingsSerie());
+  if(flammeSatz) zeigenToast(flammeSatz, "erfolg");
   const plan = eintragPlan;
   eintragPlan = null;
 

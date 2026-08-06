@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.214
+
+- Die Kachel „Trainings“ misst jetzt die ZEIT statt der Anzahl: Jeder Tagesbalken ist so
+  hoch, wie du an dem Tag trainiert hast. Drei schnell abgehakte Einheiten sahen vorher
+  aus wie ein 90-Minuten-Training — das stimmte nicht.
+- Unter dem Diagramm steht die Summe der letzten zwei Wochen, daneben weiterhin die Zahl
+  der Einheiten und die Gesamtzahl deiner Trainings.
+- Trägst du ein Training nach, holt es die Flamme zurück — und die App sagt es dir jetzt
+  auch. Beispiel: drei Tage nichts gemacht, die Flamme ist am vierten Tag aus; trägst du
+  dann noch ein Training von einem der drei Tage nach, brennt sie wieder, als wäre sie
+  nie ausgegangen.
+- Nachgetragene Trainings schlagen außerdem sofort überall durch — Flamme, „Heute“,
+  Kalender und alle Statistiken. Bisher zeigten sie den alten Stand, bis man den Tab
+  wechselte.
+
 ## 0.213
 
 - Volleyball ist als Sportart dazugekommen — mit acht Übungen vom Pritschen bis zur
