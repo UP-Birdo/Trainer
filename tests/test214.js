@@ -42,8 +42,10 @@ new Function("module", "exports", [
   grabFn("trainingsDiagrammHtml"),
   grabFn("serieAus"),
   grabFn("flammeNachtragText"),
+  grabFn("ruhetageOhneTrainingstage"),
+  grabFn("tagStatus"),
   "module.exports = { TRAININGS_FENSTER_TAGE, MAX_LUECKE, trainingsProTag," +
-  " trainingsDiagrammHtml, serieAus, flammeNachtragText };"
+  " trainingsDiagrammHtml, serieAus, flammeNachtragText, ruhetageOhneTrainingstage, tagStatus };"
 ].join("\n"))(modul, modul.exports);
 const A = modul.exports;
 
@@ -136,7 +138,41 @@ pruefe("die Serie kommt weiter aus einer Stelle",
   grabFn("trainingsSerie").includes("serieAus(sitzung.daten.protokoll"));
 pruefe("die Regel steht in Gut zu wissen", /Nachtragen holt die Flamme zur/.test(src));
 
-/* ---------- 6) Version und Neuigkeit ---------- */
+/* ---------- 6) Ein nachgetragenes Training ist KEIN Ruhetag mehr ----------
+   Nutzer-Rueckfrage 08/2026: „und wenn ich ein trainig nachtrage kann es ja kein
+   ruhe tag mehr sein". Die Invariante steht seit v153 an EINER Stelle (im
+   speichern()), die Anzeige entscheidet zusaetzlich in tagStatus. Hier beides
+   am Nachtrag-Fall durchgespielt — einmal fuer den MANUELL gesetzten und einmal
+   fuer den AUTOMATISCHEN Ruhetag, denn beide landen in derselben Liste. */
+{
+  const tag = "2026-08-12";
+  const ruhetageVorher = ["2026-08-11", tag, "2026-08-13"];   // Block um den Tag herum
+  const protokollNachher = [{ datum:"2026-08-10" }, { datum: tag, dauerMin:40 }];
+
+  const sauber = A.ruhetageOhneTrainingstage(ruhetageVorher, protokollNachher);
+  pruefe("der nachgetragene Tag faellt aus den Ruhetagen", sauber.indexOf(tag) < 0);
+  pruefe("die anderen Ruhetage bleiben unberuehrt",
+    JSON.stringify(sauber) === JSON.stringify(["2026-08-11", "2026-08-13"]));
+
+  /* Und die Anzeige: Training schlaegt Ruhetag — selbst wenn die Bereinigung
+     noch nicht gelaufen waere (Guertel und Hosentraeger). */
+  const proto = {}; protokollNachher.forEach(e => (proto[e.datum] = proto[e.datum] || []).push(e));
+  const mitAltemRuhetag = A.tagStatus(tag, "2026-08-14", proto, new Set(ruhetageVorher), null, false);
+  pruefe("der Kalender zeigt den Tag als trainiert, nicht als Ruhetag",
+    mitAltemRuhetag.art === "trainiert");
+  const echterRuhetag = A.tagStatus("2026-08-11", "2026-08-14", proto, new Set(sauber), null, false);
+  pruefe("ein echter Ruhetag bleibt einer", echterRuhetag.art === "ruhe");
+  const leererTag = A.tagStatus("2026-08-09", "2026-08-14", proto, new Set(sauber), null, false);
+  pruefe("ein vergangener Tag ohne alles bleibt automatischer Ruhetag", leererTag.art === "autoruhe");
+
+  /* Das Tag-Fenster liest dieselbe Reihenfolge: erledigt vor Ruhetag. */
+  const fenster = grabFn("tagOeffnen");
+  pruefe("das Tag-Fenster nennt zuerst das Training", /if\(proto\.length\)\s+info \+= " · erledigt/.test(fenster));
+  pruefe("und die Bereinigung haengt am Speichern, nicht am Eintrage-Weg",
+    grabFn("speichern").includes("ruhetageOhneTrainingstage("));
+}
+
+/* ---------- 7) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);
 pruefe("die App ist mindestens auf v214",
