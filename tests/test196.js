@@ -65,7 +65,12 @@ pruefe("sie traegt die Tap-Klasse", /class="karte stat-karte stat-tap" id="stat-
 const vorschau = grabFn("protokollZeichnen");
 pruefe("der alte Knopf ist entfallen", !vorschau.includes("Ganzen Verlauf zeigen"));
 pruefe("stattdessen steht die Gesamtzahl da", vorschau.includes("Trainings insgesamt"));
-pruefe("die Vorschau bleibt bei fuenf Eintraegen", vorschau.includes("slice(0, 5)"));
+/* v213 (Nutzer-Wunsch): Die Kachel zeigt ein Diagramm statt der Eintraege — die
+   Fuenfer-Vorschau von v196 ist damit abgeloest. Der Weg in den Verlauf bleibt
+   unveraendert (die Kachel selbst), deshalb steht der Rest dieses Tests weiter.
+   Geprueft wird jetzt das Gegenteil von damals: KEINE Eintraege in der Kachel. */
+pruefe("die Kachel zeichnet das Tages-Diagramm", vorschau.includes("trainingsDiagrammHtml("));
+pruefe("und listet keine Eintraege mehr", !vorschau.includes("protokollEintragHtml"));
 /* Das Ziel gibt es, und es kann Mehrfach-Loeschen (Register aus v163). */
 pruefe("die Verlauf-Ansicht existiert", src.includes('id="view-verlauf"'));
 pruefe("und haengt im Loesch-Register", /verlauf: \{[\s\S]{0,200}ansicht:\s*"view-verlauf"/.test(src));

@@ -19,7 +19,8 @@ const ETAPPEN = [
   { sport:"tennis",      version:"v152" },
   { sport:"kampfsport",  version:"v152" },
   { sport:"fussball",    version:"v152" },
-  { sport:"yoga",        version:"v152" }
+  { sport:"yoga",        version:"v152" },
+  { sport:"volleyball",  version:"v213" }
 ];
 
 /* Seit v152 sind ALLE Sportarten durch — ab hier wird Vollstaendigkeit hart

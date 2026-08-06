@@ -1141,7 +1141,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        Vorschau, den man erst ab sechs Trainings zu sehen bekam. -->
   <div class="karte stat-karte stat-tap" id="stat-trainings" hidden onclick="verlaufOeffnen()">
     <h2>Trainings</h2>
-    <div id="protokoll-liste" class="meta abstand">–</div>
+    <!-- v213: hier steht das Tages-Diagramm; die Einträge selbst erscheinen
+         erst im Verlauf, den die Kachel beim Antippen öffnet. -->
+    <div id="protokoll-liste" class="abstand">–</div>
   </div>
   </div>
 
@@ -2694,7 +2696,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 212;
+const APP_VERSION = 213;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6735,6 +6737,11 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.213", punkte:[
+    "Volleyball ist als Sportart dazugekommen — mit acht Übungen vom Pritschen bis zur Sprung-Serie, jeweils mit Kurz-Tipp, Beschreibung und Muskelkarte. Du findest sie im Profil, im Plan-Assistenten und in der Bibliothek wie jede andere Sportart auch.",
+    "Die Kachel „Trainings“ in der Statistik zeigt jetzt ein Diagramm statt einer Liste: ein Balken je Tag der letzten zwei Wochen, so hoch wie die Zahl deiner Einheiten an diesem Tag. Trainingsfreie Tage bleiben als Lücke sichtbar.",
+    "Die einzelnen Einträge sind damit nicht weg — sie erscheinen, sobald du die Kachel antippst. Dort stehen sie vollständig, mit Datum, Bearbeiten und Löschen wie bisher."
+  ]},
   { stand:"0.212", punkte:[
     "Stufe 1 ist jetzt eine einzige Liste: Die Abschnitts-Überschriften sind weg, die Zeilen stehen einfach untereinander — und der Haken bleibt in jeder Zeile, wo er hingehört.",
     "Was die Überschrift ersetzt, ist die Übung selbst. Tippst du eine neue Zeile, sucht die App die Sportart dazu: „Laufen 5 km“ wird eine Lauf-Einheit, „Bankdrücken 3x10“ landet beim Krafttraining. Gibt es den passenden Abschnitt noch nicht, legt sie ihn im Hintergrund an.",
@@ -9111,19 +9118,79 @@ function protokollEintragHtml(e, mitAktionen){
     '</div>';
 }
 
+/* ------------------------------------------------------------
+   v213 (Nutzer-Wunsch): Die Trainings-Kachel zeigt ein DIAGRAMM, keine Einträge.
+
+   Bis v212 stand in der Kachel eine Vorschau der letzten fünf Einträge — als
+   einzige Statistik zeigte sie damit Text, wo alle anderen eine Kurve oder
+   Balken zeigen. Der Wunsch wörtlich: „die statistik anpassen bei trainig soll
+   genau so als diagramm die tage auf trainigs einheiten zeigen und nicht rein
+   die einträge … die sollen erst kommen wenn man drauf geklickt hat".
+
+   Die Basis sind bewusst TAGE, nicht Wochen oder Monate: Die Langzeit-Sicht je
+   Woche/Monat gibt es aus derselben Datenquelle längst (Volumen, Ausdauer), und
+   sie war nie das Fehlende. Was fehlte, ist die Frage „an welchen Tagen habe ich
+   wie viel gemacht?". Deshalb ein festes Fenster der letzten 14 Tage statt der
+   Zoom-Leiter von `volumenZeichnen` — die Einträge selbst liegen eine Ebene
+   tiefer im Verlauf, den die Kachel beim Antippen öffnet.
+   ------------------------------------------------------------ */
+const TRAININGS_FENSTER_TAGE = 14;
+
+/** Einheiten je Tag im Fenster bis `heute`, lückenlos (leere Tage = 0).
+    Rein/testbar: bekommt Protokoll und Datum, greift auf nichts zu. */
+function trainingsProTag(protokoll, heute, tage){
+  const fenster = tage || TRAININGS_FENSTER_TAGE;
+  const anzahl = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    anzahl[e.datum] = (anzahl[e.datum] || 0) + 1;
+  });
+  const punkte = [];
+  for(let i = fenster - 1; i >= 0; i--){
+    const datum = tageVerschieben(heute, -i);
+    punkte.push({ datum: datum, label: String(Number(datum.slice(8,10))), anzahl: anzahl[datum] || 0 });
+  }
+  return punkte;
+}
+
+/** Balken-Diagramm der Tage — gespiegelt nach `volumenZeichnen` (gleiche Maße,
+    gleiche Farben), bewusst nicht geteilt: dort sind es Summen je Woche, hier
+    Anzahlen je Tag. Rein/testbar, damit der Test die Balken zählen kann. */
+function trainingsDiagrammHtml(punkte){
+  const werte = punkte.map(p => p.anzahl);
+  const max = Math.max(...werte, 1);
+  const B = 560, H = 200, rand = 26, spalte = (B - 2*rand) / punkte.length;
+  let balken = "";
+  punkte.forEach((p, i) => {
+    const h = (p.anzahl / max) * (H - 2*rand - 16);
+    const x = rand + i * spalte + spalte * 0.15;
+    const istHeute = i === punkte.length - 1;
+    balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
+      '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
+      '" rx="2" fill="' + (istHeute ? "var(--signal)" : "var(--rest)") + '"/>' +
+      (p.anzahl > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
+      '" fill="var(--muted)" font-size="10" text-anchor="middle">' + p.anzahl + '</text>' : '') +
+      '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
+      '" fill="var(--muted)" font-size="9" text-anchor="middle">' + p.label + '</text>';
+  });
+  return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H +
+    '" role="img" aria-label="Trainingseinheiten je Tag">' + balken + '</svg>';
+}
+
 function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
   const ziel = document.getElementById("protokoll-liste");
-  if(p.length === 0){ ziel.innerHTML = "Noch kein Training abgeschlossen."; return; }
-  // B1: nur die letzten 5 als Vorschau — der komplette Verlauf (mit Datum) liegt
-  // eine Ebene tiefer, damit die Statistik nicht endlos scrollt.
-  const umgekehrt = p.slice().reverse();
+  if(p.length === 0){ ziel.innerHTML = '<div class="meta">Noch kein Training abgeschlossen.</div>'; return; }
+  const punkte = trainingsProTag(p, heuteAlsText());
+  const imFenster = punkte.reduce((a, x) => a + x.anzahl, 0);
   /* v196: Der Knopf unter der Vorschau ist entfallen — die ganze Kachel öffnet
      den Verlauf (Tap-Linie seit v112). Statt des Knopfs sagt eine Zeile, wie
      viele Trainings es insgesamt sind; das ist die Information, der Weg dorthin
-     ist die Karte selbst. */
-  ziel.innerHTML = umgekehrt.slice(0, 5).map(protokollEintragHtml).join("") +
-    (p.length > 5 ? '<div class="meta" style="margin-top:8px">' + p.length + ' Trainings insgesamt ›</div>' : "");
+     ist die Karte selbst. Seit v213 steht darüber das Diagramm. */
+  ziel.innerHTML = trainingsDiagrammHtml(punkte) +
+    '<div class="meta" style="margin-top:6px">' + imFenster +
+    (imFenster === 1 ? ' Einheit' : ' Einheiten') + ' in den letzten ' +
+    TRAININGS_FENSTER_TAGE + ' Tagen · ' + p.length + ' Trainings insgesamt ›</div>';
 }
 
 /** v163: Nur die Liste neu bauen — getrennt vom Öffnen, weil der
@@ -10082,6 +10149,9 @@ const SPORT_LAST_MUSKELN = {
   tennis:      { p:["quadriceps","obliques"],      s:["calves","deltoid","glutes"] },
   kampfsport:  { p:["obliques","deltoid"],         s:["quadriceps","abs","calves","triceps"] },
   fussball:    { p:["quadriceps","calves"],        s:["adductors","glutes","hamstrings"] },
+  // v213: Volleyball ist ein Sprungspiel mit Überkopf-Arbeit — Beine springen,
+  // Schulter schlägt. Der Rumpf dreht bei jedem Angriff mit.
+  volleyball:  { p:["quadriceps","deltoid"],       s:["calves","abs","obliques","glutes"] },
   yoga:        { p:["abs","glutes"],               s:["hamstrings","deltoid","quadriceps","lowerback"] }
 };
 
@@ -11157,6 +11227,10 @@ const SPORTARTEN = [
   { id:"kampfsport",  name:"Kampfsport",          farbe:"#A64B6B", planTyp:"aktivitaet", intervall:true, fortschritt:"kampf",
     intervallStandard:{ runden:3, belastung:180, pause:60 }, einheiten:"Zeit · Runden" },
   { id:"fussball",    name:"Fußball",             farbe:"#B0B84A", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
+  // v213 (Wunsch #2 von GitHub): Volleyball — dieselbe Klasse wie die anderen
+  // Ballsportarten (Spielzeit als Maß, Fortschritt steckt in den Drills). Ein
+  // Streckenmaß gibt es nicht, eine Messgröße auch nicht: Ein Feld ist ein Feld.
+  { id:"volleyball",  name:"Volleyball",          farbe:"#4F86C6", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"yoga",        name:"Yoga & Beweglichkeit",farbe:"#9BB8A6", planTyp:"aktivitaet", fortschritt:"beweglichkeit",
     // v115 (Nicht-Kraft, Etappe 1): generische Messgröße `mass` neben der Strecke —
     // eine schlichte Zahl mit Einheit (hier Beweglichkeit in Grad). Ziel und
@@ -12434,6 +12508,19 @@ const SPORT_UEBUNGEN = {
     { name:"Sprint-Intervalle",             art:"kondition", modus:"zeit", saetze:6, dauer:20 },
     { name:"1 gegen 1 (Dribbling)",         art:"kondition", modus:"zeit", saetze:4, dauer:60 }
   ],
+  // v213: Volleyball. Sechs Technik-Drills entlang der Spielfolge (Annahme →
+  // Zuspiel → Angriff → Block → Aufschlag), zwei Kondition-Drills für das, was
+  // das Spiel körperlich verlangt: springen und die Richtung wechseln.
+  volleyball: [
+    { name:"Pritschen an die Wand",        art:"technik",   modus:"wdh",  saetze:3, wdh:25 },
+    { name:"Baggern im Wechsel (Partner)", art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Annahme und Zuspiel (Dreieck)",art:"technik",   modus:"wdh",  saetze:3, wdh:20 },
+    { name:"Angriffsschlag mit Anlauf",    art:"technik",   modus:"wdh",  saetze:3, wdh:12 },
+    { name:"Block-Timing am Netz",         art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Aufschlag-Serie (Zielfelder)", art:"technik",   modus:"wdh",  saetze:3, wdh:15 },
+    { name:"Blocksprung-Serie",            art:"kondition", modus:"zeit", saetze:4, dauer:30 },
+    { name:"Reaktions-Sprints im Feld",    art:"kondition", modus:"zeit", saetze:5, dauer:25 }
+  ],
   yoga: [
     { name:"Sonnengruß (Flow)",              art:"technik",   modus:"zeit", saetze:3, dauer:180 },
     { name:"Krieger-Sequenz",                art:"technik",   modus:"zeit", saetze:3, dauer:120 },
@@ -12532,6 +12619,15 @@ const SPORT_INFO = {
   "Flanken (beidfüßig)":"Vor dem Schlag aufblicken, beide Seiten gleich oft üben.",
   "Kopfball-Training":"Aus dem Rumpf, Augen auf, mit der Stirn treffen.",
   "1 gegen 1 (Dribbling)":"Tempowechsel und Körpertäuschung, dann am Gegner vorbei.",
+  // -- Volleyball --
+  "Pritschen an die Wand":"Ball über der Stirn spielen, Finger gespreizt, aus den Beinen arbeiten.",
+  "Baggern im Wechsel (Partner)":"Arme gestreckt und ruhig, der Ball kommt aus den Beinen.",
+  "Annahme und Zuspiel (Dreieck)":"Früh unter den Ball kommen und ihn im Stand spielen, nicht im Fallen.",
+  "Angriffsschlag mit Anlauf":"Anlauf in drei Schritten, Arm gestreckt über der Schulter treffen.",
+  "Block-Timing am Netz":"Erst der Gegner springt, dann du — Hände über das Netz drücken.",
+  "Aufschlag-Serie (Zielfelder)":"Immer dasselbe Anwurf-Ritual, dann gezielt in die Feldecken.",
+  "Blocksprung-Serie":"Sauber landen mit weichen Knien, erst danach der nächste Sprung.",
+  "Reaktions-Sprints im Feld":"Kurze Schritte, tiefe Position, auf ein Zeichen die Richtung wechseln.",
   // -- Yoga --
   "Sonnengruß (Flow)":"Bewegung und Atem koppeln — eine Bewegung, ein Atemzug.",
   "Krieger-Sequenz":"Vorderes Knie über dem Fuß, Becken gerade, Schultern tief.",
@@ -12653,6 +12749,15 @@ const SPORT_TEXT = {
   "Flanken (beidfüßig)":"Die Hereingabe verlangt Genauigkeit über Distanz und wird fast nur mit dem starken Fuß geübt — genau darum beidfüßig. Vor dem Schlag aufblicken, beide Seiten gleich oft. Häufigster Fehler: aus vollem Lauf schlagen, ohne den letzten Schritt zu setzen.",
   "Kopfball-Training":"Der Kopfball kommt aus dem Rumpf, nicht aus dem Hals — und er will geübt sein, bevor er im Spiel gebraucht wird. Aus dem Rumpf arbeiten, Augen auf, mit der Stirn treffen. Häufigster Fehler: den Ball auf sich zukommen lassen; man geht zum Ball, nicht umgekehrt.",
   "1 gegen 1 (Dribbling)":"Die Situation, die Spiele entscheidet: ein Gegner, ein Ball, wenig Platz. Tempowechsel und Körpertäuschung, dann am Gegner vorbei. Häufigster Fehler: mit gleichbleibendem Tempo antäuschen — ohne Tempowechsel wirkt keine Finte.",
+  // ---------- Volleyball ----------
+  "Pritschen an die Wand":"Das obere Zuspiel ist die genaueste Technik im Volleyball und lässt sich als einzige komplett allein üben. Der Ball wird über der Stirn mit gespreizten Fingern gespielt, der Schwung kommt aus Beinen und Armen zugleich. Häufigster Fehler: den Ball vor der Brust nehmen — dann drückt man ihn statt ihn zu spielen, und der Doppelkontakt kommt dazu.",
+  "Baggern im Wechsel (Partner)":"Das untere Zuspiel fängt harte Bälle ab, die man oben nicht mehr sauber bekommt — es ist die Grundlage jeder Annahme. Arme gestreckt zusammenführen, Ball auf den Unterarmen treffen, Höhe aus den Beinen holen. Häufigster Fehler: mit den Armen schlagen; die Arme bleiben ruhig, gestreckt und arbeiten wie ein Brett.",
+  "Annahme und Zuspiel (Dreieck)":"Verbindet die beiden Techniken zu dem, was im Spiel wirklich passiert: annehmen, stellen, weiterspielen. Zu dritt im Dreieck spielen, nach jedem Kontakt neu zum Ball laufen und ihn im Stand spielen. Häufigster Fehler: stehen bleiben und sich strecken — wer zu spät läuft, spielt jeden Ball aus dem Ungleichgewicht.",
+  "Angriffsschlag mit Anlauf":"Der Angriff ist der einzige Weg, einen Punkt aktiv zu erzwingen, und er hängt fast ganz am Anlauf. Drei Schritte, beidbeinig abspringen, den Ball am höchsten Punkt mit gestrecktem Arm treffen. Häufigster Fehler: unter den Ball laufen; er gehört vor die schlagende Schulter, sonst schlägt man ihn ins Netz.",
+  "Block-Timing am Netz":"Der Block ist reine Zeitfrage: Die richtige Stelle nützt nichts, wenn man zu früh oben ist. Erst springt der Angreifer, dann du; Hände flach über das Netz drücken, Daumen nach oben. Häufigster Fehler: gleichzeitig mit dem Angreifer springen — dann ist der Block schon im Sinken, wenn der Ball kommt.",
+  "Aufschlag-Serie (Zielfelder)":"Der Aufschlag ist die einzige Aktion ganz ohne Gegner — und deshalb die, die sich am zuverlässigsten verbessern lässt. Immer dasselbe Anwurf-Ritual, dann bewusst in eine markierte Feldecke servieren. Häufigster Fehler: nur auf Härte spielen; ein platzierter Aufschlag im Feld ist mehr wert als ein harter im Netz.",
+  "Blocksprung-Serie":"Volleyball ist ein Sprungspiel: Wer am Ende des Satzes noch hoch kommt, blockt noch. Am Netz wiederholt beidbeinig hochspringen, die Hände über die Netzkante bringen, weich landen. Häufigster Fehler: mit durchgestreckten Beinen landen; die Landung gehört gefedert, sonst zahlen es die Knie.",
+  "Reaktions-Sprints im Feld":"Im Feld läuft man selten geradeaus — es geht um kurze Wege und schnelle Richtungswechsel aus tiefer Position. Auf ein Zeichen zu einer Ecke starten, abbremsen, zurück zur Mitte. Häufigster Fehler: aufrecht warten; wer hoch steht, verliert einen halben Schritt, bevor er losläuft.",
   // ---------- Yoga ----------
   "Sonnengruß (Flow)":"Die Grundsequenz des Yoga: Sie wärmt den ganzen Körper, mobilisiert die Wirbelsäule und verbindet Bewegung mit Atem. Eine Bewegung, ein Atemzug — im gleichen Rhythmus bleiben. Häufigster Fehler: schneller werden als der Atem; dann wird aus dem Flow eine Gymnastikübung.",
   "Krieger-Sequenz":"Kräftigt Beine und Gesäß im Stand und schult dabei Ausrichtung und Standfestigkeit. Vorderes Knie über dem Fuß, Becken gerade, Schultern tief. Häufigster Fehler: das vordere Knie nach innen fallen lassen — es zeigt in Richtung der Zehen.",
@@ -12909,6 +13014,15 @@ const SPORT_MUSKELN = {
   "Flanken (beidfüßig)":    { p:["quadriceps","adductors"],                 s:["obliques","glutes"] },
   "Kopfball-Training":      { p:["neck","abs"],                             s:["quadriceps","calves"] },
   "1 gegen 1 (Dribbling)":  { p:["quadriceps","calves"],                    s:["adductors","glutes","obliques"] },
+  // -- Volleyball --
+  "Pritschen an die Wand":         { p:["deltoid","triceps"],               s:["forearm","quadriceps","abs"] },
+  "Baggern im Wechsel (Partner)":  { p:["quadriceps","deltoid"],            s:["glutes","abs","forearm"] },
+  "Annahme und Zuspiel (Dreieck)": { p:["quadriceps","deltoid"],            s:["glutes","calves","abs"] },
+  "Angriffsschlag mit Anlauf":     { p:["deltoid","latissimus"],            s:["obliques","abs","quadriceps","calves"] },
+  "Block-Timing am Netz":          { p:["quadriceps","deltoid"],            s:["calves","glutes","trapezius"] },
+  "Aufschlag-Serie (Zielfelder)":  { p:["deltoid","obliques"],              s:["triceps","abs","latissimus"] },
+  "Blocksprung-Serie":             { p:["quadriceps","calves"],             s:["glutes","hamstrings","deltoid"] },
+  "Reaktions-Sprints im Feld":     { p:["quadriceps","glutes"],             s:["calves","adductors","obliques"] },
   // -- Yoga --
   "Sonnengruß (Flow)":             { p:["abs","deltoid"],                   s:["hamstrings","quadriceps","lowerback"] },
   "Krieger-Sequenz":               { p:["quadriceps","glutes"],             s:["deltoid","abs","adductors"] },

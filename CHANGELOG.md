@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.213
+
+- Volleyball ist als Sportart dazugekommen — mit acht Übungen vom Pritschen bis zur
+  Sprung-Serie, jeweils mit Kurz-Tipp, Beschreibung und Muskelkarte. Du findest sie im
+  Profil, im Plan-Assistenten und in der Bibliothek wie jede andere Sportart auch.
+- Die Kachel „Trainings“ in der Statistik zeigt jetzt ein Diagramm statt einer Liste:
+  ein Balken je Tag der letzten zwei Wochen, so hoch wie die Zahl deiner Einheiten an
+  diesem Tag. Trainingsfreie Tage bleiben als Lücke sichtbar.
+- Die einzelnen Einträge sind damit nicht weg — sie erscheinen, sobald du die Kachel
+  antippst. Dort stehen sie vollständig, mit Datum, Bearbeiten und Löschen wie bisher.
+
 ## 0.212
 
 - Stufe 1 ist jetzt eine einzige Liste: Die Abschnitts-Überschriften sind weg, die
