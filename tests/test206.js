@@ -48,6 +48,7 @@ new Function("module", "exports", [
   grabFn("tagDifferenz"),      // v210: die Kurve rechnet ihre x-Achse aus dem Datum
   grabFn("kurvenAnteile"),
   grabFn("kurvenX"),
+  grabFn("statLeerHtml"),      // v215: der Leerfall der Kurve ist jetzt das Plus
   grabFn("bmiKurveHtml"),
   "module.exports = { BMI_BEREICHE, bmiWert, bmiBereich, bmiReihe, bmiKurveHtml };"
 ].join("\n"))(modul, modul.exports);
@@ -111,8 +112,10 @@ pruefe("und eine Linie dazwischen", svg.includes("<path"));
 pruefe("bei EINEM Eintrag gibt es keinen Pfad, aber den Punkt",
   (() => { const s = A.bmiKurveHtml([{ datum:"x", bmi:24 }]);
            return !s.includes("<path") && (s.match(/<circle/g) || []).length === 1; })());
-pruefe("ohne Daten steht ein Satz statt eines leeren Bildes",
-  A.bmiKurveHtml([]).includes("Ab dem ersten Gewicht"));
+/* v215: Aus dem Erklaersatz ist die Haus-Vorschau geworden — Titel (steht in der
+   Kachel) und ein Plus, das zum Gewicht-Formular fuehrt. Kein leeres Bild. */
+pruefe("ohne Daten steht das Plus statt eines leeren Bildes",
+  A.bmiKurveHtml([]).includes("gewichtFormularZeigen()") && !A.bmiKurveHtml([]).includes("<svg"));
 /* FESTE Skala: Zwei ganz verschiedene Reihen muessen dieselbe Achse haben. */
 const hoch = A.bmiKurveHtml([{ datum:"a", bmi:31 }, { datum:"b", bmi:32 }]);
 const tief = A.bmiKurveHtml([{ datum:"a", bmi:19 }, { datum:"b", bmi:20 }]);

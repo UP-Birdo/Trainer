@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.215
+
+- Was du einträgst, steht danach unter „Übungen“: Trägst du ein Training nach oder von
+  Hand ein, legt die App daraus eine einzelne Übung an — mit deinen Sätzen und Gewichten
+  als Startwerten. Du kannst sie damit jederzeit wieder starten, ihr einen Tag geben
+  oder ein Ziel darauf setzen.
+- Angelegt wird nur, was es noch nicht gibt: Dieselbe Übung zehnmal nachtragen ergibt
+  weiterhin einen Eintrag in der Liste.
+- Leere Statistiken erklären sich nicht mehr, sie zeigen sich: Wo noch keine Daten sind,
+  stehen jetzt der Titel und ein großes Plus, das direkt zum Eintragen führt. Kacheln,
+  die sich früher ganz versteckt haben (Ausdauer, Messwerte, Übungs-Fortschritt,
+  Bestwerte), bleiben damit sichtbar.
+- Tippst du eine Statistik an, steht die Grafik jetzt über den Einträgen — beim
+  Trainings-Verlauf, beim Volumen, bei der Ausdauer, den Messwerten, dem
+  Übungs-Fortschritt und den Bestwerten. Bisher gab es sie dort nur beim Körpergewicht.
+
 ## 0.214
 
 - Die Kachel „Trainings“ misst jetzt die ZEIT statt der Anzahl: Jeder Tagesbalken ist so

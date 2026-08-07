@@ -1841,6 +1841,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 <section id="view-verlauf" class="view">
   <div class="kopf"><h1>Trainings-Verlauf</h1>
     <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
+  <!-- v215: die Grafik der Kachel steht auch hier, über den Einträgen. -->
+  <div id="verlauf-grafik" class="abstand"></div>
   <div id="verlauf-liste" class="meta abstand">–</div>
 </section>
 
@@ -1853,6 +1855,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="kopf"><h1 id="statdetail-titel">Statistik</h1>
     <button class="schmal" onclick="zeige('view-statistik')" data-zurueck>Zurück</button></div>
   <div id="statdetail-hinweis" class="meta"></div>
+  <!-- v215 (Nutzer-Wunsch): erst die Grafik, dann die Einträge — wie beim
+       Körpergewicht seit v196. -->
+  <div id="statdetail-grafik" class="abstand"></div>
   <div id="statdetail-liste" class="abstand">–</div>
 </section>
 
@@ -2696,7 +2701,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 214;
+const APP_VERSION = 215;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -5296,6 +5301,107 @@ function planArtUmschaltbar(plan){
   return anzahl <= 1 && !(anzahl === 0 && plan.typ !== "aktivitaet");
 }
 
+/* ------------------------------------------------------------
+   v215 (Nutzer-Wunsch): Was ich eintrage, steht danach unter „Übungen".
+
+   Wörtlich: „Wenn ich ein trainig nachtrage oder manuell eintrage soll er
+   automatisch unter dem übungs tab erscheinen da ich so ein trainig evtl noch
+   ein weiteres mal mache und somit soll dan diese übung auch als ziel machbar
+   sein."
+
+   Bis v214 war ein Nachtrag eine Sackgasse: Er landete im Protokoll und war
+   damit gezählt, gefärbt und gerechnet — aber wiederholen ließ er sich nicht,
+   und ein Ziel konnte man auch nicht darauf setzen. Der Grund dafür ist eine
+   alte Regel, keine Absicht: `zieleZeichnen` bietet als Ziel-Kandidaten das an,
+   was `planUebungen()` findet, und das liest ausschließlich die PLÄNE. Was nie
+   in der Liste stand, konnte also nie ein Ziel werden.
+
+   Deshalb wird aus einem freien Eintrag jetzt eine EINZELNE ÜBUNG im Sinne von
+   v192 (`planArt` = „uebung": genau eine Übung bzw. eine Aktivitäts-Einheit,
+   ohne festen Tag). Sie erscheint in der Liste, ist wieder startbar, kann
+   terminiert werden — und ist damit automatisch als Ziel wählbar, ohne dass an
+   den Zielen selbst etwas geändert werden müsste.
+
+   Zwei Grenzen, damit die Liste nicht zuwächst:
+   1. Nur EINTRÄGE OHNE PLAN. Kam das Training aus einem Plan, steht es dort
+      längst.
+   2. Nur, was es noch nicht gibt (`uebungSchonInListe`) — wer dieselbe Übung
+      zehnmal nachträgt, bekommt sie einmal.
+   ------------------------------------------------------------ */
+
+/** Steht diese Übung/Einheit schon in der Liste? Vergleich über Name UND
+    Sportart, beides klein geschrieben — „Laufen" (Aktivität) und „Laufen" als
+    Kraftübung wären zwei Dinge. Rein/testbar. */
+function uebungSchonInListe(plaene, name, sportartId){
+  const gesucht = String(name || "").trim().toLowerCase();
+  if(!gesucht) return true;   // ohne Namen gibt es nichts anzulegen
+  return (plaene || []).some(p => {
+    if(String(p.name || "").trim().toLowerCase() !== gesucht) return false;
+    return !sportartId || !p.sportart || p.sportart === sportartId;
+  });
+}
+
+/** Baut aus einem freien Protokoll-Eintrag den Listen-Eintrag fürs Übungs-Tab —
+    oder null, wenn nichts anzulegen ist (Eintrag aus einem Plan, Name fehlt,
+    steht schon da). Die Id kommt herein, damit die Funktion rein und testbar
+    bleibt. Alle Plan-Felder werden gesetzt (Vertrag aus `beispielplan`): Ein
+    halb gefüllter Plan lässt die Liste abstürzen. */
+function uebungAusEintrag(eintrag, plaene, id){
+  if(!eintrag || eintrag.planId) return null;
+  const name = String(eintrag.plan || "").trim();
+  if(!name) return null;
+  const sportartId = eintrag.sportart || "kraft";
+  if(uebungSchonInListe(plaene, name, sportartId)) return null;
+
+  const geruest = { id: id, name: name, sportart: sportartId,
+    typ: eintrag.typ === "aktivitaet" ? "aktivitaet" : "kraft",
+    tage: [], wochenTakt: 1, wochenAnker: 0, einzelTermine: [],
+    reihenfolge: "klassisch", aufwaermen: false, dehnen: false, freitext: "",
+    /* v215: additiv — sagt der Doku und dem Nutzer, woher der Eintrag kommt.
+       Gelöscht oder umbenannt wird er wie jeder andere. */
+    quelle: "eingetragen", uebungen: [] };
+
+  if(geruest.typ === "aktivitaet"){
+    // Die Einheit selbst IST die Übung (v193) — Dauer und Strecke aus dem Eintrag.
+    geruest.dauer = Math.max(60, Math.round((Number(eintrag.dauerMin) || 30) * 60));
+    geruest.zeitEinheit = eintrag.zeitEinheit || "min";
+    geruest.strecke = Number(eintrag.strecke) || 0;
+    geruest.massZiel = null;
+    geruest.steigerung = { woche: null, stufen: 0, vorEntlastung: 0 };
+    return geruest;
+  }
+
+  /* Kraft: die gemessenen Sätze sind die Startwerte. Ohne Sätze (nur „trainiert"
+     festgehalten) bleiben die Vorgaben aus `neueUebung` stehen — geraten wird
+     nichts, es ist der bekannte Startwert der App. */
+  const saetze = Array.isArray(eintrag.saetze) ? eintrag.saetze : [];
+  const erster = saetze[0] || {};
+  const wdh = Number(erster.wdh) || 0;
+  const uebung = { id: id + "-u", name: name, geraet: "keine",
+    modus: erster.modus === "zeit" ? "zeit" : "wdh",
+    saetze: saetze.length || 3,
+    wdh: wdh || 10,
+    wdhMin: wdh ? Math.max(1, wdh - 2) : 8,
+    wdhMax: wdh ? wdh + 2 : 12,
+    gewicht: Number(erster.gewicht) || 0, gewichtSchritt: 2.5,
+    dauer: Number(erster.dauer) || 30, zeitEinheit: "s", pause: 90, notenHistorie: [] };
+  geruest.uebungen.push(uebung);
+  return geruest;
+}
+
+/** Der Weg vom Eintrag in die Liste: anlegen, verknüpfen, melden. Gibt den Namen
+    zurück, wenn etwas entstanden ist — sonst "" (dann sagt der Aufrufer nichts).
+    Die VERKNÜPFUNG ist der Grund, warum das hier und nicht im Editor passiert:
+    Der Eintrag bekommt die `planId` der neuen Übung und gehört damit zu ihr —
+    sonst stünde die Übung ohne ihre eigene Geschichte da. */
+function uebungAusEintragAblegen(eintrag){
+  const neu = uebungAusEintrag(eintrag, sitzung.daten.plaene, neueId());
+  if(!neu) return "";
+  sitzung.daten.plaene.push(neu);
+  eintrag.planId = neu.id;
+  return neu.name;
+}
+
 /** Die Marke, die in der Liste Übung von Plan unterscheidet (v192).
     Beide bekommen eine — stünde sie nur an der Übung, müsste man wissen, dass
     „keine Marke" Plan bedeutet. */
@@ -6587,6 +6693,28 @@ const STAT_OPTIONEN = [
   ["bestwerte",      "Bestwerte",           "bestwerte-karte"],
   ["trainings",      "Trainings-Verlauf",   "stat-trainings"]
 ];
+/* ------------------------------------------------------------
+   v215 (Nutzer-Wunsch): „statistiken sollen bei keinen daten nur den titel und
+   ein plus zum eintragen anzeigen als vorschau".
+
+   Bisher taten leere Statistiken zweierlei, beides unbefriedigend: Die einen
+   erklärten in zwei Sätzen, was fehlt (Textwand, die man genau einmal liest),
+   die anderen versteckten sich ganz — dann steht die Statistik in „Darstellung"
+   angeschaltet, ist aber nirgends zu sehen, und niemand weiß, wie man sie
+   füllt. Jetzt zeigen alle dasselbe: den Titel der Kachel und ein Plus, das
+   genau dorthin führt, wo die Daten entstehen.
+
+   NICHT betroffen ist der Fall „ein Eintrag da, Kurve braucht zwei" — dort gibt
+   es Daten, und der Satz aus v200 sagt etwas, was ein Plus nicht sagen kann.
+   ------------------------------------------------------------ */
+/** Leerzustand einer Statistik-Kachel. Der Klick darf NICHT nach oben
+    durchschlagen: Die Kachel selbst öffnet ihre Detail-Ansicht (`stat-tap`),
+    und eine leere Statistik hat dort nichts zu zeigen. Rein/testbar. */
+function statLeerHtml(aufruf, beschriftung){
+  return '<div class="leer"><button class="rund" aria-label="' + text(beschriftung) +
+         '" onclick="event.stopPropagation(); ' + aufruf + '">+</button></div>';
+}
+
 /** Blendet die optionalen Statistik-Karten nach dem Setting aus. Die Karten
     ausdauer/fortschritt/bestwerte haben zusätzlich eine Daten-Prüfung in ihrer
     Zeichen-Funktion — das Setting darf nur ZUSÄTZLICH ausblenden, nie erzwingen. */
@@ -6739,6 +6867,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.215", punkte:[
+    "Was du einträgst, steht danach unter „Übungen“: Trägst du ein Training nach oder von Hand ein, legt die App daraus eine einzelne Übung an — mit deinen Sätzen und Gewichten als Startwerten. Du kannst sie damit jederzeit wieder starten, ihr einen Tag geben oder ein Ziel darauf setzen.",
+    "Angelegt wird nur, was es noch nicht gibt: Dieselbe Übung zehnmal nachtragen ergibt weiterhin einen Eintrag in der Liste.",
+    "Leere Statistiken erklären sich nicht mehr, sie zeigen sich: Wo noch keine Daten sind, stehen jetzt der Titel und ein großes Plus, das direkt zum Eintragen führt. Kacheln, die sich früher ganz versteckt haben (Ausdauer, Messwerte, Übungs-Fortschritt, Bestwerte), bleiben damit sichtbar.",
+    "Tippst du eine Statistik an, steht die Grafik jetzt über den Einträgen — beim Trainings-Verlauf, beim Volumen, bei der Ausdauer, den Messwerten, dem Übungs-Fortschritt und den Bestwerten. Bisher gab es sie dort nur beim Körpergewicht."
+  ]},
   { stand:"0.214", punkte:[
     "Die Kachel „Trainings“ misst jetzt die ZEIT statt der Anzahl: Jeder Tagesbalken ist so hoch, wie du an dem Tag trainiert hast. Drei schnell abgehakte Einheiten sahen vorher aus wie ein 90-Minuten-Training — das stimmte nicht.",
     "Unter dem Diagramm steht die Summe der letzten zwei Wochen, daneben weiterhin die Zahl der Einheiten und die Gesamtzahl deiner Trainings.",
@@ -7870,7 +8004,7 @@ function volumenZeichnen(){
   const mitDaten = sitzung.daten.protokoll.filter(e => Array.isArray(e.saetze) && e.saetze.length);
   if(mitDaten.length === 0){
     titel.textContent = "Volumen";
-    ziel.innerHTML = '<div class="meta">Noch keine Trainingsdaten. Nach dem ersten abgeschlossenen Training erscheint hier der Verlauf.</div>';
+    ziel.innerHTML = statLeerHtml("heuteTrainingEintragen()", "Training eintragen");   // v215
     return;
   }
 
@@ -7958,8 +8092,18 @@ function ausdauerZeichnen(){
   if(!karte) return;
   const eintraege = sitzung.daten.protokoll.filter(e => e.typ === "aktivitaet");
   const sportarten = [...new Set(eintraege.map(e => e.sportart))];
-  if(!sportarten.length){ karte.hidden = true; return; }
   karte.hidden = false;
+  /* v215: Ohne Daten nicht mehr verschwinden, sondern als Vorschau stehen
+     bleiben — Titel und Plus. Die Sportart-Auswahl darüber hat ohne Einträge
+     nichts zu zeigen und wird mit versteckt. */
+  const sportWahl = document.getElementById("ausdauer-sport");
+  if(sportWahl) sportWahl.hidden = !sportarten.length;
+  if(!sportarten.length){
+    document.getElementById("ausdauer-titel").textContent = "Ausdauer";
+    document.getElementById("ausdauer-diagramm").innerHTML =
+      statLeerHtml("heuteTrainingEintragen()", "Einheit eintragen");
+    return;
+  }
   if(!ausdauerSport || !sportarten.includes(ausdauerSport)) ausdauerSport = sportarten[0];
   document.getElementById("ausdauer-sport").innerHTML = sportarten.map(id =>
     '<option value="' + id + '"' + (id === ausdauerSport ? " selected" : "") + '>' + text(sportartName(id)) + '</option>').join("");
@@ -8055,8 +8199,15 @@ function messwerteZeichnen(){
   if(!karte) return;
   const eintraege = sitzung.daten.protokoll.filter(e => massZahl(e.sportart, e.messwert) !== null);
   const sportarten = [...new Set(eintraege.map(e => e.sportart))];
-  if(!sportarten.length){ karte.hidden = true; return; }
   karte.hidden = false;
+  const messWahl = document.getElementById("messwerte-sport");   // v215: wie bei der Ausdauer
+  if(messWahl) messWahl.hidden = !sportarten.length;
+  if(!sportarten.length){
+    document.getElementById("messwerte-titel").textContent = "Messwerte";
+    document.getElementById("messwerte-diagramm").innerHTML =
+      statLeerHtml("heuteTrainingEintragen()", "Einheit mit Messwert eintragen");
+    return;
+  }
   if(!messwerteSport || !sportarten.includes(messwerteSport)) messwerteSport = sportarten[0];
   document.getElementById("messwerte-sport").innerHTML = sportarten.map(id =>
     '<option value="' + id + '"' + (id === messwerteSport ? " selected" : "") + '>' + text(sportartName(id)) + '</option>').join("");
@@ -8126,8 +8277,12 @@ function bestwerteZeichnen(){
     if(!best[s.name] || wert > best[s.name].wert) best[s.name] = { wert, txt };
   }));
   const namen = Object.keys(best).sort((a,b) => a.localeCompare(b, "de"));
-  if(!namen.length){ karte.hidden = true; return; }
   karte.hidden = false;
+  if(!namen.length){   // v215: Vorschau statt verschwinden
+    document.getElementById("bestwerte-liste").innerHTML =
+      statLeerHtml("heuteTrainingEintragen()", "Training mit Sätzen eintragen");
+    return;
+  }
   document.getElementById("bestwerte-liste").innerHTML = namen.map(n =>
     '<div class="zeile" style="padding:6px 0;border-bottom:1px solid var(--line)">' +
     '<span>' + text(n) + '</span><span class="meta">' + text(best[n].txt) + '</span></div>').join("");
@@ -8540,7 +8695,7 @@ function tageswertZeichnen(){
   if(titel) titel.textContent = def.name;
 
   if(!reihe.length){
-    diagramm.innerHTML = '<div class="leer">Noch nichts eingetragen. Mit + den ersten Wert erfassen.</div>';
+    diagramm.innerHTML = statLeerHtml("tageswertFormularZeigen()", "Tageswert eintragen");   // v215
     if(liste) liste.innerHTML = "";
     if(info) info.textContent = "";
     return;
@@ -8646,7 +8801,7 @@ function koerpermassZeichnen(){
   if(titel) titel.textContent = koerpermassName(koerpermassArt);
 
   if(!reihe.length){
-    diagramm.innerHTML = '<div class="leer">Noch nichts gemessen. Mit + den ersten Wert erfassen.</div>';
+    diagramm.innerHTML = statLeerHtml("koerpermassFormularZeigen()", "Maß eintragen");   // v215
     if(liste) liste.innerHTML = "";
     if(info) info.textContent = "";
     return;
@@ -8889,7 +9044,8 @@ function bmiReihe(gewichte, groesseCm){
     Bereichen — bei einer mitwandernden Achse säße man immer in der Mitte. */
 function bmiKurveHtml(reihe){
   const liste = reihe || [];
-  if(!liste.length) return '<div class="meta">Ab dem ersten Gewicht mit hinterlegter Größe erscheint hier der Verlauf.</div>';
+  // v215: keine Daten -> Titel und Plus (der BMI entsteht aus den Gewichten).
+  if(!liste.length) return statLeerHtml("gewichtFormularZeigen()", "Gewicht eintragen");
   const B = 560, H = 220, rand = 34, VON = 15, BIS = 35;
   const y = bmi => H - rand - (begrenzen(bmi, VON, BIS) - VON) / (BIS - VON) * (H - 2*rand);
   const x = kurvenX(liste, B, rand);   // v210: aus dem Datum, nicht aus der Reihenfolge
@@ -8958,7 +9114,7 @@ function gewichtStatistikZeichnen(){
   const trainingstage = new Set(sitzung.daten.protokoll.map(p => p.datum));
 
   if(eintraege.length === 0){
-    diagramm.innerHTML = '<div class="leer">Noch kein Gewicht eingetragen. Mit + den ersten Wert erfassen.</div>';
+    diagramm.innerHTML = statLeerHtml("gewichtFormularZeigen()", "Gewicht eintragen");   // v215
     listeZiel.innerHTML = "";
     return;
   }
@@ -9004,8 +9160,14 @@ function fortschrittZeichnen(){
   const karte = document.getElementById("fortschritt-karte");
   if(!karte) return;
   const namen = fortschrittUebungen();
-  if(namen.length === 0){ karte.hidden = true; return; }   // keine Satzdaten -> Karte weg
   karte.hidden = false;
+  const uebungWahl = document.getElementById("fortschritt-uebung");
+  if(uebungWahl) uebungWahl.hidden = namen.length === 0;
+  if(namen.length === 0){   // v215: keine Satzdaten -> Vorschau statt Karte weg
+    document.getElementById("fortschritt-diagramm").innerHTML =
+      statLeerHtml("heuteTrainingEintragen()", "Training mit Sätzen eintragen");
+    return;
+  }
   if(!fortschrittUebung || !namen.includes(fortschrittUebung)) fortschrittUebung = namen[0];
 
   document.getElementById("fortschritt-uebung").innerHTML = namen.map(n =>
@@ -9227,7 +9389,10 @@ function trainingsDiagrammHtml(punkte){
 function protokollZeichnen(){
   const p = sitzung.daten.protokoll;
   const ziel = document.getElementById("protokoll-liste");
-  if(p.length === 0){ ziel.innerHTML = '<div class="meta">Noch kein Training abgeschlossen.</div>'; return; }
+  if(p.length === 0){   // v215: Vorschau statt Erklärsatz
+    ziel.innerHTML = statLeerHtml("heuteTrainingEintragen()", "Training eintragen");
+    return;
+  }
   const punkte = trainingsProTag(p, heuteAlsText());
   const einheiten = punkte.reduce((a, x) => a + x.anzahl, 0);
   const minuten = punkte.reduce((a, x) => a + x.minuten, 0);
@@ -9247,6 +9412,16 @@ function protokollZeichnen(){
     Auswahl-Modus sie mehrfach neu zeichnet, ohne die Ansicht zu wechseln. */
 function verlaufListeZeichnen(){
   const ziel = document.getElementById("verlauf-liste"); if(!ziel) return;
+  /* v215 (Nutzer-Wunsch): „dann sol die grafik auch beim drauf drücken über den
+     einträgen zu sehen sein". Dieselben Balken wie in der Kachel — hier direkt
+     aus der reinen Funktion gerechnet, nicht kopiert: Die Kachel hängt eine
+     Zusammenfassungs-Zeile an, die über einer vollständigen Liste nichts sagt. */
+  const grafik = document.getElementById("verlauf-grafik");
+  if(grafik){
+    grafik.innerHTML = sitzung.daten.protokoll.length
+      ? trainingsDiagrammHtml(trainingsProTag(sitzung.daten.protokoll, heuteAlsText()))
+      : "";
+  }
   const p = sitzung.daten.protokoll.slice().reverse();
   ziel.innerHTML = p.length
     ? listenKopfHtml("verlauf") +
@@ -9280,11 +9455,13 @@ function verlaufOeffnen(){
    ------------------------------------------------------------ */
 const STAT_DETAILS = {
   volumen: {
+    grafik: "volumen-diagramm",   // v215: dieselbe Grafik wie in der Kachel
     titel: "Volumen",
     hinweis: "Die Trainings, aus denen sich das Volumen rechnet — Gewicht × Wiederholungen je Satz.",
     eintraege: () => sitzung.daten.protokoll.filter(e => Array.isArray(e.saetze) && e.saetze.length)
   },
   ausdauer: {
+    grafik: "ausdauer-diagramm",
     // Die Kachel zeigt immer EINE Sportart — die Liste zeigt dieselbe.
     titel: () => "Ausdauer" + (ausdauerSport ? " · " + sportartName(ausdauerSport) : ""),
     hinweis: "Die Einheiten dieser Sportart, aus denen die Summen entstehen.",
@@ -9292,6 +9469,7 @@ const STAT_DETAILS = {
       e.typ === "aktivitaet" && (!ausdauerSport || e.sportart === ausdauerSport))
   },
   messwerte: {
+    grafik: "messwerte-diagramm",
     titel: () => "Messwerte" + (messwerteSport ? " · " + sportartName(messwerteSport) : ""),
     hinweis: "Die Einheiten mit einem gemessenen Wert (Beweglichkeit, Schwierigkeitsgrad).",
     eintraege: () => sitzung.daten.protokoll.filter(e =>
@@ -9299,6 +9477,7 @@ const STAT_DETAILS = {
       (!messwerteSport || e.sportart === messwerteSport))
   },
   fortschritt: {
+    grafik: "fortschritt-diagramm",
     titel: () => "Übungs-Fortschritt" + (fortschrittUebung ? " · " + fortschrittUebung : ""),
     hinweis: "Die Trainings, in denen diese Übung vorkam.",
     eintraege: () => sitzung.daten.protokoll.filter(e =>
@@ -9308,6 +9487,7 @@ const STAT_DETAILS = {
     /* Bestwerte entstehen NUR aus gemessenen Sätzen (v158): Ein abgehaktes
        Training trägt Sollwerte und darf keinen Rekord erzeugen. Die Liste zeigt
        deshalb genau die Trainings, die überhaupt einen Bestwert setzen können. */
+    grafik: "bestwerte-liste",   // hier ist die „Grafik" die Bestenliste selbst
     titel: "Bestwerte",
     hinweis: "Die Trainings mit gemessenen Sätzen — nur aus ihnen entstehen Bestwerte.",
     eintraege: () => sitzung.daten.protokoll.filter(e => echteSaetze(e).length > 0)
@@ -9331,6 +9511,17 @@ function statDetailZeichnen(){
   const ziel = document.getElementById("statdetail-liste");
   if(titel) titel.textContent = typeof d.titel === "function" ? d.titel() : d.titel;
   if(hinweis) hinweis.textContent = d.hinweis || "";
+  /* v215 (Nutzer-Wunsch): Über den Einträgen steht die Grafik der Kachel.
+     KOPIERT, nicht neu gerechnet: Es gibt genau EIN Bild je Statistik, gezeichnet
+     von der Funktion, der es gehört (`volumenZeichnen` und die anderen). Ein
+     zweiter Zeichenweg hieße zwei Wahrheiten — und die driften. Frisch ist die
+     Kopie immer: Wer hier löscht, läuft über `fortschrittNeuZeichnen`, das die
+     Kacheln VOR dieser Ansicht neu zeichnet (Register `LISTEN_TYPEN`). */
+  const grafik = document.getElementById("statdetail-grafik");
+  if(grafik){
+    const quelle = d.grafik ? document.getElementById(d.grafik) : null;
+    grafik.innerHTML = quelle ? quelle.innerHTML : "";
+  }
   if(!ziel) return;
   const liste = statDetailEintraege();
   ziel.innerHTML = liste.length
@@ -17022,11 +17213,14 @@ function kraftNachtragen(){
   // v214: die Serie VOR dem Eintrag merken — nur so ist hinterher zu sagen, ob
   // der Nachtrag die Flamme zurückgeholt hat.
   const serieVorher = trainingsSerie();
-  sitzung.daten.protokoll.push({
+  const eintrag = {
     id: neueId(), datum, plan:uebung, planId:null, sportart:"kraft", typ:"kraft", sonder:true,
     dauerMin: Math.max(1, saetze.length * 2), notiz, saetze
-  });
+  };
+  sitzung.daten.protokoll.push(eintrag);
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  // v215: Die Übung wandert in die Liste — wiederholbar und als Ziel wählbar.
+  const neueUebungName = uebungAusEintragAblegen(eintrag);
   speichern();
   /* v214: Flamme, Heute-Karte, Kalender und Statistik ziehen sofort mit. Bisher
      tat das nur der Lösch-/Papierkorb-Weg (v153) — ein Nachtrag wirkte zwar
@@ -17037,6 +17231,7 @@ function kraftNachtragen(){
   const flammeSatz = flammeNachtragText(serieVorher, trainingsSerie());
   meldung("Krafttraining eingetragen: " + uebung +
     (saetze.length ? " · " + saetze.length + "×" + w + (kg ? " · " + kg + " kg" : "") : "") +
+    (neueUebungName ? "\n\nSie steht jetzt unter „Übungen“ — dort kannst du sie wieder starten oder ein Ziel darauf setzen." : "") +
     (flammeSatz ? "\n\n" + flammeSatz : ""));
   eintragenVerlassen(false);   // v180
 }
@@ -17203,6 +17398,10 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   if(sportart(sport).mass && messwert) neu.messwert = messwert;
   sitzung.daten.protokoll.push(neu);
   sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  /* v215: Eine FREIE Einheit (ohne Plan) wandert als Einheit ins Übungs-Tab —
+     dieselbe Regel wie beim Kraft-Nachtrag. Kam sie aus einem Plan, steht sie
+     dort schon; `uebungAusEintrag` prüft das über `planId` selbst mit. */
+  const neueEinheitName = uebungAusEintragAblegen(neu);
   // v119-Fix: die gepushte Referenz nehmen, NICHT protokoll[last] — bei einem
   // rückdatierten Eintrag steht dort ein fremder, späterer Eintrag, der sonst
   // bewertet und (Note/Notiz) überschrieben würde.
@@ -17219,6 +17418,7 @@ function aktivitaetAblegen(sport, datum, dauerS, strecke, einheit, messwert){
   fortschrittNeuZeichnen();
   const flammeSatz = flammeNachtragText(serieVorher, trainingsSerie());
   if(flammeSatz) zeigenToast(flammeSatz, "erfolg");
+  else if(neueEinheitName) zeigenToast("„" + neueEinheitName + "“ steht jetzt unter Übungen", "erfolg");
   const plan = eintragPlan;
   eintragPlan = null;
 
