@@ -2781,7 +2781,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 218;
+const APP_VERSION = 219;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6960,6 +6960,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.219", punkte:[
+    "Fehler behoben: Die 7-Tage-Vorschau und die Muskelfiguren ganz oben in der Statistik wurden nur beim Öffnen der Seite gezeichnet. Trägst du ein Training nach, während die Statistik schon offen ist, blieb ein Tag deshalb in seiner alten Farbe stehen — zum Beispiel blau als Ruhetag, obwohl längst ein Training darauf lag.",
+    "Jetzt ziehen beide Karten bei jeder Änderung am Protokoll sofort mit — genau wie Kalender, Volumen und Flamme."
+  ]},
   { stand:"0.218", punkte:[
     "Der Stift am Training bearbeitet jetzt alles: Datum, Dauer, Notiz und vor allem die Sätze — Wiederholungen, Gewicht, Haltezeit. Mit dem + oben rechts kommt ein Satz dazu; er übernimmt die Zahlen des letzten, du musst also nichts neu tippen.",
     "Damit brauchst du kein zweites Training mehr, wenn du hinterher doch noch etwas gemacht hast: Du besserst den vorhandenen Eintrag nach.",
@@ -11612,6 +11616,13 @@ function eintragFormSpeichern(){
 function statistikAktualisieren(){
   kennzahlenZeichnen();
   kalenderZeichnen();
+  /* v219: Die beiden OBERSTEN Karten fehlten hier — die 7-Tage-Vorschau und die
+     Muskelfiguren wurden nur beim Öffnen der Statistik gezeichnet. Beide leiten
+     sich aus dem Protokoll ab; wer ein Training nachträgt, ändert oder löscht,
+     während die Statistik schon steht, sah sie danach unverändert. Genau das
+     sieht aus wie „der Tag ist immer noch blau". (v214-Regel, jetzt vollständig.) */
+  wochenVorschauZeichnen();
+  koerperVorschauZeichnen();
   volumenZeichnen();
   gewichtStatistikZeichnen();
   koerpermassZeichnen();     // v134: Körpermaße

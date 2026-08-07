@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.219
+
+- Fehler behoben: Die 7-Tage-Vorschau und die Muskelfiguren ganz oben in der Statistik
+  wurden nur beim Öffnen der Seite gezeichnet. Trägst du ein Training nach, während die
+  Statistik schon offen ist, blieb ein Tag deshalb in seiner alten Farbe stehen — zum
+  Beispiel blau als Ruhetag, obwohl längst ein Training darauf lag.
+- Jetzt ziehen beide Karten bei jeder Änderung am Protokoll sofort mit — genau wie
+  Kalender, Volumen und Flamme.
+
 ## 0.218
 
 - Der Stift am Training bearbeitet jetzt alles: Datum, Dauer, Notiz und vor allem die

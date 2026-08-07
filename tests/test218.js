@@ -133,5 +133,18 @@ pruefe("die App ist mindestens auf v218",
   Number(/const APP_VERSION = (\d+);/.exec(src)[1]) >= 218);
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.218", punkte:['));
 
+/* ---------- 6) v219: alles Abgeleitete heisst wirklich ALLES ----------
+   Die 7-Tage-Vorschau und die Muskelfiguren standen nicht in
+   `statistikAktualisieren` — sie wurden nur beim Oeffnen der Statistik
+   gezeichnet. Ein nachgetragenes Training liess den Tag deshalb in seiner alten
+   Farbe stehen (Nutzer-Befund mit Bild: „immer noch blau"). */
+const akt = grabFn("statistikAktualisieren");
+["kennzahlenZeichnen","kalenderZeichnen","wochenVorschauZeichnen","koerperVorschauZeichnen",
+ "volumenZeichnen","fortschrittZeichnen","ausdauerZeichnen","bestwerteZeichnen","protokollZeichnen"]
+  .forEach(fn => pruefe("statistikAktualisieren zeichnet " + fn + " mit", akt.includes(fn + "()")));
+pruefe("und der Nachtrag laeuft darueber",
+  grabFn("fortschrittNeuZeichnen").includes("statistikAktualisieren()"));
+pruefe("die Neuigkeit zur Korrektur steht drin", src.includes('{ stand:"0.219", punkte:['));
+
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);
