@@ -112,10 +112,12 @@ pruefe("und eine Linie dazwischen", svg.includes("<path"));
 pruefe("bei EINEM Eintrag gibt es keinen Pfad, aber den Punkt",
   (() => { const s = A.bmiKurveHtml([{ datum:"x", bmi:24 }]);
            return !s.includes("<path") && (s.match(/<circle/g) || []).length === 1; })());
-/* v215: Aus dem Erklaersatz ist die Haus-Vorschau geworden — Titel (steht in der
-   Kachel) und ein Plus, das zum Gewicht-Formular fuehrt. Kein leeres Bild. */
-pruefe("ohne Daten steht das Plus statt eines leeren Bildes",
-  A.bmiKurveHtml([]).includes("gewichtFormularZeigen()") && !A.bmiKurveHtml([]).includes("<svg"));
+/* v215/v217: Aus dem Erklaersatz ist die Haus-Vorschau geworden — eine leere
+   Flaeche in Diagramm-Hoehe. Das Plus steht seit v217 nur noch EINMAL je Kachel,
+   oben rechts im Kopf (Nutzer-Ansage: „das plus oben rechts soll ausreichen"). */
+pruefe("ohne Daten steht die leere Flaeche statt eines leeren Bildes",
+  A.bmiKurveHtml([]).includes("stat-leer") && !A.bmiKurveHtml([]).includes("<svg"));
+pruefe("und kein zweiter Knopf darin", !A.bmiKurveHtml([]).includes("<button"));
 /* FESTE Skala: Zwei ganz verschiedene Reihen muessen dieselbe Achse haben. */
 const hoch = A.bmiKurveHtml([{ datum:"a", bmi:31 }, { datum:"b", bmi:32 }]);
 const tief = A.bmiKurveHtml([{ datum:"a", bmi:19 }, { datum:"b", bmi:20 }]);

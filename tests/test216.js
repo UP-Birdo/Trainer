@@ -71,13 +71,25 @@ pruefe("die beiden Verhaeltnisse sind wirklich verschieden",
 /* Verdrahtung: beide Bau-Stellen setzen es, und Bild wie Canvas fuellen die Box. */
 pruefe("die kleine Figur setzt es", grabFn("miniFigurHtml").includes("figurVerhaeltnis("));
 pruefe("die grosse Karte setzt es", grabFn("muskelFigurenAufbauen").includes("figurVerhaeltnis("));
-pruefe("das Bild fuellt die Box (grosse Karte)",
-  /\.muskel-figur img\{display:block;width:100%;height:100%/.test(src));
-pruefe("das Bild fuellt die Box (kleine Figur)",
-  /\.mini-figur img\{display:block;width:100%;height:100%/.test(src));
-pruefe("kein hoehenskaliertes Bild mit automatischer Breite mehr",
-  !/\.koerper-vorschau \.mini-figur img\{width:auto/.test(src) &&
-  !/muskel-doppelt \.muskel-figur img\{height:100%;width:auto/.test(src));
+/* v217 (Korrektur an v216): Die BREITE gibt den Ton an, die Hoehe folgt dem Bild.
+   v216 wollte es ueber `aspect-ratio` an einer hoehen-getriebenen Box loesen —
+   Safari hat daraus eine riesige Figur gemacht. Jetzt steht nirgends mehr eine
+   Box, deren Breite ein Browser aus einem hoehenskalierten Bild ableiten muss. */
+pruefe("das Bild gibt der Box die Hoehe (grosse Karte)",
+  /\.muskel-figur img\{display:block;width:100%;height:auto/.test(src));
+pruefe("das Bild gibt der Box die Hoehe (kleine Figur)",
+  /\.mini-figur img\{display:block;width:100%;height:auto/.test(src));
+pruefe("die Vorschau setzt feste Breiten statt einer festen Hoehe",
+  /\.koerper-vorschau \.mini-figur\{width:103px;height:auto\}/.test(src) &&
+  /#koerper-back\{width:113px\}/.test(src));
+pruefe("die Doppel-Ansicht teilt sich die Breite",
+  /muskel-doppelt \.muskel-figur\{[^}]*width:calc\(\(100% - 8px\) \/ 2\);height:auto/.test(src));
+/* Die beiden Breiten muessen zu den Bildmaßen passen — sonst waere die Figur
+   verzerrt. Gerechnet: 190 px Zielhoehe x Seitenverhaeltnis, auf 1 px genau. */
+pruefe("103 px passen zur Vorderseite",
+  Math.abs(103 - 190 * A.MUSKEL_VIEWS.front.w / A.MUSKEL_VIEWS.front.h) < 1);
+pruefe("113 px passen zur Rueckseite",
+  Math.abs(113 - 190 * A.MUSKEL_VIEWS.back.w / A.MUSKEL_VIEWS.back.h) < 1);
 
 /* ---------- 2) Die Vorschau-Zeilen ---------- */
 pruefe("die Zeile richtet sich an der ersten Textzeile aus",
@@ -148,6 +160,10 @@ pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
 pruefe("die App ist mindestens auf v216",
   Number(/const APP_VERSION = (\d+);/.exec(src)[1]) >= 216);
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.216", punkte:['));
+/* v217: die Korrektur an der Figuren-Ausrichtung hat ihre eigene Neuigkeit. */
+pruefe("die Korrektur ist als Neuigkeit vermerkt", src.includes('{ stand:"0.217", punkte:['));
+pruefe("die Legende unter den Vorschau-Figuren ist weg",
+  /koerper-legende[\s\S]{0,120}leg\.innerHTML = ""/.test(grabFn("koerperVorschauZeichnen")));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

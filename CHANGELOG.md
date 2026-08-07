@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.217
+
+- Fehler behoben: Die Muskelfiguren waren nach dem letzten Update viel zu groß und
+  abgeschnitten. Der Versuch, die Farbfläche über ein festes Seitenverhältnis
+  auszurichten, ging auf dem iPhone daneben. Jetzt steht die BREITE der Figur fest und
+  die Höhe folgt dem Bild — das rechnet jeder Browser gleich.
+- Unter den beiden Figuren in „Zuletzt trainiert“ steht kein Text mehr. Die Farbskala
+  „wenig — viel“ gibt es weiterhin in der vollen Muskelkarte, die du mit einem Tipp auf
+  die Karte öffnest.
+- Jede Statistik hat jetzt genau EIN Plus, oben rechts in ihrer Ecke — auch Volumen,
+  Ausdauer, Messwerte, Übungs-Fortschritt, Bestwerte und Trainings. Der große Plus-Knopf
+  mitten in leeren Kacheln ist dafür weg; er war das zweite Plus und hat die Kachel
+  aufgebläht.
+- Leere Statistiken sind jetzt so hoch wie volle: Statt eines aufgeblasenen Kastens
+  steht dort eine ruhige Fläche in Diagramm-Höhe.
+
 ## 0.216
 
 - Die Muskelfiguren sitzen wieder passgenau: Die gefärbte Fläche richtet sich jetzt fest

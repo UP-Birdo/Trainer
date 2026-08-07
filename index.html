@@ -236,6 +236,9 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .notiz-kopf-haken{width:44px;flex:0 0 auto}   /* Spalte des Hakens */
 .leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
   background:rgba(139,144,154,0.03);transition:var(--transition)}
+/* v217: Der Leerzustand einer Statistik-Kachel ist so hoch wie ein Diagramm an
+   dieser Stelle — damit sind volle und leere Kacheln gleich groß. */
+.stat-leer{height:72px;padding:0}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
   font-size:13px;color:var(--muted);border-radius:4px;margin-bottom:16px;line-height:1.6;box-shadow:var(--shadow-sm);transition:var(--transition)}
 .hinweis:hover{box-shadow:var(--shadow-md)}
@@ -357,8 +360,15 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    hoch wirken. Höhe fix, Breite folgt dem Bild. */
 .koerper-vorschau{display:flex;justify-content:center;gap:22px;align-items:center;
   margin:8px 0 6px;cursor:pointer}
-.koerper-vorschau .mini-figur{width:auto;height:190px}
-.koerper-vorschau .mini-figur img{width:100%;height:100%;opacity:1}   /* v216: Box hat das Verhältnis */
+/* v217: Die BREITE steht fest, die Höhe folgt dem Bild — nie umgekehrt. Eine
+   Box, deren Breite ein Browser aus einem höhenskalierten Bild ableiten soll,
+   ist genau die Stelle, an der Safari und Chrome auseinanderlaufen (v216 hat es
+   mit `aspect-ratio` versucht und auf dem iPhone die Figur gesprengt).
+   Die zwei Breiten ergeben dieselbe Höhe (~190 px): 103 = 190 × 591/1086,
+   113 = 190 × 468/786. `test217` rechnet beide gegen MUSKEL_VIEWS nach. */
+.koerper-vorschau .mini-figur{width:103px;height:auto}
+.koerper-vorschau .mini-figur#koerper-back{width:113px}
+.koerper-vorschau .mini-figur img{width:100%;height:auto;opacity:1}
 
 /* v93: 7-Tage-Vorschau — die letzten sieben Tage als farbige Kette, gleiche
    Färbung wie der volle Kalender (dieselben .tag-Klassen). */
@@ -738,15 +748,19 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
    der Bildschirmbreite, damit beide Figuren immer nebeneinander passen: ihre
    Breiten sind zusammen ~1,14 × Höhe (Seitenverhältnisse 591×1086 und 468×786). */
 .muskel-figuren{display:flex;justify-content:center;align-items:flex-start;gap:8px}
-.muskel-figuren.muskel-doppelt .muskel-figur{flex:0 0 auto;margin:4px 0 0;max-width:none;height:min(360px,calc((86vw - 8px) / 1.2))}
-.muskel-figuren.muskel-doppelt .muskel-figur img{height:100%;width:100%}   /* v216: Box hat das Verhältnis */
+/* v217: auch hier breiten-getrieben — beide Figuren teilen sich die Zeile, die
+   Höhe kommt aus dem Bild. Sie unterscheiden sich dadurch leicht (die Rückseite
+   ist etwas gedrungener); das ist der Preis dafür, dass die Farbfläche in JEDEM
+   Browser auf der Figur sitzt, und er ist es wert. */
+.muskel-figuren.muskel-doppelt .muskel-figur{flex:0 0 auto;margin:4px 0 0;max-width:none;
+  width:calc((100% - 8px) / 2);height:auto}
 /* v216: Die Box trägt das Seitenverhältnis ihres Bildes (inline gesetzt, aus
    MUSKEL_VIEWS). Bild UND Canvas füllen sie danach vollständig — vorher richtete
    sich die Box nach dem Bild und der Canvas nach der Box, und wo ein Browser
    die Breite eines höhenskalierten Bildes anders bestimmt (Safari rechnet hier
    nicht wie Chrome), lag die Farbfläche neben der Figur. Siehe erkenntnisse.md. */
 .muskel-figur{position:relative;max-width:320px;margin:4px auto 0;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-.muskel-figur img{display:block;width:100%;height:100%;pointer-events:none}
+.muskel-figur img{display:block;width:100%;height:auto;pointer-events:none}
 .muskel-figur canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .muskel-hit{position:absolute;inset:0;cursor:pointer}
 /* Kleine Fokus-Muskel-Figur (v84): gleiche Technik wie die große Karte, nur
@@ -755,7 +769,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 /* v139: Figuren-Linien heller und ruhiger (Nutzer-Wunsch „nicht dicker, aber
    heller/weniger verpixelt"): volle Deckkraft statt 85 % und weiches Skalieren.
    Mehr geht erst mit höher aufgelösten Karten — die Auflösung steckt in den PNGs. */
-.mini-figur img{display:block;width:100%;height:100%;opacity:1;image-rendering:auto;-webkit-user-select:none;user-select:none}
+.mini-figur img{display:block;width:100%;height:auto;opacity:1;image-rendering:auto;-webkit-user-select:none;user-select:none}
 .muskel-figur img,.muskel-figur canvas{image-rendering:auto}
 .mini-figur canvas{position:absolute;inset:0;width:100%;height:100%}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
@@ -1111,19 +1125,22 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        weiterhin abgelehnt (v160). Der Tipp führt zu den Gewichts-Einträgen,
        aus denen er entsteht. -->
   <div class="karte stat-karte" id="bmi-karte" hidden>
-    <h2>BMI</h2>
+    <div class="zeile"><h2>BMI</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); gewichtFormularZeigen()" aria-label="Gewicht eintragen">+</button></div>
     <div id="bmi-diagramm" class="abstand stat-tap" onclick="gewichtDetailsOeffnen()"></div>
     <div id="bmi-info" class="meta abstand"></div>
   </div>
 
   <div class="karte stat-karte" id="stat-volumen" hidden>
-    <h2 id="volumen-titel">Volumen</h2>
+    <div class="zeile"><h2 id="volumen-titel">Volumen</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Training eintragen">+</button></div>
     <div id="volumen-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('volumen')"></div>
   </div>
 
   <!-- v80: Ausdauer-Pendant zum Volumen — km (bzw. Minuten) je Woche/Monat -->
   <div class="karte stat-karte" id="ausdauer-karte" hidden>
-    <h2 id="ausdauer-titel">Ausdauer</h2>
+    <div class="zeile"><h2 id="ausdauer-titel">Ausdauer</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Einheit eintragen">+</button></div>
     <select id="ausdauer-sport" class="abstand" onchange="ausdauerSetzen(this.value)"></select>
     <div id="ausdauer-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('ausdauer')"></div>
   </div>
@@ -1131,20 +1148,23 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <!-- v121: Messwerte — Beweglichkeit, Kletter-Schwierigkeit … je Einheit, nicht
        summiert: einen Kletter-Grad kann man nicht addieren. -->
   <div class="karte stat-karte" id="messwerte-karte" hidden>
-    <h2 id="messwerte-titel">Messwerte</h2>
+    <div class="zeile"><h2 id="messwerte-titel">Messwerte</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Einheit mit Messwert eintragen">+</button></div>
     <select id="messwerte-sport" class="abstand" onchange="messwerteSetzen(this.value)"></select>
     <div id="messwerte-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('messwerte')"></div>
   </div>
 
   <div class="karte stat-karte" id="fortschritt-karte" hidden>
-    <h2>Übungs-Fortschritt</h2>
+    <div class="zeile"><h2>Übungs-Fortschritt</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Training eintragen">+</button></div>
     <select id="fortschritt-uebung" class="abstand" onchange="fortschrittSetzen(this.value)"></select>
     <div id="fortschritt-diagramm" class="abstand stat-tap" onclick="statDetailOeffnen('fortschritt')"></div>
   </div>
 
   <!-- v80: Bestwerte — der beste protokollierte Satz je Übung -->
   <div class="karte stat-karte" id="bestwerte-karte" hidden>
-    <h2>Bestwerte</h2>
+    <div class="zeile"><h2>Bestwerte</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Training eintragen">+</button></div>
     <div id="bestwerte-liste" class="abstand stat-tap" onclick="statDetailOeffnen('bestwerte')"></div>
   </div>
 
@@ -1152,7 +1172,8 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        und Körpergewicht. Der Weg dorthin lag bisher hinter einem Knopf UNTER der
        Vorschau, den man erst ab sechs Trainings zu sehen bekam. -->
   <div class="karte stat-karte stat-tap" id="stat-trainings" hidden onclick="verlaufOeffnen()">
-    <h2>Trainings</h2>
+    <div class="zeile"><h2>Trainings</h2>
+      <button class="rund klein" onclick="event.stopPropagation(); heuteTrainingEintragen()" aria-label="Training eintragen">+</button></div>
     <!-- v213: hier steht das Tages-Diagramm; die Einträge selbst erscheinen
          erst im Verlauf, den die Kachel beim Antippen öffnet. -->
     <div id="protokoll-liste" class="abstand">–</div>
@@ -2719,7 +2740,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 216;
+const APP_VERSION = 217;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6732,12 +6753,17 @@ const STAT_OPTIONEN = [
    NICHT betroffen ist der Fall „ein Eintrag da, Kurve braucht zwei" — dort gibt
    es Daten, und der Satz aus v200 sagt etwas, was ein Plus nicht sagen kann.
    ------------------------------------------------------------ */
-/** Leerzustand einer Statistik-Kachel. Der Klick darf NICHT nach oben
-    durchschlagen: Die Kachel selbst öffnet ihre Detail-Ansicht (`stat-tap`),
-    und eine leere Statistik hat dort nichts zu zeigen. Rein/testbar. */
+/** Leerzustand einer Statistik-Kachel: eine gestrichelte Fläche in der Höhe
+    eines Diagramms — mehr nicht.
+
+    v217 (Nutzer-Ansage): „das plus oben rechts soll als plus ausreichen, nicht
+    so wie derzeit bei Schlaf, wo es zwei gibt und das Fenster aufbläht." Der
+    große Knopf im Leerzustand war der zweite — jede Kachel hat ihr Plus jetzt
+    an EINER Stelle, oben rechts im Kopf. Die feste Höhe hält die leeren Kacheln
+    so groß wie die gefüllten (Wunsch: „jede Statistik so groß wie
+    Körpergewicht"). Der Parameter bleibt für die Beschriftung erhalten. */
 function statLeerHtml(aufruf, beschriftung){
-  return '<div class="leer"><button class="rund" aria-label="' + text(beschriftung) +
-         '" onclick="event.stopPropagation(); ' + aufruf + '">+</button></div>';
+  return '<div class="leer stat-leer" aria-label="' + text(beschriftung) + '"></div>';
 }
 
 /** Blendet die optionalen Statistik-Karten nach dem Setting aus. Die Karten
@@ -6892,6 +6918,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.217", punkte:[
+    "Fehler behoben: Die Muskelfiguren waren nach dem letzten Update viel zu groß und abgeschnitten. Der Versuch, die Farbfläche über ein festes Seitenverhältnis auszurichten, ging auf dem iPhone daneben. Jetzt steht die BREITE der Figur fest und die Höhe folgt dem Bild — das rechnet jeder Browser gleich.",
+    "Unter den beiden Figuren in „Zuletzt trainiert“ steht kein Text mehr. Die Farbskala „wenig — viel“ gibt es weiterhin in der vollen Muskelkarte, die du mit einem Tipp auf die Karte öffnest.",
+    "Jede Statistik hat jetzt genau EIN Plus, oben rechts in ihrer Ecke — auch Volumen, Ausdauer, Messwerte, Übungs-Fortschritt, Bestwerte und Trainings. Der große Plus-Knopf mitten in leeren Kacheln ist dafür weg; er war das zweite Plus und hat die Kachel aufgebläht.",
+    "Leere Statistiken sind jetzt so hoch wie volle: Statt eines aufgeblasenen Kastens steht dort eine ruhige Fläche in Diagramm-Höhe."
+  ]},
   { stand:"0.216", punkte:[
     "Die Muskelfiguren sitzen wieder passgenau: Die gefärbte Fläche richtet sich jetzt fest nach dem Seitenverhältnis der Figur. Vorher überließ die App die Größe der Farbfläche dem Browser — auf dem iPhone rechnet Safari das anders als andere Browser, und die Farbe lag neben dem Muskel.",
     "In der Trainings-Vorschau stehen die Übungen wieder sauber untereinander. Bei langen Übungsnamen rutschten die Nummer und die kleine Muskelfigur mit; jetzt richtet sich jede Zeile an ihrer ersten Zeile aus, und die Figur bleibt am rechten Rand.",
@@ -11004,8 +11036,12 @@ function koerperVorschauZeichnen(){
   const hinten = document.getElementById("koerper-back");
   if(vorne)  miniHeatFigur(vorne, "front", zaehler);
   if(hinten) miniHeatFigur(hinten, "back", zaehler);
+  /* v217 (Nutzer-Wunsch „den Text unter den Vorschau-Bildern weg"): Die
+     Farbskala „wenig — viel" steht nur noch in der vollen Muskelkarte, wo sie
+     zu den Farben gehört. In der Kachel ist sie eine Zeile Erklärung für ein
+     Bild, das man ohnehin antippt — dieselbe Text-Diät wie v120/v123. */
   const leg = document.getElementById("koerper-legende");
-  if(leg) leg.innerHTML = heatLegendeHtml();
+  if(leg){ leg.innerHTML = ""; leg.hidden = true; }
   // v120: den „noch kein Training"-Hinweis aus der Ansicht nehmen (weniger Text) —
   // die Figur reicht, Details gibt es per Tipp auf die Karte (Muskelkarte).
   const hinweis = document.getElementById("koerper-hinweis");

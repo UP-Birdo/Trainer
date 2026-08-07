@@ -105,12 +105,26 @@ const aktivitaet = grabFn("aktivitaetAblegen");
 pruefe("die freie Einheit ebenso", aktivitaet.includes("uebungAusEintragAblegen("));
 
 /* ---------- 4) Leere Statistiken: Titel und Plus ---------- */
+/* v217 (Nutzer-Ansage): Der grosse Knopf im Leerzustand war das ZWEITE Plus der
+   Kachel und hat sie aufgeblaeht. Geblieben ist die leere Flaeche in
+   Diagramm-Hoehe; eingetragen wird ueber das eine Plus oben rechts im Kopf. */
 const leer = A.statLeerHtml("heuteTrainingEintragen()", "Training eintragen");
-pruefe("der Leerzustand ist ein Plus-Knopf", leer.includes(">+<") && leer.includes("<button"));
+pruefe("der Leerzustand ist eine leere Flaeche", leer.includes("stat-leer"));
 pruefe("er traegt eine Beschriftung fuer Vorleseprogramme", leer.includes('aria-label="Training eintragen"'));
-pruefe("er fuehrt zum Eintragen", leer.includes("heuteTrainingEintragen()"));
-/* Die Kachel selbst oeffnet ihre Detail-Ansicht — das Plus darf nicht mit. */
-pruefe("der Klick schlaegt nicht auf die Kachel durch", leer.includes("event.stopPropagation()"));
+pruefe("und keinen zweiten Knopf mehr", !leer.includes("<button"));
+pruefe("die Flaeche hat eine feste Hoehe (leere Kachel so gross wie volle)",
+  /\.stat-leer\{height:\d+px/.test(src));
+/* Dafuer hat JEDE Statistik-Kachel ihr Plus im Kopf — genau eines. */
+["stat-koerpergewicht","stat-koerpermasse","stat-tageswert","bmi-karte","stat-volumen",
+ "ausdauer-karte","messwerte-karte","fortschritt-karte","bestwerte-karte","stat-trainings"].forEach(id => {
+  /* Die Kachel endet, wo die naechste anfaengt — mit einem festen Fenster
+     rutschte man in die Nachbarkachel und zaehlte deren Plus mit. */
+  const start = src.indexOf('id="' + id + '"');
+  const naechste = src.indexOf('class="karte stat-karte', start);
+  const block = src.slice(start, naechste > start ? naechste : start + 900);
+  pruefe("Kachel " + id + " hat genau ein Plus im Kopf",
+    (block.match(/class="rund klein"/g) || []).length === 1);
+});
 
 const leerNutzer = [
   ["volumenZeichnen", "Training eintragen"],
