@@ -36,6 +36,8 @@ function grabLiteral(name){
 const code = [
   "const MUSKELKARTEN = " + grabLiteral("MUSKELKARTEN") + ";",
   "const MUSKEL_SEITE = MUSKELKARTEN.standard.seite;",
+  "const MUSKEL_VIEWS = MUSKELKARTEN.standard.views;",   // v216: die Figur-Box traegt ihr Verhaeltnis
+  grabFn("figurVerhaeltnis"),
   grabFn("miniFigurHtml"),
   grabFn("muskelFigurenHtml"),
   grabFn("ruhetageOhneTrainingstage"),

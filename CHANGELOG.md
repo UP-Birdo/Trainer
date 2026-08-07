@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.216
+
+- Die Muskelfiguren sitzen wieder passgenau: Die gefärbte Fläche richtet sich jetzt fest
+  nach dem Seitenverhältnis der Figur. Vorher überließ die App die Größe der Farbfläche
+  dem Browser — auf dem iPhone rechnet Safari das anders als andere Browser, und die
+  Farbe lag neben dem Muskel.
+- In der Trainings-Vorschau stehen die Übungen wieder sauber untereinander. Bei langen
+  Übungsnamen rutschten die Nummer und die kleine Muskelfigur mit; jetzt richtet sich
+  jede Zeile an ihrer ersten Zeile aus, und die Figur bleibt am rechten Rand.
+- Ruhetage lassen sich streichen — auch die automatischen. Tippe den Tag im Kalender an
+  und wähle „Ruhetag streichen“; der Tag bleibt danach leer und wird beim nächsten
+  Öffnen nicht wieder automatisch belegt. Das Tag-Fenster sagt jetzt auch, wenn ein
+  Ruhetag automatisch entstanden ist.
+- Trägst du an so einem Tag später doch ein Training ein, verschwindet der Ruhetag wie
+  bisher aus allen Rechnungen — gewertet wird dann nur noch das Training.
+
 ## 0.215
 
 - Was du einträgst, steht danach unter „Übungen“: Trägst du ein Training nach oder von

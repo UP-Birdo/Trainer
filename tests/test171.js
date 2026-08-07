@@ -80,8 +80,12 @@ pruefe("der doppelte Untertitel ist weg",
   heute.indexOf("Als Ruhetag markiert.") < 0);
 pruefe("die Karte behaelt ihre eine gelbe Hauptaktion",
   (heute.match(/class="primaer breit" onclick="heuteTrainingEintragen/g) || []).length === 1);
+/* v216: Das Kalender-Menue hat weiter seine EIGENE Wortwahl (die Heute-Karte
+   sagt „Bewusst frei nehmen") — nur heisst der Gegenweg jetzt „streichen" statt
+   „entfernen" und gilt auch fuer den automatischen Ruhetag, den man vorher gar
+   nicht loswerden konnte. */
 pruefe("das Kalender-Menue bleibt bei seiner eigenen, dort eindeutigen Wortwahl",
-  /istRuhe \? "Ruhetag entfernen" : "Als Ruhetag markieren"/.test(src));
+  /\(istRuhe \|\| istAutoRuhe\) \? "Ruhetag streichen" : "Als Ruhetag markieren"/.test(src));
 
 /* ---------- 4) Assistent: ein Zaehler weniger ---------- */
 pruefe("die Fusszeile zaehlt nicht mehr mit",

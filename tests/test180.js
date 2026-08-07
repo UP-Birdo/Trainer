@@ -82,8 +82,11 @@ pruefe("es steht VOR dem Planen (die wahrscheinlichere Absicht an einem alten Ta
   tag.indexOf('text:"Training eintragen"') < tag.indexOf('text:"Plan an diesem Tag"'));
 pruefe("Plan an diesem Tag bleibt fuer alle Tage",
   /if\(sitzung\.daten\.plaene\.length\)\s*\n?\s*aktionen\.push\(\{ text:"Plan an diesem Tag"/.test(tag));
-pruefe("der Ruhetag-Eintrag bleibt unveraendert",
-  /istRuhe \? "Ruhetag entfernen" : "Als Ruhetag markieren"/.test(tag));
+/* v216: Der Eintrag ist geblieben, hat aber zwei Dinge dazubekommen — er nennt
+   auch den AUTOMATISCHEN Ruhetag (der vorher nicht zu streichen war) und
+   entfaellt an einem Tag mit Training (dort ist Ruhetag ohnehin ausgeschlossen). */
+pruefe("der Ruhetag-Eintrag deckt jetzt beide Ruhetags-Arten ab",
+  /\(istRuhe \|\| istAutoRuhe\) \? "Ruhetag streichen" : "Als Ruhetag markieren"/.test(tag));
 
 /* ---------- 3) Das Datum wird durchgereicht ---------- */
 pruefe("der Tag reicht sein Datum ans Formular", /eintragenOeffnen\(null, 0, datum\)/.test(tag));

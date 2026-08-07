@@ -28,8 +28,14 @@ function grabFn(name){
   throw new Error("Klammern unausgeglichen: " + name);
 }
 
+/* v216: `miniFigurHtml` gibt der Box das Seitenverhaeltnis ihres Bildes mit —
+   dafuer braucht es die Maße aus der aktiven Karte. Hier reicht ein leerer
+   Satz: Diese Datei prueft das verzoegerte Zeichnen, nicht die Maße (das tut
+   `test216`), und `figurVerhaeltnis` liefert ohne Eintrag sauber "". */
 const modul = { exports: {} };
 new Function("module", "exports", [
+  "const MUSKEL_VIEWS = {};",
+  grabFn("figurVerhaeltnis"),
   grabFn("miniFigurHtml"),
   "module.exports = { miniFigurHtml };"
 ].join("\n"))(modul, modul.exports);

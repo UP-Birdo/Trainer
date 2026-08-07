@@ -358,7 +358,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .koerper-vorschau{display:flex;justify-content:center;gap:22px;align-items:center;
   margin:8px 0 6px;cursor:pointer}
 .koerper-vorschau .mini-figur{width:auto;height:190px}
-.koerper-vorschau .mini-figur img{width:auto;height:100%;opacity:1}
+.koerper-vorschau .mini-figur img{width:100%;height:100%;opacity:1}   /* v216: Box hat das Verhältnis */
 
 /* v93: 7-Tage-Vorschau — die letzten sieben Tage als farbige Kette, gleiche
    Färbung wie der volle Kalender (dieselben .tag-Klassen). */
@@ -608,11 +608,18 @@ body:not(.nav-an) #nav{display:none}
 #editor-muskeln .plan-figuren{justify-content:center;gap:14px;width:100%}
 #editor-muskeln .plan-figuren .mini-figur{width:110px}
 /* Vorschau — das Inhaltsverzeichnis vor dem Training */
-.vs-zeile{display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--panel);
+/* v216 (Nutzer-Befund): Die Zeilen standen bei langen Übungsnamen nicht mehr
+   untereinander. Ursache war die MITTIGE Ausrichtung: Bricht ein Name auf zwei
+   Zeilen um, rutscht die Nummer mit in die Mitte, und die Figur wanderte hinter
+   dem Text her statt am rechten Rand zu stehen. Jetzt richtet sich alles an der
+   ERSTEN Zeile aus, der Titel nimmt den freien Platz, die Figur bleibt rechts. */
+.vs-zeile{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--panel);
   border:2px solid var(--line);border-radius:6px;margin-bottom:5px;transition:var(--transition)}
 .vs-zeile:hover{border-color:var(--muted)}
-.vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right;font-weight:600}
-.vs-titel{font-size:14px;color:var(--chalk);line-height:1.3;min-width:0}
+.vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right;font-weight:600;
+  line-height:1.5;flex:0 0 auto}
+.vs-zeile .mini-figur{margin-left:auto;flex:0 0 auto}
+.vs-titel{font-size:14px;color:var(--chalk);line-height:1.3;min-width:0;flex:1 1 auto}
 .vs-titel small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
 .vs-pause{font-size:11px;color:var(--rest);font-family:var(--mono);margin:0 0 5px 34px}
 /* Langes Drücken soll das Menü öffnen — NICHT die Überschrift markieren.
@@ -732,9 +739,14 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
    Breiten sind zusammen ~1,14 × Höhe (Seitenverhältnisse 591×1086 und 468×786). */
 .muskel-figuren{display:flex;justify-content:center;align-items:flex-start;gap:8px}
 .muskel-figuren.muskel-doppelt .muskel-figur{flex:0 0 auto;margin:4px 0 0;max-width:none;height:min(360px,calc((86vw - 8px) / 1.2))}
-.muskel-figuren.muskel-doppelt .muskel-figur img{height:100%;width:auto}
+.muskel-figuren.muskel-doppelt .muskel-figur img{height:100%;width:100%}   /* v216: Box hat das Verhältnis */
+/* v216: Die Box trägt das Seitenverhältnis ihres Bildes (inline gesetzt, aus
+   MUSKEL_VIEWS). Bild UND Canvas füllen sie danach vollständig — vorher richtete
+   sich die Box nach dem Bild und der Canvas nach der Box, und wo ein Browser
+   die Breite eines höhenskalierten Bildes anders bestimmt (Safari rechnet hier
+   nicht wie Chrome), lag die Farbfläche neben der Figur. Siehe erkenntnisse.md. */
 .muskel-figur{position:relative;max-width:320px;margin:4px auto 0;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-.muskel-figur img{display:block;width:100%;height:auto;pointer-events:none}
+.muskel-figur img{display:block;width:100%;height:100%;pointer-events:none}
 .muskel-figur canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .muskel-hit{position:absolute;inset:0;cursor:pointer}
 /* Kleine Fokus-Muskel-Figur (v84): gleiche Technik wie die große Karte, nur
@@ -743,7 +755,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 /* v139: Figuren-Linien heller und ruhiger (Nutzer-Wunsch „nicht dicker, aber
    heller/weniger verpixelt"): volle Deckkraft statt 85 % und weiches Skalieren.
    Mehr geht erst mit höher aufgelösten Karten — die Auflösung steckt in den PNGs. */
-.mini-figur img{display:block;width:100%;height:auto;opacity:1;image-rendering:auto;-webkit-user-select:none;user-select:none}
+.mini-figur img{display:block;width:100%;height:100%;opacity:1;image-rendering:auto;-webkit-user-select:none;user-select:none}
 .muskel-figur img,.muskel-figur canvas{image-rendering:auto}
 .mini-figur canvas{position:absolute;inset:0;width:100%;height:100%}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
@@ -2561,6 +2573,12 @@ function speichern(){
   if(sitzung && sitzung.daten){
     const sauber = ruhetageOhneTrainingstage(sitzung.daten.ruhetage, sitzung.daten.protokoll);
     if(sauber.length !== (sitzung.daten.ruhetage || []).length) sitzung.daten.ruhetage = sauber;
+    /* v216: Dieselbe Invariante für die gestrichenen Tage — wer an einem Tag
+       trainiert hat, braucht dort weder Ruhetag noch Streichung. Der Nutzer
+       formulierte es so: „wenn man nachträglich eine Übung oder einen Plan
+       einträgt, soll der Ruhetag aus jeder Rechnung verschwinden." */
+    const sauberAus = ruhetageOhneTrainingstage(sitzung.daten.ruheAus, sitzung.daten.protokoll);
+    if(sauberAus.length !== (sitzung.daten.ruheAus || []).length) sitzung.daten.ruheAus = sauberAus;
   }
   sitzungSpeichern().catch(e => meldung("Speichern fehlgeschlagen: " + e.message));
 }
@@ -2701,7 +2719,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 215;
+const APP_VERSION = 216;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2716,6 +2734,13 @@ function datenNachruesten(daten){
   if(!Array.isArray(daten.protokoll)) daten.protokoll = [];
   if(!Array.isArray(daten.plaene))    daten.plaene = [];
   if(!Array.isArray(daten.ruhetage))  daten.ruhetage = [];   // manuell markierte Ruhetage ("JJJJ-MM-TT")
+  /* v216 (Nutzer-Wunsch „auch automatische Ruhetage soll man herausnehmen
+     können"): die AUSDRÜCKLICH gestrichenen Tage. Nötig, weil ein automatischer
+     Ruhetag nicht gespeichert wird, sondern sich aus „vergangener Tag ohne
+     Training" ERGIBT — löschen ließ sich daran nichts, der Tag kam sofort
+     wieder. Diese Liste ist das Gegenstück: Sie sagt „an diesem Tag war weder
+     Training noch Ruhetag, lass ihn leer". Additiv, wie alles hier. */
+  if(!Array.isArray(daten.ruheAus))   daten.ruheAus = [];
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
   if(!Array.isArray(daten.papierkorb)) daten.papierkorb = []; // v96: zuletzt gelöschte Dinge, wiederherstellbar
   if(typeof daten.letzterBesuch !== "string") daten.letzterBesuch = ""; // v103: für automatische Ruhetage
@@ -6867,6 +6892,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.216", punkte:[
+    "Die Muskelfiguren sitzen wieder passgenau: Die gefärbte Fläche richtet sich jetzt fest nach dem Seitenverhältnis der Figur. Vorher überließ die App die Größe der Farbfläche dem Browser — auf dem iPhone rechnet Safari das anders als andere Browser, und die Farbe lag neben dem Muskel.",
+    "In der Trainings-Vorschau stehen die Übungen wieder sauber untereinander. Bei langen Übungsnamen rutschten die Nummer und die kleine Muskelfigur mit; jetzt richtet sich jede Zeile an ihrer ersten Zeile aus, und die Figur bleibt am rechten Rand.",
+    "Ruhetage lassen sich streichen — auch die automatischen. Tippe den Tag im Kalender an und wähle „Ruhetag streichen“; der Tag bleibt danach leer und wird beim nächsten Öffnen nicht wieder automatisch belegt. Das Tag-Fenster sagt jetzt auch, wenn ein Ruhetag automatisch entstanden ist.",
+    "Trägst du an so einem Tag später doch ein Training ein, verschwindet der Ruhetag wie bisher aus allen Rechnungen — gewertet wird dann nur noch das Training."
+  ]},
   { stand:"0.215", punkte:[
     "Was du einträgst, steht danach unter „Übungen“: Trägst du ein Training nach oder von Hand ein, legt die App daraus eine einzelne Übung an — mit deinen Sätzen und Gewichten als Startwerten. Du kannst sie damit jederzeit wieder starten, ihr einen Tag geben oder ein Ziel darauf setzen.",
     "Angelegt wird nur, was es noch nicht gibt: Dieselbe Übung zehnmal nachtragen ergibt weiterhin einen Eintrag in der Liste.",
@@ -7733,13 +7764,17 @@ function tagFarben(farben, klasse, gefuellt){
    Sportart-Farben, sonst manueller/automatischer Ruhetag); die Planung
    (Wochentakt/Einzeltermine) nur bei `mitPlan` für Heute/Zukunft.
    Reihenfolge: Training schlägt Ruhetag schlägt Vergangenheit schlägt Planung. */
-function tagStatus(datum, heute, protoNachDatum, ruhetage, plaene, mitPlan){
+function tagStatus(datum, heute, protoNachDatum, ruhetage, plaene, mitPlan, ruheAus){
   const trainings = protoNachDatum[datum] || [];
   if(trainings.length > 0){
     return { art:"trainiert", farben:[...new Set(trainings.map(e => e.sportart))],
              sonder: trainings.some(e => e.sonder) };
   }
   if(ruhetage.has(datum)) return { art:"ruhe", farben:[], sonder:false };
+  /* v216: Ein ausdrücklich gestrichener Tag bleibt leer — sonst käme der
+     automatische Ruhetag der Zeile darunter sofort zurück, und „herausnehmen"
+     hätte keine sichtbare Wirkung (genau der Nutzer-Befund). */
+  if(ruheAus && ruheAus.has(datum)) return { art:"leer", farben:[], sonder:false };
   if(datum < heute)       return { art:"autoruhe", farben:[], sonder:false };
   if(mitPlan){
     const geplant = (plaene || []).filter(p => planAmTag(p, datum));
@@ -7780,6 +7815,7 @@ function kalenderZeichnen(){
     (protoNachDatum[e.datum] = protoNachDatum[e.datum] || []).push(e);
   });
   const ruhetage = new Set(sitzung.daten.ruhetage);
+  const ruheAus = new Set(sitzung.daten.ruheAus);   // v216: ausdrücklich gestrichene Tage
   const basis = new Date();
   basis.setDate(1);                                   // erst auf den Monatsersten,
   basis.setMonth(basis.getMonth() + kalenderOffset);  // sonst überspringt der 31. kurze Monate
@@ -7798,7 +7834,7 @@ function kalenderZeichnen(){
   for(let tag = 1; tag <= tageImMonat; tag++){
     const datum = jahr + "-" + String(monat+1).padStart(2,"0") + "-" + String(tag).padStart(2,"0");
     // Realität schlägt Planung — die Entscheidung trifft tagStatus (v93, geteilt).
-    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, sitzung.daten.plaene, true);
+    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, sitzung.daten.plaene, true, ruheAus);
     st.farben.forEach(f => benutzteSportarten.add(f));
     const z = tagZellenStil(st);
     let klasse = z.klasse; if(datum === heute) klasse += " heute";
@@ -7829,12 +7865,13 @@ function wochenVorschauZeichnen(){
     (protoNachDatum[e.datum] = protoNachDatum[e.datum] || []).push(e);
   });
   const ruhetage = new Set(sitzung.daten.ruhetage);
+  const ruheAus = new Set(sitzung.daten.ruheAus);   // v216: ausdrücklich gestrichene Tage
   const heute = heuteAlsText();
   const WT = ["So","Mo","Di","Mi","Do","Fr","Sa"];   // getDay(): 0 = Sonntag
   let html = "";
   for(let i = 6; i >= 0; i--){
     const datum = tageVerschieben(heute, -i);
-    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, null, false);
+    const st = tagStatus(datum, heute, protoNachDatum, ruhetage, null, false, ruheAus);
     const z = tagZellenStil(st);
     let klasse = z.klasse; if(datum === heute) klasse += " heute";
     const tag = Number(datum.slice(8,10));
@@ -7848,11 +7885,30 @@ function wochenVorschauZeichnen(){
   ziel.innerHTML = '<div class="wochenkette">' + html + '</div>';
 }
 
+/* v216 (Nutzer-Wunsch): Ein Ruhetag lässt sich streichen — auch der
+   automatische. Drei Zustände, aber nur zwei Wege:
+   * markieren   -> in `ruhetage`, raus aus `ruheAus`
+   * streichen   -> raus aus `ruhetage`, REIN in `ruheAus` (sonst käme der
+                    automatische Ruhetag im selben Moment zurück)
+   Rein/testbar: bekommt beide Listen und gibt beide zurück. */
+function ruhetagSchalten(datum, ruhetage, ruheAus, markieren){
+  const r = (ruhetage || []).filter(d => d !== datum);
+  const a = (ruheAus || []).filter(d => d !== datum);
+  if(markieren) r.push(datum); else a.push(datum);
+  return { ruhetage: r, ruheAus: a };
+}
+
 function ruhetagUmschalten(datum){
+  const istRuhe = sitzung.daten.ruhetage.includes(datum);
+  /* Gestrichen wird alles, was gerade als Ruhetag DASTEHT — der markierte wie
+     der automatische. Markiert wird nur, was gerade keiner ist. */
+  const sichtbarRuhe = istRuhe || (datum < heuteAlsText() &&
+    !sitzung.daten.protokoll.some(e => e.datum === datum) && !sitzung.daten.ruheAus.includes(datum));
+  const neu = ruhetagSchalten(datum, sitzung.daten.ruhetage, sitzung.daten.ruheAus, !sichtbarRuhe);
+  sitzung.daten.ruhetage = neu.ruhetage;
+  sitzung.daten.ruheAus  = neu.ruheAus;
+  const zugefuegt = !sichtbarRuhe;
   const liste = sitzung.daten.ruhetage;
-  const pos = liste.indexOf(datum);
-  const zugefuegt = pos < 0;
-  if(pos >= 0) liste.splice(pos, 1); else liste.push(datum);
   speichern();
   kalenderZeichnen();
   // v103 (Variante B): nicht blockieren, aber warnen, wenn 3 Ruhetage am Stück
@@ -7890,14 +7946,17 @@ let autoRuheGeprueft = false;   // nur einmal pro Sitzung
 /** Welche vergangenen Tage sind nachzutragende Ruhetage? Vom letzten Besuch
     (einschließlich) bis gestern (einschließlich) alles, woran weder trainiert
     wurde noch schon ein Ruhetag steht. Aufsteigend. Rein/testbar. */
-function autoRuhetage(letzterBesuch, heute, protokoll, ruhetage){
+function autoRuhetage(letzterBesuch, heute, protokoll, ruhetage, ruheAus){
   if(!letzterBesuch || !heute || letzterBesuch >= heute) return [];
   const trainiert = new Set((protokoll || []).map(e => e && e.datum).filter(Boolean));
   const ruhe = new Set(ruhetage || []);
+  // v216: Was der Nutzer gestrichen hat, trägt die Automatik nicht erneut ein —
+  // sonst wäre das Streichen beim nächsten Öffnen wieder weg.
+  const gestrichen = new Set(ruheAus || []);
   const neu = [];
   // Start beim Besuchstag SELBST (v187) — er ist inzwischen vorbei.
   for(let c = letzterBesuch; c < heute; c = tageVerschieben(c, 1)){
-    if(!trainiert.has(c) && !ruhe.has(c)) neu.push(c);
+    if(!trainiert.has(c) && !ruhe.has(c) && !gestrichen.has(c)) neu.push(c);
   }
   return neu;
 }
@@ -7922,7 +7981,7 @@ function autoRuhetageEintragen(){
   d.letzterBesuch = heute;
   // Stufe 1/2 (kein Kalender/Training) oder kein/heutiger Vorbesuch: nur merken.
   if(stufe() < 3 || !vorher || vorher >= heute){ speichern(); return; }
-  const neu = autoRuhetage(vorher, heute, d.protokoll, d.ruhetage);
+  const neu = autoRuhetage(vorher, heute, d.protokoll, d.ruhetage, d.ruheAus);
   neu.forEach(c => d.ruhetage.push(c));
   speichern();
   if(!neu.length) return;
@@ -7943,10 +8002,16 @@ function tagOeffnen(datum){
   const proto = sitzung.daten.protokoll.filter(e => e.datum === datum);
   const geplant = sitzung.daten.plaene.filter(p => planAmTag(p, datum));
   const istRuhe = sitzung.daten.ruhetage.includes(datum);
+  /* v216: Der AUTOMATISCHE Ruhetag ist kein gespeicherter Eintrag, sondern
+     ergibt sich aus „vergangener Tag ohne Training" — er muss trotzdem beim
+     Namen genannt und streichbar sein (Nutzer-Wunsch). */
+  const istAutoRuhe = !istRuhe && !proto.length && datum < heuteAlsText() &&
+                      !sitzung.daten.ruheAus.includes(datum);
   let info = datumKurz(datum);
   if(proto.length)        info += " · erledigt: " + proto.map(e => e.plan).join(", ");
   else if(geplant.length) info += " · geplant: " + geplant.map(p => p.name).join(", ");
   else if(istRuhe)        info += " · Ruhetag";
+  else if(istAutoRuhe)    info += " · Ruhetag (automatisch)";
   const aktionen = [];
   /* v180: Nachgetragen wird DORT, wo der Tag steht. Der separate Weg „Training
      nachtragen" im „+"-Menü der Pläne ist dafür entfallen — er war ein eigener
@@ -7975,8 +8040,12 @@ function tagOeffnen(datum){
     aktionen.push({ text:"Einzeltermin entfernen: " + p.name, tun:() => {
       p.einzelTermine.splice(p.einzelTermine.indexOf(datum), 1); speichern(); kalenderZeichnen();
     }}));
-  aktionen.push({ text: istRuhe ? "Ruhetag entfernen" : "Als Ruhetag markieren",
-                  tun:() => ruhetagUmschalten(datum) });
+  /* v216: An einem Tag MIT Training gibt es nichts zu markieren — er ist per
+     Invariante kein Ruhetag (v153), und ein Knopf dafür wäre eine Einladung in
+     einen Zustand, den die App gleich wieder aufhebt. */
+  if(!proto.length)
+    aktionen.push({ text: (istRuhe || istAutoRuhe) ? "Ruhetag streichen" : "Als Ruhetag markieren",
+                    tun:() => ruhetagUmschalten(datum) });
   aktionsMenue(info, aktionen);
 }
 /** Plan-Auswahl für einen Einzeltermin an einem bestimmten Datum. */
@@ -9833,7 +9902,7 @@ function muskelFigurenAufbauen(){
   ziel.classList.toggle("muskel-doppelt", doppelt);
   ziel.innerHTML = muskelAnsichten(muskelStatus.ansicht).map(a => {
     const meta = MUSKEL_VIEWS[a];
-    return '<div class="muskel-figur" data-ansicht="' + a + '">' +
+    return '<div class="muskel-figur" data-ansicht="' + a + '"' + figurVerhaeltnis(a) + '>' +
       '<img src="' + meta.img + '" alt="Muskelfigur ' + (a === "front" ? "vorne" : "hinten") + '" draggable="false">' +
       '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>' +
       '<div class="muskel-hit" onclick="muskelTippen(event)"></div></div>';
@@ -10066,11 +10135,21 @@ function muskelFigurenHtml(info, extraKlasse){
     { ansicht:s, muskeln:info.muskeln, sekundaer:info.sekundaer }, extraKlasse)).join("");
 }
 
+/** v216: Das Seitenverhältnis der Box kommt aus den Bildmaßen — EINE Stelle für
+    alle Figuren. Ohne sie bestimmt der Browser die Boxbreite aus einem
+    höhenskalierten Bild, und das tun Safari und Chrome unterschiedlich; die
+    Farbfläche (Canvas füllt die BOX) lag dann neben der Figur. */
+function figurVerhaeltnis(ansicht){
+  const meta = MUSKEL_VIEWS[ansicht];
+  return meta ? ' style="aspect-ratio:' + meta.w + '/' + meta.h + '"' : "";
+}
+
 function miniFigurHtml(info, extraKlasse){
   if(!info || !info.muskeln || !info.muskeln.length) return "";
   return '<div class="mini-figur' + (extraKlasse ? " " + extraKlasse : "") + '" data-mf-ansicht="' + info.ansicht +
     '" data-mf-muskeln="' + info.muskeln.join(",") + '"' +
-    (info.sekundaer && info.sekundaer.length ? ' data-mf-sek="' + info.sekundaer.join(",") + '"' : "") + '></div>';
+    (info.sekundaer && info.sekundaer.length ? ' data-mf-sek="' + info.sekundaer.join(",") + '"' : "") +
+    figurVerhaeltnis(info.ansicht) + '></div>';
 }
 
 /** Kleine Fokus-Muskel-Figur in ein .mini-figur-Element zeichnen: Figur-PNG +
@@ -18221,7 +18300,7 @@ function heuteTrainingEintragen(){ eintragenOeffnen(null, 0); }
 /** Heutigen Tag als Ruhetag markieren/entfernen — direkt von „Heute“ aus. */
 function ruhetagHeute(){
   ruhetagUmschalten(heuteAlsText());
-  zeigenToast(sitzung.daten.ruhetage.includes(heuteAlsText()) ? "Als Ruhetag markiert" : "Ruhetag entfernt", "info");
+  zeigenToast(sitzung.daten.ruhetage.includes(heuteAlsText()) ? "Als Ruhetag markiert" : "Ruhetag gestrichen", "info");
   startOeffnen();
 }
 
