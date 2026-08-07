@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.218
+
+- Der Stift am Training bearbeitet jetzt alles: Datum, Dauer, Notiz und vor allem die
+  Sätze — Wiederholungen, Gewicht, Haltezeit. Mit dem + oben rechts kommt ein Satz dazu;
+  er übernimmt die Zahlen des letzten, du musst also nichts neu tippen.
+- Damit brauchst du kein zweites Training mehr, wenn du hinterher doch noch etwas
+  gemacht hast: Du besserst den vorhandenen Eintrag nach.
+- Jede Änderung wirkt sofort überall — Volumen, Bestwerte, Übungs-Fortschritt,
+  Muskelkarte, Kalender und Flamme rechnen mit den neuen Zahlen.
+- Was das Bearbeiten bewusst NICHT anfasst: die Vorgaben deines Plans. Ob mehr
+  Wiederholungen drin sind, entscheidet weiterhin die Bewertung nach dem nächsten
+  Training.
+
 ## 0.217
 
 - Fehler behoben: Die Muskelfiguren waren nach dem letzten Update viel zu groß und

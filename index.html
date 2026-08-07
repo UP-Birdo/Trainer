@@ -239,6 +239,9 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 /* v217: Der Leerzustand einer Statistik-Kachel ist so hoch wie ein Diagramm an
    dieser Stelle — damit sind volle und leere Kacheln gleich groß. */
 .stat-leer{height:72px;padding:0}
+/* v218: eine Satz-Zeile im Bearbeiten-Formular */
+.satz-zeile{padding:10px 0;border-bottom:1px solid var(--line)}
+.satz-zeile:last-child{border-bottom:none}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
   font-size:13px;color:var(--muted);border-radius:4px;margin-bottom:16px;line-height:1.6;box-shadow:var(--shadow-sm);transition:var(--transition)}
 .hinweis:hover{box-shadow:var(--shadow-md)}
@@ -1880,6 +1883,44 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <!-- ============================================================
+     Ansicht: Training bearbeiten (v218) — der Stift am Eintrag.
+     Nutzer-Ansage: „wenn ich nach einem eingetragenen Training doch mehr
+     gemacht hab, will ich kein neues starten, sondern es nachbessern."
+     ============================================================ -->
+<section id="view-eintrag" class="view">
+  <div class="kopf"><h1 id="eintrag-titel">Training bearbeiten</h1>
+    <button class="schmal" onclick="verlaufOeffnen()" data-zurueck>Zurück</button></div>
+  <div class="karte">
+    <div class="raster">
+      <div><label for="eintrag-datum">Datum</label><input id="eintrag-datum" type="date"></div>
+      <div><label for="eintrag-dauer">Dauer (min)</label>
+        <input id="eintrag-dauer" type="number" inputmode="numeric" min="0" step="1"></div>
+    </div>
+    <div id="eintrag-aktivitaet" class="raster abstand" hidden>
+      <div><label for="eintrag-strecke" id="eintrag-strecke-label">Strecke</label>
+        <input id="eintrag-strecke" type="number" inputmode="decimal" step="0.1" min="0"></div>
+      <div id="eintrag-mass-feld"><label for="eintrag-mass" id="eintrag-mass-label">Messwert</label>
+        <input id="eintrag-mass" type="number" inputmode="decimal" step="0.5"></div>
+    </div>
+    <label class="abstand" for="eintrag-notiz">Notiz</label>
+    <input id="eintrag-notiz" type="text" placeholder="Wie lief es?">
+  </div>
+
+  <div class="karte" id="eintrag-saetze-karte">
+    <div class="zeile"><h2>Sätze</h2>
+      <button class="rund klein" onclick="eintragSatzAnhaengen()" aria-label="Satz hinzufügen">+</button></div>
+    <div id="eintrag-saetze" class="abstand"></div>
+    <div id="eintrag-saetze-hinweis" class="meta abstand"></div>
+  </div>
+
+  <div class="knopfreihe">
+    <button class="primaer breit" onclick="eintragFormSpeichern()">Speichern</button>
+    <button class="breit" onclick="verlaufOeffnen()">Abbrechen</button>
+  </div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
      Ansicht: Statistik-Details (v205) — die Einträge hinter einer ABGELEITETEN
      Statistik (Volumen, Ausdauer, Messwerte, Übungs-Fortschritt, Bestwerte).
      Eine Ansicht für alle fünf; was sie zeigt, steht in STAT_DETAILS.
@@ -2740,7 +2781,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 217;
+const APP_VERSION = 218;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3641,6 +3682,7 @@ const VIEW_MIN_STUFE = {
      ausdrücklich in der Ab-Stufe-1-Liste des Tests geführt wird. */
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-statdetail": 4,     // v205: die Einträge hinter einer abgeleiteten Statistik
+  "view-eintrag": 4,        // v218: Training bearbeiten — erreichbar über den Verlauf
   "view-koerpermasse": 4,   // v134
   "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
   "view-tagescheck": 4,     // v168: Fragenkatalog — Leitplanke 8: nichts fragen auf Stufe 1/2
@@ -6918,6 +6960,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.218", punkte:[
+    "Der Stift am Training bearbeitet jetzt alles: Datum, Dauer, Notiz und vor allem die Sätze — Wiederholungen, Gewicht, Haltezeit. Mit dem + oben rechts kommt ein Satz dazu; er übernimmt die Zahlen des letzten, du musst also nichts neu tippen.",
+    "Damit brauchst du kein zweites Training mehr, wenn du hinterher doch noch etwas gemacht hast: Du besserst den vorhandenen Eintrag nach.",
+    "Jede Änderung wirkt sofort überall — Volumen, Bestwerte, Übungs-Fortschritt, Muskelkarte, Kalender und Flamme rechnen mit den neuen Zahlen.",
+    "Was das Bearbeiten bewusst NICHT anfasst: die Vorgaben deines Plans. Ob mehr Wiederholungen drin sind, entscheidet weiterhin die Bewertung nach dem nächsten Training."
+  ]},
   { stand:"0.217", punkte:[
     "Fehler behoben: Die Muskelfiguren waren nach dem letzten Update viel zu groß und abgeschnitten. Der Versuch, die Farbfläche über ein festes Seitenverhältnis auszurichten, ging auf dem iPhone daneben. Jetzt steht die BREITE der Figur fest und die Höhe folgt dem Bild — das rechnet jeder Browser gleich.",
     "Unter den beiden Figuren in „Zuletzt trainiert“ steht kein Text mehr. Die Farbskala „wenig — viel“ gibt es weiterhin in der vollen Muskelkarte, die du mit einem Tipp auf die Karte öffnest.",
@@ -11397,23 +11445,166 @@ function eingabeFrage(textInhalt, typ, startwert, dann){
   eingabe.focus();
 }
 
+/* ------------------------------------------------------------
+   v218 (Nutzer-Ansage): Der Stift bearbeitet das GANZE Training.
+
+   „Wenn ich nach einem eingetragenen Training doch mehr gemacht hab, dann will
+   ich kein neues Training starten, sondern es einfach nachbessern."
+
+   Bis v217 konnte der Stift nur Datum und Notiz — die Satz-Daten galten seit
+   v80 als unantastbar („dafür: löschen + neu eintragen"). Das war eine
+   Vorsichtsregel aus einer Zeit, in der das Protokoll die einzige Wahrheit war;
+   inzwischen ist der Weg „löschen und neu" die schlechtere Antwort: Er kostet
+   den Eintrag, seine Zuordnung und (beim Löschen) sogar die Plan-Folgen (v182).
+
+   Was das Bearbeiten NICHT anfasst: die Progression des Plans. Ein Nachtrag
+   geht seit v70 bewusst nicht durch die Bewertung — dieselbe Linie gilt hier.
+   Geändert wird, was passiert IST; was der Plan daraus macht, entscheidet die
+   nächste Bewertung.
+   ------------------------------------------------------------ */
+let bearbEintrag = null;   // ARBEITSKOPIE — das Original wird erst beim Speichern angefasst
+
+/** Ein neuer Satz für die Liste: Kopie des letzten (dieselbe Übung, dieselben
+    Zahlen) oder ein leerer, wenn es noch keinen gibt. Genau das ist der Fall
+    „ich habe doch noch einen Satz gemacht". Rein/testbar. */
+function neuerSatzAus(saetze, name){
+  const liste = saetze || [];
+  const letzter = liste[liste.length - 1];
+  if(letzter) return Object.assign({}, letzter, { satz: liste.length + 1, note: null });
+  return { uebungId:null, name: name || "", modus:"wdh", satz:1, wdh:10, gewicht:0, note:null };
+}
+
+/** Die Sätze durchnummerieren — nach jedem Hinzufügen/Entfernen. Rein/testbar. */
+function saetzeNummerieren(saetze){
+  return (saetze || []).map((s, i) => Object.assign({}, s, { satz: i + 1 }));
+}
+
+/** Übernimmt die Formularwerte in einen Eintrag. Gibt einen Fehlertext zurück,
+    wenn etwas nicht stimmt — sonst "". Rein/testbar: fasst nur das übergebene
+    Objekt an. */
+function eintragWerteUebernehmen(eintrag, werte, heute){
+  if(!eintrag || !werte) return "Kein Eintrag.";
+  if(!werte.datum) return "Bitte ein Datum angeben.";
+  if(heute && werte.datum > heute) return "Ein Training kann nicht in der Zukunft liegen.";
+  const dauer = Math.round(Number(werte.dauerMin));
+  if(!(dauer >= 0)) return "Die Dauer muss eine Zahl sein.";
+  eintrag.datum = werte.datum;
+  eintrag.dauerMin = dauer;
+  eintrag.notiz = (werte.notiz || "").trim();
+  if(Array.isArray(werte.saetze)) eintrag.saetze = saetzeNummerieren(werte.saetze);
+  if(eintrag.typ === "aktivitaet"){
+    // Komma-Zahlen sind auf einem deutschen iPhone der Normalfall („6,5 km").
+    eintrag.strecke = parseFloat(String(werte.strecke === undefined ? "" : werte.strecke).replace(",", ".")) || 0;
+    if(werte.messwert !== undefined && werte.messwert !== null && werte.messwert !== "")
+      eintrag.messwert = werte.messwert;
+    else if("messwert" in eintrag) delete eintrag.messwert;
+  }
+  return "";
+}
+
 function eintragBearbeiten(id){
   const e = sitzung.daten.protokoll.find(x => x.id === id);
   if(!e) return;
-  aktionsMenue(datumKurz(e.datum) + " · " + (e.plan || e.freitext || "Eintrag"), [
-    { text:"Datum ändern", tun:() => eingabeFrage("Neues Datum:", "date", e.datum, wert => {
-        if(!wert) return;
-        if(wert > heuteAlsText()){ meldung("Ein Training kann nicht in der Zukunft liegen."); return; }
-        e.datum = wert;
-        sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
-        speichern(); statistikAktualisieren(); verlaufOeffnen();
-        zeigenToast("Datum geändert", "erfolg");
-      }) },
-    { text:"Notiz ändern", tun:() => eingabeFrage("Notiz zum Training:", "text", e.notiz || "", wert => {
-        e.notiz = (wert || "").trim();
-        speichern(); statistikAktualisieren(); verlaufOeffnen();
-      }) }
-  ]);
+  bearbEintrag = JSON.parse(JSON.stringify(e));   // Arbeitskopie, wie im Plan-Editor
+  eintragFormZeichnen();
+  zeige("view-eintrag");
+}
+
+function eintragFormZeichnen(){
+  const e = bearbEintrag; if(!e) return;
+  document.getElementById("eintrag-titel").textContent = e.plan || e.freitext || "Training";
+  document.getElementById("eintrag-datum").value = e.datum || heuteAlsText();
+  document.getElementById("eintrag-dauer").value = Math.max(0, Math.round(Number(e.dauerMin) || 0));
+  document.getElementById("eintrag-notiz").value = e.notiz || "";
+
+  // Aktivitäts-Felder nur, wo die Sportart sie hat (v115/v117-Linie).
+  const sp = sportart(e.sportart);
+  const aktBlock = document.getElementById("eintrag-aktivitaet");
+  const istAkt = e.typ === "aktivitaet";
+  aktBlock.hidden = !istAkt;
+  if(istAkt){
+    const mitStrecke = !!sp.strecke;
+    document.getElementById("eintrag-strecke").parentElement.hidden = !mitStrecke;
+    if(mitStrecke){
+      document.getElementById("eintrag-strecke-label").textContent = "Strecke (" + sp.strecke.einheit + ")";
+      document.getElementById("eintrag-strecke").value = e.strecke || 0;
+    }
+    const massFeld = document.getElementById("eintrag-mass-feld");
+    massFeld.hidden = !sp.mass;
+    if(sp.mass){
+      document.getElementById("eintrag-mass-label").textContent = sp.mass.label;
+      document.getElementById("eintrag-mass").value = e.messwert != null ? e.messwert : "";
+    }
+  }
+
+  const saetze = e.saetze || [];
+  document.getElementById("eintrag-saetze").innerHTML = saetze.length
+    ? saetze.map((s, i) => {
+        const werte = s.modus === "zeit"
+          ? '<div><label>Dauer (s)</label><input type="number" inputmode="numeric" min="0" value="' +
+            (s.dauer || 0) + '" oninput="eintragSatzSetzen(' + i + ',\'dauer\',this.value)"></div>'
+          : '<div><label>Wdh</label><input type="number" inputmode="numeric" min="0" value="' +
+            (s.wdh || 0) + '" oninput="eintragSatzSetzen(' + i + ',\'wdh\',this.value)"></div>' +
+            '<div><label>Gewicht (kg)</label><input type="number" inputmode="decimal" step="0.5" min="0" value="' +
+            (s.gewicht || 0) + '" oninput="eintragSatzSetzen(' + i + ',\'gewicht\',this.value)"></div>';
+        return '<div class="satz-zeile"><div class="zeile"><strong>' + (i + 1) + '. ' + text(s.name || "Übung") + '</strong>' +
+          '<button class="schmal gefahr" onclick="eintragSatzEntfernen(' + i + ')" aria-label="Satz entfernen">×</button></div>' +
+          '<div class="raster abstand">' + werte + '</div></div>';
+      }).join("")
+    : '<div class="meta">Keine Sätze festgehalten — mit + einen ergänzen.</div>';
+  /* Ehrlich sagen, was das Bearbeiten bewirkt UND was nicht (v70-Linie). */
+  document.getElementById("eintrag-saetze-hinweis").textContent = saetze.length
+    ? "Änderungen zählen sofort in Volumen, Bestwerte und Muskelkarte. Die Vorgaben deines Plans bleiben, wie sie sind."
+    : "";
+}
+
+function eintragSatzSetzen(i, feld, wert){
+  const s = (bearbEintrag && bearbEintrag.saetze || [])[i]; if(!s) return;
+  const zahl = feld === "gewicht" ? (parseFloat(String(wert).replace(",", ".")) || 0) : (parseInt(wert) || 0);
+  s[feld] = Math.max(0, zahl);
+  /* Nicht neu zeichnen: Das Feld hat gerade den Fokus, und ein Neuaufbau
+     würde ihn nehmen (die Tastatur klappt auf dem iPhone zu). */
+}
+
+function eintragSatzAnhaengen(){
+  if(!bearbEintrag) return;
+  if(!Array.isArray(bearbEintrag.saetze)) bearbEintrag.saetze = [];
+  bearbEintrag.saetze.push(neuerSatzAus(bearbEintrag.saetze, bearbEintrag.plan));
+  bearbEintrag.saetze = saetzeNummerieren(bearbEintrag.saetze);
+  eintragFormZeichnen();
+}
+
+function eintragSatzEntfernen(i){
+  if(!bearbEintrag || !Array.isArray(bearbEintrag.saetze)) return;
+  bearbEintrag.saetze.splice(i, 1);
+  bearbEintrag.saetze = saetzeNummerieren(bearbEintrag.saetze);
+  eintragFormZeichnen();
+}
+
+function eintragFormSpeichern(){
+  if(!bearbEintrag) return;
+  const sp = sportart(bearbEintrag.sportart);
+  const massFeld = document.getElementById("eintrag-mass");
+  const werte = {
+    datum: document.getElementById("eintrag-datum").value,
+    dauerMin: document.getElementById("eintrag-dauer").value,
+    notiz: document.getElementById("eintrag-notiz").value,
+    saetze: bearbEintrag.saetze,
+    strecke: document.getElementById("eintrag-strecke").value,
+    messwert: (sp && sp.mass && massFeld) ? massFeld.value : undefined
+  };
+  const echt = sitzung.daten.protokoll.find(x => x.id === bearbEintrag.id);
+  if(!echt){ verlaufOeffnen(); return; }
+  const fehler = eintragWerteUebernehmen(echt, werte, heuteAlsText());
+  if(fehler){ meldung(fehler); return; }
+  sitzung.daten.protokoll.sort((a,b) => a.datum.localeCompare(b.datum));
+  speichern();
+  /* v214-Regel: Wer schreibt, zeichnet alles Abgeleitete neu — hier ist sie der
+     ganze Zweck der Sache („damit auch alle Rechnungen beeinflusst werden"). */
+  fortschrittNeuZeichnen();
+  bearbEintrag = null;
+  verlaufOeffnen();
+  zeigenToast("Training aktualisiert", "erfolg");
 }
 
 /** Zeichnet die Statistik-Bausteine neu, ohne die Ansicht zu wechseln — damit
