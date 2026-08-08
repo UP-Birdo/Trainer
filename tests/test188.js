@@ -132,11 +132,15 @@ pruefe("Bereitmachen beendet die Messung nicht",
 pruefe("die Messung steht vor der Fallunterscheidung (gilt fuer beide Satzarten)",
   betreten.indexOf("gemessenePause(") < betreten.indexOf('s.typ === "aufwaermen"'));
 
-/* Das Feld existiert in beiden Startpunkten eines Laufs. */
+/* Das Feld existiert in beiden Startpunkten eines Laufs.
+   v221: Die Fenster mussten wachsen — beide Lauf-Objekte tragen seit dem
+   Unendlichkeitsmodus die Felder der zweiten Uhr (zeitEnde, Runde) samt
+   Begruendung. Geprueft wird weiterhin dasselbe: `pauseStart` steht in
+   BEIDEN Startpunkten und steht dort auf null. */
 pruefe("ein neuer Lauf startet ohne offene Pause",
-  /schritte:ablaufErzeugen\(plan\)[\s\S]{0,200}pauseStart: null/.test(src));
+  /schritte:ablaufErzeugen\(plan\)[\s\S]{0,700}pauseStart: null/.test(src));
 pruefe("ein fortgesetzter Lauf ebenfalls (Unterbrechung ist keine Pause)",
-  /startZeit: stand\.startZeit \|\| Date\.now\(\),[\s\S]{0,400}pauseStart: null/.test(src));
+  /startZeit: stand\.startZeit \|\| Date\.now\(\),[\s\S]{0,1400}pauseStart: null/.test(src));
 
 /* ---------- 4) Sauberkeit ---------- */
 pruefe("die geplante Pause am Plan bleibt unangetastet",

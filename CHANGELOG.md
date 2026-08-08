@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.221
+
+- Neu: der Unendlichkeitsmodus. Im Plan steht er als dritter Knopf neben „Klassisch“ und
+  „Zirkel“ — du stellst eine Zeit ein (Sekunden, Minuten oder Stunden), und dann laufen
+  deine Übungen in ihrer Reihenfolge durch. Ist die Runde zu Ende, fängt sie wieder von
+  vorne an, bis die Zeit um ist. Feste Satz-Zahlen gibt es dort nicht.
+- Oben läuft ein Band mit: grün „Gut in der Zeit“, gelb „Es wird knapp“, rot „Beeil
+  dich“ — und bei jedem Wechsel sagt es die Stimme. Sobald eine Runde hinter dir liegt,
+  rechnet das Band mit deiner echten Rundenzeit: Passt noch eine ganze Runde in die
+  Restzeit?
+- Ist die Zeit um, schließt das Training mit einer Übersicht: Dauer, geschaffte Runden
+  und Sätze je Übung. Gespeichert wird nur, was du wirklich fertig gemacht hast — der
+  angefangene Satz beim Gong zählt nicht mit.
+- Neuer Schalter „Feste Werte“ für jeden Plan: Damit lässt die App deine Sätze,
+  Wiederholungen und Gewichte in Ruhe, statt sie nach dem Training automatisch
+  anzupassen. Im Unendlichkeitsmodus ist er immer an.
+
 ## 0.220
 
 - Im Fenster vor dem Start kannst du das Training jetzt umstellen: Lange auf eine Übung
