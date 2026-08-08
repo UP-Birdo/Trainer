@@ -76,6 +76,20 @@ const code = [
      Hier NICHT unter Test und ohne Meldung ohnehin neutral (die echte Funktion
      gibt dann 1 zurueck) — geprueft wird sie in test228. */
   "function beschwerdeFaktor(){ return 1; }",
+  /* 0.230: Die Erfahrung waechst aus dem Verlauf (test230). Hier zaehlt die
+     alte Zusage weiter — der STARTWERT je Profil-Angabe stimmt; deshalb der
+     Stub mit genau dieser Tabelle. Ruhepuls/Ernaehrung: ohne Daten neutral. */
+  "function erfahrungsFaktor(e){ return ({anfaenger:0.6,wieder:0.8,fortgeschritten:1.0})[(e||{}).erfahrung] || 0.8; }",
+  "function ruhepulsFaktor(){ return 1; }",
+  "function ruhepulsBasis(){ return null; }",
+  "function ernaehrungSchnitt(){ return null; }",
+  "function ernaehrungFaktor(){ return 1; }",
+  /* 0.230: muskelAuslastung baut Wochen-Lasten und rechnet Anpassung + Erholung
+     je Muskel. Hier alles neutral gestellt (0 Wochen, Faktor 1, alte 2 Tage) —
+     die Zusagen von v160 gelten unveraendert; das Wachsende prueft test230. */
+  "const ANPASSUNG_WOCHEN = 0;",
+  "function anpassungsFaktor(){ return 1; }",
+  "function erholungsTageFuer(){ return 2; }",
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
   /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne

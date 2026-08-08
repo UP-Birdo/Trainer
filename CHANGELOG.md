@@ -3,6 +3,23 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.230.0
+
+- Das Modell wächst jetzt mit dir. Deine Erfahrungs-Stufe ist keine einmalige Angabe
+  mehr: Die App zählt deine aktiven Trainingswochen und stuft dich von selbst hoch — die
+  Profil-Angabe ist nur noch der Startwert, zurückgestuft wird nie.
+- Auch jeder einzelne Muskel wächst: Verträgt er über Wochen sein Volumen, ohne dass du
+  Beschwerden meldest, steigt seine Kapazität (bis +30 %) — die Warnung kommt dann
+  später, so wie es bei einem Trainierten sein soll. Bei Beschwerden pausiert das
+  Wachstum, nach zwei leeren Wochen fällt es zurück.
+- Jeder Muskel hat jetzt seine eigene Erholungszeit (1–3 Tage statt pauschal 2): Beine
+  und Rücken brauchen länger als Waden oder Bauch, Trainierte erholen schneller.
+- Zwei neue Werte zum Selbst-Eintragen (Statistik → Tageswerte): dein Ruhepuls — die App
+  lernt deinen Normalwert und erkennt unvollständige Erholung — und deine Ernährung
+  (1–5). Beides fließt in die Rechnung ein; wie immer gilt: kein Wert, kein Effekt.
+- Und nach jedem Training fragt die App nach dem Tages-Check, falls er heute noch fehlt
+  — direkt auf der Ergebnis-Seite.
+
 ## 0.229.0
 
 - Die Legende unter der Muskelfigur ist jetzt ein durchgehendes Farbband statt dreier

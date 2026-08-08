@@ -75,6 +75,15 @@ new Function("module", "exports", [
   grabFn("kapazitaetsFaktor"),
   // 0.228: siehe test160 — ohne Meldung neutral, geprueft wird der Faktor in test228.
   "function beschwerdeFaktor(){ return 1; }",
+  // 0.230: siehe test160 — Startwerte wie die alte Tabelle, neue Faktoren neutral (test230).
+  "function erfahrungsFaktor(e){ return ({anfaenger:0.6,wieder:0.8,fortgeschritten:1.0})[(e||{}).erfahrung] || 0.8; }",
+  "function ruhepulsFaktor(){ return 1; }",
+  "function ruhepulsBasis(){ return null; }",
+  "function ernaehrungSchnitt(){ return null; }",
+  "function ernaehrungFaktor(){ return 1; }",
+  "const ANPASSUNG_WOCHEN = 0;",
+  "function anpassungsFaktor(){ return 1; }",
+  "function erholungsTageFuer(){ return 2; }",
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
   /* v189: Die Grundlagen-Zeile nennt jetzt auch die gemessenen Pausen. In
@@ -233,7 +242,10 @@ pruefe("sie zaehlt die Trainings", gVoll.trainings === 14);
 pruefe("und weiss, dass die Basis reicht", gVoll.reicht === true);
 pruefe("Erfahrung, Alter, Schlaf und Befinden stehen als vorhanden drin",
   ["Erfahrung", "Alter", "Schlaf", "Befinden"].every(x => gVoll.hat.includes(x)));
-pruefe("nichts fehlt", gVoll.fehlt.length === 0);
+/* 0.230: Ruhepuls und Ernaehrung sind dazugekommen — die Stubs liefern null,
+   also stehen genau diese beiden hier immer als fehlend. Die Aussage bleibt:
+   von den ALTEN Groessen fehlt nichts. */
+pruefe("nichts fehlt", gVoll.fehlt.join() === "Ruhepuls,Ernährung");
 pruefe("und es wird nichts angenommen", gVoll.annahme === false);
 
 const gLeer = A.rechnungsGrundlage(trainings(2), {}, {}, [], HEUTE);
@@ -245,9 +257,11 @@ pruefe("die stille Annahme wird gemeldet", gLeer.annahme === true);
 
 const tVoll = A.grundlageText(gVoll), tLeer = A.grundlageText(gLeer);
 pruefe("der volle Text nennt die Trainings", tVoll.includes("14 Trainings"));
-pruefe("und sagt nichts von fehlenden Daten", !tVoll.includes("Ohne "));
+pruefe("und sagt nichts von fehlenden Daten (ausser den zwei neuen Reihen)",
+  tVoll.includes("Ohne Ruhepuls, Ernährung.") && !tVoll.includes("Schlaf,"));
 pruefe("und verlangt keine weiteren Trainings", !tVoll.includes("Für eine Warnung"));
-pruefe("der leere Text nennt, was fehlt", tLeer.includes("Ohne Erfahrung, Alter, Schlaf, Befinden."));
+pruefe("der leere Text nennt, was fehlt",
+  tLeer.includes("Ohne Erfahrung, Alter, Schlaf, Befinden, Ruhepuls, Ernährung."));
 pruefe("er sagt, dass es genauer wuerde", tLeer.includes("genauer"));
 pruefe("er macht die stille Wiedereinsteiger-Annahme sichtbar",
   tLeer.includes("Wiedereinsteiger"));

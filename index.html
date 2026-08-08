@@ -2914,8 +2914,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.229.0";
-const APP_VERSION = 229000;
+const VERSION = "0.230.0";
+const APP_VERSION = 230000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7133,7 +7133,8 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.229 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.230 · Das Training in deiner Hand", punkte:[
+    "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
     "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
     "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
     "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
@@ -7177,6 +7178,13 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.230.0", punkte:[
+    "Das Modell wächst jetzt mit dir. Deine Erfahrungs-Stufe ist keine einmalige Angabe mehr: Die App zählt deine aktiven Trainingswochen und stuft dich von selbst hoch — die Profil-Angabe ist nur noch der Startwert, zurückgestuft wird nie.",
+    "Auch jeder einzelne Muskel wächst: Verträgt er über Wochen sein Volumen, ohne dass du Beschwerden meldest, steigt seine Kapazität (bis +30 %) — die Warnung kommt dann später, so wie es bei einem Trainierten sein soll. Bei Beschwerden pausiert das Wachstum, nach zwei leeren Wochen fällt es zurück.",
+    "Jeder Muskel hat jetzt seine eigene Erholungszeit (1–3 Tage statt pauschal 2): Beine und Rücken brauchen länger als Waden oder Bauch, Trainierte erholen schneller.",
+    "Zwei neue Werte zum Selbst-Eintragen (Statistik → Tageswerte): dein Ruhepuls — die App lernt deinen Normalwert und erkennt unvollständige Erholung — und deine Ernährung (1–5). Beides fließt in die Rechnung ein; wie immer gilt: kein Wert, kein Effekt.",
+    "Und nach jedem Training fragt die App nach dem Tages-Check, falls er heute noch fehlt — direkt auf der Ergebnis-Seite."
+  ]},
   { stand:"0.229.0", punkte:[
     "Die Legende unter der Muskelfigur ist jetzt ein durchgehendes Farbband statt dreier Punkte — genau der Verlauf, den auch dein Körper zeigt. Der Knick von Gelb nach Rot sitzt an derselben Stelle wie in der Rechnung."
   ]},
@@ -8790,6 +8798,13 @@ function koerpermassTrend(reihe){
 const TAGESWERTE = [
   { id:"schlaf",   name:"Schlaf",   einheit:"h", min:0, max:24, schritt:0.5, nachkomma:1,
     hinweis:"Stunden geschlafen. Auf die halbe Stunde genau reicht — es geht um den Verlauf, nicht um die Minute." },
+  /* 0.230.0 (Nutzer-Direktive „man soll selbst Daten eintragen können"): zwei
+     neue, von Hand gepflegte Reihen. Der Ruhepuls war der letzte offene Punkt
+     der Gruppe B (Belastungs-Modell) — die App lernt den Normalwert selbst. */
+  { id:"ruhepuls", name:"Ruhepuls", einheit:"bpm", min:30, max:120, schritt:1, nachkomma:0,
+    hinweis:"Morgens vor dem Aufstehen messen. Die App lernt deinen Normalwert; liegt der Puls deutlich darüber, rechnet sie mit unvollständiger Erholung." },
+  { id:"ernaehrung", name:"Ernährung", einheit:"", min:1, max:5, schritt:1, nachkomma:0,
+    hinweis:"Wie gut hast du dich heute versorgt? 1 = kaum gegessen, wenig Eiweiß · 3 = normal · 5 = reichlich und eiweißreich. Fließt klein in die Erholungs-Rechnung ein." },
   // v168: Befinden wird nicht mehr geschätzt, sondern aus dem Tages-Check
   // abgeleitet. `check:true` heißt: Das Plus öffnet den Check, nicht das
   // Zahlenfeld. Von Hand eingetragene Altwerte bleiben in derselben Reihe.
@@ -10760,6 +10775,178 @@ function befindenFaktor(schnitt){
 }
 
 /* ============================================================
+   0.230.0 — DAS WACHSENDE MODELL (Nutzer-Direktive, 08.08.2026)
+
+   „Alles soll wachsen können. Die Sache mit ‚Anfänger' einmal angedrückt und
+   immer fix ist absoluter Müll — alles soll mit den Trainingseinheiten wachsen.
+   Alle Werte sollen einfließen. Man soll selbst Daten eintragen können."
+
+   Der Nutzer hat dafür ausdrücklich zwei frühere Regeln aufgehoben:
+   * Die FIXE Erfahrungs-Stufe (Anfänger 0,6 / Wieder 0,8 / Fortgeschritten 1,0
+     als einmalige Selbstauskunft) — sie ist jetzt nur noch der STARTWERT, der
+     echte Faktor wächst aus dem Protokoll.
+   * „Nur warnen, nie mehr zumuten" (Entscheidung vom selben Tag) — die
+     Kapazität eines Muskels darf jetzt STEIGEN, wenn er über Wochen nachweislich
+     Volumen verträgt, ohne dass Beschwerden gemeldet wurden.
+
+   Was NICHT aufgehoben ist, weil keine Erlaubnis Physiologie ändert: „genau
+   statt wahrscheinlich" kann keine Rechnung liefern — auch die Sportmedizin
+   misst Erholung nur über Näherungsgrößen (Ruhepuls, HRV, Selbstauskunft).
+   Der ehrliche Weg bleibt: jede belegte RICHTUNG einbauen, jede unbelegte
+   GRÖSSE deckeln, und die Grundlagen-Zeile sagt, worauf sich alles stützt.
+
+   Die Forschungsanker (je Baustein dokumentiert):
+   * Trainingsalter: gängige Einteilung (ACSM/NSCA-Linie) — unter ~2 Monaten
+     Anfänger, bis ~12 Monate Mittelstufe, darüber fortgeschritten. Deshalb
+     wächst der Erfahrungs-Faktor über AKTIVE TRAININGSWOCHEN.
+   * Volumen-Toleranz wächst mit Exposition (Volume-Landmarks-Literatur,
+     progressive Overload): Wer einen Muskel über Wochen nahe seiner Kapazität
+     trainiert und nichts meldet, verträgt mehr. Richtung belegt, Größe nicht →
+     Deckel +30 %, Wachstum pausiert bei Beschwerden, fällt bei Pause zurück.
+   * Ruhepuls: mehrere Schläge über dem eigenen Normalwert sind ein etablierter
+     Marker unvollständiger Erholung (Übertrainings-Literatur). Die App lernt
+     den Normalwert selbst (Median), gewarnt wird nur nach unten.
+   * Ernährung: ausreichend Protein beschleunigt die Erholung nachweislich
+     (Meta-Analysen zur Proteinzufuhr); als Selbsteinschätzung 1–5, klein.
+   * Erholungszeit je Muskel: 24–72 h je nach Muskelgröße; Trainierte erholen
+     schneller (Repeated-Bout-Effekt). Grobe Tages-Stufen statt Scheingenauigkeit.
+   ============================================================ */
+
+/** Aktive Trainingswochen über die ganze Historie: Wochen mit mindestens zwei
+    Trainingstagen — eine Woche mit einem einzigen Besuch ist kein Training,
+    sondern ein Versuch. Rein/testbar. */
+function aktiveTrainingsWochen(protokoll){
+  const tageJeWoche = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    const w = wocheSeitEpoche(e.datum);
+    if(!tageJeWoche[w]) tageJeWoche[w] = new Set();
+    tageJeWoche[w].add(e.datum);
+  });
+  return Object.keys(tageJeWoche).filter(w => tageJeWoche[w].size >= 2).length;
+}
+
+/** Erfahrungs-Faktor aus dem VERLAUF: 0,6 ohne Historie, 1,0 nach ~einem Jahr
+    aktiver Wochen (48), bis 1,1 nach zwei Jahren. Die Kurve folgt der gängigen
+    Trainingsalter-Einteilung; darüber hinaus wächst nichts — ab da trägt die
+    Anpassung je Muskel. Rein/testbar. */
+function erfahrungAusVerlauf(wochen){
+  const w = Math.max(0, Number(wochen) || 0);
+  if(w >= 96) return 1.1;
+  if(w >= 48) return Math.round((1.0 + (w - 48) / 48 * 0.1) * 100) / 100;
+  return Math.round((0.6 + w / 48 * 0.4) * 100) / 100;
+}
+
+/** DER Erfahrungs-Faktor (0.230.0): Die Profil-Angabe ist nur noch der
+    STARTWERT — für alles, was vor der App passiert ist. Der gerechnete Wert
+    aus den eigenen Trainingswochen holt ihn ein und überholt ihn. Er kann
+    dadurch nie unter den Start fallen (niemand wird zurückgestuft), aber auch
+    nie aufhören zu wachsen, solange trainiert wird. */
+function erfahrungsFaktor(einrichtung, protokoll){
+  const e = einrichtung || {};
+  const start = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
+  return Math.max(start, erfahrungAusVerlauf(aktiveTrainingsWochen(protokoll)));
+}
+
+/* ---- Ruhepuls (0.230.0) — der offene Punkt aus Gruppe B, jetzt entschieden:
+   der Nutzer trägt selbst ein. Die App lernt den Normalwert als MEDIAN der
+   Einträge von vor 3 bis 30 Tagen (der Median ist robust gegen einen kranken
+   Tag); die letzten 2 Tage bleiben draußen, sonst verschöbe der erhöhte Wert
+   von heute seinen eigenen Maßstab. Gewarnt wird NUR nach unten — ein niedriger
+   Puls gibt keinen Bonus, dafür ist die Datenlage zu dünn. */
+const RUHEPULS_MINDEST = 5;
+
+function ruhepulsBasis(tageswerte, heute){
+  const werte = (tageswerte || []).filter(e => {
+    if(!e || e.art !== "ruhepuls" || !(e.wert > 0) || !e.datum) return false;
+    const d = tagDifferenz(e.datum, heute);
+    return d >= 3 && d <= 30;
+  }).map(e => e.wert).sort((a, b) => a - b);
+  if(werte.length < RUHEPULS_MINDEST) return null;
+  const m = Math.floor(werte.length / 2);
+  return werte.length % 2 ? werte[m] : (werte[m - 1] + werte[m]) / 2;
+}
+
+/** Wirkung des aktuellen Ruhepulses gegen den eigenen Normalwert. 1 = neutral
+    (kein Wert, keine Basis, kein Effekt). Rein/testbar. */
+function ruhepulsFaktor(tageswerte, heute){
+  const basis = ruhepulsBasis(tageswerte, heute);
+  if(basis === null) return 1;
+  let aktuell = null, bestDiff = 3;
+  (tageswerte || []).forEach(e => {
+    if(!e || e.art !== "ruhepuls" || !(e.wert > 0) || !e.datum) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d >= 0 && d < bestDiff){ bestDiff = d; aktuell = e.wert; }
+  });
+  if(aktuell === null) return 1;
+  const anteil = aktuell / basis;
+  if(anteil >= 1.08) return 0.92;   // deutlich erhöht — Erholung unvollständig
+  if(anteil >= 1.04) return 0.96;   // leicht erhöht
+  return 1;
+}
+
+/* ---- Ernährung (0.230.0) — Selbsteinschätzung 1–5, von Hand gepflegt. */
+const ERNAEHRUNG_MINDEST = 3;
+
+function ernaehrungSchnitt(tageswerte, heute){
+  const treffer = (tageswerte || []).filter(e => {
+    if(!e || e.art !== "ernaehrung" || !(e.wert > 0) || !e.datum) return false;
+    const d = tagDifferenz(e.datum, heute);
+    return d >= 0 && d <= SCHLAF_TAGE;
+  });
+  if(treffer.length < ERNAEHRUNG_MINDEST) return null;
+  return treffer.reduce((s, e) => s + e.wert, 0) / treffer.length;
+}
+
+function ernaehrungFaktor(schnitt){
+  if(schnitt === null || schnitt === undefined || !isFinite(schnitt)) return 1;
+  if(schnitt <= 2) return 0.95;
+  if(schnitt >= 4) return 1.03;
+  return 1;
+}
+
+/* ---- Anpassung je Muskel (0.230.0) — das Herzstück von „alles wächst".
+   Gemessen wird über die letzten acht ABGESCHLOSSENEN Wochen: Wie oft lag das
+   Wochenvolumen dieses Muskels bei mindestens 60 % seiner Basis-Kapazität?
+   Jede solche Woche hebt die Kapazität um 4 %, gedeckelt bei +30 %.
+   Drei Bremsen, alle bewusst:
+   * BESCHWERDEN PAUSIEREN das Wachstum — wer meldet, dass es zwickt, bekommt
+     nicht gleichzeitig mehr zugemutet.
+   * ZWEI LEERE WOCHEN setzen es zurück — Detraining ist real.
+   * Der DECKEL bleibt, weil die Richtung belegt ist und die Größe nicht. */
+const ANPASSUNG_WOCHEN = 8;
+const ANPASSUNG_SCHRITT = 0.04;
+const ANPASSUNG_DECKEL = 1.3;
+
+/** wochenLasten: Array der muskelLast-Ergebnisse je zurückliegender Woche
+    (Index 0 = vorige Woche). Wird vom Aufrufer EINMAL gebaut und für alle
+    Muskeln wiederverwendet. Rein/testbar. */
+function anpassungsFaktor(wochenLasten, muskel, basisKap, beschwerdeF){
+  if(beschwerdeF < 1) return 1;                      // Wachstum pausiert bei Beschwerden
+  const saetze = (wochenLasten || []).map(w => (w && w[muskel] ? w[muskel].saetze : 0));
+  if(saetze.length >= 2 && saetze[0] === 0 && saetze[1] === 0) return 1;   // Detraining
+  const gute = saetze.filter(s => s >= basisKap * 0.6).length;
+  return Math.min(ANPASSUNG_DECKEL, Math.round((1 + gute * ANPASSUNG_SCHRITT) * 100) / 100);
+}
+
+/* ---- Erholungszeit je Muskel (0.230.0) — statt einer Zahl für alle.
+   24–72 h je nach Muskelgröße (große, mehrgelenkig belastete Muskeln brauchen
+   länger); Trainierte erholen schneller (Repeated-Bout-Effekt), Anfänger
+   bekommen einen Aufschlag. Tages-Stufen, keine Stunden — feiner wäre
+   Scheingenauigkeit. */
+const MUSKEL_ERHOLUNG = {
+  quadriceps:3, hamstrings:3, glutes:3, latissimus:3, pectoral:3, lowerback:3,
+  deltoid:2, trapezius:2, biceps:2, triceps:2, adductors:2, infraspinatus:2,
+  serratus:2, obliques:2,
+  calves:1, forearm:1, tibialis:1, abs:1, neck:1
+};
+
+function erholungsTageFuer(muskel, erfF){
+  const basis = MUSKEL_ERHOLUNG[muskel] || ERHOLUNG_TAGE;
+  return (erfF >= 1) ? basis : Math.round(basis * 1.25);
+}
+
+/* ============================================================
    0.228.0 — BESCHWERDEN JE MUSKEL (Nutzer-Wunsch, dreimal gestellt)
 
    „Bei der Muskelkarte fehlt mir neben Erkunden noch Wohlbefinden, damit ich
@@ -10837,9 +11024,13 @@ function beschwerdeText(beschwerden, muskel, heute){
     ein kleiner Bonus für die verträglichere Einheit, Schlaf seit v167.
     `tageswerte` ist optional — ohne sie rechnet die Funktion wie vor v167.
     Rein/testbar. */
-function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte){
+function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte, protokoll){
+  /* 0.230.0: Die Erfahrung ist keine fixe Selbstauskunft mehr — sie wächst mit
+     den eigenen Trainingswochen (Nutzer-Direktive „nichts darf fix sein").
+     `protokoll` ist optional; ohne rechnet die Funktion wie zuvor mit dem
+     Startwert aus dem Profil. */
+  let f = erfahrungsFaktor(einrichtung, protokoll);
   const e = einrichtung || {};
-  let f = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
   const alter = alterJahre(profil, heute);
   if(alter && alter > 30) f *= Math.max(0.75, 1 - (alter - 30) * 0.005);   // Heuristik
   if(profil && profil.geschlecht === "w") f *= 1.05;                        // Heuristik
@@ -10848,17 +11039,20 @@ function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte){
   if(bonus.includes("dehnen"))     f *= 1.02;
   f *= schlafFaktor(schlafSchnitt(tageswerte, heute));                      // v167, 1 ohne Daten
   f *= befindenFaktor(befindenSchnitt(tageswerte, heute));                  // v168, 1 ohne Daten
+  f *= ruhepulsFaktor(tageswerte, heute);                                   // 0.230, 1 ohne Basis
+  f *= ernaehrungFaktor(ernaehrungSchnitt(tageswerte, heute));              // 0.230, 1 ohne Daten
   return Math.round(f * 100) / 100;
 }
 
 /** Kapazität eines Muskels für DIESEN Nutzer. Rein/testbar. */
-function muskelKapazitaet(muskel, profil, einrichtung, heute, tageswerte, beschwerden){
+function muskelKapazitaet(muskel, profil, einrichtung, heute, tageswerte, beschwerden, protokoll, anpassung){
   const basis = MUSKEL_KAPAZITAET[muskel] || KAPAZITAET_STANDARD;
-  /* 0.228.0: Der einzige Faktor, der JE MUSKEL wirkt — alle anderen gelten für
-     den ganzen Körper. `beschwerden` ist optional; ohne die Angabe rechnet die
-     Funktion wie vor 0.228. */
-  const f = kapazitaetsFaktor(profil, einrichtung, heute, tageswerte) *
-            beschwerdeFaktor(beschwerden, muskel, heute);
+  /* 0.228.0: Beschwerden wirken JE MUSKEL. 0.230.0: dazu die Anpassung — die
+     Kapazität wächst mit dem über Wochen vertragenen Volumen (der Aufrufer
+     rechnet sie einmal für alle Muskeln und reicht sie herein; ohne Angabe 1). */
+  const f = kapazitaetsFaktor(profil, einrichtung, heute, tageswerte, protokoll) *
+            beschwerdeFaktor(beschwerden, muskel, heute) *
+            (anpassung || 1);
   return Math.max(4, Math.round(basis * f * 10) / 10);
 }
 
@@ -11100,6 +11294,9 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
   (alterJahre(p, heute) ? hat : fehlt).push("Alter");
   (schlafSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Schlaf");
   (befindenSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Befinden");   // v168
+  // 0.230.0: die beiden neuen, von Hand gepflegten Reihen
+  (ruhepulsBasis(tageswerte, heute) === null ? fehlt : hat).push("Ruhepuls");
+  (ernaehrungSchnitt(tageswerte, heute) === null ? fehlt : hat).push("Ernährung");
   /* v189: Die Pausen kommen aus dem Training selbst — der einzige Posten der
      Zeile, für den der Nutzer NICHTS eintragen kann. Deshalb stehen sie nur
      unter „hat", nie unter „fehlt": Die Fehlt-Liste mündet in „Damit würde die
@@ -11197,12 +11394,21 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
     if(!e || !e.muskel || roh[e.muskel]) return;
     if(beschwerdeFaktor(beschwerden, e.muskel, heute) < 1) roh[e.muskel] = { saetze:0, tageSeit:99 };
   });
+  /* 0.230.0: Die Wochen-Lasten EINMAL für alle Muskeln bauen — daraus rechnet
+     die Anpassung, wie viel Volumen jeder Muskel zuletzt nachweislich vertrug. */
+  const wochen = [];
+  for(let w = 1; w <= ANPASSUNG_WOCHEN; w++)
+    wochen.push(muskelLast(protokoll, tageVerschieben(heute, -7 * w), 6));
+  const erfF = erfahrungsFaktor(einrichtung, protokoll);
   const raus = {};
   Object.keys(roh).forEach(m => {
-    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden);
+    const basis = MUSKEL_KAPAZITAET[m] || KAPAZITAET_STANDARD;
+    const anp = anpassungsFaktor(wochen, m, basis, beschwerdeFaktor(beschwerden, m, heute));
+    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden, protokoll, anp);
     raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
                 quote: Math.round((roh[m].saetze / kap) * 100) / 100,
-                erholt: roh[m].tageSeit >= ERHOLUNG_TAGE };
+                // 0.230.0: Erholung je Muskel statt einer Zahl für alle
+                erholt: roh[m].tageSeit >= erholungsTageFuer(m, erfF) };
   });
   return raus;
 }
@@ -19399,6 +19605,7 @@ function abschlussZeigen(plan, eintrag, runden, gespeichert, bestVorher){
     (zeilen ? '<div class="karte">' + zeilen + '</div>'
             : '<div class="karte"><div class="meta">Kein Satz fertig geworden — eingetragen wurde nichts.</div></div>') +
     (serie >= 2 ? '<div class="karte"><h2>🔥 ' + serie + ' Trainings in Serie</h2></div>' : "") +
+    checkAngebotHtml() +   // 0.230.0: auch das Training auf Zeit endet mit der Frage
     '<div class="meta" style="margin-top:10px">Gezählt wird nur, was du fertig gemacht hast. Der angefangene Satz beim Gong bleibt draußen. Die Zahl der Sätze übernimmt die App in den Plan — Wiederholungen und Gewicht bleiben, wie du sie eingestellt hast.</div>';
   zeige("view-abschluss");
 
@@ -19977,10 +20184,23 @@ function bewertungAnwenden(){
     if(z.neu.pause !== z.alt.pause)     teile.push("Pause " + z.alt.pause + " → " + z.neu.pause + " s");
     return '<div class="karte"><h2>' + text(z.name) + '</h2>' +
            '<div class="meta">' + (teile.length ? teile.join("  ·  ") : "unverändert") + '</div></div>';
-  }).join("");
+  }).join("") + checkAngebotHtml();
 
   lauf = null;
   zeige("view-ergebnis");
+}
+
+/** 0.230.0 (Nutzer-Direktive „als Frage am Ende jedes Trainings"): Direkt nach
+    dem Training ist der Moment, an dem die Erholungs-Daten entstehen — der
+    Tages-Check wird hier ANGEBOTEN, wenn er heute noch fehlt. Ein Angebot, kein
+    Zwang, und nur auf Stufen, die den Check überhaupt kennen (Leitplanke 8). */
+function checkAngebotHtml(){
+  if(!viewErlaubt("view-tagescheck")) return "";
+  const heute = heuteAlsText();
+  const schonDa = (sitzung.daten.tageswerte || []).some(e => e && e.datum === heute && e.art === "befinden");
+  if(schonDa) return "";
+  return '<div class="karte"><div class="meta" style="margin-bottom:8px">Wie geht es dir? Deine Antworten fließen in die Erholungs-Rechnung ein.</div>' +
+    '<button class="breit" onclick="tagesCheckOeffnen()">Tages-Check ausfüllen</button></div>';
 }
 
 /* ============================================================

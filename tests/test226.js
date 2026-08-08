@@ -142,8 +142,12 @@ pruefe("APP_VERSION passt zu VERSION", (() => {
   return Number(/const APP_VERSION = (\d+);/.exec(src)[1]) === Number(mi) * 1000 + Number(pa);
 })());
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.226.0", punkte:['));
-pruefe("die Zusammenfassung reicht bis zur aktuellen Version",
-  /stand:"0\.220 – 0\.22[6-9]/.test(src));
+pruefe("die Zusammenfassung reicht bis zur aktuellen Version", (() => {
+  // 0.230: nicht mehr auf eine Zehner-Spanne festgenagelt — die Zusage ist,
+  // dass der oberste Abschnitt die aktuelle MINOR-Nummer traegt (wie test225).
+  const minor = /const VERSION = "0\.(\d+)\./.exec(src)[1];
+  return new RegExp('stand:"0\\.220 – 0\\.' + minor).test(src);
+})());
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);
