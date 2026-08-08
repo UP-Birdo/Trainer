@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.225.0
+
+- „Was ist neu“ beginnt jetzt mit einer Zusammenfassung: sieben Abschnitte über die
+  ganze Entwicklung statt einer Liste von über 150 Versionen. Wer es genau wissen will,
+  tippt darunter auf „Alle Änderungen im Einzelnen“ — dort steht weiterhin jede Version
+  für sich.
+
 ## 0.224.0
 
 - Die Versionsnummer hat jetzt drei Stellen: aus 0.223 wird 0.224.0. Die neue letzte

@@ -2896,8 +2896,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.224.0";
-const APP_VERSION = 224000;
+const VERSION = "0.225.0";
+const APP_VERSION = 225000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7091,7 +7091,69 @@ function wissenOeffnen(){
    hier nicht, die interessieren beim Trainieren niemanden. Neueste zuerst.
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
+/* ============================================================
+   0.225.0 (Nutzer-Wunsch): „Fass den Versions-Verlauf in der App zusammen, mit
+   nur den wichtigsten Punkten."
+
+   Die Liste war auf über 150 Einträge gewachsen — als Nachschlagewerk richtig,
+   zum Lesen unbrauchbar. Statt sie zu KÜRZEN, bekommt sie eine Ebene davor:
+   `HOEHEPUNKTE` fasst den Verlauf in wenigen Abschnitten zusammen, die volle
+   Liste steht einen Tipp entfernt darunter.
+
+   WARUM nicht einfach alte Einträge löschen — zwei Gründe, beide hart:
+   1. `CHANGELOG.md` wird aus `NEUIGKEITEN` ERZEUGT (tools\Changelog-Erzeugen.ps1).
+      Was hier verschwindet, verschwindet aus dem öffentlichen Verlauf.
+   2. Über fünfzig Regressionstests prüfen, dass es zu ihrer Version einen
+      Eintrag gibt („die Neuigkeit ist eingetragen") — das ist die Wache dafür,
+      dass jede Bau-Runde dem Nutzer etwas erzählt. Sie wegzunehmen, um eine
+      Anzeige zu kürzen, wäre der falsche Tausch.
+   Beides bleibt damit unangetastet; geändert hat sich nur, was zuerst zu sehen
+   ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
+   erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
+const HOEHEPUNKTE = [
+  { stand:"0.220 – 0.225 · Das Training in deiner Hand", punkte:[
+    "Der Unendlichkeitsmodus: Du gibst eine Zeit vor, deine Übungen laufen in Runden durch, bis sie um ist. Ein Band oben zeigt in Grün, Gelb und Rot, wie du in der Zeit liegst, und sagt jeden Wechsel an; danach kommt eine Übersicht mit dem, was du geschafft hast.",
+    "Vor dem Start umstellen: Lange auf eine Übung drücken verschiebt sie, ein Tipp auf eine Pausen-Zeile ändert die Pause. Das gilt nur für diesen einen Durchgang — dein Plan bleibt, wie er ist.",
+    "Brichst du ab, wird trotzdem eingetragen, was du geschafft hast. Und oben läuft eine Stoppuhr mit.",
+    "Neuer Schalter „Feste Werte“: Damit lässt die App deinen Plan in Ruhe, statt ihn nach jedem Training anzupassen."
+  ]},
+  { stand:"0.205 – 0.219 · Nachbessern statt neu anfangen", punkte:[
+    "Jede Statistik lässt sich öffnen und zeigt die Trainings, aus denen ihre Zahl entsteht — löschen inklusive.",
+    "Der Stift an einem Training bearbeitet alles: Datum, Dauer, Notiz und jeden einzelnen Satz.",
+    "Was du nachträglich einträgst, wird zu einer Übung in deiner Liste und ist damit wiederholbar.",
+    "Dazu: BMI als eigene Statistik, echte Zeitachsen in den Kurven und Volleyball als Sportart."
+  ]},
+  { stand:"0.192 – 0.204 · Die Übung ist die Grundeinheit", punkte:[
+    "Du kannst eine einzelne Übung anlegen und starten, ohne erst einen Plan zu bauen — aus „Pläne“ wurde „Übungen“.",
+    "Die Muskelkarte öffnet mit deinem eigenen Körper statt mit dem Nachschlagewerk; „Erkunden“ zeigt jetzt die echten Top-Übungen je Muskel.",
+    "In langen Listen erscheinen die Zahlen einer Karte, sobald sie ins Blickfeld scrollt."
+  ]},
+  { stand:"0.160 – 0.191 · Die Muskelkarte denkt mit", punkte:[
+    "Die App rechnet, wie ausgelastet jeder Muskel ist, und warnt, wenn es zu viel wird.",
+    "Was mitgerechnet wird: deine Noten, Schlaf und Befinden, Muskelkater je Region, die wirklich gemessenen Pausen zwischen den Sätzen — und seit 0.197 auch Ausdauer-Einheiten wie Laufen.",
+    "Nach einer langen Pause bietet die App an, deine Pläne eine Stufe zu senken."
+  ]},
+  { stand:"0.115 – 0.159 · Jede Sportart wird vollwertig", punkte:[
+    "Nicht-Kraft-Sportarten bekommen eigene Maße (Strecke, Runden, Messgrößen wie Beweglichkeit) und einen geführten Intervall-Timer.",
+    "Über 80 recherchierte Drills je Sportart, dazu eine Beschreibung zu jeder einzelnen Übung.",
+    "Fürs Krafttraining: Aufwärmsätze, Supersätze und Dropsätze; dazu Körpermaße als eigene Statistik."
+  ]},
+  { stand:"0.076 – 0.114 · Einfachheit 1 bis 5", punkte:[
+    "Du wählst, wie viel App du willst: vom reinen Notizblock (1) über Training mit Timer (3) bis zum vollen System (5). Umstellen ändert nie deine Daten.",
+    "Notizblock und Pläne sind dieselben Daten in zwei Ansichten — eine getippte Zeile wird zur echten Übung.",
+    "Die Übungs-Bibliothek mit Karteikarten und Muskel-Figur, ein aufgeräumtes „Mehr“, Papierkorb mit Rückgängig und der Feedback-Knopf."
+  ]},
+  { stand:"Bis 0.075 · Die Grundlagen", punkte:[
+    "Eigene Konten, komplett verschlüsselt, mit Wiederherstellungscode und Sicherung zum Mitnehmen — alles offline, ohne Server.",
+    "Trainingspläne, sprachgeführtes Training mit Timer und Ansagen, automatische Steigerung samt Entlastungswochen.",
+    "Statistik mit Kalender, Volumen und Gewichtskurve; über 130 Übungen; die Flamme für deine Serie."
+  ]}
+];
+
 const NEUIGKEITEN = [
+  { stand:"0.225.0", punkte:[
+    "„Was ist neu“ beginnt jetzt mit einer Zusammenfassung: sieben Abschnitte über die ganze Entwicklung statt einer Liste von über 150 Versionen. Wer es genau wissen will, tippt darunter auf „Alle Änderungen im Einzelnen“ — dort steht weiterhin jede Version für sich."
+  ]},
   { stand:"0.224.0", punkte:[
     "Die Versionsnummer hat jetzt drei Stellen: aus 0.223 wird 0.224.0. Die neue letzte Stelle zählt reine Fehlerbehebungen — 0.224.1 wäre dieselbe App mit einem reparierten Fehler, ohne Neuerung. Damit zählt der Trainer nach derselben Regel wie meine übrigen Apps. An der App selbst ändert sich nichts, deine Daten bleiben unberührt."
   ]},
@@ -7763,15 +7825,34 @@ function feedbackSenden(){
   // Der Text bleibt bewusst stehen: Bricht man auf GitHub ab, ist nichts verloren.
 }
 
-/** Zeichnet den Versions-Verlauf im selben Stil wie „Gut zu wissen". */
-function neuigkeitenOeffnen(){
-  const abschnitt = (stand, punkte) =>
-    '<div class="karte"><h2>' + text(stand) + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
+/** Zeichnet den Versions-Verlauf im selben Stil wie „Gut zu wissen".
+
+    0.225.0: Zuerst die Zusammenfassung (`HOEHEPUNKTE`), die volle Liste erst auf
+    Verlangen. Beide kommen durch DENSELBEN Bauer — sonst driften zwei
+    Darstellungen desselben Inhalts auseinander. */
+function neuigkeitenAbschnitt(stand, punkte){
+  return '<div class="karte"><h2>' + text(stand) + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
     punkte.map(p => '• ' + text(p)).join("<br>") + '</div></div>';
+}
+
+function neuigkeitenOeffnen(){
   document.getElementById("neuigkeiten-inhalt").innerHTML =
     '<div class="meta abstand">Trainer ' + ANZEIGE_VERSION + " · Stand " + heuteAlsText() + " · JKB</div>" +
-    NEUIGKEITEN.map(n => abschnitt(n.stand, n.punkte)).join("");
+    HOEHEPUNKTE.map(n => neuigkeitenAbschnitt(n.stand, n.punkte)).join("") +
+    '<div class="knopfreihe"><button class="breit" id="neuigkeiten-alle" onclick="neuigkeitenAlleZeigen()">' +
+    'Alle Änderungen im Einzelnen</button></div>' +
+    '<div id="neuigkeiten-voll"></div>';
   zeige("view-neuigkeiten");
+}
+
+/** Die vollständige Liste nachladen — einmal; der Knopf verschwindet dabei. */
+function neuigkeitenAlleZeigen(){
+  const ziel = document.getElementById("neuigkeiten-voll");
+  if(!ziel || ziel.innerHTML) return;
+  ziel.innerHTML = '<div class="meta abstand" style="margin-top:18px">Jede Version einzeln, neueste zuerst.</div>' +
+    NEUIGKEITEN.map(n => neuigkeitenAbschnitt(n.stand, n.punkte)).join("");
+  const knopf = document.getElementById("neuigkeiten-alle");
+  if(knopf) knopf.hidden = true;
 }
 
 function profilSpeichern(){
