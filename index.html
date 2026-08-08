@@ -2877,16 +2877,28 @@ async function anmelden(){
    Felder werden nur HINZUGEFÜGT, nie umbenannt oder entfernt.
    datenNachruesten() füllt fehlende neue Felder mit Standardwerten.
    Dadurch laden alte Datenstände und alte Sicherungen in jeder
-   künftigen Version. APP_VERSION nur erhöhen, wenn neue Felder dazukommen. */
-/* Zwei Versionsbegriffe:
-   APP_VERSION     = interne Ganzzahl, zählt bei JEDEM Update stur hoch.
-                     Wird für Vergleiche gebraucht (Update-Banner,
-                     Sicherungs-Fälligkeit, Datei-Metadaten).
-   ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
-                     So können die beiden nie auseinanderlaufen.
-                     Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 223;
-const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
+   künftigen Version. */
+/* Version — Haus-Regel 0.MINOR.PATCH (siehe dev\CLAUDE.md, „Versionierung").
+   Seit 0.224.0 zählt der Trainer wie jedes andere Projekt im Haus; der frühere
+   reine Ganzzahl-Zähler (0.223) war eine Ausnahme und ist keine mehr.
+
+   VERSION         = die EINE Quelle. Nur hier wird die Nummer gepflegt.
+   APP_VERSION     = daraus BERECHNET: MINOR * 1000 + PATCH.
+                     "0.224.0" -> 224000, "0.224.1" -> 224001.
+   ANZEIGE_VERSION = derselbe Text für die Anzeige (Kopf, Fuß, „Was ist neu").
+                     Der Name bleibt, weil ihn Code und Tests benutzen.
+
+   WARUM APP_VERSION trotzdem ausgeschrieben dasteht statt gerechnet zu werden:
+   Das Auto-Update (#region Auto-Update) lädt die index.html vom Server und
+   liest die Zahl per Textmuster `const APP_VERSION = <Zahl>;` heraus — das tut
+   die ALTE, schon installierte App, die vom Rest der Datei nichts weiß.
+   Verschwindet die Zeile, ändert sich ihre Schreibweise oder wird die Zahl
+   kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
+   nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
+   verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
+const VERSION = "0.224.0";
+const APP_VERSION = 224000;
+const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
 function datenNachruesten(daten){
@@ -7080,6 +7092,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.224.0", punkte:[
+    "Die Versionsnummer hat jetzt drei Stellen: aus 0.223 wird 0.224.0. Die neue letzte Stelle zählt reine Fehlerbehebungen — 0.224.1 wäre dieselbe App mit einem reparierten Fehler, ohne Neuerung. Damit zählt der Trainer nach derselben Regel wie meine übrigen Apps. An der App selbst ändert sich nichts, deine Daten bleiben unberührt."
+  ]},
   { stand:"0.223", punkte:[
     "Die Rückenfigur stand überall zu klein neben der Vorderansicht — beim Plan bearbeiten, in der Vorschau, in der Bibliothek. Grund: Die beiden Zeichnungen sind unterschiedlich groß in ihrem Rahmen (die Rückseite füllt ihn weniger aus), und ausgeglichen war das an genau einer Stelle von Hand. Jetzt rechnet die App den Unterschied überall gleich heraus."
   ]},

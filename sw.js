@@ -6,12 +6,15 @@
      So kommen Updates sofort an, offline läuft die letzte Version.
    - Alles andere (Icons, Manifest): CACHE ZUERST.
 
-   Bei jeder neuen App-Version unten die VERSION hochzählen —
-   dann wird der alte Cache beim nächsten Besuch weggeräumt.
+   Bei jeder neuen App-Version unten die VERSION mitziehen —
+   dann wird der alte Cache beim nächsten Besuch weggeräumt. Sie ist
+   IMMER "v" + die VERSION aus index.html (Haus-Regel 0.MINOR.PATCH);
+   `tests\test224.js` prüft das, weil es der häufigste Flüchtigkeitsfehler
+   beim Ausliefern ist.
    ============================================================ */
 "use strict";
 
-const VERSION = "v223";
+const VERSION = "v0.224.0";
 const CACHE = "trainingsapp-" + VERSION;
 const DATEIEN = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png",
                  "muskeln/figur-vorne.png", "muskeln/figur-hinten.png",

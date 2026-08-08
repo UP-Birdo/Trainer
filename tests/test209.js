@@ -44,10 +44,12 @@ pruefe("alles andere bleibt Cache zuerst",
   /caches\.match\(anfrage\)\.then\(treffer => treffer \|\| fetch\(anfrage\)\)/.test(swCode));
 /* Der Kommentar soll die Lehre festhalten — sonst baut sie jemand zurueck. */
 pruefe("der Quelltext erklaert, warum nicht addAll", /Browser-Cache/.test(sw));
-/* Die Version im sw.js muss die der App sein — sonst raeumt der alte Cache nie ab. */
+/* Die Version im sw.js muss die der App sein — sonst raeumt der alte Cache nie
+   ab. Seit 0.224.0 ist das ein Text (0.MINOR.PATCH), nicht mehr eine Zahl;
+   die vollstaendige Versions-Pruefung steht in test224.js. */
 {
-  const appV = Number(/const APP_VERSION = (\d+);/.exec(src)[1]);
-  const swV = Number(/const VERSION = "v(\d+)";/.exec(swCode)[1]);
+  const appV = /^const VERSION = "([\d.]+)";/m.exec(src)[1];
+  const swV = /^const VERSION = "v([\d.]+)";/m.exec(swCode)[1];
   pruefe("sw.js traegt dieselbe Version wie die App (" + appV + ")", appV === swV);
 }
 

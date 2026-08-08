@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.224.0
+
+- Die Versionsnummer hat jetzt drei Stellen: aus 0.223 wird 0.224.0. Die neue letzte
+  Stelle zählt reine Fehlerbehebungen — 0.224.1 wäre dieselbe App mit einem reparierten
+  Fehler, ohne Neuerung. Damit zählt der Trainer nach derselben Regel wie meine übrigen
+  Apps. An der App selbst ändert sich nichts, deine Daten bleiben unberührt.
+
 ## 0.223
 
 - Die Rückenfigur stand überall zu klein neben der Vorderansicht — beim Plan bearbeiten,
