@@ -92,6 +92,9 @@ const code = [
   "function erholungsTageFuer(){ return 2; }",
   // 0.235: der Beschwerde-Boden auf der Quote — hier neutral (test235 prueft ihn).
   "function beschwerdeQuoteFloor(){ return 0; }",
+  // 0.237: die Beschwerde-Historie je Uebung/Sportart — hier neutral (test237).
+  "function beschwerdeVorlaeufer(){ return {}; }",
+  "function vertraeglichkeitsFaktor(){ return 1; }",
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
   /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne

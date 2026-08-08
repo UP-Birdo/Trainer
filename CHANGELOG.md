@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.237.0
+
+- Die App merkt sich jetzt, nach welcher Übung oder Sportart du wiederholt Beschwerden
+  hattest. Kommt es im letzten halben Jahr dreimal oder öfter nach demselben Training zu
+  Schmerzen oder starkem Muskelkater am selben Muskel, traut die Rechnung ihm dauerhaft
+  etwas weniger zu — und die Detail-Karte des Muskels sagt dir offen, woran das liegt:
+  „dreimal nach Beinbeugen“. Gesenkt wird höchstens leicht, und nur mit Begründung —
+  nach oben verschiebt dieses Muster nie.
+
 ## 0.236.0
 
 - In der Trainings-Vorschau ist jetzt die ganze Zeile der Knopf: Ein Tipp irgendwo auf
