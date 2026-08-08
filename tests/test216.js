@@ -59,10 +59,12 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
 /* ---------- 1) Die Figur-Box traegt das Verhaeltnis ihres Bildes ---------- */
+/* v223: Der Stil traegt jetzt zusaetzlich die Skala der Ansicht (`--fs`) — das
+   Seitenverhaeltnis selbst bleibt die v216-Zusage und steht unveraendert vorn. */
 pruefe("die Vorderseite bekommt ihr Verhaeltnis",
-  A.figurVerhaeltnis("front") === ' style="aspect-ratio:591/1086"');
+  A.figurVerhaeltnis("front").startsWith(' style="aspect-ratio:591/1086'));
 pruefe("die Rueckseite ihr eigenes",
-  A.figurVerhaeltnis("back") === ' style="aspect-ratio:468/786"');
+  A.figurVerhaeltnis("back").startsWith(' style="aspect-ratio:468/786'));
 pruefe("eine unbekannte Ansicht liefert nichts (und bricht nichts)",
   A.figurVerhaeltnis("seite") === "");
 /* Genau darum geht es: die beiden Seiten haben VERSCHIEDENE Verhaeltnisse. */
@@ -79,9 +81,13 @@ pruefe("das Bild gibt der Box die Hoehe (grosse Karte)",
   /\.muskel-figur img\{display:block;width:100%;height:auto/.test(src));
 pruefe("das Bild gibt der Box die Hoehe (kleine Figur)",
   /\.mini-figur img\{display:block;width:100%;height:auto/.test(src));
+/* v223: Feste BREITE bleibt die Regel — sie steht nur als `--fb`. Der
+   handgetunte Sonderfall fuer die Rueckseite (113 statt 103 px) ist entfallen:
+   Den Groessen-Unterschied der beiden Zeichnungen rechnet jetzt `--fs` ueberall
+   gleich heraus, statt an dieser einen Stelle von Hand. */
 pruefe("die Vorschau setzt feste Breiten statt einer festen Hoehe",
-  /\.koerper-vorschau \.mini-figur\{width:103px;height:auto\}/.test(src) &&
-  /#koerper-back\{width:113px\}/.test(src));
+  /\.koerper-vorschau \.mini-figur\{--fb:103px;height:auto\}/.test(src) &&
+  !/#koerper-back\{width:/.test(src));
 pruefe("die Doppel-Ansicht teilt sich die Breite",
   /muskel-doppelt \.muskel-figur\{[^}]*width:calc\(\(100% - 8px\) \/ 2\);height:auto/.test(src));
 /* Die beiden Breiten muessen zu den Bildmaßen passen — sonst waere die Figur

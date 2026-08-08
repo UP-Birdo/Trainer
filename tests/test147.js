@@ -42,8 +42,11 @@ pruefe("ohne Namen bleibt ein Wegweiser stehen", tippen.includes('|| "Einstellun
 const editor = src.split('<section id="view-editor"')[1].split("</section>")[0];
 pruefe("Beschriftung ist raus", !src.includes('id="editor-muskeln-text"') && !editor.includes("Trifft diese"));
 pruefe("Figuren-Ziel steht weiterhin in der Karte", editor.includes('<div id="editor-muskeln-figuren"></div>'));
+/* v223: Die Breite steht nicht mehr als `width`, sondern als `--fb` — die Figur
+   rechnet daraus `--fb × --fs` (Ausgleich der beiden Zeichnungs-Groessen). Die
+   Aussage hier bleibt dieselbe: Im Editor gross, auf der Karte klein. */
 const breite = regel => {
-  const m = src.match(new RegExp(regel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\{[^}]*width:(\\d+)px"));
+  const m = src.match(new RegExp(regel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\{[^}]*--fb:(\\d+)px"));
   return m ? Number(m[1]) : null;
 };
 const imEditor = breite("#editor-muskeln .plan-figuren .mini-figur");

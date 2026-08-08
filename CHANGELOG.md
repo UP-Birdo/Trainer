@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.223
+
+- Die Rückenfigur stand überall zu klein neben der Vorderansicht — beim Plan bearbeiten,
+  in der Vorschau, in der Bibliothek. Grund: Die beiden Zeichnungen sind unterschiedlich
+  groß in ihrem Rahmen (die Rückseite füllt ihn weniger aus), und ausgeglichen war das
+  an genau einer Stelle von Hand. Jetzt rechnet die App den Unterschied überall gleich
+  heraus.
+
 ## 0.222
 
 - Dehnen gibt es jetzt auch im Unendlichkeitsmodus: Hast du es im Plan angehakt, läuft

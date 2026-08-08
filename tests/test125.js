@@ -84,9 +84,10 @@ pruefe("Kopf-Figur steckt im Kopf", /const kopf = '<div class="uebung-kopf"[\s\S
 pruefe("nur bei erkannten Muskeln",
   /kopfFigur = miniFigurHtml\(info, "uebung-mini"\)/.test(src) &&
   grabFn("miniFigurHtml").includes("!info.muskeln.length"));
-pruefe("eigene Groesse im Kopf", /\.uebung-kopf \.uebung-mini\{width:\d+px\}/.test(src));
+// v223: Die Breite steht als `--fb` (mal der Skala der Ansicht); Aussage unveraendert.
+pruefe("eigene Groesse im Kopf", /\.uebung-kopf \.uebung-mini\{--fb:\d+px\}/.test(src));
 pruefe("aufgeklappte Figur groesser als vorher (60px)",
-  /\.uebung-figur \.mini-figur\{width:(6[1-9]|[7-9]\d|\d{3})px\}/.test(src));
+  /\.uebung-figur \.mini-figur\{--fb:(6[1-9]|[7-9]\d|\d{3})px\}/.test(src));
 // v132: Der Post-Pass liegt jetzt im gemeinsamen Helfer miniFigurenZeichnen.
 pruefe("Zeichner erfasst alle Figuren der Liste",
   grabFn("editorZeichnen").includes('miniFigurenZeichnen("#uebung-liste")'));

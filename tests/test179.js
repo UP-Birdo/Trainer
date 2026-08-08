@@ -105,8 +105,9 @@ pruefe("die alte Sofort-Funktion bleibt unveraendert bestehen",
     src.indexOf('miniFigurenZeichnen("' + sel + '")') > 0));
 
 /* ---------- 6) Das Aussehen ---------- */
+// v223: eigene Breite = eigenes `--fb`.
 pruefe("die Figur hat auf der Karte eine eigene Breite",
-  /\.picker-karte \.mini-figur\{width:30px/.test(src));
+  /\.picker-karte \.mini-figur\{--fb:30px/.test(src));
 pruefe("sie schrumpft nicht weg", /\.picker-karte \.mini-figur\{[^}]*flex:0 0 auto/.test(src));
 
 /* ---------- 7) Version und Neuigkeit ---------- */

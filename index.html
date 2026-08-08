@@ -120,12 +120,12 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
 .uebung-figur{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 /* v125: aufgeklappt größer (die Map soll man wirklich sehen), im Kopf der
    gelisteten Übung klein — sie steht dort neben Name und Kurz-Info. */
-.uebung-figur .mini-figur{width:84px}
+.uebung-figur .mini-figur{--fb:84px}
 /* v153: Trifft die Übung beide Seiten, stehen zwei Figuren nebeneinander — dann
    etwas kleiner, damit die Muskel-Namen rechts in EINER Reihe daneben passen
    und nicht darunter rutschen. */
-.uebung-figur.zwei .mini-figur{width:66px}
-.uebung-kopf .uebung-mini{width:28px}
+.uebung-figur.zwei .mini-figur{--fb:66px}
+.uebung-kopf .uebung-mini{--fb:28px}
 /* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
    einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
    weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
@@ -398,8 +398,11 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    mit `aspect-ratio` versucht und auf dem iPhone die Figur gesprengt).
    Die zwei Breiten ergeben dieselbe Höhe (~190 px): 103 = 190 × 591/1086,
    113 = 190 × 468/786. `test217` rechnet beide gegen MUSKEL_VIEWS nach. */
-.koerper-vorschau .mini-figur{width:103px;height:auto}
-.koerper-vorschau .mini-figur#koerper-back{width:113px}
+/* v223: Der handgetunte Ausgleich (113 statt 103 px für die Rückseite) ist weg —
+   er war die einzige Stelle, an der jemand den Größen-Unterschied bemerkt und
+   ausgeglichen hatte, und mit 1,097 war er auch zu knapp (gemessen: 1,157).
+   Jetzt rechnet ihn `--fs` überall gleich. */
+.koerper-vorschau .mini-figur{--fb:103px;height:auto}
 .koerper-vorschau .mini-figur img{width:100%;height:auto;opacity:1}
 
 /* v93: 7-Tage-Vorschau — die letzten sieben Tage als farbige Kette, gleiche
@@ -643,12 +646,12 @@ body:not(.nav-an) #nav{display:none}
 .plan-kopfzeile{display:flex;gap:12px;align-items:flex-start}
 .plan-text{flex:1;min-width:0}
 .plan-figuren{display:flex;gap:6px;flex:0 0 auto}
-.plan-figuren .mini-figur{width:30px}
+.plan-figuren .mini-figur{--fb:30px}
 /* v147: Im Editor ist die Muskel-Map keine Randnotiz, sondern das Schaubild des
    Plans — sie steht jetzt allein in ihrer Karte (die Beschriftung ist raus) und
    darf entsprechend groß sein. Mittig, damit sie ohne Text nicht schief hängt. */
 #editor-muskeln .plan-figuren{justify-content:center;gap:14px;width:100%}
-#editor-muskeln .plan-figuren .mini-figur{width:110px}
+#editor-muskeln .plan-figuren .mini-figur{--fb:110px}
 /* Vorschau — das Inhaltsverzeichnis vor dem Training */
 /* v216 (Nutzer-Befund): Die Zeilen standen bei langen Übungsnamen nicht mehr
    untereinander. Ursache war die MITTIGE Ausrichtung: Bricht ein Name auf zwei
@@ -797,7 +800,13 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .muskel-hit{position:absolute;inset:0;cursor:pointer}
 /* Kleine Fokus-Muskel-Figur (v84): gleiche Technik wie die große Karte, nur
    klein — neben dem Dropdown (Picker) bzw. je Übung in der Vorschau. */
-.mini-figur{position:relative;width:50px;flex:0 0 auto}
+/* v223: Die Breite einer Figur ist ein PRODUKT — die Breite, die ihre Stelle
+   vorgibt (`--fb`), mal der Skala ihrer Ansicht (`--fs`, kommt aus der Karte,
+   siehe MUSKELKARTEN.skala). Vorher setzte jede Stelle `width` direkt; die
+   Rückansicht ist aber bei gleicher Breite 13,6 % kleiner gezeichnet, und das
+   war nur in der Statistik von Hand ausgeglichen. Wer eine neue Stelle baut,
+   setzt `--fb` und bekommt den Ausgleich geschenkt. */
+.mini-figur{position:relative;width:calc(var(--fb, 50px) * var(--fs, 1));flex:0 0 auto}
 /* v139: Figuren-Linien heller und ruhiger (Nutzer-Wunsch „nicht dicker, aber
    heller/weniger verpixelt"): volle Deckkraft statt 85 % und weiches Skalieren.
    Mehr geht erst mit höher aufgelösten Karten — die Auflösung steckt in den PNGs. */
@@ -811,11 +820,11 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .picker-karte .text{flex:1;min-width:0}
 .picker-karte .text small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
 .picker-karte .pfeil{color:var(--signal);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
-.vs-zeile .mini-figur{width:34px;margin-left:auto}
+.vs-zeile .mini-figur{--fb:34px;margin-left:auto}
 /* v179: dieselbe Figur auf den Karten des Übungs-Pickers. Etwas schmaler als
    in der Vorschau — die Liste kann über hundert Zeilen lang werden, und die
    Figur ist doppelt so hoch wie breit. */
-.picker-karte .mini-figur{width:30px;flex:0 0 auto}
+.picker-karte .mini-figur{--fb:30px;flex:0 0 auto}
 /* Meilenstein-Abzeichen der Trainings-Serie (v85) */
 .meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px}
 
@@ -2876,7 +2885,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 222;
+const APP_VERSION = 223;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7071,6 +7080,9 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.223", punkte:[
+    "Die Rückenfigur stand überall zu klein neben der Vorderansicht — beim Plan bearbeiten, in der Vorschau, in der Bibliothek. Grund: Die beiden Zeichnungen sind unterschiedlich groß in ihrem Rahmen (die Rückseite füllt ihn weniger aus), und ausgeglichen war das an genau einer Stelle von Hand. Jetzt rechnet die App den Unterschied überall gleich heraus."
+  ]},
   { stand:"0.222", punkte:[
     "Dehnen gibt es jetzt auch im Unendlichkeitsmodus: Hast du es im Plan angehakt, läuft es, sobald die Zeit um ist — erst danach kommt die Übersicht.",
     "Im Unendlichkeitsmodus sind die Satz-Felder bei den Übungen verschwunden. Dort gibt es keine feste Zahl: Ein Durchgang durch alle Übungen ist eine Runde und zählt bei jeder Übung einen Satz hoch. Was am Ende zusammengekommen ist, wird eingetragen — bei drei Übungen also zum Beispiel 5 Sätze bei A und B und 4 bei C, wenn dort die Zeit ablief."
@@ -9842,8 +9854,16 @@ const MUSKELKARTEN = {
   standard: {
     name: "Standard (19 Muskeln)",
     views: {
-      front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086 },
-      back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786 }
+      /* `skala` (v223) = wie viel BREITER diese Box stehen muss, damit ihre Figur
+         gleich groß wirkt wie die der anderen Seite. Nötig, weil die beiden
+         Zeichnungen weder dasselbe Seitenverhältnis noch denselben Rand haben:
+         Am Bild gemessen füllt die Vorderansicht 93,5 % ihrer Rahmenhöhe, die
+         Rückansicht nur 88,4 % — bei gleicher Boxbreite ist der Rücken deshalb
+         13,6 % kleiner. Die Zahl gehört an die KARTE, nicht ins CSS: Sie ist
+         eine Eigenschaft dieser Bilder und muss mit einer neuen Vorlage neu
+         gemessen werden (Verfahren in `docs/entscheidungen/erkenntnisse.md`). */
+      front:{ img:"muskeln/figur-vorne.png", karte:"muskeln/muskel-front.png", w:591, h:1086, skala:1 },
+      back: { img:"muskeln/figur-hinten.png", karte:"muskeln/muskel-back.png", w:468, h:786, skala:1.157 }
     },
     // Reihenfolge = Nummer im Rot-Kanal (Index + 1). NIE umsortieren, ohne die
     // Index-Karten neu zu erzeugen — sonst färbt sich der falsche Muskel.
@@ -10352,7 +10372,14 @@ function muskelFigurenHtml(info, extraKlasse){
     Farbfläche (Canvas füllt die BOX) lag dann neben der Figur. */
 function figurVerhaeltnis(ansicht){
   const meta = MUSKEL_VIEWS[ansicht];
-  return meta ? ' style="aspect-ratio:' + meta.w + '/' + meta.h + '"' : "";
+  if(!meta) return "";
+  /* v223: Dazu die Skala der Ansicht. Die Box-Breite setzt jede Stelle als
+     `--fb`; die Figur rechnet daraus `--fb × --fs`. Vorher stand die Breite
+     direkt im CSS, und der Größen-Unterschied der beiden Zeichnungen war an
+     genau EINER Stelle von Hand ausgeglichen (Statistik, 113 statt 103 px) —
+     überall sonst stand der Rücken zu klein daneben. */
+  return ' style="aspect-ratio:' + meta.w + '/' + meta.h +
+         ';--fs:' + (meta.skala || 1) + '"';
 }
 
 function miniFigurHtml(info, extraKlasse){

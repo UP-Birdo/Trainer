@@ -78,7 +78,8 @@ pruefe("Editor hat einen eigenen Block", src.includes('id="editor-muskeln"'));
 pruefe("Editor blendet ihn ohne Treffer aus",
   src.includes('document.getElementById("editor-muskeln").hidden = !planFiguren'));
 pruefe("gemeinsamer Post-Pass existiert", src.includes("function miniFigurenZeichnen("));
-pruefe("CSS fuer die Plan-Figuren", /\.plan-figuren \.mini-figur\{width:\d+px\}/.test(src));
+// v223: Breite als `--fb` (die Figur multipliziert sie mit der Skala ihrer Ansicht).
+pruefe("CSS fuer die Plan-Figuren", /\.plan-figuren \.mini-figur\{--fb:\d+px\}/.test(src));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);
