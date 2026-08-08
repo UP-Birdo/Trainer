@@ -112,11 +112,21 @@ pruefe("sie wendet an und sagt es an", (() => {
   return a.includes("einrichtung.erfahrung = v.neu") && a.includes("meldung(") && !a.includes("frage(");
 })());
 
-/* ---------- 5) Der Lade-Bildschirm ---------- */
+/* ---------- 5) Der Lade-Bildschirm (0.233: Balken, Prozent, von → zu) ---------- */
 const update = grabFn("updateAnwenden");
-pruefe("beim Update erscheint ein Deckel", update.includes("Neue Version wird geladen"));
-pruefe("er beruhigt wegen der Daten", update.includes("Deine Daten bleiben unberührt"));
-pruefe("neu geladen wird erst danach", update.indexOf("appendChild(deckel)") < update.indexOf("location.reload()"));
+const deckel = grabFn("updateDeckel");
+pruefe("beim Update erscheint der Deckel VOR dem Neuladen",
+  update.indexOf("updateDeckel(VERSION, ziel)") < update.indexOf("location.reload()"));
+pruefe("er traegt Balken und Prozent",
+  deckel.includes('id="update-balken"') && deckel.includes('id="update-prozent"'));
+pruefe("und die Zeile von nach zu", deckel.includes('" → " + text(zu)'));
+pruefe("er beruhigt wegen der Daten", deckel.includes("deine Daten bleiben unberührt"));
+/* Die neue Fassung nimmt ihn nach dem Neuladen sofort wieder auf. */
+pruefe("die neue Fassung setzt den Deckel fort",
+  src.includes("function updateDeckelFortsetzen()") && src.includes('sessionStorage.getItem("trainer.updateVon")'));
+pruefe("mit einem Sicherheitsnetz gegen Kleben", /setTimeout\(fertig, 4000\)/.test(src));
+pruefe("das Ziel wird beim Pruefen gemerkt",
+  grabFn("updatePruefen").includes('sessionStorage.setItem("trainer.updateZiel"'));
 
 /* ---------- 6) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

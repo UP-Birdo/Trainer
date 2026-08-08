@@ -2915,8 +2915,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.232.0";
-const APP_VERSION = 232000;
+const VERSION = "0.233.0";
+const APP_VERSION = 233000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7134,7 +7134,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.232 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.233 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7181,6 +7181,9 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.233.0", punkte:[
+    "Der Lade-Bildschirm beim Update ist jetzt ein richtiger: durchgehend im App-Hintergrund (kein dunkler und dann weißer Blitz mehr), mit Fortschrittsbalken samt Prozent und der Zeile „Update 0.232.0 → 0.233.0“. Er bleibt über das Neuladen hinweg stehen, bis die neue Version fertig da ist."
+  ]},
   { stand:"0.232.0", punkte:[
     "Nach dem Training gibt es jetzt den Kurz-Check: Zu jedem eben trainierten Muskel steht seine Figur mit der Frage, wie er sich anfühlt — Ok, Zieht oder Schmerzt. Eine Antwort genügt, sie fließt sofort in Kapazität, Farben und Warnungen ein. Die Note je Übung bleibt daneben bestehen: Sie misst die Leistung, der Kurz-Check das Gefühl.",
     "Die Kalibrierung fragt nicht mehr, sie handelt: Passt deine Profil-Einstufung nicht zu deinen Trainings, stellt die App sie selbst um — und sagt dir offen, was sie getan hat und warum.",
@@ -20510,7 +20513,12 @@ async function updatePruefen(){
     let schonProbiert = 0;
     try { schonProbiert = parseInt(sessionStorage.getItem("trainer.updateReload") || "0"); } catch(e){}
     if(serverVersion > APP_VERSION && serverVersion !== schonProbiert){
-      try { sessionStorage.setItem("trainer.updateReload", String(serverVersion)); } catch(e){}
+      try {
+        sessionStorage.setItem("trainer.updateReload", String(serverVersion));
+        // 0.233.0: das Ziel für die „von → zu"-Anzeige des Lade-Bildschirms
+        sessionStorage.setItem("trainer.updateZiel",
+          "0." + Math.floor(serverVersion / 1000) + "." + (serverVersion % 1000));
+      } catch(e){}
       updateWartet = true;
       updateAnwenden();
     }
@@ -20525,19 +20533,71 @@ function updateAnwenden(){
                  document.getElementById("view-login").classList.contains("aktiv");
   if(!sicher || lauf) return;          // Training/Bewertung nie unterbrechen
   updateWartet = false;
-  /* 0.232.0 (Nutzer-Wunsch): ein Lade-Bildschirm statt eines kommentarlosen
-     Neuladens. Vorher fror die App für einen Wimpernschlag ein und war
-     plötzlich anders — jetzt sagt sie, was gerade passiert. Bewusst als
-     Overlay im ALTEN Stand (die neue Fassung lädt ja gerade erst). */
-  const deckel = document.createElement("div");
-  deckel.style.cssText = "position:fixed;inset:0;z-index:9999;background:var(--ground);" +
-    "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px";
-  deckel.innerHTML = '<div style="font-size:34px">🔥</div>' +
-    '<div style="color:var(--chalk);font-weight:700">Neue Version wird geladen …</div>' +
-    '<div class="meta">Deine Daten bleiben unberührt.</div>';
-  document.body.appendChild(deckel);
+  /* 0.232.0/0.233.0 (Nutzer-Wunsch, nachgeschärft): ein Lade-Bildschirm mit
+     Balken, Prozent und „von → zu" statt des dunklen und dann weißen Blitzes.
+     Der Deckel wird VOR dem Neuladen gezeigt (15 %) und vom NEUEN Stand über
+     `trainer.updateVon` wieder aufgenommen — so bleibt der Hintergrund
+     durchgehend einheitlich, über den Reload hinweg. */
+  let ziel = "";
+  try {
+    ziel = sessionStorage.getItem("trainer.updateZiel") || "";
+    sessionStorage.setItem("trainer.updateVon", VERSION);
+  } catch(e){}
+  const deckel = updateDeckel(VERSION, ziel);
+  deckel.setzen(15);
   setTimeout(() => location.reload(), 350);   // kurz zeigen, dann per "Netz zuerst" neu
 }
+
+/** 0.233.0: Der Update-Deckel — EINE Bauweise für beide Seiten des Neuladens
+    (alter Stand zeigt ihn vor dem reload, der neue nimmt ihn sofort wieder
+    auf). Voller App-Hintergrund, Versions-Zeile „von → zu", Balken + Prozent. */
+function updateDeckel(von, zu){
+  let d = document.getElementById("update-deckel");
+  if(!d){
+    d = document.createElement("div");
+    d.id = "update-deckel";
+    d.style.cssText = "position:fixed;inset:0;z-index:9999;background:var(--ground);" +
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .3s";
+    d.innerHTML = '<div style="font-size:34px">🔥</div>' +
+      '<div style="color:var(--chalk);font-weight:700">Update ' + text(von || "") +
+        (zu ? " → " + text(zu) : "") + '</div>' +
+      '<div style="width:220px;height:10px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden">' +
+        '<div id="update-balken" style="height:100%;width:0%;background:var(--signal);transition:width .4s"></div></div>' +
+      '<div id="update-prozent" class="meta">0 %</div>' +
+      '<div class="meta">Neue Version wird geladen — deine Daten bleiben unberührt.</div>';
+    document.body.appendChild(d);
+  }
+  return {
+    setzen(p){
+      const b = document.getElementById("update-balken"), t = document.getElementById("update-prozent");
+      if(b) b.style.width = p + "%";
+      if(t) t.textContent = p + " %";
+    },
+    weg(){ d.style.opacity = "0"; setTimeout(() => d.remove(), 350); }
+  };
+}
+
+/* 0.233.0: Die NEUE Fassung nimmt den Deckel des alten Standes sofort wieder
+   auf — der Balken läuft an echten Marken weiter (45 % Skript geparst, 75 %
+   nächster Frame, 100 % wenn alles geladen ist) und verschwindet dann. Ein
+   Fallback räumt ihn nach spätestens vier Sekunden ab, damit er nie kleben
+   bleibt. Die Prozente sind Meilensteine, kein Netzwerk-Messwert — mehr gibt
+   ein Dokument, das sich selbst lädt, ehrlich nicht her. */
+(function updateDeckelFortsetzen(){
+  let von = "";
+  try {
+    von = sessionStorage.getItem("trainer.updateVon") || "";
+    if(von){ sessionStorage.removeItem("trainer.updateVon"); sessionStorage.removeItem("trainer.updateZiel"); }
+  } catch(e){ return; }
+  if(!von) return;
+  const d = updateDeckel(von, VERSION);
+  d.setzen(45);
+  requestAnimationFrame(() => d.setzen(75));
+  const fertig = () => { d.setzen(100); setTimeout(d.weg, 450); };
+  if(document.readyState === "complete") fertig();
+  else window.addEventListener("load", fertig, { once:true });
+  setTimeout(fertig, 4000);   // Sicherheitsnetz
+})();
 
 document.addEventListener("visibilitychange", () => {
   if(document.visibilityState !== "visible") return;

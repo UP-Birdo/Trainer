@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.233.0
+
+- Der Lade-Bildschirm beim Update ist jetzt ein richtiger: durchgehend im
+  App-Hintergrund (kein dunkler und dann weißer Blitz mehr), mit Fortschrittsbalken samt
+  Prozent und der Zeile „Update 0.232.0 → 0.233.0“. Er bleibt über das Neuladen hinweg
+  stehen, bis die neue Version fertig da ist.
+
 ## 0.232.0
 
 - Nach dem Training gibt es jetzt den Kurz-Check: Zu jedem eben trainierten Muskel steht
