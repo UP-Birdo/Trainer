@@ -3,6 +3,12 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.229.0
+
+- Die Legende unter der Muskelfigur ist jetzt ein durchgehendes Farbband statt dreier
+  Punkte — genau der Verlauf, den auch dein Körper zeigt. Der Knick von Gelb nach Rot
+  sitzt an derselben Stelle wie in der Rechnung.
+
 ## 0.228.0
 
 - Neu in der Muskelkarte: der Tab „Wohlbefinden“. Tippe einen Muskel an und sag, wie er

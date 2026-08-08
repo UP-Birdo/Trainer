@@ -2914,8 +2914,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.228.0";
-const APP_VERSION = 228000;
+const VERSION = "0.229.0";
+const APP_VERSION = 229000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7133,7 +7133,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.228 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.229 · Das Training in deiner Hand", punkte:[
     "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
     "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
     "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
@@ -7177,6 +7177,9 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.229.0", punkte:[
+    "Die Legende unter der Muskelfigur ist jetzt ein durchgehendes Farbband statt dreier Punkte — genau der Verlauf, den auch dein Körper zeigt. Der Knick von Gelb nach Rot sitzt an derselben Stelle wie in der Rechnung."
+  ]},
   { stand:"0.228.0", punkte:[
     "Neu in der Muskelkarte: der Tab „Wohlbefinden“. Tippe einen Muskel an und sag, wie er sich anfühlt — von „Alles gut“ über leichten und starken Muskelkater bis zu Schmerzen. Das fließt in die Rechnung ein: Die App traut dem Muskel weniger zu und warnt früher. Nach oben verschiebt sie nie — ausbleibende Beschwerden sind kein Beweis, dass mehr gut wäre.",
     "Deine Meldung klingt über vier Tage von selbst wieder aus, du musst also nichts zurücknehmen. „Alles gut“ löscht sie sofort.",
@@ -11585,10 +11588,17 @@ function koerperVorschauZeichnen(){
 /** Die Skala als eine Zeile: bereit — benutzt — zu viel. Dieselbe Reihenfolge
     und dieselben Farben wie die Figur darüber. */
 function lastLegendeHtml(){
-  const punkt = (farbe, wort) =>
-    '<span style="white-space:nowrap"><span style="color:var(--' + farbe + ')">■</span> ' + wort + '</span>';
-  return '<div class="meta" style="display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:8px">' +
-    punkt("ok", "bereit") + punkt("signal", "benutzt") + punkt("warn", "zu viel") + '</div>';
+  /* 0.229.0 (Nutzer-Wunsch): „Die Legende muss fließen — die Farben in einem
+     Band zeigen, nicht drei Punkte, so wie der Verlauf auf dem Körper."
+     Drei Punkte behaupteten drei Stufen; die Figur hat aber einen stufenlosen
+     Verlauf. Der Knick des Bandes sitzt bei 77 % — das ist genau die Quote 1,0
+     auf der Skala bis 1,3 und damit derselbe Punkt, an dem die Figur von Gelb
+     nach Rot kippt. Die Legende zeigt jetzt dieselbe Rechnung wie das Bild. */
+  return '<div class="meta" style="margin-top:8px">' +
+    '<div style="height:10px;border-radius:5px;' +
+      'background:linear-gradient(90deg,var(--ok),var(--signal) 77%,var(--warn))"></div>' +
+    '<div style="display:flex;justify-content:space-between;margin-top:4px">' +
+      '<span>bereit</span><span>benutzt</span><span>zu viel</span></div></div>';
 }
 
 /** Die fette Warnung, wenn ein Muskel deutlich über dem Richtwert liegt —

@@ -98,6 +98,14 @@ pruefe("die Legende nennt alle drei Stufen", (() => {
   const l = grabFn("lastLegendeHtml");
   return l.includes("bereit") && l.includes("benutzt") && l.includes("zu viel");
 })());
+/* 0.229.0 (Nutzer-Wunsch): als FLIESSENDES Band, nicht als drei Punkte — die
+   Figur hat einen stufenlosen Verlauf, die Legende muss ihn zeigen. Der Knick
+   bei 77 % ist die Quote 1,0 auf der Skala bis 1,3. */
+pruefe("und zeigt sie als Verlauf, nicht als Punkte", (() => {
+  const l = grabFn("lastLegendeHtml");
+  return /linear-gradient\(90deg,var\(--ok\),var\(--signal\) 77%,var\(--warn\)\)/.test(l) &&
+         !l.includes("■");
+})());
 
 /* ---------- 5) Der Dialog laesst niemanden feststecken ---------- */
 const dialog = grabFn("frage");
