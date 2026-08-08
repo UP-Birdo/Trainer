@@ -103,9 +103,11 @@ pruefe("die Figuren werden nachgezeichnet",
 /* ---------- 4) Verdrahtung: feine Wertung und Auto-Kalibrierung ---------- */
 pruefe("die Drift steckt im Erfahrungs-Faktor",
   grabFn("erfahrungsFaktor").includes("notenDrift(protokoll)"));
-pruefe("die Grundlagen-Zeile zeigt die Fitness-Zahl",
-  grabFn("rechnungsGrundlage").includes("fitnessZahl(") &&
-  grabFn("grundlageText").includes("Fitness-Zahl"));
+/* 0.234: Rechenwerte gehoeren nicht auf den Schirm — der Stand steht in WORTEN
+   da (fitnessWort), die Zahl selbst bleibt eine interne Groesse. */
+pruefe("die Grundlagen-Zeile zeigt den Stand in Worten",
+  grabFn("rechnungsGrundlage").includes("fitnessWort(") &&
+  grabFn("grundlageText").includes('"Stand: " + g.stand'));
 pruefe("die Kalibrierung fragt nicht mehr", !src.includes("function kalibrierungAnbieten("));
 pruefe("sie wendet an und sagt es an", (() => {
   const a = grabFn("kalibrierungAnwenden");

@@ -2915,8 +2915,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.233.0";
-const APP_VERSION = 233000;
+const VERSION = "0.234.0";
+const APP_VERSION = 234000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7134,7 +7134,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.233 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.234 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7181,6 +7181,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.234.0", punkte:[
+    "Der Kurz-Check fragt jetzt wie ein Arzt: Zu jedem Muskel gibt es eine eigene, ausformulierte Frage mit einer kleinen Bewegung zum Ausprobieren — „Fass mit der Hand über den Kopf ans andere Ohr — zieht es dabei in der Schulter?“ statt einer Formel für alle. Dieselben Fragen stellt auch der Wohlbefinden-Tab der Muskelkarte.",
+    "Rechenwerte stehen nirgends mehr auf dem Schirm: Statt einer Fitness-Zahl steht dein Stand in Worten („im Aufbau“, „gefestigt“ …), der Muskel-Korridor sagt in einem Satz, wo du gerade stehst („im produktiven Bereich“, „an der Grenze“), und die Kalibrierung begründet sich ohne Zahlen. Gerechnet wird unverändert fein — nur die Anzeige spricht jetzt deine Sprache."
+  ]},
   { stand:"0.233.0", punkte:[
     "Der Lade-Bildschirm beim Update ist jetzt ein richtiger: durchgehend im App-Hintergrund (kein dunkler und dann weißer Blitz mehr), mit Fortschrittsbalken samt Prozent und der Zeile „Update 0.232.0 → 0.233.0“. Er bleibt über das Neuladen hinweg stehen, bis die neue Version fertig da ist."
   ]},
@@ -11007,13 +11011,13 @@ function volumenKorridor(kapazitaet){
   return { mindest: Math.max(2, Math.round(k * 0.4)), stopp: Math.round(k * 1.3 * 10) / 10 };
 }
 
-/** Die Korridor-Zeile der Muskel-Detail-Karte. */
+/** Die Korridor-Zeile der Muskel-Detail-Karte.
+    0.234.0 (Nutzer-Entscheidung): in WORTEN statt dreier Zahlen — gesagt wird,
+    WO im Korridor der Muskel gerade steht, nicht die Rechengrenzen selbst. */
 function korridorZeileHtml(a){
   if(!a || !(a.kapazitaet > 0)) return "";
-  const kor = volumenKorridor(a.kapazitaet);
-  return '<div class="meta" style="margin-bottom:6px">' +
-    text("Dein Korridor: ab " + kor.mindest + " Sätzen/Woche wächst hier etwas · Richtwert " +
-         a.kapazitaet + " · ab " + kor.stopp + " steigt das Verletzungsrisiko deutlich.") + '</div>';
+  const wort = korridorWort(a.saetze, a.kapazitaet);
+  return wort ? '<div class="meta" style="margin-bottom:6px">' + text(wort) + '</div>' : "";
 }
 
 /** Die Phasen-Karte auf der Ergebnis-Seite — nur während einer Kalibrierung. */
@@ -11045,9 +11049,11 @@ function kalibrierungAnwenden(){
   speichern();
   fortschrittNeuZeichnen();
   const NAME = { anfaenger:"Anfänger", wieder:"Wiedereinsteiger", fortgeschritten:"Fortgeschritten" };
+  /* 0.234.0: ohne den Noten-Schnitt als Zahl — Rechenwerte gehören nicht auf
+     den Schirm (Nutzer-Entscheidung), die Begründung steht in Worten da. */
   meldung(v.richtung === "hoch"
-    ? "Kalibrierung: Deine letzten Trainings waren im Schnitt „zu leicht“ (Note " + v.schnitt + "). Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung traut dir mehr zu."
-    : "Kalibrierung: Deine letzten Trainings waren im Schnitt sehr schwer (Note " + v.schnitt + "). Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung nimmt mehr Rücksicht.");
+    ? "Kalibrierung: Deine letzten Trainings waren durchweg zu leicht für deine Einstufung. Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung traut dir mehr zu."
+    : "Kalibrierung: Deine letzten Trainings waren durchweg sehr schwer. Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung nimmt mehr Rücksicht.");
 }
 
 /* ---- Ruhepuls (0.230.0) — der offene Punkt aus Gruppe B, jetzt entschieden:
@@ -11510,19 +11516,19 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
      selbst, es gibt nichts nachzutragen. Also nur unter „hat", nie unter
      „fehlt" (dieselbe Begründung wie bei den Pausen). */
   if(einheitenGezaehlt(protokoll, heute)) hat.push("Ausdauer");
-  /* 0.232.0: die feine Wertung als eine lesbare Zahl — damit man SIEHT, dass
-     zwischen den groben Stufen viele Zwischenstufen liegen. */
-  const fitness = fitnessZahl(erfahrungsFaktor(e, protokoll, heute));
+  /* 0.234.0 (Nutzer-Entscheidung): kein Rechenwert auf dem Schirm — der Stand
+     der feinen Wertung steht in WORTEN da, gerechnet wird unverändert fein. */
+  const stand = fitnessWort(erfahrungsFaktor(e, protokoll, heute));
   return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
-           fitness, annahme: !e.erfahrung };
+           stand, annahme: !e.erfahrung };
 }
 
 /** Die Grundlagen-Zeile als Text. Rein/testbar. */
 function grundlageText(g){
   if(!g) return "";
   const teile = ["Grundlage: " + g.trainings + " Training" + (g.trainings === 1 ? "" : "s")];
-  // 0.232.0: die feine Wertung, sichtbar gemacht
-  if(g.fitness !== undefined) teile.push("Fitness-Zahl " + g.fitness + "/100");
+  // 0.234.0: der Stand der feinen Wertung — in Worten, nicht als Zahl
+  if(g.stand) teile.push("Stand: " + g.stand);
   if(g.hat.length)   teile.push(g.hat.join(" · "));
   const satz = teile.join(" · ") + ".";
   const ohne = g.fehlt.length ? " Ohne " + g.fehlt.join(", ") + "." : "";
@@ -12090,7 +12096,8 @@ function beschwerdeFragen(key){
     fortschrittNeuZeichnen();   // v214: die Rechnung hat sich geändert
     zeigenToast(name + ": notiert", "erfolg");
   };
-  aktionsMenue(name + " — wie fühlt er sich an?", [
+  // 0.234.0: die ausformulierte Check-Frage statt der immergleichen Formel
+  aktionsMenue(muskelCheckFrage(key), [
     { text:"Alles gut",              tun:() => setzen(null, 0) },
     { text:"Leichter Muskelkater",   tun:() => setzen("kater", 1) },
     { text:"Starker Muskelkater",    tun:() => setzen("kater", 2) },
@@ -20413,6 +20420,75 @@ function bewertungAnwenden(){
     Tages-Check wird hier ANGEBOTEN, wenn er heute noch fehlt. Ein Angebot, kein
     Zwang, und nur auf Stufen, die den Check überhaupt kennen (Leitplanke 8). */
 /* ============================================================
+   0.234.0 — DER FRAGENKATALOG JE MUSKEL (Nutzer-Wunsch)
+
+   „Statt immer derselben Frage lieber eine eigene Datenbank, wie sich der
+   Muskel anfühlen kann — ausformuliert, wie ein Arzt: zieht die Schulter,
+   wenn du mit dem Arm deine andere Schulter anfasst?"
+
+   Jede Frage ist ein FUNKTIONSTEST zum Selbermachen — eine Bewegung, die genau
+   diesen Muskel fordert, in Alltagssprache. Die Bewegungen folgen den üblichen
+   orthopädischen Selbst-Checks (Provokationstests), bewusst OHNE deren Namen
+   und ohne Diagnose-Anspruch: Die App fragt, sie befundet nicht (rote Linie
+   aus der 61. Runde — anhaltender Schmerz gehört zum Arzt).
+   Granularität ist der MUSKEL, nicht die Übung: Das Modell rechnet je Muskel,
+   also wird je Muskel gefragt. Ein je Übung/Sportart verfeinerter Katalog
+   steht als Ausbau in der Roadmap. */
+const MUSKEL_CHECK_FRAGEN = {
+  neck:          "Dreh den Kopf langsam ganz zur Seite — zieht es dabei seitlich am Hals?",
+  trapezius:     "Zieh die Schultern hoch zu den Ohren und lass sie fallen — spannt es zwischen Nacken und Schulter?",
+  deltoid:       "Fass mit der Hand über den Kopf ans andere Ohr — zieht es dabei in der Schulter?",
+  infraspinatus: "Fass mit der Hand hinter den Rücken zwischen die Schulterblätter — zwickt es hinten in der Schulter?",
+  latissimus:    "Streck beide Arme über den Kopf und lehn dich leicht zur Seite — zieht es seitlich am Rücken?",
+  lowerback:     "Beug dich langsam nach vorn und richte dich wieder auf — meldet sich dabei das Kreuz?",
+  pectoral:      "Öffne beide Arme weit nach hinten, wie im Türrahmen — spannt es in der Brust?",
+  serratus:      "Atme tief ein und streck die Arme weit nach vorn — zieht es seitlich an den Rippen?",
+  biceps:        "Beug den Arm und drück die Hand von unten gegen den Tisch — meldet sich die Arm-Vorderseite?",
+  triceps:       "Stütz dich auf der Stuhlkante ab und drück dich hoch — zieht es an der Arm-Rückseite?",
+  forearm:       "Ball die Faust fest und beweg das Handgelenk auf und ab — zieht es im Unterarm?",
+  abs:           "Heb im Liegen Kopf und Schultern leicht an — zieht die Bauchdecke?",
+  obliques:      "Dreh den Oberkörper im Sitzen weit zur Seite — zieht es seitlich am Bauch?",
+  glutes:        "Steh ohne Schwung vom Stuhl auf oder steig eine Stufe hoch — meldet sich das Gesäß?",
+  adductors:     "Drück im Sitzen die Knie fest gegeneinander — zieht es an der Bein-Innenseite?",
+  quadriceps:    "Geh in eine halbe Kniebeuge oder eine Treppe hinab — zieht der vordere Oberschenkel?",
+  hamstrings:    "Beug dich mit gestreckten Beinen nach vorn — zieht die Bein-Rückseite?",
+  tibialis:      "Zieh im Stehen mehrmals die Fußspitzen hoch — meldet sich das Schienbein?",
+  calves:        "Stell dich auf die Zehenspitzen und wippe ein paarmal — ziehen die Waden?"
+};
+
+/** Die Check-Frage eines Muskels — mit ehrlichem Rückfall für unbekannte. */
+function muskelCheckFrage(key){
+  return MUSKEL_CHECK_FRAGEN[key] ||
+    ("Beweg " + (((MUSKEL_INFO[key] || {}).name) || "diesen Muskel") + " einmal bewusst durch — zieht oder schmerzt dabei etwas?");
+}
+
+/* 0.234.0 (Nutzer-Entscheidung): RECHENWERTE GEHÖREN NICHT AUF DEN SCHIRM.
+   „Zeige die Werte, wo du rechnest, nirgends — das verwirrt nur. Nimm sie raus
+   und umschreibe sie." Die Fitness-Zahl (0.232) und die Korridor-Zahlen (0.231)
+   werden deshalb in Worte übersetzt; gerechnet wird unverändert fein. */
+
+/** Der Stand in Worten statt einer Zahl. Rein/testbar. */
+function fitnessWort(faktor){
+  const f = Number(faktor) || 0.6;
+  if(f < 0.7)  return "ganz am Anfang";
+  if(f < 0.85) return "im Aufbau";
+  if(f < 1.0)  return "gefestigt";
+  return "weit entwickelt";
+}
+
+/** Wo im Korridor steht dieser Muskel — in Worten. Rein/testbar. */
+function korridorWort(saetze, kapazitaet){
+  const kor = volumenKorridor(kapazitaet);
+  if(!kor) return "";
+  const s = Number(saetze) || 0;
+  if(s >= kor.stopp)      return "An der Grenze: Noch mehr erhöht hier vor allem das Verletzungsrisiko.";
+  if(s >= kapazitaet)     return "Über dem Richtwert — mehr bringt diese Woche keinen Zusatznutzen.";
+  if(s >= kor.mindest)    return "Im produktiven Bereich — genau hier wächst etwas.";
+  if(s > 0)               return "Hier ist noch Luft: Für spürbaren Fortschritt verträgt dieser Muskel mehr pro Woche.";
+  return "Diese Woche noch unbelastet — bereit für Training.";
+}
+
+/* ============================================================
    0.232.0 — DER KÖRPER-CHECK NACH DEM TRAINING (Nutzer-Wunsch)
 
    „Nach einem Training ist es schwer zu sagen, wie es war — mit nur EINER
@@ -20447,16 +20523,21 @@ function koerperCheckHtml(eintrag){
   const zeilen = muskeln.map(m => {
     const info = MUSKEL_INFO[m] || {};
     const fig = miniFigurHtml({ ansicht: MUSKEL_SEITE[m] === "back" ? "back" : "front", muskeln:[m] }, "kcheck-mini");
-    return '<div class="zeile" style="gap:8px;margin-bottom:6px">' + fig +
-      '<span style="flex:1;min-width:0;font-size:14px">' + text(info.name || m) + '</span>' +
-      '<span class="note" style="flex:0 0 auto">' +
-        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'nichts\',this)">Ok</button>' +
-        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'zieht\',this)">Zieht</button>' +
-        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'schmerzt\',this)">Schmerzt</button>' +
-      '</span></div>';
+    /* 0.234.0: statt immer derselben Frage die ausformulierte Check-Frage des
+       Muskels — ein kleiner Funktionstest zum Selbermachen. */
+    return '<div style="margin-bottom:12px">' +
+      '<div class="zeile" style="gap:8px">' + fig +
+        '<span style="flex:1;min-width:0;font-size:14px;font-weight:600">' + text(info.name || m) + '</span>' +
+        '<span class="note" style="flex:0 0 auto">' +
+          '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'nichts\',this)">Ok</button>' +
+          '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'zieht\',this)">Zieht</button>' +
+          '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'schmerzt\',this)">Schmerzt</button>' +
+        '</span></div>' +
+      '<div class="meta" style="font-size:12px;margin-top:2px">' + text(muskelCheckFrage(m)) + '</div>' +
+      '</div>';
   }).join("");
   return '<div class="karte"><h2>Kurz-Check</h2>' +
-    '<div class="meta" style="margin-bottom:8px">Wie fühlen sich die eben trainierten Muskeln an? Jede Antwort fließt sofort in die Rechnung ein.</div>' +
+    '<div class="meta" style="margin-bottom:8px">Probier die kleinen Bewegungen aus — jede Antwort fließt sofort in die Rechnung ein.</div>' +
     zeilen + '</div>';
 }
 

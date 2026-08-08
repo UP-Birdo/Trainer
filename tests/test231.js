@@ -144,8 +144,9 @@ pruefe("aber offen angesagt", anwenden.includes("meldung("));
 pruefe("alles Abgeleitete zieht mit", anwenden.includes("fortschrittNeuZeichnen()"));
 pruefe("die Detail-Karte zeigt den Korridor",
   grabFn("muskelAuswahlZeichnen").includes("korridorZeileHtml(a)"));
+// 0.234: der Korridor spricht in Worten (korridorWort) — das Risiko nennt er weiter.
 pruefe("der Korridor nennt das Verletzungsrisiko",
-  grabFn("korridorZeileHtml").includes("Verletzungsrisiko"));
+  grabFn("korridorWort").includes("Verletzungsrisiko"));
 pruefe("die Melze haengt an der Kapazitaets-Rechnung",
   grabFn("kapazitaetsFaktor").includes("erfahrungsFaktor(einrichtung, protokoll, heute)"));
 pruefe("und an der Erholung je Muskel",

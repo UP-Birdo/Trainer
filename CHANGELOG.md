@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.234.0
+
+- Der Kurz-Check fragt jetzt wie ein Arzt: Zu jedem Muskel gibt es eine eigene,
+  ausformulierte Frage mit einer kleinen Bewegung zum Ausprobieren — „Fass mit der Hand
+  über den Kopf ans andere Ohr — zieht es dabei in der Schulter?“ statt einer Formel für
+  alle. Dieselben Fragen stellt auch der Wohlbefinden-Tab der Muskelkarte.
+- Rechenwerte stehen nirgends mehr auf dem Schirm: Statt einer Fitness-Zahl steht dein
+  Stand in Worten („im Aufbau“, „gefestigt“ …), der Muskel-Korridor sagt in einem Satz,
+  wo du gerade stehst („im produktiven Bereich“, „an der Grenze“), und die Kalibrierung
+  begründet sich ohne Zahlen. Gerechnet wird unverändert fein — nur die Anzeige spricht
+  jetzt deine Sprache.
+
 ## 0.233.0
 
 - Der Lade-Bildschirm beim Update ist jetzt ein richtiger: durchgehend im
