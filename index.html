@@ -2134,6 +2134,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <!-- v195: „Dein Körper" steht vorne (Nutzer-Ansage), „Erkunden" bleibt als
            Neben-Tab zum Nachschlagen. -->
       <button id="muskel-modus-heat" class="muskel-tab muskel-an" onclick="muskelModus('trainiert')">Dein Körper</button>
+      <!-- 0.228.0 (Nutzer-Wunsch, dreimal): Muskel antippen und sagen, wie er
+           sich anfühlt. Steht zwischen den beiden anderen, weil er zu „Dein
+           Körper" gehört — Erkunden bleibt das Nachschlagewerk am Rand. -->
+      <button id="muskel-modus-wohl" class="muskel-tab" onclick="muskelModus('wohl')">Wohlbefinden</button>
       <button id="muskel-modus-info" class="muskel-tab" onclick="muskelModus('erkunden')">Erkunden</button>
     </div>
     <!-- v122: dritte Ansicht „Beide" — vorne und hinten nebeneinander (Nutzer-Wunsch). -->
@@ -2910,8 +2914,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.227.0";
-const APP_VERSION = 227000;
+const VERSION = "0.228.0";
+const APP_VERSION = 228000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -2933,6 +2937,10 @@ function datenNachruesten(daten){
      wieder. Diese Liste ist das Gegenstück: Sie sagt „an diesem Tag war weder
      Training noch Ruhetag, lass ihn leer". Additiv, wie alles hier. */
   if(!Array.isArray(daten.ruheAus))   daten.ruheAus = [];
+  /* 0.228.0: Beschwerden je Muskel — eine Zeile je Tag, Muskel und Art
+     ({datum, muskel, art:"kater"|"schmerz", wert}). Dieselbe Bauart wie
+     `tageswerte` und `koerpermasse`; additiv, alte Stände laden weiter. */
+  if(!Array.isArray(daten.beschwerden)) daten.beschwerden = [];
   if(!Array.isArray(daten.ziele))     daten.ziele = [];      // Trainingsziele (Übung, Wdh, Datum)
   if(!Array.isArray(daten.papierkorb)) daten.papierkorb = []; // v96: zuletzt gelöschte Dinge, wiederherstellbar
   if(typeof daten.letzterBesuch !== "string") daten.letzterBesuch = ""; // v103: für automatische Ruhetage
@@ -7125,7 +7133,8 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.227 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.228 · Das Training in deiner Hand", punkte:[
+    "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
     "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
     "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
     "Die Figur oben in der Statistik zeigt deine Auslastung — dieselbe Aussage wie die große Muskelkarte.",
@@ -7168,6 +7177,11 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.228.0", punkte:[
+    "Neu in der Muskelkarte: der Tab „Wohlbefinden“. Tippe einen Muskel an und sag, wie er sich anfühlt — von „Alles gut“ über leichten und starken Muskelkater bis zu Schmerzen. Das fließt in die Rechnung ein: Die App traut dem Muskel weniger zu und warnt früher. Nach oben verschiebt sie nie — ausbleibende Beschwerden sind kein Beweis, dass mehr gut wäre.",
+    "Deine Meldung klingt über vier Tage von selbst wieder aus, du musst also nichts zurücknehmen. „Alles gut“ löscht sie sofort.",
+    "Die große Muskelkarte zeigt jetzt dieselben Farben wie die Statistik-Kachel: Grün heißt bereit, Gelb benutzt, Rot zu viel — vorher färbte sie nur nach Häufigkeit. Damit gibt es überall in der App EINE Aussage über deinen Körper, samt Legende darunter."
+  ]},
   { stand:"0.227.0", punkte:[
     "Neue Farben auf den Muskelfiguren: Grün heißt „bereit“ — der Muskel ist erholt und kann trainiert werden. Je mehr Last dazukommt, desto weiter geht es über Grüngelb in Richtung Gelb („benutzt“), und über dem Richtwert wird daraus Rot bis tiefrot („zu viel“). Vorher konnte die Skala nur zeigen, wie schlimm es steht, nie, dass alles in Ordnung ist.",
     "Dazu die passende Legende unter der Figur in der Statistik — und wenn ein Muskel deutlich über dem Richtwert liegt, steht dort jetzt in Rot, dass du ihn gerade nicht weiter trainieren solltest.",
@@ -10175,7 +10189,7 @@ function auslastungsQuoten(){
   if(!sitzung || !sitzung.daten) return null;   // 0.227.0: null = keine Daten, {} = alles ruhig
   const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
                              sitzung.daten.einrichtung, heuteAlsText(),
-                             sitzung.daten.tageswerte);
+                             sitzung.daten.tageswerte, sitzung.daten.beschwerden);
   /* v167: Die rote Einfärbung ist ein URTEIL. Ohne ausreichende Basis bleibt es
      aus — bis 0.226 wurde dafür das ganze Quoten-Objekt geleert.
      0.227.0 macht es feiner, und das ist mit der neuen Skala auch nötig: Ein
@@ -10254,10 +10268,15 @@ function muskelModus(m){
 function muskelModusAnwenden(){
   const m = muskelStatus.modus || "erkunden";
   const bi = document.getElementById("muskel-modus-info"), bh = document.getElementById("muskel-modus-heat");
+  const bw = document.getElementById("muskel-modus-wohl");   // 0.228.0
   if(bi) bi.classList.toggle("muskel-an", m === "erkunden");
   if(bh) bh.classList.toggle("muskel-an", m === "trainiert");
+  if(bw) bw.classList.toggle("muskel-an", m === "wohl");
+  /* 0.228.0: Die Legende gehört zu jeder Ansicht, die den Körper einfärbt —
+     also zu beiden Auslastungs-Modi. Nur „Erkunden" braucht sie nicht, dort
+     bedeutet die Farbe „ausgewählt". */
   const leg = document.getElementById("muskel-legende");
-  if(leg){ leg.hidden = (m !== "trainiert"); if(m === "trainiert") muskelLegendeZeichnen(); }
+  if(leg){ leg.hidden = (m === "erkunden"); if(m !== "erkunden") muskelLegendeZeichnen(); }
 }
 
 /** v122: Welche Karten-Ansichten zeigt die aktuelle Auswahl? „beide" ist keine
@@ -10279,7 +10298,14 @@ function muskelAnsicht(v){
   });
   muskelFigurenAufbauen();
   muskelAnsichten(v).forEach(a => muskelKarteLaden(a).then(() => {
-    if(muskelStatus.modus === "trainiert") muskelHeatmapZeichnen(a); else muskelMalen(a);
+    /* 0.228.0 (Nutzer-Ansage „färbe den Körper auch so bunt ein"): „Dein Körper"
+       zeigt jetzt dieselbe Grün-Gelb-Rot-Skala wie die Kachel und die kleinen
+       Figuren. Bis 0.227 malte die große Karte hier die Häufigkeits-Heatmap —
+       eine zweite Färbung für denselben Körper, und ausgerechnet die schwächere
+       Aussage („was war dran") an der Stelle, an der man „kann ich das heute
+       nochmal?" beantwortet haben will. Damit ist die letzte der beiden
+       Färbungen umgestellt. */
+    if(muskelStatus.modus === "erkunden") muskelMalen(a); else muskelLastZeichnen(a);
   }));
   muskelAuswahlZeichnen(); muskelStatusText();
 }
@@ -10730,6 +10756,79 @@ function befindenFaktor(schnitt){
   return stufe ? stufe.faktor : BEFINDEN_STUFEN[BEFINDEN_STUFEN.length - 1].faktor;
 }
 
+/* ============================================================
+   0.228.0 — BESCHWERDEN JE MUSKEL (Nutzer-Wunsch, dreimal gestellt)
+
+   „Bei der Muskelkarte fehlt mir neben Erkunden noch Wohlbefinden, damit ich
+   einen Muskel anklicken und sagen kann, wie der sich anfühlt — und dass das
+   entsprechend anders in die Rechnung einfließt."
+
+   Bis hierher kannte die App Muskelkater nur GROB: als Region im Tages-Check
+   (v168), abgeleitet aus einem Fragenkatalog. Neu ist die Angabe je MUSKEL und
+   der SCHMERZ als eigene Art — der wichtigere der beiden Werte, weil er kein
+   Trainingszeichen ist, sondern ein Warnzeichen.
+
+   Zwei Entscheidungen des Nutzers stecken darin (08.08.2026):
+   * EIN ORT. Erfasst wird auf der Karte, nicht in einem zweiten Formular.
+   * NUR WARNEN, NIE MEHR ZUMUTEN. Der Faktor senkt die Kapazität und lässt die
+     Warnung früher kommen; nach oben verschiebt er nie. Ausbleibende
+     Beschwerden sind kein Beweis, dass mehr gut wäre.
+
+   Die Größe ist bewusst gedeckelt, aber größer als die ±10 % der übrigen
+   unbelegten Faktoren: Schmerz ist die einzige Angabe, bei der ein zu SCHWACHER
+   Ausschlag der teurere Fehler wäre. Er klingt über Tage aus (`BESCHWERDE_TAGE`)
+   — sonst bliebe eine einmalige Meldung für immer im Modell. */
+const BESCHWERDE_TAGE = 4;
+const BESCHWERDE_FAKTOR = {
+  kater:   { 1:0.95, 2:0.90, 3:0.85 },
+  schmerz: { 1:0.90, 2:0.80, 3:0.75 }
+};
+
+/** Wert setzen: EIN Eintrag je Tag, Muskel und Art — ein zweiter am selben Tag
+    korrigiert den ersten (wie bei Gewicht und Tageswerten). Wert 0 löscht. */
+function beschwerdeSetzen(liste, datum, muskel, art, wert){
+  const raus = (liste || []).filter(e => !(e && e.datum === datum && e.muskel === muskel && e.art === art));
+  if(wert > 0) raus.push({ datum, muskel, art, wert });
+  raus.sort((a, b) => a.datum < b.datum ? -1 : 1);
+  return raus;
+}
+
+/** Der stärkste gemeldete Wert einer Art im Fenster. Rein/testbar. */
+function beschwerdeStand(beschwerden, muskel, art, heute, tage){
+  const fenster = tage === undefined ? BESCHWERDE_TAGE : tage;
+  let wert = 0;
+  (beschwerden || []).forEach(e => {
+    if(!e || e.muskel !== muskel || e.art !== art || !e.datum) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > fenster) return;
+    if(e.wert > wert) wert = e.wert;
+  });
+  return wert;
+}
+
+/** Wirkung der Beschwerden auf die Kapazität dieses Muskels. 1 = kein Effekt
+    (auch ohne Angabe — „kein Wert, kein Effekt"). Nie über 1: Das Profil darf
+    nur warnen, nie mehr zumuten (Nutzer-Entscheidung). Rein/testbar. */
+function beschwerdeFaktor(beschwerden, muskel, heute){
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
+  const f = Math.min(BESCHWERDE_FAKTOR.kater[kater] || 1,
+                     BESCHWERDE_FAKTOR.schmerz[schmerz] || 1);
+  return Math.min(1, f);
+}
+
+/** Der Satz dazu — oder leer. Eigene Aussage neben der Quote, wie bei
+    Muskelkater (v168) und Leistungsabfall (v161). Rein/testbar. */
+function beschwerdeText(beschwerden, muskel, heute){
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
+  if(schmerz >= 2) return " Du hast hier starke Schmerzen gemeldet — diesen Muskel jetzt nicht trainieren. Hält es an, gehört es zum Arzt.";
+  if(schmerz === 1) return " Du hast hier Schmerzen gemeldet — die Rechnung nimmt den Muskel entsprechend zurück.";
+  if(kater >= 2)    return " Du hast hier starken Muskelkater gemeldet — er arbeitet noch.";
+  if(kater === 1)   return " Du hast hier leichten Muskelkater gemeldet.";
+  return "";
+}
+
 /** Persönlicher Faktor auf die Kapazität. Erfahrung ist der belegte Anteil,
     Alter und Geschlecht sind schwach gewichtete Heuristiken, Aufwärmen/Dehnen
     ein kleiner Bonus für die verträglichere Einheit, Schlaf seit v167.
@@ -10750,9 +10849,14 @@ function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte){
 }
 
 /** Kapazität eines Muskels für DIESEN Nutzer. Rein/testbar. */
-function muskelKapazitaet(muskel, profil, einrichtung, heute, tageswerte){
+function muskelKapazitaet(muskel, profil, einrichtung, heute, tageswerte, beschwerden){
   const basis = MUSKEL_KAPAZITAET[muskel] || KAPAZITAET_STANDARD;
-  return Math.max(4, Math.round(basis * kapazitaetsFaktor(profil, einrichtung, heute, tageswerte) * 10) / 10);
+  /* 0.228.0: Der einzige Faktor, der JE MUSKEL wirkt — alle anderen gelten für
+     den ganzen Körper. `beschwerden` ist optional; ohne die Angabe rechnet die
+     Funktion wie vor 0.228. */
+  const f = kapazitaetsFaktor(profil, einrichtung, heute, tageswerte) *
+            beschwerdeFaktor(beschwerden, muskel, heute);
+  return Math.max(4, Math.round(basis * f * 10) / 10);
 }
 
 /* v161: NICHT JEDER SATZ WIEGT GLEICH.
@@ -11080,11 +11184,19 @@ function satzloseText(info){
 }
 
 /** Auslastung je Muskel: Sätze, Kapazität, Quote und Erholung. Rein/testbar. */
-function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte){
+function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, beschwerden){
   const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
+  /* 0.228.0: Ein Muskel MIT Beschwerde, aber ohne Last im Fenster, muss trotzdem
+     auftauchen — sonst bliebe er grün („bereit"), obwohl gerade gemeldet wurde,
+     dass er wehtut. Er kommt mit 0 Sätzen dazu; seine Quote entsteht dann allein
+     aus der gesenkten Kapazität. */
+  (beschwerden || []).forEach(e => {
+    if(!e || !e.muskel || roh[e.muskel]) return;
+    if(beschwerdeFaktor(beschwerden, e.muskel, heute) < 1) roh[e.muskel] = { saetze:0, tageSeit:99 };
+  });
   const raus = {};
   Object.keys(roh).forEach(m => {
-    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte);
+    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden);
     raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
                 quote: Math.round((roh[m].saetze / kap) * 100) / 100,
                 erholt: roh[m].tageSeit >= ERHOLUNG_TAGE };
@@ -11368,6 +11480,18 @@ function muskelHeatmapZeichnen(ansicht){
   });
 }
 
+/** 0.228.0: Die große Karte in der Auslastungs-Färbung — dieselbe Mal-Funktion
+    und dieselben Quoten wie überall sonst. Gemalt wird der GANZE Körper: Grün
+    („bereit") ist seit 0.227 eine eigene Aussage und keine leere Fläche. */
+function muskelLastZeichnen(ansicht){
+  const quoten = auslastungsQuoten();
+  const liste = ansicht ? [ansicht] : muskelAnsichten(muskelStatus.ansicht);
+  liste.forEach(a => {
+    const cv = muskelCanvasFuer(a); if(!cv) return;
+    muskelnAufCanvas(cv.getContext("2d"), a, MUSKEL_ORDER, 205, [], quoten);
+  });
+}
+
 /** Übungen der letzten MUSKEL_HEAT_TAGE Tage, die diesen Muskel trainiert haben
     (neueste zuerst) — je Eintrag { tage, namen[] }. */
 function muskelTrainingDetail(key){
@@ -11406,7 +11530,8 @@ function heatLegendeHtml(){
 }
 function muskelLegendeZeichnen(){
   const el = document.getElementById("muskel-legende"); if(!el) return;
-  el.innerHTML = '<div class="meta" style="margin-top:10px;text-align:center">' + heatLegendeHtml() + '</div>';
+  // 0.228.0: dieselbe Skala wie in der Statistik-Kachel (bereit · benutzt · zu viel).
+  el.innerHTML = lastLegendeHtml();
 }
 
 /** v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten, gefärbt
@@ -11503,6 +11628,10 @@ function muskelTreffer(e){
     den getippten Muskel fokussieren (zeigt unten die eigenen Übungen). */
 function muskelTippen(e){
   const key = muskelTreffer(e); if(!key) return;
+  /* 0.228.0: Im Wohlbefinden-Modus IST der Tipp die Eingabe — ein Menü mit fünf
+     Antworten statt eines Formulars mit zwei Schiebereglern. Wer sagen will
+     „das zwickt", soll das in zwei Tipps erledigen können. */
+  if(muskelStatus.modus === "wohl"){ beschwerdeFragen(key); return; }
   if(muskelStatus.modus === "trainiert"){
     muskelStatus.gewaehlt = [key];
     muskelAuswahlZeichnen(); muskelStatusText();
@@ -11519,11 +11648,40 @@ function muskelTippen(e){
   muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
 }
 
+/** 0.228.0: Wie fühlt sich dieser Muskel an? Fünf Antworten, eine Ebene — die
+    Skalen (0–3) stehen dahinter, nicht davor. „Alles gut" löscht die Meldung
+    des Tages, damit ein Fehlgriff nicht bis zum Ausklingen stehen bleibt. */
+function beschwerdeFragen(key){
+  const name = (MUSKEL_INFO[key] || {}).name || key;
+  const heute = heuteAlsText();
+  const setzen = (art, wert) => {
+    const d = sitzung.daten;
+    if(art === null){
+      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, "kater", 0);
+      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, "schmerz", 0);
+    } else {
+      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, art, wert);
+    }
+    speichern();
+    muskelLastZeichnen(); muskelAuswahlZeichnen(); muskelStatusText();
+    fortschrittNeuZeichnen();   // v214: die Rechnung hat sich geändert
+    zeigenToast(name + ": notiert", "erfolg");
+  };
+  aktionsMenue(name + " — wie fühlt er sich an?", [
+    { text:"Alles gut",              tun:() => setzen(null, 0) },
+    { text:"Leichter Muskelkater",   tun:() => setzen("kater", 1) },
+    { text:"Starker Muskelkater",    tun:() => setzen("kater", 2) },
+    { text:"Schmerzen — leicht",     tun:() => setzen("schmerz", 1) },
+    { text:"Schmerzen — stark", stil:"gefahr", tun:() => setzen("schmerz", 2) }
+  ]);
+}
+
 /** Detail-Karten je gewähltem Muskel — je nach Modus: Beispiel-Übungen (erkunden)
     oder die eigenen Übungen der letzten Tage (trainiert). */
 function muskelAuswahlZeichnen(){
   const ziel = document.getElementById("muskel-auswahl");
-  if(muskelStatus.modus === "trainiert"){
+  // 0.228.0: „Wohlbefinden" zeigt dieselbe Auskunft wie „Dein Körper".
+  if(muskelStatus.modus !== "erkunden"){
     ziel.innerHTML = muskelStatus.gewaehlt.map(key => {
       const m = MUSKEL_INFO[key], eh = muskelTrainingDetail(key);
       const kopf = '<div class="karte"><div class="zeile"><h2>' + text(m.name) + '</h2>' +
@@ -11533,7 +11691,7 @@ function muskelAuswahlZeichnen(){
          Farbe des Balkens folgt der Stufe, nicht der Trainings-Häufigkeit. */
       const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
                                  sitzung.daten.einrichtung, heuteAlsText(),
-                                 sitzung.daten.tageswerte)[key];
+                                 sitzung.daten.tageswerte, sitzung.daten.beschwerden)[key];
       // v167: Ohne ausreichende Basis kein scharfes Urteil — auch nicht farblich.
       const reicht = basisReicht(sitzung.daten.protokoll);
       const stufe = reicht ? auslastungStufe(a) : "gut";
@@ -11546,8 +11704,12 @@ function muskelAuswahlZeichnen(){
       // Aussage und wird nicht in die Quote verrührt (wie v161 beim Leistungsabfall).
       const kater = katerMuskeln(katerRegionen(sitzung.daten.tageswerte, heuteAlsText())).has(key)
         ? " Du hast hier Muskelkater gemeldet — der Muskel arbeitet noch." : "";
+      /* 0.228.0: die Angabe je MUSKEL aus dem Wohlbefinden-Modus. Sie steht
+         neben der Quote, nicht darin — auch wenn sie zusätzlich die Kapazität
+         senkt, soll man lesen können, WARUM die Zahl heute niedriger ist. */
+      const wohl = beschwerdeText(sitzung.daten.beschwerden, key, heuteAlsText());
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater) + '</div>';
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl) + '</div>';
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
@@ -11643,6 +11805,13 @@ function grundlagenZeileHtml(){
    Aufruf an beide Stellen hier unten dazu.) */
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
+  /* 0.228.0: Im Wohlbefinden-Modus sagt die Zeile, was der Tipp bewirkt — sonst
+     tippt man auf einen Muskel und bekommt unerwartet ein Menü. */
+  if(muskelStatus.modus === "wohl"){
+    el.innerHTML = text("Tippe einen Muskel an und sag, wie er sich anfühlt. Schmerzen und Muskelkater nimmt die Rechnung zurück — sie klingen über " +
+      BESCHWERDE_TAGE + " Tage von selbst wieder aus.") + grundlagenZeileHtml();
+    return;
+  }
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
       el.innerHTML = text("Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.") +
@@ -11653,7 +11822,7 @@ function muskelStatusText(){
        sie sehen, ohne erst den richtigen Muskel zu erraten. */
     const alle = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
                                   sitzung.daten.einrichtung, heuteAlsText(),
-                                  sitzung.daten.tageswerte);
+                                  sitzung.daten.tageswerte, sitzung.daten.beschwerden);
     // v167: Die Warnung braucht eine Basis — die Zahlen darunter nicht.
     const heiss = basisReicht(sitzung.daten.protokoll)
       ? Object.keys(alle).filter(m => auslastungStufe(alle[m]) === "zuviel")

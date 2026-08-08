@@ -126,11 +126,13 @@ const figur = grabFn("miniLastFigur");
 pruefe("gemalt wird mit derselben Funktion wie die volle Karte", figur.includes("muskelnAufCanvas("));
 /* Das letzte Argument ist `quoten` — daran haengt die Farbe (lastFarbe). */
 pruefe("die Quoten werden durchgereicht", /muskelnAufCanvas\(.*,\s*quoten\)/.test(figur));
-/* Die Heatmap ist umgezogen, nicht geloescht. */
-pruefe("die Heatmap gibt es weiterhin",
-  src.includes("function miniHeatFigur(") && src.includes("function muskelHeatmapZeichnen("));
-pruefe("und sie wird weiterhin gerufen",
-  (src.match(/muskelHeatmapZeichnen\(/g) || []).length >= 2);
+/* 0.226 sagte hier „die Heatmap ist umgezogen, nicht geloescht" — sie hing noch
+   an der grossen Karte. Seit 0.228 malt auch die die Auslastung; die
+   Haeufigkeits-Heatmap hat damit keinen Aufrufer mehr. Der Code steht noch da
+   und ist als Altlast vermerkt (TODO/Roadmap): Geprueft wird jetzt nur noch,
+   dass es genau EINE Faerbung des Koerpers gibt. */
+pruefe("keine zweite Faerbung mehr im Einsatz",
+  !src.includes("muskelHeatmapZeichnen(a)") && !grabFn("koerperVorschauZeichnen").includes("miniHeatFigur("));
 
 /* ---------- 5) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

@@ -72,6 +72,10 @@ const code = [
   grabFn("befindenSchnitt"),
   grabFn("befindenFaktor"),
   grabFn("kapazitaetsFaktor"),
+  /* 0.228: muskelKapazitaet rechnet zusaetzlich die Beschwerden je Muskel ein.
+     Hier NICHT unter Test und ohne Meldung ohnehin neutral (die echte Funktion
+     gibt dann 1 zurueck) — geprueft wird sie in test228. */
+  "function beschwerdeFaktor(){ return 1; }",
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
   /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne

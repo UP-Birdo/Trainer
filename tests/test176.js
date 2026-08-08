@@ -158,8 +158,11 @@ pruefe("die Zeilen tragen die Signalfarbe, nicht das Warnrot",
 const status = grabFn("muskelStatusText");
 pruefe("sie stehen MIT gewaehltem Muskel da und ohne",
   (status.match(/belastungsHinweiseHtml\(\)/g) || []).length === 2);
+/* 0.228: Der Wohlbefinden-Modus hat eine dritte Stelle dazubekommen — auch dort
+   soll stehen, worauf die Rechnung beruht. Geprueft wird weiter dasselbe: Die
+   Zeile steht mit UND ohne gewaehlten Muskel, verschwindet also nie. */
 pruefe("die Grundlagen-Zeile aus v167 bleibt daneben stehen",
-  (status.match(/grundlagenZeileHtml\(\)/g) || []).length === 2);
+  (status.match(/grundlagenZeileHtml\(\)/g) || []).length >= 2);
 pruefe("die Muskelkarte bleibt ab Stufe 4 (Leitplanke 8)",
   /"view-muskeln": 4/.test(src));
 

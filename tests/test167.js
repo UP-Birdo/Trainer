@@ -73,6 +73,8 @@ new Function("module", "exports", [
   grabFn("befindenSchnitt"),
   grabFn("befindenFaktor"),
   grabFn("kapazitaetsFaktor"),
+  // 0.228: siehe test160 — ohne Meldung neutral, geprueft wird der Faktor in test228.
+  "function beschwerdeFaktor(){ return 1; }",
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
   /* v189: Die Grundlagen-Zeile nennt jetzt auch die gemessenen Pausen. In

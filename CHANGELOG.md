@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.228.0
+
+- Neu in der Muskelkarte: der Tab „Wohlbefinden“. Tippe einen Muskel an und sag, wie er
+  sich anfühlt — von „Alles gut“ über leichten und starken Muskelkater bis zu Schmerzen.
+  Das fließt in die Rechnung ein: Die App traut dem Muskel weniger zu und warnt früher.
+  Nach oben verschiebt sie nie — ausbleibende Beschwerden sind kein Beweis, dass mehr
+  gut wäre.
+- Deine Meldung klingt über vier Tage von selbst wieder aus, du musst also nichts
+  zurücknehmen. „Alles gut“ löscht sie sofort.
+- Die große Muskelkarte zeigt jetzt dieselben Farben wie die Statistik-Kachel: Grün
+  heißt bereit, Gelb benutzt, Rot zu viel — vorher färbte sie nur nach Häufigkeit. Damit
+  gibt es überall in der App EINE Aussage über deinen Körper, samt Legende darunter.
+
 ## 0.227.0
 
 - Neue Farben auf den Muskelfiguren: Grün heißt „bereit“ — der Muskel ist erholt und
