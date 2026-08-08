@@ -72,9 +72,11 @@ zaehltNicht.forEach(([was, fn]) =>
   pruefe(was + " ueberspringt Sollwerte", grabFn(fn).includes("echteSaetze(")));
 
 /* ---------- 5) Was WEITERHIN zaehlt — das Training hat stattgefunden ---------- */
+/* 0.236.0: Die Zeile ["Muskel-Heatmap", "trainierteMuskeln"] ist raus — die
+   Haeufigkeits-Heatmap ist abgebaut; die Figuren-Faerbung ist seither die
+   Auslastung (muskelLast), und die ist eine MESSUNG und ueberspringt Soll. */
 const zaehltWeiter = [
   ["Volumen", "volumenZeichnen"],
-  ["Muskel-Heatmap", "trainierteMuskeln"],
   ["Muskel-Detail", "muskelTrainingDetail"]
 ];
 zaehltWeiter.forEach(([was, fn]) =>

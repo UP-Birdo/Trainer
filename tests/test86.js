@@ -1,4 +1,6 @@
-/* v86-Test: feine Uebung->Muskel-Zuordnung + Trainings-Heatmap.
+/* v86-Test: feine Uebung->Muskel-Zuordnung.
+   (Die Heatmap-Teile — heatAlpha, trainierteMuskeln — sind mit 0.236.0
+   abgebaut; die Zuordnung ist weiter die Grundlage aller Muskel-Rechnungen.)
    Extrahiert die ECHTEN Daten/Funktionen aus index.html (nie kopieren). */
 "use strict";
 const fs = require("fs");
@@ -35,10 +37,6 @@ function grabConst(name){
   throw new Error("Klammern unausgeglichen: " + name);
 }
 
-// HEAT_MAX_ALPHA ist ein Skalar (kein Objekt/Array, also nicht via grabConst) —
-// Wert direkt aus der Quelle lesen, damit er nicht driftet, dann vor heatAlpha setzen.
-const heatMax = (src.match(/HEAT_MAX_ALPHA\s*=\s*(\d+)/) || [])[1] || "235";
-
 const code = [
   // v139: Karten-Definition + abgeleitete Kurznamen (wie in der App), dazu die
   // Alias-Schicht und die Satz-Auflösung, die uebungMuskeln jetzt benutzt.
@@ -54,14 +52,8 @@ const code = [
   // Anzeige-Form mit ihnen.
   grabConst("SPORT_MUSKELN"), grabFn("muskelSatzAnzeige"),
   grabFn("normName"), grabFn("uebungMuskeln"),
-  // v211: die Heatmap zählt jetzt auch Ausdauer-Einheiten (dieselben Bausteine wie v197).
-  grabZahl("AKTIVITAET_MINUTEN_JE_SATZ"), grabZahl("AKTIVITAET_MAX_SAETZE"),
-  grabConst("SPORT_LAST_MUSKELN"), grabFn("istSollEintrag"),
-  grabFn("aktivitaetSaetze"), grabFn("alsEinheitZaehlbar"),
-  grabFn("tagDifferenz"), grabFn("trainierteMuskeln"),
-  "const HEAT_MAX_ALPHA = " + heatMax + ";", grabFn("heatAlpha"),
   "module.exports = { MUSKEL_ORDER, MUSKEL_SEITE, UEBUNGEN_DB, UEBUNG_MUSKELN," +
-  " uebungMuskeln, tagDifferenz, heatAlpha, trainierteMuskeln };"
+  " uebungMuskeln };"
 ].join("\n");
 
 const modul = { exports: {} };
@@ -98,25 +90,12 @@ pruefe("Rum. Kreuzheben -> Hamstrings, hinten",
 pruefe("Normalisiert (Kleinschreibung)", T.uebungMuskeln("kniebeugen") && T.uebungMuskeln("kniebeugen").muskeln.indexOf("quadriceps") >= 0);
 pruefe("Unbekannt -> null", T.uebungMuskeln("Voellig Erfundene Uebung XYZ") === null);
 
-/* 3) heatAlpha: stufenlose, sättigende Deckkraft (v94) */
-pruefe("heatAlpha: 0 -> transparent", T.heatAlpha(0) === 0);
-pruefe("heatAlpha: ab 1 sichtbar und steigend",
-  T.heatAlpha(1) > 0 && T.heatAlpha(1) < T.heatAlpha(2) && T.heatAlpha(2) < T.heatAlpha(3));
-pruefe("heatAlpha: sättigt (Zuwachs nimmt ab)",
-  (T.heatAlpha(2) - T.heatAlpha(1)) > (T.heatAlpha(4) - T.heatAlpha(3)));
-pruefe("heatAlpha: Deckel ~235, nie darüber", T.heatAlpha(99) <= 235 && T.heatAlpha(99) >= 230);
-
-/* 4) trainierteMuskeln: Aggregation + Zeitfenster + Freitext ignoriert */
-const heute = "2026-07-24";
-const prot = [
-  { datum:"2026-07-24", saetze:[{name:"Kniebeugen"},{name:"Kniebeugen"},{name:"Kniebeugen"}] },
-  { datum:"2026-07-16", saetze:[{name:"Kniebeugen"}] },              // 8 Tage her -> raus (Fenster 7)
-  { datum:"2026-07-23", saetze:[{name:"Irgendein Freitext"}] }       // keine DB-Uebung -> ignoriert
-];
-const z = T.trainierteMuskeln(prot, heute, 7);
-pruefe("3 Saetze Kniebeugen -> quadriceps=3, glutes=3", z.quadriceps === 3 && z.glutes === 3);
-pruefe("Ausserhalb 7-Tage-Fenster zaehlt nicht", z.quadriceps === 3);   // die 8-Tage-Einheit wuerde 4 machen
-pruefe("Freitext ohne DB-Treffer ignoriert", Object.keys(z).every(k => ["quadriceps","glutes"].indexOf(k) >= 0));
+/* 3) 0.236.0: die Heatmap-Kette ist restlos abgebaut — nichts davon kehrt
+      unbemerkt zurueck. */
+["function heatAlpha(", "function trainierteMuskeln(", "function miniHeatFigur(",
+ "function muskelHeatmapAufCanvas(", "function muskelHeatmapZeichnen(",
+ "function heatLegendeHtml(", "const HEAT_MAX_ALPHA"].forEach(rest =>
+  pruefe("Altlast weg: " + rest, !src.includes(rest)));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

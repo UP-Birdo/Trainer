@@ -43,8 +43,10 @@ pruefe("alte Einzel-IDs entfernt", !src.includes('id="muskel-canvas"') && !src.i
 pruefe("Figur-Block trägt seine Ansicht", src.includes('data-ansicht="'));
 pruefe("Treffer liest den getippten Block", src.includes('e.currentTarget.closest(".muskel-figur")'));
 pruefe("Canvas wird je Ansicht gesucht", src.includes("function muskelCanvasFuer("));
-pruefe("Malen/Heatmap decken mehrere Figuren ab",
-  /function muskelMalen\(ansicht\)/.test(src) && /function muskelHeatmapZeichnen\(ansicht\)/.test(src));
+/* 0.236.0: Die Heatmap ist abgebaut — den Beide-Modus decken jetzt
+   muskelMalen und muskelLastZeichnen ab (beide je Ansicht). */
+pruefe("Malen/Auslastung decken mehrere Figuren ab",
+  /function muskelMalen\(ansicht\)/.test(src) && /function muskelLastZeichnen\(ansicht\)/.test(src));
 pruefe("CSS für zwei Figuren nebeneinander", /\.muskel-figuren\.muskel-doppelt/.test(src));
 
 /* 3) Einfachheit unter „Mehr": Menü-Zeile im gleichen Look, Stufe im Namen,

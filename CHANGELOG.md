@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.236.0
+
+- In der Trainings-Vorschau ist jetzt die ganze Zeile der Knopf: Ein Tipp irgendwo auf
+  eine Übung öffnet ihre Erklärung, ein Tipp auf die Pausen-Zeile ändert die Pause — die
+  gepunkteten Linien sind weg. Langes Drücken verschiebt weiterhin die Übung oder ändert
+  die Pause, wie bisher.
+- Innen wurde aufgeräumt: Die alte Häufigkeits-Färbung der Muskelfiguren (gelb nach „wie
+  oft trainiert“) ist endgültig ausgebaut — seit einigen Versionen zeigt überall die
+  Ampel-Färbung (Grün · Gelb · Rot) den Zustand deiner Muskeln.
+
 ## 0.235.0
 
 - Deine Antworten auf die Muskel-Fragen färben jetzt direkt die Muskelkarte: Ein Muskel

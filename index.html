@@ -668,6 +668,9 @@ body:not(.nav-an) #nav{display:none}
 .vs-titel{font-size:14px;color:var(--chalk);line-height:1.3;min-width:0;flex:1 1 auto}
 .vs-titel small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
 .vs-pause{font-size:11px;color:var(--rest);font-family:var(--mono);margin:0 0 5px 34px}
+/* 0.236.0 (61A): Zeile und Pausen-Zeile SIND der Knopf — keine gepunktete
+   Unterstreichung mehr, der Cursor zeigt die Antippbarkeit. */
+.vs-zeile[role="button"],.vs-pause[role="button"]{cursor:pointer}
 /* Langes Drücken soll das Menü öffnen — NICHT die Überschrift markieren.
    Gezielt nur auf Plan-Karten, damit .geheim (user-select:all) heil bleibt. */
 .karte[data-plan]{user-select:none;-webkit-user-select:none}
@@ -2915,8 +2918,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.235.0";
-const APP_VERSION = 235000;
+const VERSION = "0.236.0";
+const APP_VERSION = 236000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -4251,7 +4254,7 @@ function notizVorschlagWaehlen(knopf, name){
       nichts dazugedichtet, was der Haken nicht gesagt hat.
    2. EHRLICHE ZAHLEN. Die Sätze tragen `soll:true` (v158). Ein Haken heißt
       „gemacht", nicht „genau diese Zahlen geschafft". Sie zählen deshalb für
-      Kalender, Serie, Volumen und Heatmap — aber NICHT als Bestwert, Rekord
+      Kalender, Serie und Volumen — aber NICHT als Bestwert, Rekord
       oder Punkt auf der Fortschrittskurve. Genau dafür gibt es das Feld seit
       v158, hier wird es zum zweiten Mal gebraucht.
    3. EIN EINTRAG JE ABSCHNITT UND TAG. Sonst würde ein Training mit sechs
@@ -6906,7 +6909,7 @@ function sportartenTabZurueck(){
 function statistikOeffnen(){
   document.getElementById("gewicht-formular").hidden = true;
   kennzahlenZeichnen();
-  koerperVorschauZeichnen();   // v93: „Der Mensch" ganz oben (7-Tage-Heatmap)
+  koerperVorschauZeichnen();   // v93/0.226: „Der Mensch" ganz oben (Auslastung)
   wochenVorschauZeichnen();    // v93: 7-Tage-Kalender-Vorschau statt vollem Monat
   volumenZeichnen();
   gewichtStatistikZeichnen();
@@ -7134,7 +7137,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.235 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.236 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7181,6 +7184,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.236.0", punkte:[
+    "In der Trainings-Vorschau ist jetzt die ganze Zeile der Knopf: Ein Tipp irgendwo auf eine Übung öffnet ihre Erklärung, ein Tipp auf die Pausen-Zeile ändert die Pause — die gepunkteten Linien sind weg. Langes Drücken verschiebt weiterhin die Übung oder ändert die Pause, wie bisher.",
+    "Innen wurde aufgeräumt: Die alte Häufigkeits-Färbung der Muskelfiguren (gelb nach „wie oft trainiert“) ist endgültig ausgebaut — seit einigen Versionen zeigt überall die Ampel-Färbung (Grün · Gelb · Rot) den Zustand deiner Muskeln."
+  ]},
   { stand:"0.235.0", punkte:[
     "Deine Antworten auf die Muskel-Fragen färben jetzt direkt die Muskelkarte: Ein Muskel mit gemeldeten starken Schmerzen steht sofort tiefrot da — samt der Warnung, ihn nicht zu trainieren — auch wenn er diese Woche kaum belastet wurde. Leichte Schmerzen und Muskelkater schieben ihn Richtung Gelb. Vorher konnte ein schmerzender, aber wenig trainierter Muskel grün („bereit“) bleiben."
   ]},
@@ -10149,7 +10156,7 @@ function muskelTeilNummer(key, teilId){
    bringt ihre eigene Tabelle mit und hängt sie genauso an. */
 MUSKELKARTEN.standard.info = MUSKEL_INFO;
 MUSKELKARTEN.standard.teile = MUSKEL_TEILE;   // v208: dito für die Teilbereiche
-/* Abgeleitete Kurznamen — der übrige Code (Zeichnen, Treffer, Heatmap) arbeitet
+/* Abgeleitete Kurznamen — der übrige Code (Zeichnen, Treffer, Auslastung) arbeitet
    unverändert damit weiter; er muss von der Karten-Verwaltung nichts wissen. */
 const MUSKEL_VIEWS = muskelKarteDef().views;
 /* v195 (Nutzer-Ansage): Die Karte startet im Modus „trainiert" — „wenn ich auf
@@ -10308,7 +10315,7 @@ function muskelnOeffnen(){
 }
 
 /** Modus wechseln: „erkunden" (Muskel → Beispiel-Übungen) oder „trainiert"
-    (Heatmap aus dem eigenen Protokoll). */
+    (Auslastung aus dem eigenen Protokoll). */
 function muskelModus(m){
   muskelStatus.modus = m;
   muskelStatus.gewaehlt = [];
@@ -10341,7 +10348,7 @@ function muskelAnsichten(auswahl){
 }
 
 /** Ansicht wechseln (vorne / hinten / beide): Figuren aufbauen, Karten laden, je
-    nach Modus die Auswahl- oder die Heatmap-Färbung zeichnen. */
+    nach Modus die Auswahl- oder die Auslastungs-Färbung zeichnen. */
 function muskelAnsicht(v){
   muskelStatus.ansicht = v;
   ["front", "back", "beide"].forEach(id => {
@@ -10657,22 +10664,12 @@ function miniLastFigur(ziel, ansicht, muskeln, quoten){
   });
 }
 
-/** Wie miniMuskelFigur, aber gefärbt nach Trainings-Häufigkeit (Heatmap) statt
-    flach — für den Modus „Zuletzt trainiert" in der vollen Muskelkarte (v93). */
-function miniHeatFigur(ziel, ansicht, zaehler){
-  const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
-  ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
-    '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
-  const cv = ziel.querySelector("canvas");
-  muskelKarteLaden(ansicht).then(() => {
-    if(cv && cv.isConnected) muskelHeatmapAufCanvas(cv.getContext("2d"), ansicht, zaehler);
-  });
-}
-
-/* #region Trainings-Heatmap (v86): welche Muskeln zuletzt trainiert wurden.
-   Aggregiert das Protokoll über die letzten MUSKEL_HEAT_TAGE Tage (ein Satz = ein
-   Punkt je primärem Muskel der Übung), stuft in leicht/mittel/viel und färbt die
-   Figur entsprechend. Reine Anzeige aus dem Protokoll — nichts wandert ins Konto. */
+/* #region Belastungs-Modell & Muskel-Detail. Hieß bis 0.236.0 „Trainings-
+   Heatmap (v86)" — die Häufigkeits-Färbung selbst ist seit 0.228 ohne Aufrufer
+   und mit 0.236.0 abgebaut (EINE Färbung des Körpers: die Auslastung).
+   Geblieben ist ihr Zeitfenster als gemeinsame Grundlage der Rechnungen. */
+/** Betrachtungsfenster in Tagen — Standard für muskelLast, Auslastung und die
+    Übungs-Listen der Detail-Karte. */
 const MUSKEL_HEAT_TAGE = 7;
 
 /* ============================================================
@@ -11853,89 +11850,11 @@ function auslastungText(muskel, a, reicht){
   }
 }
 
-/* ------------------------------------------------------------
-   v211 — der Lauf färbt die Figur mit (Nutzer-Fund, 55. Runde).
-
-   „Wenn ich gelaufen bin, trägt er das Training nicht richtig in die
-   ‚zuletzt trainiert'-Muskelkarte ein." Bestätigt: Diese Funktion lief NUR über
-   `e.saetze` — und eine reine Ausdauer-Einheit hat keine. Die Figur blieb nach
-   einem Lauf grau.
-
-   Das Ärgerliche daran: Die App WEISS es längst. Seit v197 rechnet `muskelLast`
-   genau diese Einheiten in die Belastung (10 min = 1 Satz-Äquivalent, gedeckelt
-   bei 6, Muskeln aus `SPORT_LAST_MUSKELN`). Es waren also nicht zwei Meinungen,
-   sondern eine Rechnung und eine Einfärbung, die sie nicht kannte: Die Karte
-   warnte einen vor zu viel Beinarbeit und zeigte die Beine dabei ungefärbt.
-
-   Deshalb kommt hier KEINE zweite Regel dazu — es sind dieselben Bausteine
-   (`alsEinheitZaehlbar`, `aktivitaetSaetze`, `SPORT_LAST_MUSKELN`). Nur die
-   Zählweise ist die dieser Funktion: **primäre Muskeln, so viele Punkte wie
-   Satz-Äquivalente.** Mitarbeitende Muskeln bleiben draußen, weil sie hier auch
-   beim Krafttraining draußen sind — die Heatmap zeigt, was gearbeitet hat,
-   nicht wer mitgehalten hat.
-   ------------------------------------------------------------ */
-/** Zählt je Muskel, wie oft er in den letzten `tage` Tagen trainiert wurde (ein
-    Satz = ein Punkt je primärem Muskel; eine Ausdauer-Einheit über ihre
-    Satz-Äquivalente). Pure Funktion (testbar). */
-function trainierteMuskeln(protokoll, heute, tage){
-  const zaehler = {};
-  const dazu = (m, wieviel) => { zaehler[m] = (zaehler[m] || 0) + wieviel; };
-  for(const e of (protokoll || [])){
-    if(!e.datum) continue;
-    const d = tagDifferenz(e.datum, heute);
-    if(d < 0 || d > tage) continue;
-    // v211: die Ausdauer-Einheit — dieselbe Bedingung wie in muskelLast (v197).
-    if(alsEinheitZaehlbar(e)){
-      const wiegt = aktivitaetSaetze(e.dauerMin);
-      muskelnAufKarte(SPORT_LAST_MUSKELN[e.sportart].p).forEach(m => dazu(m, wiegt));
-    }
-    for(const s of (e.saetze || [])){
-      const info = uebungMuskeln(s.name);
-      if(!info || !info.muskeln) continue;
-      for(const m of info.muskeln){ dazu(m, 1); }
-    }
-  }
-  return zaehler;
-}
-
-/* v94: Stufenlose Einfärbung statt fester Stufen. Bei 0 Trainings durchsichtig,
-   dann mit jedem Training kräftiger — aber mit abnehmendem Zuwachs, wie ein
-   Markierstift, der dieselbe Stelle mehrfach überfährt (sättigt). EIN Farbton
-   (Signalgelb); die Deckkraft trägt die Information. Die grell-rote Übertrainings-
-   Warnung ist bewusst ein eigener, späterer Schritt (siehe ROADMAP). */
-const HEAT_MAX_ALPHA = 235;
-/** Trainings-Häufigkeit → Deckkraft 0–235 (stetig, sättigend). Pure/testbar. */
-function heatAlpha(anzahl){
-  if(anzahl <= 0) return 0;
-  const p = 0.30;                                    // Deckkraft-Zuwachs je Training
-  return Math.round(HEAT_MAX_ALPHA * (1 - Math.pow(1 - p, anzahl)));
-}
-
-/** Färbt die Figur nach Trainings-Häufigkeit (stufenlos, Signalgelb). Nutzt
-    dieselben Index-Karten wie die große Karte. */
-function muskelHeatmapAufCanvas(cx, ansicht, zaehler){
-  cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
-  const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
-  const [r,g,b] = muskelSignalRgb();
-  const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
-  for(const key in zaehler){
-    const a = heatAlpha(zaehler[key]); if(!a) continue;
-    const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
-    for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
-  }
-  cx.putImageData(bild, 0, 0);
-}
-
-/** Heatmap aus dem echten Protokoll zeichnen — ohne Argument auf allen gerade
-    gezeigten Figuren (bei „Beide" vorne und hinten). */
-function muskelHeatmapZeichnen(ansicht){
-  const z = trainierteMuskeln(sitzung.daten.protokoll, heuteAlsText(), MUSKEL_HEAT_TAGE);
-  const liste = ansicht ? [ansicht] : muskelAnsichten(muskelStatus.ansicht);
-  liste.forEach(a => {
-    const cv = muskelCanvasFuer(a); if(!cv) return;
-    muskelHeatmapAufCanvas(cv.getContext("2d"), a, z);
-  });
-}
+/* 0.236.0: Hier standen `trainierteMuskeln`, `heatAlpha`/`HEAT_MAX_ALPHA`,
+   `muskelHeatmapAufCanvas`, `miniHeatFigur` und `muskelHeatmapZeichnen` — die
+   komplette Häufigkeits-Heatmap (v86/v93/v94/v211). Seit 0.228 gibt es nur
+   noch EINE Färbung des Körpers (die Auslastung, `muskelLastZeichnen`); die
+   Kette hatte keinen Aufrufer mehr und ist abgebaut. Historie: v86/v211. */
 
 /** 0.228.0: Die große Karte in der Auslastungs-Färbung — dieselbe Mal-Funktion
     und dieselben Quoten wie überall sonst. Gemalt wird der GANZE Körper: Grün
@@ -11957,7 +11876,7 @@ function muskelTrainingDetail(key){
     if(!e.datum) continue;
     const d = tagDifferenz(e.datum, heute); if(d < 0 || d > MUSKEL_HEAT_TAGE) continue;
     const namen = [];
-    /* v211: Die Einfärbung zählt den Lauf jetzt mit (s. trainierteMuskeln) —
+    /* v211: Die Einfärbung zählt den Lauf mit (heute über `muskelLast`) —
        dann muss er auch in der Liste darunter stehen. Sonst wäre ein Muskel
        gefärbt, und die Antwort auf „wovon?" bliebe leer. Der Name ist der des
        Plans; `aktivitaetAblegen` setzt ihn immer (ersatzweise die Sportart). */
@@ -11974,17 +11893,6 @@ function muskelTrainingDetail(key){
   return treffer.sort((a, b) => a.tage - b.tage);
 }
 
-/** Legende: Farbstufen der Heatmap erklären. */
-/** Gemeinsame Heatmap-Legende — für die volle Muskelkarte UND „den Menschen" in
-    der Statistik, damit beide dieselbe Skala zeigen. v94: schlicht in EINER Reihe,
-    ein Verlaufsbalken „wenig → viel" (passend zur stufenlosen Einfärbung), ohne
-    Zeitfenster-Text. */
-function heatLegendeHtml(){
-  return '<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center;white-space:nowrap">' +
-    '<span>wenig</span>' +
-    '<span style="width:72px;height:10px;border-radius:5px;background:linear-gradient(90deg,transparent,var(--signal))"></span>' +
-    '<span>viel</span></span>';
-}
 function muskelLegendeZeichnen(){
   const el = document.getElementById("muskel-legende"); if(!el) return;
   // 0.228.0: dieselbe Skala wie in der Statistik-Kachel (bereit · benutzt · zu viel).
@@ -12004,8 +11912,9 @@ function muskelLegendeZeichnen(){
    (gelb → rot, „wie voll ist der Muskel") hing nur an den kleinen Figuren und in
    der vollen Karte. Die auffälligste Kachel zeigte damit die schwächere Aussage.
 
-   Die Heatmap ist NICHT verschwunden — sie bleibt der Modus „Zuletzt trainiert"
-   in der Muskelkarte, die diese Kachel per Tipp öffnet.
+   (Die Häufigkeits-Heatmap hatte damit ihren letzten Auftritt verloren — seit
+   0.228 malt auch die volle Karte die Auslastung, 0.236.0 hat die tote Kette
+   abgebaut.)
 
    Wichtig für neue Konten: `auslastungsQuoten()` liefert absichtlich nichts,
    solange die Basis für ein Urteil nicht reicht (v167). Gefärbt wird trotzdem —
@@ -12070,7 +11979,7 @@ function lastWarnungText(quoten){
     : namen.slice(0, 3).join(", ") + (namen.length > 3 ? " und weitere" : "") +
       " sind deutlich über dem Richtwert — diese Muskeln jetzt nicht weiter trainieren.";
 }
-/* #endregion Trainings-Heatmap */
+/* #endregion Belastungs-Modell & Muskel-Detail */
 
 /** Muskel an der Tipp-Position finden (Bildschirm → Karten-Koordinaten).
     v122: Die Ansicht kommt vom getippten Figur-Block (`data-ansicht`), nicht mehr
@@ -12088,7 +11997,7 @@ function muskelTreffer(e){
   return id ? MUSKEL_ORDER[id - 1] : null;
 }
 
-/** Tipp auf die Figur: im Erkunden-Modus Muskel an/abwählen, im Heatmap-Modus
+/** Tipp auf die Figur: im Erkunden-Modus Muskel an/abwählen, im Trainiert-Modus
     den getippten Muskel fokussieren (zeigt unten die eigenen Übungen). */
 function muskelTippen(e){
   const key = muskelTreffer(e); if(!key) return;
@@ -19242,7 +19151,7 @@ function vorschauZeichnen(){
        „ohne Pause" — der Schritt bleibt sichtbar, damit man ihn zurückholen
        kann; im Training wird er übersprungen. */
     if(schritt.typ === "pause")
-      return '<div class="vs-pause tippbar" role="button" onclick="vorschauPauseMenue(' +
+      return '<div class="vs-pause" role="button" onclick="vorschauPauseMenue(' +
              schritt.uebungIndex + ')">' +
              (schritt.sekunden > 0 ? schritt.sekunden + " s Pause" : "ohne Pause") + '</div>';
     if(schritt.typ === "bereit") return "";       // gehört zum Satz, kein eigener Punkt
@@ -19275,14 +19184,15 @@ function vorschauZeichnen(){
         figur = miniFigurHtml(info);   // v139
       }
     }
-    /* v169: Der Name führt zur Erklärung — dieselbe Geste wie im Training,
-       damit man sie schon vor dem Start kennenlernt. Angefasst wird nur der
-       NAME, nicht die ganze Zeile: Die Unterzeile („Satz 1/3 · 12 Wdh") ist
-       keine Erklärung und soll auch nicht unterstrichen aussehen. */
-    const nameHtml = uebungErklaerbar(titel)
-      ? '<span class="tippbar" role="button" onclick="uebungErklaerungZeigen(\'' +
-        jsArg(titel) + '\')">' + text(titel) + '</span>'
-      : text(titel);
+    /* v169 führte der NAME zur Erklärung (gepunktet unterstrichen); seit
+       0.236.0 (61A) ist die GANZE Zeile der Knopf und die Unterstreichung weg.
+       Verträgt sich mit dem Langdruck (v220, Verschieben/Pause), weil
+       `langdruckBinden` den folgenden Klick genau einmal schluckt (v125):
+       kurzer Tipp → Erklärung, langer Druck → NUR das Menü. Im TRAINING bleibt
+       `.uebungsname.tippbar` — dort gibt es keine Zeile als Alternative. */
+    const klick = uebungErklaerbar(titel)
+      ? ' role="button" onclick="uebungErklaerungZeigen(\'' + jsArg(titel) + '\')"'
+      : "";
     /* v204 (Nutzer-Wunsch): Eingeklappt steht hier Nummer, Name und Figur; die
        Zahlen („Satz 1/3 · 12 Wdh") kommen, sobald die Zeile beim Scrollen ins
        mittlere Band rutscht. Die Pausen-Zeilen dazwischen bleiben, wie sie
@@ -19292,8 +19202,8 @@ function vorschauZeichnen(){
        (Aufwärmen/Dehnen) gehören zu keiner Plan-Übung und bekommen keinen. */
     const griff = (schritt.typ === "aufwaermen" || schritt.typ === "dehnen")
       ? "" : ' data-vs-uebung="' + schritt.uebungIndex + '"';
-    return '<div class="vs-zeile auf-fokus"' + griff + '><span class="vs-nr">' + nummer + '</span>' +
-           '<span class="vs-titel">' + nameHtml +
+    return '<div class="vs-zeile auf-fokus"' + griff + klick + '><span class="vs-nr">' + nummer + '</span>' +
+           '<span class="vs-titel">' + text(titel) +
              '<span class="fokus-info"><small>' + text(unter) + '</small></span>' +
            '</span>' + figur + '</div>';
   }).join("");
@@ -19342,9 +19252,11 @@ function trainingLosgehts(){
    Seit v158 tragen diese Sätze `soll:true` (additiv — alte Einträge haben das
    Feld nicht und gelten weiter als gemessen; rückwirkend lässt sich das nicht
    wissen). Die Trennlinie:
-     ZÄHLT WEITER  Kalender, Serie/Flamme, Volumen, Muskel-Heatmap — das
+     ZÄHLT WEITER  Kalender, Serie/Flamme, Volumen, Muskel-Detail-Liste — das
                    Training hat stattgefunden, und das Volumen ist ausdrücklich
-                   eine grobe Trendgröße.
+                   eine grobe Trendgröße. (Die Muskel-FÄRBUNG ist seit der
+                   Auslastung eine Messung und überspringt Soll — die alte
+                   Häufigkeits-Heatmap ist mit 0.236.0 abgebaut.)
      ZÄHLT NICHT   Bestwerte, Rekord-Vergleich, Fortschrittskurve samt
                    1RM-Schätzung und „letztes Mal" — das sind Aussagen über
                    gemessene Leistung.
