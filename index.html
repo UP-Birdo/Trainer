@@ -294,7 +294,12 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.1)}
 .balken span{display:block;height:100%;background:var(--signal);width:0%;transition:width 0.3s ease;box-shadow:0 0 8px rgba(244,199,78,0.4)}
-.balken-text{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px}
+/* v220: Zwei Angaben in EINER Zeile — links der Schritt, rechts die Gesamtzeit
+   des Trainings. Eine eigene Zeile hätte den ohnehin knappen Platz über der
+   Uhr ein weiteres Mal geteilt. */
+.balken-text{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px;
+  display:flex;justify-content:space-between;gap:10px}
+.gesamtzeit{white-space:nowrap}
 @media (prefers-reduced-motion:no-preference){
   .uhr-zahl.gleich{animation:puls .6s ease-in-out infinite}
   @keyframes puls{50%{opacity:.45}}
@@ -1789,7 +1794,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <button id="vs-aufwaermen" onclick="vorschauBonus('aufwaermen')">Aufwärmen</button>
       <button id="vs-dehnen" onclick="vorschauBonus('dehnen')">Dehnen</button>
     </div>
-    <div class="meta" style="margin-top:10px">„Zirkel“ nochmal antippen mischt neu. Änderungen hier gelten nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist. Die Pausen bleiben immer die der Übung davor.</div>
+    <!-- v220 (Nutzer-Wunsch): Der Satz „Die Pausen bleiben immer die der Übung
+         davor" beschrieb genau das, was jetzt nicht mehr stimmt — hier wird
+         umgestellt, kurz bevor es losgeht. -->
+    <div class="meta" style="margin-top:10px">„Zirkel“ nochmal antippen mischt neu. <strong style="color:var(--chalk)">Lange auf eine Übung drücken</strong> verschiebt sie nach oben oder unten, ein Tipp auf eine Pausen-Zeile ändert die Pause. Alles hier gilt nur für dieses eine Training — der gespeicherte Plan bleibt, wie er ist.</div>
   </div>
 
   <div id="vorschau-liste"></div>
@@ -1804,7 +1812,11 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 
 <section id="view-training" class="view">
   <div class="balken"><span id="balken-fuellung"></span></div>
-  <div id="balken-text" class="balken-text">–</div>
+  <!-- v220 (Nutzer-Wunsch): Wie lange läuft das Training schon? Die Uhr der
+       Phase (unten, groß) beantwortet das nicht — sie zählt den Satz oder die
+       Pause. Diese hier läuft durch, auch während eines Wiederholungs-Satzes,
+       in dem gar kein Countdown läuft. -->
+  <div id="balken-text" class="balken-text"><span id="balken-schritt">–</span><span id="gesamtzeit" class="gesamtzeit"></span></div>
   <div id="phase" class="phase">Satz</div>
   <div id="uebungsname" class="uebungsname">–</div>
   <div id="strichliste" class="strichliste"></div>
@@ -2781,7 +2793,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 219;
+const APP_VERSION = 220;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6472,6 +6484,10 @@ function langdruckEinrichten(){
   // langes Drücken öffnet Verschieben/Löschen (Nutzer-Wunsch).
   document.querySelectorAll("#uebung-liste [data-uebung]").forEach(karte =>
     langdruckBinden(karte, () => uebungMenue(Number(karte.dataset.uebung))));
+  // v220: Übungs-Zeilen der VORSCHAU — derselbe Griff, kurz vor dem Start
+  // (Verschieben und Pause ändern, ohne den gespeicherten Plan anzufassen).
+  document.querySelectorAll("#vorschau-liste [data-vs-uebung]").forEach(zeile =>
+    langdruckBinden(zeile, () => vorschauUebungMenue(Number(zeile.dataset.vsUebung))));
   // v163: Statistik-Listen und Papierkorb — langes Drücken irgendwo in der Liste
   // startet die Mehrfach-Auswahl. Angebunden wird der Behälter, nicht die
   // einzelne Zeile: die Zeilen werden bei jedem Zeichnen neu gebaut, der
@@ -6960,6 +6976,12 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.220", punkte:[
+    "Im Fenster vor dem Start kannst du das Training jetzt umstellen: Lange auf eine Übung drücken verschiebt sie nach oben oder unten, ein Tipp auf eine Pausen-Zeile ändert die Pause. Beides gilt nur für diesen einen Durchgang — dein gespeicherter Plan bleibt, wie er ist.",
+    "Eine Pause von 0 heißt jetzt wirklich „ohne Pause“: keine Ansage, direkt die nächste Übung. Bisher wurde daraus beim Speichern still eine 10-Sekunden-Pause.",
+    "Brichst du ein Training ab, wird eingetragen, was du geschafft hast — die fertigen Sätze zählen für Kalender, Flamme und Volumen. Bewertet und angepasst wird dabei nichts.",
+    "Oben im Training läuft jetzt eine Stoppuhr mit: Du siehst jederzeit, wie lange du schon dabei bist."
+  ]},
   { stand:"0.219", punkte:[
     "Fehler behoben: Die 7-Tage-Vorschau und die Muskelfiguren ganz oben in der Statistik wurden nur beim Öffnen der Seite gezeichnet. Trägst du ein Training nach, während die Statistik schon offen ist, blieb ein Tag deshalb in seiner alten Farbe stehen — zum Beispiel blau als Ruhetag, obwohl längst ein Training darauf lag.",
     "Jetzt ziehen beide Karten bei jeder Änderung am Protokoll sofort mit — genau wie Kalender, Volumen und Flamme."
@@ -16891,7 +16913,12 @@ function editorSpeichern(){
   editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
   editorPlan.uebungen.forEach(u => {
     u.saetze = begrenzen(Math.round(u.saetze), 1, 20);
-    u.pause  = begrenzen(Math.round(u.pause), 10, 600);
+    /* v220 (Nutzer-Entscheidung): 0 ist eine gültige Pause und heißt „ohne
+       Pause" — keine Ansage, direkt die nächste Übung. Bis v219 klemmte die
+       Untergrenze bei 10 s: Eine bewusst gesetzte 0 wurde beim Speichern
+       stillschweigend zu zehn Sekunden. Der Intervall-Plan lässt 0 seit je zu
+       (`IV_GRENZEN.pause`); jetzt gilt dieselbe Grenze für die Übung. */
+    u.pause  = begrenzen(Math.round(u.pause), 0, 600);
     u.dauer  = begrenzen(Math.round(u.dauer), 5, MAX_DAUER_S);   // bis 6 h — Lauf, Wanderung, Turnier
     if(!u.zeitEinheit) u.zeitEinheit = "s";
     u.wdhMin = Math.max(1, Math.round(u.wdhMin));
@@ -17015,6 +17042,10 @@ async function trainingFortsetzenAnbieten(){
                   deshalb keinen Pausen-Wert statt eines geratenen. */
                pauseStart: null };
       zeige("view-training");
+      /* v220: Auch das fortgesetzte Training zeigt seine Gesamtzeit — und zwar
+         die ECHTE seit dem ersten Satz (`stand.startZeit` überlebt im Merker),
+         nicht die seit der Wiederaufnahme. */
+      gesamtUhrStarten();
       schrittBetreten();
     });
   } catch(e){ trainingMerkerLoeschen(); }
@@ -17129,6 +17160,20 @@ function aufwaermSaetze(uebung, anzahl){
   });
 }
 
+/** v220: Die Pause nach einem AUFWÄRMSATZ — halb so lang wie die Arbeitspause,
+    mindestens 30 s. Zwei Grenzen kamen mit v220 dazu: „ohne Pause" (0) bleibt 0,
+    und länger als die Arbeitspause selbst wird sie nie — wer zwischen den Sätzen
+    20 s macht, will nach dem Aufwärmen keine 30. Ohne Angabe gilt weiter der
+    alte Rückfall auf 60 s. Rein/testbar. */
+function rampenPause(pause){
+  /* `Number(null)` ist 0 — ohne die erste Wache würde eine FEHLENDE Pause als
+     „ohne Pause" gelesen statt als „nicht angegeben". */
+  const roh = (pause == null || pause === "") ? NaN : Number(pause);
+  const p = isFinite(roh) ? Math.max(0, Math.round(roh)) : 60;
+  if(p === 0) return 0;
+  return Math.min(p, Math.max(30, Math.round(p / 2)));
+}
+
 function klassischerAblauf(plan){
   const schritte = [];
   const bloecke = superBloecke(plan.uebungen);
@@ -17140,7 +17185,10 @@ function klassischerAblauf(plan){
       aufwaermSaetze(u, u.rampe).forEach((a, i) => {
         schritte.push({ typ:"satz-wdh", uebungIndex:ui, satz:i+1, rampe:true, rampeWert:a,
           ansage: "Aufwärmsatz " + (i+1) + ": " + u.name + ", " + a.wdh + " Wiederholungen mit " + a.gewicht + " Kilo" });
-        schritte.push({ typ:"pause", uebungIndex:ui, sekunden: Math.max(30, Math.round((u.pause || 60) / 2)) });
+        /* v220: Wer „ohne Pause" gewählt hat, meint auch die halbe Pause nach
+           einem Aufwärmsatz. Ohne diese Wache stünden dort trotzdem 30 s —
+           `u.pause || 60` konnte die gewollte 0 gar nicht sehen. */
+        schritte.push({ typ:"pause", uebungIndex:ui, sekunden: rampenPause(u.pause) });
       });
     });
     // v136: Ein Block ist entweder EINE Übung oder ein Superatz (mehrere Partner).
@@ -17849,6 +17897,82 @@ function kraftErledigt(planId){
   });
 }
 
+/* ------------------------------------------------------------
+   v220 (Nutzer-Wunsch): „Alles im Fenster, nachdem man Start gedrückt hat —
+   dort soll man die Zeiten, Übungen und so bearbeiten und verschieben."
+
+   Verschieben gab es seit v124 nur im EDITOR (Langdruck auf die Übungskarte).
+   Gebraucht wird es aber kurz VOR dem Training: Die Hantelbank ist besetzt,
+   also zieht man die Übung nach hinten — ohne den gespeicherten Plan
+   anzufassen. `vorschauPlan` ist ohnehin eine tiefe Kopie (v-Vorschau-Regel),
+   die Änderung endet also mit diesem Durchgang.
+   ------------------------------------------------------------ */
+
+/** Eine Übung mit ihrem Nachbarn tauschen.
+
+    Der Knackpunkt ist die Superatz-Kopplung: `superMitNaechster` heißt „läuft
+    mit der FOLGENDEN zusammen" — die Marke beschreibt also den PLATZ, nicht die
+    Übung. Beim Tauschen bleibt sie deshalb liegen, wo sie war. Zieht man eine
+    dritte Übung zwischen ein gekoppeltes Paar, gehört sie ab da zum Paar, und
+    die verdrängte steht frei dahinter; würde die Marke mitwandern, kuppelte sie
+    plötzlich fremde Partner zusammen. Die letzte Übung koppelt nie.
+    Rein/testbar: arbeitet auf einer Kopie und gibt die neue Liste zurück. */
+function uebungenTauschen(liste, i, richtung){
+  const alt = Array.isArray(liste) ? liste : [];
+  const ziel = i + richtung;
+  if(!alt[i] || ziel < 0 || ziel >= alt.length) return alt;
+  const marken = alt.map(u => !!u.superMitNaechster);
+  const neu = alt.slice();
+  neu[i] = alt[ziel]; neu[ziel] = alt[i];
+  const fertig = neu.map((u, k) => Object.assign({}, u, { superMitNaechster: marken[k] }));
+  fertig[fertig.length - 1].superMitNaechster = false;
+  return fertig;
+}
+
+/** Die Pausen, die im Menü angeboten werden. 0 ist der Nutzer-Wunsch aus v220:
+    ohne Pause, ohne Ansage, direkt die nächste Übung. */
+const VS_PAUSEN = [0, 15, 30, 45, 60, 90, 120, 180];
+
+function vorschauUebungSchieben(i, richtung){
+  vorschauPlan.uebungen = uebungenTauschen(vorschauPlan.uebungen, i, richtung);
+  vorschauZeichnen();
+}
+
+function vorschauPauseSetzen(i, sekunden){
+  const u = vorschauPlan && vorschauPlan.uebungen[i];
+  if(!u) return;
+  u.pause = begrenzen(Math.round(sekunden), 0, 600);
+  vorschauZeichnen();
+}
+
+function vorschauPauseMenue(i){
+  const u = vorschauPlan && vorschauPlan.uebungen[i];
+  if(!u) return;
+  aktionsMenue("Pause nach " + (u.name.trim() || "der Übung") + " · jetzt " +
+      (u.pause > 0 ? u.pause + " s" : "ohne Pause"),
+    VS_PAUSEN.map(s => ({ text: s > 0 ? s + " s" : "ohne Pause",
+                          tun: () => vorschauPauseSetzen(i, s) })));
+}
+
+/** Langdruck auf eine Übungs-Zeile der Vorschau. Dieselben Aktionen wie im
+    Editor-Menü (v124) — nur ohne Löschen und Koppeln: Wer kurz vor dem Start
+    steht, will umstellen, nicht umbauen. */
+function vorschauUebungMenue(i){
+  const p = vorschauPlan;
+  const u = p && p.uebungen[i];
+  if(!u) return;
+  /* Im Zirkel würfelt `zirkelAblauf` die Reihenfolge vor JEDER Runde neu — dort
+     wäre ein Pfeil ein leeres Versprechen. Statt ihn zu zeigen und wirkungslos
+     zu lassen, sagt der Titel, warum es ihn hier nicht gibt. */
+  const zirkel = p.reihenfolge === "zirkel";
+  const aktionen = [];
+  if(!zirkel && i > 0) aktionen.push({ text:"▲ Nach oben", tun:() => vorschauUebungSchieben(i, -1) });
+  if(!zirkel && i < p.uebungen.length - 1) aktionen.push({ text:"▼ Nach unten", tun:() => vorschauUebungSchieben(i, 1) });
+  aktionen.push({ text:"Pause ändern", tun:() => vorschauPauseMenue(i) });
+  aktionsMenue((u.name.trim() || ("Übung " + (i + 1))) +
+    (zirkel ? " · im Zirkel mischt jede Runde neu" : ""), aktionen);
+}
+
 /** Zirkel an — erneutes Antippen mischt neu (jeder Aufruf würfelt frisch). */
 function vorschauMischen(){
   vorschauPlan.reihenfolge = "zirkel";
@@ -17890,8 +18014,15 @@ function vorschauZeichnen(){
   let nummer = 0;
   const mfGesehen = new Set();   // v84: Fokus-Figur nur beim ERSTEN Satz je Übung, nicht je Zeile
   document.getElementById("vorschau-liste").innerHTML = ablaufErzeugen(p).map(schritt => {
-    // Pausen sind keine eigenen Punkte, sondern die Zeile dazwischen
-    if(schritt.typ === "pause") return '<div class="vs-pause">' + schritt.sekunden + ' s Pause</div>';
+    /* Pausen sind keine eigenen Punkte, sondern die Zeile dazwischen.
+       v220: Ein Tipp darauf ändert die Pause der Übung, zu der sie gehört
+       (`uebungIndex` trägt sie seit je mit). Steht dort 0, heißt die Zeile
+       „ohne Pause" — der Schritt bleibt sichtbar, damit man ihn zurückholen
+       kann; im Training wird er übersprungen. */
+    if(schritt.typ === "pause")
+      return '<div class="vs-pause tippbar" role="button" onclick="vorschauPauseMenue(' +
+             schritt.uebungIndex + ')">' +
+             (schritt.sekunden > 0 ? schritt.sekunden + " s Pause" : "ohne Pause") + '</div>';
     if(schritt.typ === "bereit") return "";       // gehört zum Satz, kein eigener Punkt
     nummer++;
     let titel, unter, figur = "";
@@ -17924,7 +18055,12 @@ function vorschauZeichnen(){
        Zahlen („Satz 1/3 · 12 Wdh") kommen, sobald die Zeile beim Scrollen ins
        mittlere Band rutscht. Die Pausen-Zeilen dazwischen bleiben, wie sie
        sind — sie SIND die Zahl, da gäbe es nichts einzuklappen. */
-    return '<div class="vs-zeile auf-fokus"><span class="vs-nr">' + nummer + '</span>' +
+    /* v220: `data-vs-uebung` ist der Griff für den Langdruck (Verschieben,
+       Pause) — dieselbe Bauart wie `data-uebung` im Editor. Bonus-Phasen
+       (Aufwärmen/Dehnen) gehören zu keiner Plan-Übung und bekommen keinen. */
+    const griff = (schritt.typ === "aufwaermen" || schritt.typ === "dehnen")
+      ? "" : ' data-vs-uebung="' + schritt.uebungIndex + '"';
+    return '<div class="vs-zeile auf-fokus"' + griff + '><span class="vs-nr">' + nummer + '</span>' +
            '<span class="vs-titel">' + nameHtml +
              '<span class="fokus-info"><small>' + text(unter) + '</small></span>' +
            '</span>' + figur + '</div>';
@@ -17932,6 +18068,7 @@ function vorschauZeichnen(){
   // v84: Figuren nachträglich zeichnen (Canvas + async Bild-/Kartenladung).
   miniFigurenZeichnen("#vorschau-liste");
   fokusAufklappen("#vorschau-liste");   // v204
+  langdruckEinrichten();                // v220: die Zeilen sind frisch gebaut
 }
 
 /** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */
@@ -17943,6 +18080,7 @@ function trainingLosgehts(){
            startZeit: Date.now(), saetze: [],
            pauseStart: null };   // v188: läuft eine Pause? (Beginn in ms)
   zeige("view-training");
+  gesamtUhrStarten();            // v220
   schrittBetreten();
 }
 
@@ -18108,6 +18246,19 @@ function schrittBetreten(){
   trainingSichern();   // v80: Zwischenstand je Schritt — überlebt einen App-Abbruch
 
   const s = lauf.schritte[lauf.index];
+  /* v220 (Nutzer-Entscheidung): Pause 0 heißt „ohne Pause" — keine Ansage,
+     direkt die nächste Übung. Bis v219 lief hier ein Null-Sekunden-Countdown
+     durch: Der Bildschirm sprang kurz auf „Pause", sagte nichts und war schon
+     wieder weg. Der Schritt bleibt im Ablauf stehen (die Vorschau zeigt ihn als
+     „ohne Pause" und macht ihn dort änderbar) — er wird nur nicht mehr betreten.
+     `pauseStart` wird trotzdem gesetzt: Die Messung aus v188 misst die Wanduhr,
+     und die ist hier eben fast null. */
+  if(s && s.typ === "pause" && !(s.sekunden > 0)){
+    lauf.pauseStart = Date.now();
+    lauf.index++;
+    schrittBetreten();
+    return;
+  }
   /* v188: Die Pausen-Messung. Sie steht VOR der Fallunterscheidung, damit sie
      für beide Satz-Arten gilt und nicht in einem Zweig vergessen wird.
      „Bereitmachen" beendet die Messung bewusst NICHT — es liegt zwischen Pause
@@ -18255,8 +18406,45 @@ function gesamtBalkenZeichnen(anteil){
   const gesamt = lauf.schritte.length;
   const prozent = begrenzen(((lauf.index + anteil) / gesamt) * 100, 0, 100);
   document.getElementById("balken-fuellung").style.width = prozent + "%";
-  document.getElementById("balken-text").textContent =
+  // v220: nur noch die linke Hälfte der Zeile — rechts läuft die Gesamtzeit.
+  document.getElementById("balken-schritt").textContent =
     "Schritt " + Math.min(lauf.index + 1, gesamt) + " von " + gesamt + "  ·  " + Math.round(prozent) + " %";
+}
+
+/* v220 (Nutzer-Wunsch): „Oben soll immer eine Stoppuhr stehen, um zu sehen, wie
+   lange das Training schon läuft."
+
+   WARUM eine eigene Uhr und nicht der vorhandene Takt: `countdownTicken` läuft
+   nur, solange ein Countdown läuft — bei einem Wiederholungs-Satz gibt es keinen
+   (dort wartet die App auf „Satz fertig"). Die Gesamtzeit stünde dann still,
+   also genau in den Minuten, in denen man sie am ehesten abliest.
+   Die Zahl selbst gibt es seit je: `lauf.startZeit` ist dieselbe Quelle, aus der
+   `trainingBeenden` die `dauerMin` rechnet. */
+let gesamtUhrId = null;
+
+/** Wie lange läuft das Training schon (in Sekunden)? Rein/testbar: eine
+    rückwärts gestellte Uhr ergibt nie eine negative Zeit. */
+function verstricheneSekunden(startMs, jetztMs){
+  const von = Number(startMs), bis = Number(jetztMs);
+  if(!isFinite(von) || !isFinite(bis)) return 0;
+  return Math.max(0, Math.floor((bis - von) / 1000));
+}
+
+function gesamtUhrZeichnen(){
+  const el = document.getElementById("gesamtzeit");
+  if(!el) return;
+  el.textContent = lauf && lauf.startZeit ? uhrText(verstricheneSekunden(lauf.startZeit, Date.now())) : "";
+}
+
+function gesamtUhrStarten(){
+  clearInterval(gesamtUhrId);
+  gesamtUhrZeichnen();
+  gesamtUhrId = setInterval(gesamtUhrZeichnen, 1000);
+}
+
+function gesamtUhrStoppen(){
+  clearInterval(gesamtUhrId);
+  gesamtUhrId = null;
 }
 
 /* Ein Countdown für Pausen, Vorbereitung UND Zeit-Sätze. Anzeige rechnet aus
@@ -18402,17 +18590,45 @@ function pauseKnopf(){
   }
 }
 
+/* v220 (Nutzer-Wunsch): „Wenn man den Plan abbricht, soll das Training dennoch
+   eingetragen werden — mit dem, was man geschafft hat."
+
+   Bis v219 warf der Abbruch alles weg. Dabei lagen die fertigen Sätze längst in
+   `lauf.saetze` — dieselbe Liste, aus der `trainingBeenden` seinen Eintrag baut.
+   Wer nach vier von zwölf Sätzen aus dem Studio muss, hat vier Sätze trainiert;
+   die Flamme, der Kalender und das Volumen sollen das wissen.
+
+   Was NICHT mitkommt: die Bewertung und damit die Progression. Ein Abbruch ist
+   kein bewerteter Durchgang — sonst senkte jede Unterbrechung still die Pläne
+   (v70-/v182-Linie, dieselbe Grenze wie beim Nachtragen). Die Dauer ist die
+   ehrliche bis zum Abbruch, nicht die geplante. */
 function trainingAbbrechen(){
-  frage("Training abbrechen? Es wird nichts angepasst und nichts protokolliert.", true, ja => {
+  const saetze = (lauf && Array.isArray(lauf.saetze)) ? lauf.saetze : [];
+  const frageText = saetze.length
+    ? "Training abbrechen?\n\nEingetragen wird, was du geschafft hast — " +
+      saetze.length + (saetze.length === 1 ? " Satz" : " Sätze") +
+      ". Bewertet und angepasst wird nichts."
+    : "Training abbrechen?\n\nEs ist noch kein Satz fertig — es wird nichts eingetragen.";
+  frage(frageText, true, ja => {
     if(!ja) return;
-    aufraeumen();
-    trainingMerkerLoeschen();   // v80: abgebrochen = kein Wiederaufnahme-Angebot
+    const plan = lauf.plan;
+    const dauer = (Date.now() - lauf.startZeit) / 60000;
+    aufraeumen();                 // setzt `lauf` auf null — die Werte vorher holen
+    trainingMerkerLoeschen();     // v80: abgebrochen = kein Wiederaufnahme-Angebot
+    if(saetze.length){
+      sitzung.daten.protokoll.push(
+        trainingsEintrag(plan, saetze, dauer, neueId(), heuteAlsText()));
+      speichern();
+      fortschrittNeuZeichnen();   // v214: alles Abgeleitete zieht sofort mit
+      zeigenToast(saetze.length + (saetze.length === 1 ? " Satz" : " Sätze") + " eingetragen", "erfolg");
+    }
     startOeffnen();
   });
 }
 
 function aufraeumen(){
   if(lauf) clearInterval(lauf.timerId);
+  gesamtUhrStoppen();   // v220
   toeneVerwerfen();
   if("speechSynthesis" in window) speechSynthesis.cancel();
   bildschirmFreigeben();
@@ -18628,27 +18844,40 @@ function heuteKarteZeichnen(){
    ============================================================ */
 let bewertung = {};
 
+/* v220: Der Protokolleintrag eines gelaufenen Kraft-Trainings — EINE Form für
+   beide Wege. Bis v219 baute nur `trainingBeenden` einen Eintrag, und der
+   Abbruch warf alles weg; seit dem Nutzer-Wunsch „abgebrochen soll trotzdem
+   eingetragen werden" gibt es zwei Aufrufer, und zwei handgeschriebene Kopien
+   desselben Objekts wären zwei Stellen, an denen dieselbe Form abdriften kann.
+
+   `sportart` wandert MIT: Der Kalender muss an einem vergangenen Tag sagen
+   können, was wirklich gemacht wurde — auch wenn der Plan längst weg ist.
+   `id` und `datum` kommen von außen, damit die Funktion rein und prüfbar bleibt. */
+function trainingsEintrag(plan, saetze, dauerMin, id, datum){
+  return {
+    id: id,                                    // v72: stabile ID zum Löschen
+    datum: datum,
+    plan: plan.name,
+    planId: plan.id,                           // v35: stabile Zuordnung; der Name bleibt für Anzeige/Altdaten
+    sportart: plan.sportart || "kraft",
+    typ: "kraft",                              // hier entstehen nur Kraft-Einträge; Aktivitäten laufen über aktivitaetAblegen()
+    sonder: (plan.tage || []).length === 0,    // Plan ohne festen Tag = Sondertraining
+    dauerMin: Math.max(1, Math.round(Number(dauerMin) || 0)),
+    notiz: "",                                 // v72: wird auf dem Bewertungsschirm gefüllt
+    saetze: Array.isArray(saetze) ? saetze : []
+  };
+}
+
 function trainingBeenden(){
   clearInterval(lauf.timerId);
+  gesamtUhrStoppen();   // v220
   bildschirmFreigeben();
   const plan = lauf.plan;
 
   // Protokolleintrag SOFORT speichern (Noten kommen gleich dazu) —
   // so geht nichts verloren, falls die Bewertung nie abgeschickt wird.
-  // sportart wandert MIT: Der Kalender muss an einem vergangenen Tag sagen
-  // können, was wirklich gemacht wurde — auch wenn der Plan längst weg ist.
-  const eintrag = {
-    id: neueId(),                       // v72: stabile ID zum Löschen
-    datum: heuteAlsText(),
-    plan: plan.name,
-    planId: plan.id,                    // v35: stabile Zuordnung; der Name bleibt nur für Anzeige/Altdaten
-    sportart: plan.sportart || "kraft",
-    typ: "kraft",                       // hier entstehen nur Kraft-Einträge; Aktivitäten laufen über aktivitaetAblegen()
-    sonder: plan.tage.length === 0,     // Plan ohne festen Tag = Sondertraining
-    dauerMin: Math.max(1, Math.round((Date.now() - lauf.startZeit) / 60000)),
-    notiz: "",                          // v72: wird auf dem Bewertungsschirm gefüllt
-    saetze: lauf.saetze
-  };
+  const eintrag = trainingsEintrag(plan, lauf.saetze,
+    (Date.now() - lauf.startZeit) / 60000, neueId(), heuteAlsText());
   sitzung.daten.protokoll.push(eintrag);
   speichern();
   trainingMerkerLoeschen();   // v80: der Lauf ist im Protokoll — Zwischenstand weg

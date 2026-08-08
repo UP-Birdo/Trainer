@@ -26,6 +26,7 @@ new Function("module", "exports", [
   "const DROPS = { 1:[0.8], 2:[0.8,0.6] };",   // v137: der Ablauf ruft dropSaetze mit
   "function zeitAnsage(){ return 'zeit'; }",
   grabFn("aufwaermSaetze"), grabFn("dropSaetze"), grabFn("superBloecke"), grabFn("imSuperatz"),
+  grabFn("rampenPause"),   // v220: der Ablauf rechnet die Rampen-Pause darüber
   grabFn("klassischerAblauf"),
   "module.exports = { superBloecke, imSuperatz, klassischerAblauf };"
 ].join("\n"))(modul, modul.exports);

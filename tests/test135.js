@@ -83,8 +83,12 @@ pruefe("Rampe steht vor den Arbeitssaetzen im Ablauf",
   ablauf.includes("aufwaermSaetze(") &&
   ablauf.indexOf("aufwaermSaetze(") < ablauf.indexOf("for(let s = 1"));
 pruefe("Aufwaermsatz wird als solcher markiert", src.includes("rampe:true, rampeWert:a"));
+/* v220: Die Regel wohnt seit der 60. Runde in `rampenPause` und wird vom Ablauf
+   nur noch gerufen. Sie MUSSTE dort hinein: `u.pause || 60` konnte eine bewusst
+   gesetzte 0 („ohne Pause") gar nicht sehen und machte daraus 30 Sekunden. */
 pruefe("kuerzere Pause nach dem Aufwaermsatz",
-  /Math\.max\(30, Math\.round\(\(u\.pause \|\| 60\) \/ 2\)\)/.test(src));
+  ablauf.includes("rampenPause(u.pause)") &&
+  /Math\.max\(30, Math\.round\(p \/ 2\)\)/.test(grabFn("rampenPause")));
 pruefe("wird NICHT protokolliert",
   grabFn("satzProtokollieren").includes("if(schritt && schritt.rampe) return;"));
 pruefe("kein Rekord auf dem Aufwaermsatz", grabFn("rekordPruefen").includes("schritt.rampe"));

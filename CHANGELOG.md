@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.220
+
+- Im Fenster vor dem Start kannst du das Training jetzt umstellen: Lange auf eine Übung
+  drücken verschiebt sie nach oben oder unten, ein Tipp auf eine Pausen-Zeile ändert die
+  Pause. Beides gilt nur für diesen einen Durchgang — dein gespeicherter Plan bleibt,
+  wie er ist.
+- Eine Pause von 0 heißt jetzt wirklich „ohne Pause“: keine Ansage, direkt die nächste
+  Übung. Bisher wurde daraus beim Speichern still eine 10-Sekunden-Pause.
+- Brichst du ein Training ab, wird eingetragen, was du geschafft hast — die fertigen
+  Sätze zählen für Kalender, Flamme und Volumen. Bewertet und angepasst wird dabei
+  nichts.
+- Oben im Training läuft jetzt eine Stoppuhr mit: Du siehst jederzeit, wie lange du
+  schon dabei bist.
+
 ## 0.219
 
 - Fehler behoben: Die 7-Tage-Vorschau und die Muskelfiguren ganz oben in der Statistik
