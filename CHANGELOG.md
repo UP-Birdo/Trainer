@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.222
+
+- Dehnen gibt es jetzt auch im Unendlichkeitsmodus: Hast du es im Plan angehakt, läuft
+  es, sobald die Zeit um ist — erst danach kommt die Übersicht.
+- Im Unendlichkeitsmodus sind die Satz-Felder bei den Übungen verschwunden. Dort gibt es
+  keine feste Zahl: Ein Durchgang durch alle Übungen ist eine Runde und zählt bei jeder
+  Übung einen Satz hoch. Was am Ende zusammengekommen ist, wird eingetragen — bei drei
+  Übungen also zum Beispiel 5 Sätze bei A und B und 4 bei C, wenn dort die Zeit ablief.
+
 ## 0.221
 
 - Neu: der Unendlichkeitsmodus. Im Plan steht er als dritter Knopf neben „Klassisch“ und

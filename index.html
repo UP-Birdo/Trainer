@@ -1561,7 +1561,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
           <select id="plan-zeiteinheit" onchange="zeitLimitEinheitSetzen(this.value)"></select>
         </div>
       </div>
-      <div class="meta" style="margin-top:8px">Die Sätze der Übungen zählen in diesem Modus nicht — es läuft, bis die Zeit um ist. Wiederholungen, Gewicht und Pausen gelten weiter.</div>
+      <div class="meta" style="margin-top:8px">Die Übungen haben hier keine Satz-Zahl — es läuft, bis die Zeit um ist. Ein Durchgang durch alle Übungen ist eine Runde und zählt bei jeder Übung einen Satz hoch; eingetragen wird am Ende, was fertig geworden ist. Wiederholungen, Gewicht und Pausen gelten weiter. Ist „Dehnen“ an, läuft es nach Ablauf der Zeit.</div>
     </div>
 
     <div class="zeile abstand"><label style="margin:0">Bonus-Programme</label>
@@ -2876,7 +2876,7 @@ async function anmelden(){
    ANZEIGE_VERSION = wird daraus ABGELEITET: Update Nr. 10 => "0.010".
                      So können die beiden nie auseinanderlaufen.
                      Zur 1.0 wird die Formel durch "1.0" ersetzt. */
-const APP_VERSION = 221;
+const APP_VERSION = 222;
 const ANZEIGE_VERSION = (APP_VERSION / 1000).toFixed(3);
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7071,6 +7071,10 @@ function wissenOeffnen(){
    Pflege: bei einem Update mit sichtbarer Neuerung oben ergänzen ODER in die
    jüngste Gruppe einreihen; rein interne Versionen weglassen. */
 const NEUIGKEITEN = [
+  { stand:"0.222", punkte:[
+    "Dehnen gibt es jetzt auch im Unendlichkeitsmodus: Hast du es im Plan angehakt, läuft es, sobald die Zeit um ist — erst danach kommt die Übersicht.",
+    "Im Unendlichkeitsmodus sind die Satz-Felder bei den Übungen verschwunden. Dort gibt es keine feste Zahl: Ein Durchgang durch alle Übungen ist eine Runde und zählt bei jeder Übung einen Satz hoch. Was am Ende zusammengekommen ist, wird eingetragen — bei drei Übungen also zum Beispiel 5 Sätze bei A und B und 4 bei C, wenn dort die Zeit ablief."
+  ]},
   { stand:"0.221", punkte:[
     "Neu: der Unendlichkeitsmodus. Im Plan steht er als dritter Knopf neben „Klassisch“ und „Zirkel“ — du stellst eine Zeit ein (Sekunden, Minuten oder Stunden), und dann laufen deine Übungen in ihrer Reihenfolge durch. Ist die Runde zu Ende, fängt sie wieder von vorne an, bis die Zeit um ist. Feste Satz-Zahlen gibt es dort nicht.",
     "Oben läuft ein Band mit: grün „Gut in der Zeit“, gelb „Es wird knapp“, rot „Beeil dich“ — und bei jedem Wechsel sagt es die Stimme. Sobald eine Runde hinter dir liegt, rechnet das Band mit deiner echten Rundenzeit: Passt noch eine ganze Runde in die Restzeit?",
@@ -16444,12 +16448,13 @@ function editorZeichnen(){
       '<option value="' + z.id + '"' + (z.id === ze.id ? " selected" : "") + '>' + z.name + '</option>').join("");
   }
   document.getElementById("sw-aufwaermen").classList.toggle("gewaehlt", !!editorPlan.aufwaermen);
-  /* v221: Dehnen läuft NACH dem Kern — im Unendlichkeitsmodus kommt der Kern nie
-     an sein Ende, das Programm wäre also unerreichbar. Statt es still
-     wirkungslos zu lassen, ist der Schalter dort aus und gesperrt. */
+  /* v222 (Nutzer-Entscheidung): Dehnen gibt es auch im Unendlichkeitsmodus — es
+     läuft dort NACH Ablauf der Zeit. Die v221-Sperre („hinge hinter einem Kern,
+     der nie endet") ist damit gegenstandslos: Es hängt nicht am Kern, sondern
+     an der Uhr. */
   const dehnKnopf = document.getElementById("sw-dehnen");
-  dehnKnopf.classList.toggle("gewaehlt", !!editorPlan.dehnen && !unendlich);
-  dehnKnopf.disabled = unendlich;
+  dehnKnopf.classList.toggle("gewaehlt", !!editorPlan.dehnen);
+  dehnKnopf.disabled = false;
   const festKnopf = document.getElementById("sw-festewerte");
   festKnopf.classList.toggle("gewaehlt", !!editorPlan.festeWerte || unendlich);
   festKnopf.disabled = unendlich;   // dort gibt es keine Satz-Zahl zum Steigern
@@ -16458,9 +16463,13 @@ function editorZeichnen(){
     // Antippen des Kopfs klappt Muskel-Map + Felder auf (editorUebungOffen).
     const istZeit = u.modus === "zeit";
     const offen = editorUebungOffen === i;
+    /* v222 (Nutzer-Wunsch): Im Unendlichkeitsmodus gibt es keine Satz-Zahl —
+       die Runde bestimmt sie, und wie viele Runden es werden, entscheidet die
+       Uhr. Die „3 ×" davor wäre eine Zahl ohne Bedeutung. */
+    const vorne = unendlich ? "" : u.saetze + " × ";
     const zusammen = (istZeit
-      ? u.saetze + " × " + zeitKurz(u.dauer, u.zeitEinheit)
-      : u.saetze + " × " + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "")) +
+      ? vorne + zeitKurz(u.dauer, u.zeitEinheit)
+      : vorne + u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : "")) +
       // v136: sichtbar machen, dass diese Übung zu einem Superatz gehört
       (imSuperatz(editorPlan.uebungen, i) ? " · Superatz" : "") +
       (u.rampe > 0 ? " · " + u.rampe + " Aufwärm" : "") +   // v135
@@ -16490,10 +16499,13 @@ function editorZeichnen(){
       ? '<div class="uebung-figur' + (zweiSeiten ? " zwei" : "") + '">' + figuren +
         (info.label ? '<span class="meta">' + text(info.label) + '</span>' : "") + '</div>' : "";
 
+    /* v222: Dasselbe eine Feld tiefer — im Unendlichkeitsmodus verschwindet das
+       Feld „Sätze" ganz. Es stünde dort für eine Grenze, die es nicht gibt. */
+    const saetzeFeld = unendlich ? "" : zahlfeld(i,"saetze","Sätze",u.saetze,1);
     let basis, mehr = "";
     if(istZeit){
       const e = zeitEinheit(u.zeitEinheit);
-      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) +
+      basis = saetzeFeld +
               '<div><label>Dauer (' + e.kurz + ')</label>' +
                 '<div class="stepper">' +
                   '<button onclick="dauerStufe(' + i + ',-1)" aria-label="weniger">−</button>' +
@@ -16505,7 +16517,7 @@ function editorZeichnen(){
               '</select></div>' +
               zahlfeld(i,"pause","Pause (s)",u.pause,15);
     } else {
-      basis = zahlfeld(i,"saetze","Sätze",u.saetze,1) + zahlfeld(i,"wdh","Wiederholungen",u.wdh,1) +
+      basis = saetzeFeld + zahlfeld(i,"wdh","Wiederholungen",u.wdh,1) +
               zahlfeld(i,"gewicht","Gewicht (kg)",u.gewicht,2.5) + zahlfeld(i,"pause","Pause (s)",u.pause,15);
       mehr = zahlfeld(i,"wdhMin","Wdh. min",u.wdhMin,1) + zahlfeld(i,"wdhMax","Wdh. max",u.wdhMax,1) +
              zahlfeld(i,"gewichtSchritt","Schritt (kg)",u.gewichtSchritt,0.5) +
@@ -17079,7 +17091,7 @@ function editorSpeichern(){
   if(editorPlan.reihenfolge === "unendlich"){
     editorPlan.zeitLimit = begrenzen(Math.round(editorPlan.zeitLimit || ZEIT_LIMIT_STANDARD), 60, MAX_DAUER_S);
     editorPlan.festeWerte = true;
-    editorPlan.dehnen = false;   // käme nach dem Kern und damit nie dran
+    // v222: Dehnen bleibt erlaubt — es läuft nach Ablauf der Zeit (Nutzer-Wunsch).
   }
   editorPlan.uebungen = editorPlan.uebungen.filter(u => u.name.trim() !== "");
   editorPlan.uebungen.forEach(u => {
@@ -17297,9 +17309,13 @@ function unendlichRunde(plan, runde){
   return schritte;
 }
 
-/** Läuft gerade ein Training auf Zeit? */
+/** Läuft gerade ein Training auf Zeit — und zwar noch?
+    v222: `zeitVorbei` gehört dazu. Nach dem Gong kann noch ein Dehn-Programm
+    laufen; in dem hängt die App keine Runde mehr an, und der Balken misst
+    wieder Schritte statt der abgelaufenen Uhr. */
 function unendlichLaeuft(){
-  return !!(lauf && lauf.plan && lauf.plan.reihenfolge === "unendlich" && lauf.zeitEnde > 0);
+  return !!(lauf && lauf.plan && lauf.plan.reihenfolge === "unendlich" &&
+            lauf.zeitEnde > 0 && !lauf.zeitVorbei);
 }
 
 /** Wie liegst du in der Zeit? Drei Stufen, wie vom Nutzer beschrieben.
@@ -18514,6 +18530,9 @@ function schrittBetreten(){
        Trainings, sondern der Anfang der nächsten Runde. Beendet wird nur über
        die Uhr (`zeitAbgelaufen`) oder von Hand. */
     if(unendlichLaeuft() && naechsteRundeAnhaengen()) { /* weiter unten */ }
+    // v222: Nach dem Gong läuft nur noch das Dehn-Programm — ist auch das durch,
+    // führt der Weg auf die Abschluss-Seite, nicht in die Bewertung.
+    else if(lauf.zeitVorbei){ trainingAbschliessen(); return; }
     else { trainingBeenden(); return; }
   }
   trainingSichern();   // v80: Zwischenstand je Schritt — überlebt einen App-Abbruch
@@ -18789,6 +18808,32 @@ function zeitbandZeichnen(){
 function zeitAbgelaufen(){
   if(!lauf || lauf.zeitVorbei) return;   // der Sekunden-Takt darf nicht doppelt auslösen
   lauf.zeitVorbei = true;
+  clearInterval(lauf.timerId);
+  toeneVerwerfen();
+
+  /* v222 (Nutzer-Wunsch): „Bei Unendlich soll es auch noch Dehnen geben — das
+     soll nach Ablauf der Zeit stattfinden, wenn man es ausgewählt hat."
+     Damit ist die v221-Entscheidung („Dehnen fällt im Modus weg, weil es hinter
+     einem Kern hinge, der nie endet") vom Nutzer besser beantwortet: Es hängt
+     nicht hinter dem Kern, sondern hinter der UHR. Der laufende Satz endet mit
+     dem Gong, dann kommt das Programm — und erst danach die Abschluss-Seite. */
+  const dehn = lauf.plan.dehnen
+    ? bonusSchritte(bonusAuswahl(DEHNEN, planMuskelListe(lauf.plan)), "dehnen") : [];
+  if(dehn.length){
+    lauf.schritte = dehn;
+    lauf.index = 0;
+    sprich("Zeit ist um. Jetzt noch dehnen.");
+    schrittBetreten();
+    return;
+  }
+  trainingAbschliessen();
+}
+
+/** Der gemeinsame Abschluss eines Trainings auf Zeit: eintragen und zeigen.
+    Zwei Wege führen hierher — direkt nach dem Gong (ohne Dehn-Programm) und
+    nach dem letzten Dehn-Schritt. */
+function trainingAbschliessen(){
+  if(!lauf) return;
   clearInterval(lauf.timerId);
   gesamtUhrStoppen();
   toeneVerwerfen();

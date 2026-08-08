@@ -98,8 +98,9 @@ pruefe("sonst bleibt es der Satz von N", A.satzLabel({ satz:3 }, { saetze:5 }, f
 /* ---------- 4) Verdrahtung: Ablauf ---------- */
 const erzeugen = grabFn("ablaufErzeugen");
 pruefe("der Ablauf kennt den dritten Modus", erzeugen.includes("unendlichRunde(plan, 1)"));
-/* Dehnen haengt hinter dem Kern — der endet hier nie. */
-pruefe("das Dehn-Programm bleibt im Modus draussen",
+/* Dehnen haengt nicht mehr am Kern (der endet hier nie), sondern seit v222 an
+   der UHR — es laeuft nach dem Gong. In der Runden-Liste steht es darum nicht. */
+pruefe("das Dehn-Programm steht nicht in der Runden-Liste",
   /if\(plan\.dehnen && !unendlich\)/.test(erzeugen));
 const betreten = grabFn("schrittBetreten");
 pruefe("am Ende der Liste kommt die naechste Runde",
@@ -119,12 +120,15 @@ pruefe("die Stimme meldet nur den WECHSEL", band.includes("if(lauf.zeitStufe == 
 pruefe("bei 0 ist Schluss", band.includes("if(rest <= 0) zeitAbgelaufen()"));
 const ende = grabFn("zeitAbgelaufen");
 pruefe("das Ende loest nur einmal aus", ende.includes("if(!lauf || lauf.zeitVorbei) return"));
+/* v222: Eingetragen wird im gemeinsamen Abschluss — zwei Wege fuehren dorthin
+   (mit und ohne Dehn-Programm nach dem Gong). */
+const abschluss = grabFn("trainingAbschliessen");
 pruefe("es traegt ueber dieselbe Form ein wie jedes Training",
-  ende.includes("trainingsEintrag(plan, saetze"));
-pruefe("ohne einen fertigen Satz wird nichts geschrieben", /if\(saetze\.length\)\{/.test(ende));
-pruefe("alles Abgeleitete zieht mit", ende.includes("fortschrittNeuZeichnen()"));
+  abschluss.includes("trainingsEintrag(plan, saetze"));
+pruefe("ohne einen fertigen Satz wird nichts geschrieben", /if\(saetze\.length\)\{/.test(abschluss));
+pruefe("alles Abgeleitete zieht mit", abschluss.includes("fortschrittNeuZeichnen()"));
 pruefe("es fuehrt auf die Abschluss-Seite, nicht in die Bewertung",
-  ende.includes("abschlussZeigen(") && !ende.includes("bewertungOeffnen("));
+  abschluss.includes("abschlussZeigen(") && !abschluss.includes("bewertungOeffnen("));
 pruefe("die Ansicht gibt es", src.includes('id="view-abschluss"'));
 pruefe("sie ist ab Stufe 3 erlaubt (wie das Training selbst)", /"view-abschluss": 3/.test(src));
 pruefe("die Abschluss-Seite zaehlt nur ECHTE Saetze",
