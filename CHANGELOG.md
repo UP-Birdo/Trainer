@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.226.0
+
+- Der Unendlichkeitsmodus zählt jetzt mit: Am Ende steht je Übung, wie viele Sätze du
+  geschafft hast — und daneben dein Bestwert. Wer ihn überbietet, sieht „neuer
+  Bestwert“.
+- Vor dem Start steht das Ziel schon da: „Ziel 6 Sätze · Bestwert 5“. Die geschaffte
+  Zahl übernimmt die App als Satz-Zahl in den Plan, damit auf den einfacheren Stufen und
+  in den Schätzungen etwas Sinnvolles steht. Wiederholungen und Gewicht bleiben
+  unangetastet — nach einem neuen Bestwert fragt die App nur, ob sie die Wiederholungen
+  um eine anheben soll.
+- Die Figur ganz oben in der Statistik zeigt jetzt deine Auslastung statt nur der
+  Häufigkeit — dieselbe Aussage und dieselben Farben wie die große Muskelkarte. „Zuletzt
+  trainiert“ gibt es dort weiterhin als eigene Ansicht.
+
 ## 0.225.0
 
 - „Was ist neu“ beginnt jetzt mit einer Zusammenfassung: sieben Abschnitte über die

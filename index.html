@@ -2896,8 +2896,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.225.0";
-const APP_VERSION = 225000;
+const VERSION = "0.226.0";
+const APP_VERSION = 226000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7111,7 +7111,9 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.225 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.226 · Das Training in deiner Hand", punkte:[
+    "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
+    "Die Figur oben in der Statistik zeigt deine Auslastung — dieselbe Aussage wie die große Muskelkarte.",
     "Der Unendlichkeitsmodus: Du gibst eine Zeit vor, deine Übungen laufen in Runden durch, bis sie um ist. Ein Band oben zeigt in Grün, Gelb und Rot, wie du in der Zeit liegst, und sagt jeden Wechsel an; danach kommt eine Übersicht mit dem, was du geschafft hast.",
     "Vor dem Start umstellen: Lange auf eine Übung drücken verschiebt sie, ein Tipp auf eine Pausen-Zeile ändert die Pause. Das gilt nur für diesen einen Durchgang — dein Plan bleibt, wie er ist.",
     "Brichst du ab, wird trotzdem eingetragen, was du geschafft hast. Und oben läuft eine Stoppuhr mit.",
@@ -7151,6 +7153,11 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.226.0", punkte:[
+    "Der Unendlichkeitsmodus zählt jetzt mit: Am Ende steht je Übung, wie viele Sätze du geschafft hast — und daneben dein Bestwert. Wer ihn überbietet, sieht „neuer Bestwert“.",
+    "Vor dem Start steht das Ziel schon da: „Ziel 6 Sätze · Bestwert 5“. Die geschaffte Zahl übernimmt die App als Satz-Zahl in den Plan, damit auf den einfacheren Stufen und in den Schätzungen etwas Sinnvolles steht. Wiederholungen und Gewicht bleiben unangetastet — nach einem neuen Bestwert fragt die App nur, ob sie die Wiederholungen um eine anheben soll.",
+    "Die Figur ganz oben in der Statistik zeigt jetzt deine Auslastung statt nur der Häufigkeit — dieselbe Aussage und dieselben Farben wie die große Muskelkarte. „Zuletzt trainiert“ gibt es dort weiterhin als eigene Ansicht."
+  ]},
   { stand:"0.225.0", punkte:[
     "„Was ist neu“ beginnt jetzt mit einer Zusammenfassung: sieben Abschnitte über die ganze Entwicklung statt einer Liste von über 150 Versionen. Wer es genau wissen will, tippt darunter auf „Alle Änderungen im Einzelnen“ — dort steht weiterhin jede Version für sich."
   ]},
@@ -10499,8 +10506,22 @@ function miniMuskelFigur(ziel, ansicht, muskeln, sekundaer, quoten){
   });
 }
 
+/** 0.226.0: Wie `miniMuskelFigur`, aber für den GANZEN Körper — alle Muskeln mit
+    Last im Fenster, gefärbt nach ihrer Auslastung. Dieselbe Mal-Funktion und
+    damit dieselben Farben wie die volle Muskelkarte; eine zweite Färbung für
+    dieselbe Aussage wäre genau der Bruch, den 0.226.0 beseitigt. */
+function miniLastFigur(ziel, ansicht, muskeln, quoten){
+  const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
+  ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
+    '<canvas width="' + meta.w + '" height="' + meta.h + '"></canvas>';
+  const cv = ziel.querySelector("canvas");
+  muskelKarteLaden(ansicht).then(() => {
+    if(cv && cv.isConnected) muskelnAufCanvas(cv.getContext("2d"), ansicht, muskeln || [], 205, [], quoten);
+  });
+}
+
 /** Wie miniMuskelFigur, aber gefärbt nach Trainings-Häufigkeit (Heatmap) statt
-    flach — für „den Menschen" ganz oben in der Statistik (v93). */
+    flach — für den Modus „Zuletzt trainiert" in der vollen Muskelkarte (v93). */
 function miniHeatFigur(ziel, ansicht, zaehler){
   const meta = MUSKEL_VIEWS[ansicht]; if(!meta || !ziel) return;
   ziel.innerHTML = '<img src="' + meta.img + '" alt="" draggable="false">' +
@@ -11332,12 +11353,31 @@ function muskelLegendeZeichnen(){
 /** v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten, gefärbt
     nach den in den letzten MUSKEL_HEAT_TAGE Tagen trainierten Muskeln. Reine
     Anzeige aus dem Protokoll; Antippen öffnet die volle Muskelkarte. */
+/* 0.226.0 (Nutzer-Wunsch „die Statistik soll immer den momentanen Stand
+   zeigen"): Die Figur ganz oben zeigt jetzt die AUSLASTUNG, nicht mehr die
+   Häufigkeit.
+
+   Der Befund dahinter: Es gab zwei Färbungen desselben Körpers. Die
+   Häufigkeits-Heatmap (`trainierteMuskeln` → Deckkraft, „was war zuletzt dran")
+   stand an der prominentesten Stelle; die Auslastung aus dem Belastungs-Modell
+   (gelb → rot, „wie voll ist der Muskel") hing nur an den kleinen Figuren und in
+   der vollen Karte. Die auffälligste Kachel zeigte damit die schwächere Aussage.
+
+   Die Heatmap ist NICHT verschwunden — sie bleibt der Modus „Zuletzt trainiert"
+   in der Muskelkarte, die diese Kachel per Tipp öffnet.
+
+   Wichtig für neue Konten: `auslastungsQuoten()` liefert absichtlich nichts,
+   solange die Basis für ein Urteil nicht reicht (v167). Gefärbt wird trotzdem —
+   `lastFarbe` nimmt ohne Quote die gewohnte Signalfarbe. Man sieht also von
+   Anfang an, WAS belastet ist, und erst mit genug Daten auch WIE STARK. */
 function koerperVorschauZeichnen(){
-  const zaehler = trainierteMuskeln(sitzung.daten.protokoll, heuteAlsText(), MUSKEL_HEAT_TAGE);
+  const heute = heuteAlsText();
+  const quoten = auslastungsQuoten();
+  const muskeln = Object.keys(muskelLast(sitzung.daten.protokoll, heute, MUSKEL_HEAT_TAGE));
   const vorne = document.getElementById("koerper-front");
   const hinten = document.getElementById("koerper-back");
-  if(vorne)  miniHeatFigur(vorne, "front", zaehler);
-  if(hinten) miniHeatFigur(hinten, "back", zaehler);
+  if(vorne)  miniLastFigur(vorne, "front", muskeln, quoten);
+  if(hinten) miniLastFigur(hinten, "back", muskeln, quoten);
   /* v217 (Nutzer-Wunsch „den Text unter den Vorschau-Bildern weg"): Die
      Farbskala „wenig — viel" steht nur noch in der vollen Muskelkarte, wo sie
      zu den Farben gehört. In der Kachel ist sie eine Zeile Erklärung für ein
@@ -17432,6 +17472,63 @@ function unendlichRunde(plan, runde){
   return schritte;
 }
 
+/* ============================================================
+   0.226.0 — DIE PROGRESSION DES UNENDLICHKEITSMODUS (Nutzer-Entscheidung)
+
+   „Im Unendlichkeitsmodus nur die Sätze anfassen: am Ende den Bestwert anzeigen,
+   am Anfang auch, und eins hochgehen — was aber keinen Unterschied macht, weil
+   es unendlich läuft. Das ist ein Ziel im Hintergrund, das automatisch gezählt
+   wird. Erfasst werden soll er trotzdem, damit beim Stufenwechsel bei den Sätzen
+   etwas steht und alle anderen Rechner damit klarkommen. Bei den Wiederholungen
+   kann nachgefragt werden, ob man sie erhöhen möchte."
+
+   Damit ist der scheinbare Widerspruch zu 0.221 aufgelöst: `festeWerte` schützt
+   weiterhin Wiederholungen und Gewicht — gezählt und gesteigert wird der UMFANG,
+   und das ist eine andere Größe. Angefasst wird ohne Rückfrage nur `u.saetze`.
+
+   Zwei getrennte Zahlen, bewusst:
+     PLAN-SATZZAHL  = was zuletzt geschafft wurde (das ehrliche Ist; daraus
+                      rechnen Stufe 2, „Erledigt" und jede Dauerschätzung).
+     BESTWERT       = das Maximum über alle Trainings dieses Modus, NICHT
+                      gespeichert, sondern aus dem Protokoll gerechnet — genau
+                      wie die Flamme (v214). Was nicht gespeichert ist, kann
+                      nicht driften, und ein nachgetragenes Training zählt mit.
+   ============================================================ */
+
+/** Der Bestwert einer Übung im Unendlichkeitsmodus: die meisten Sätze, die in
+    EINEM solchen Training zusammenkamen. Rein/testbar.
+
+    Verglichen wird nur mit Trainings DIESES Modus (`eintrag.modus`): Drei Sätze
+    aus einem klassischen Plan sind keine Runden-Leistung, sie standen so im
+    Plan. Soll-Sätze zählen wie überall nicht (v158). */
+function unendlichBest(protokoll, uebungId, name){
+  let best = 0;
+  (protokoll || []).forEach(e => {
+    if(!e || e.modus !== "unendlich") return;
+    const n = echteSaetze(e).filter(s =>
+      (uebungId && s.uebungId === uebungId) ||
+      (!!name && normName(s.name || "") === normName(name))).length;
+    if(n > best) best = n;
+  });
+  return best;
+}
+
+/** Die geschafften Runden werden zur Satz-Zahl der Übungen im Plan. Rein/testbar
+    (arbeitet auf dem übergebenen Plan und gibt ihn zurück).
+
+    WARUM das Ist und nicht der Bestwert: Die Zahl beantwortet „wie viele Sätze
+    hat diese Übung", nicht „was war dein Rekord". Sie darf also auch sinken —
+    sonst stünde nach einem kurzen Tag dauerhaft eine Zahl im Plan, die dieses
+    Training nie erreicht hat. Der Bestwert steht daneben und bleibt. */
+function unendlichSaetzeUebernehmen(plan, saetze){
+  if(!plan) return plan;
+  (plan.uebungen || []).forEach(u => {
+    const n = (saetze || []).filter(s => s && s.uebungId === u.id && !s.soll).length;
+    if(n > 0) u.saetze = begrenzen(n, 1, 20);
+  });
+  return plan;
+}
+
 /** Läuft gerade ein Training auf Zeit — und zwar noch?
     v222: `zeitVorbei` gehört dazu. Nach dem Gong kann noch ein Dehn-Programm
     laufen; in dem hängt die App keine Runde mehr an, und der Balken misst
@@ -18432,8 +18529,17 @@ function vorschauZeichnen(){
     } else {
       const u = p.uebungen[schritt.uebungIndex];
       titel = u.name;
-      // v221: im Unendlichkeitsmodus zeigt die Vorschau EINE Runde — ohne „von 3".
-      unter = (unendlich ? "Runde " + schritt.satz : "Satz " + schritt.satz + "/" + u.saetze) + " · " +
+      /* v221: im Unendlichkeitsmodus zeigt die Vorschau EINE Runde — ohne „von 3".
+         0.226.0: dafür das Ziel im Hintergrund — der Bestwert und die eine Runde
+         mehr. Ohne Bestwert (erstes Mal) steht nur „Runde 1", nichts Erfundenes. */
+      let kopf;
+      if(unendlich){
+        const best = unendlichBest(sitzung.daten.protokoll, u.id, u.name);
+        kopf = best > 0 ? "Ziel " + (best + 1) + " Sätze · Bestwert " + best : "Runde " + schritt.satz;
+      } else {
+        kopf = "Satz " + schritt.satz + "/" + u.saetze;
+      }
+      unter = kopf + " · " +
               (u.modus === "zeit" ? zeitKurz(u.dauer, u.zeitEinheit) : u.wdh + " Wdh" + (u.gewicht > 0 ? " · " + u.gewicht + " kg" : ""));
       // v84: kleine Fokus-Muskel-Figur (nur mit klarem Fokus, nur beim ersten Satz).
       const info = uebungMuskeln(u.name);
@@ -18965,29 +19071,53 @@ function trainingAbschliessen(){
   const plan = lauf.plan, saetze = lauf.saetze || [], runden = lauf.runde || 1;
   const eintrag = trainingsEintrag(plan, saetze,
     (Date.now() - lauf.startZeit) / 60000, neueId(), heuteAlsText());
+  /* 0.226.0: Der Eintrag sagt, aus welchem Modus er stammt — additiv. Nur so
+     kann der Bestwert Runden mit Runden vergleichen und nicht mit den Sätzen,
+     die in einem klassischen Plan ohnehin fest stehen. */
+  eintrag.modus = "unendlich";
+  /* Die Bestwerte VOR dem Eintragen holen — danach steckt dieses Training schon
+     mit drin, und jeder Wert wäre sein eigener Rekord. */
+  const vorher = {};
+  (plan.uebungen || []).forEach(u => { vorher[u.id] = unendlichBest(sitzung.daten.protokoll, u.id, u.name); });
+
   if(saetze.length){
     sitzung.daten.protokoll.push(eintrag);
+    /* Die Satz-Zahl wandert in den ECHTEN Plan, nicht in die Vorschau-Kopie
+       (`plan` ist seit `trainingStarten` eine Kopie — dieselbe Falle wie v182). */
+    unendlichSaetzeUebernehmen(sitzung.daten.plaene.find(p => p.id === plan.id), saetze);
     speichern();
     fortschrittNeuZeichnen();   // v214: alles Abgeleitete zieht sofort mit
   }
   trainingMerkerLoeschen();
   lauf = null;
   sprich("Zeit ist um. Gut gemacht.");
-  abschlussZeigen(plan, eintrag, runden, saetze.length > 0);
+  abschlussZeigen(plan, eintrag, runden, saetze.length > 0, vorher);
 }
 
 /** Die Abschluss-Seite: was in der Zeit zusammengekommen ist. Bewusst OHNE
     Bewertung — im Unendlichkeitsmodus gibt es kein Soll, gegen das „zu leicht"
     oder „zu schwer" eine Aussage wäre (`plan.festeWerte` ist dort immer an). */
-function abschlussZeigen(plan, eintrag, runden, gespeichert){
+function abschlussZeigen(plan, eintrag, runden, gespeichert, bestVorher){
   const proUebung = new Map();
   echteSaetze(eintrag).forEach(s => {
     const name = s.name || "Übung";
     proUebung.set(name, (proUebung.get(name) || 0) + 1);
   });
-  const zeilen = [...proUebung.entries()].map(([name, n]) =>
-    '<div class="zeile"><span>' + text(name) + '</span><span class="meta">' +
-    n + (n === 1 ? " Satz" : " Sätze") + '</span></div>').join("");
+  /* 0.226.0 (Nutzer-Wunsch): „Am Ende soll stehen: du hast so und so viele Sätze
+     der Übung geschafft" — und daneben, woran du dich misst. Der Bestwert ist
+     der Stand VOR diesem Training; wer ihn überbietet, liest das hier zuerst. */
+  let neuerBest = false;
+  const bestZu = name => {
+    const u = (plan.uebungen || []).find(x => normName(x.name) === normName(name));
+    return u && bestVorher ? (bestVorher[u.id] || 0) : 0;
+  };
+  const zeilen = [...proUebung.entries()].map(([name, n]) => {
+    const best = bestZu(name);
+    if(best > 0 && n > best) neuerBest = true;
+    const rechts = n + (n === 1 ? " Satz" : " Sätze") +
+      (best > 0 ? (n > best ? " · neuer Bestwert (vorher " + best + ")" : " · Bestwert " + best) : "");
+    return '<div class="zeile"><span>' + text(name) + '</span><span class="meta">' + text(rechts) + '</span></div>';
+  }).join("");
 
   const serie = gespeichert ? trainingsSerie() : 0;
   document.getElementById("abschluss-liste").innerHTML =
@@ -18998,8 +19128,31 @@ function abschlussZeigen(plan, eintrag, runden, gespeichert){
     (zeilen ? '<div class="karte">' + zeilen + '</div>'
             : '<div class="karte"><div class="meta">Kein Satz fertig geworden — eingetragen wurde nichts.</div></div>') +
     (serie >= 2 ? '<div class="karte"><h2>🔥 ' + serie + ' Trainings in Serie</h2></div>' : "") +
-    '<div class="meta" style="margin-top:10px">Gezählt wird nur, was du fertig gemacht hast. Der angefangene Satz beim Gong bleibt draußen — und dein Plan bleibt unverändert.</div>';
+    '<div class="meta" style="margin-top:10px">Gezählt wird nur, was du fertig gemacht hast. Der angefangene Satz beim Gong bleibt draußen. Die Zahl der Sätze übernimmt die App in den Plan — Wiederholungen und Gewicht bleiben, wie du sie eingestellt hast.</div>';
   zeige("view-abschluss");
+
+  /* 0.226.0 (Nutzer-Entscheidung): „Bei den Wiederholungen kann nachgefragt
+     werden, ob man sie erhöhen möchte." Also NUR auf ausdrückliches Ja — damit
+     bleibt „Feste Werte" gewahrt: Es ändert nicht die Bewertung, es änderst du.
+     Gefragt wird auch nur, wenn es einen Anlass gibt (neuer Bestwert): Wer mehr
+     Runden schafft als je zuvor, hatte offenbar Luft. */
+  if(gespeichert && neuerBest) setTimeout(() => wdhAnhebenFragen(plan), 900);
+}
+
+/** Die Rückfrage nach dem Bestwert — und die Anhebung, wenn sie bejaht wird.
+    Angehoben wird auf dem ECHTEN Plan, um je eine Wiederholung, und nie über
+    das eigene Maximum der Übung hinaus (`wdhMax` bleibt die Grenze). */
+function wdhAnhebenFragen(plan){
+  const echt = sitzung.daten.plaene.find(p => p.id === plan.id);
+  if(!echt) return;
+  const kandidaten = (echt.uebungen || []).filter(u => u.modus === "wdh" && u.wdh < (u.wdhMax || u.wdh));
+  if(!kandidaten.length) return;
+  frage("Neuer Bestwert — das saß offenbar gut.\n\nSoll ich die Wiederholungen um eine anheben?", true, ja => {
+    if(!ja) return;
+    kandidaten.forEach(u => { u.wdh = begrenzen(u.wdh + 1, u.wdhMin || 1, u.wdhMax || u.wdh + 1); });
+    speichern();
+    zeigenToast("Wiederholungen angehoben", "erfolg");
+  });
 }
 
 function gesamtUhrStarten(){
