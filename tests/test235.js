@@ -66,7 +66,9 @@ pruefe("eine alte Meldung traegt keinen Boden mehr",
 const ausl = grabFn("muskelAuslastung");
 pruefe("die Quote bekommt den Boden in der Auslastung",
   ausl.includes("beschwerdeQuoteFloor(beschwerden, m, heute)") && ausl.includes("Math.max("));
-const quoten = grabFn("auslastungsQuoten");
+/* 0.238: Deckel + Boden wohnen in quotenDeckeln (geteilt mit der
+   Nachher-Vorschau) — die Reihenfolge-Zusage ist dieselbe. */
+const quoten = grabFn("quotenDeckeln");
 pruefe("der Boden uebersteht den Basis-Deckel junger Konten",
   quoten.indexOf("Math.min(a[m].quote, deckel)") < quoten.indexOf("beschwerdeQuoteFloor(") &&
   quoten.includes("if(boden > q[m]) q[m] = boden"));

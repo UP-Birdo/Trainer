@@ -87,9 +87,12 @@ pruefe("fehlende Quote heisst null, wenn Quoten da sind",
   canvas.includes("quoten ? (quoten[key] || 0) : undefined"));
 const quoten = grabFn("auslastungsQuoten");
 pruefe("ohne Konto gibt es KEIN Quoten-Objekt", quoten.includes("return null"));
+/* 0.238: Der Deckel wohnt in quotenDeckeln (geteilt mit der Nachher-Vorschau). */
+const deckeln = grabFn("quotenDeckeln");
 pruefe("ohne Basis wird gedeckelt statt geleert",
-  quoten.includes("basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99"));
-pruefe("der Deckel liegt unter der roten Schwelle", quoten.includes("0.99"));
+  deckeln.includes("basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99") &&
+  quoten.includes("quotenDeckeln(a)"));
+pruefe("der Deckel liegt unter der roten Schwelle", deckeln.includes("0.99"));
 const koerper = grabFn("koerperVorschauZeichnen");
 pruefe("die Statistik-Figur malt ALLE Muskeln", koerper.includes("MUSKEL_ORDER, quoten"));
 pruefe("die Legende ist zurueck", koerper.includes("lastLegendeHtml()"));

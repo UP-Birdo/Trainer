@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.238.0
+
+- Die Trainings-Vorschau zeigt jetzt, wie deine Muskeln NACH dem Training stünden: Zwei
+  Figuren unter „Nach diesem Training“ färben sich so, wie die geplanten Sätze deine
+  Auslastung verschieben würden — mit derselben Ampel wie überall. Würde ein Muskel
+  damit deutlich über den Richtwert rutschen, steht die Warnung direkt darunter, BEVOR
+  du startest. Zu sehen ab Einfachheits-Stufe 4, ein Tipp auf die Figuren öffnet die
+  Muskelkarte.
+
 ## 0.237.0
 
 - Die App merkt sich jetzt, nach welcher Übung oder Sportart du wiederholt Beschwerden

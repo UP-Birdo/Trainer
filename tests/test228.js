@@ -129,8 +129,9 @@ pruefe("die Kapazitaet kennt den Faktor",
    gruen, obwohl gerade gemeldet wurde, dass er wehtut. */
 pruefe("ein gemeldeter Muskel ohne Last kommt dazu",
   grabFn("muskelAuslastung").includes("beschwerdeFaktor(beschwerden, e.muskel, heute) < 1"));
-pruefe("alle drei Aufrufer reichen die Beschwerden durch",
-  (src.match(/sitzung\.daten\.tageswerte, sitzung\.daten\.beschwerden\)/g) || []).length === 3);
+/* 0.238: Die Nachher-Vorschau (nachherQuoten) ist der vierte Aufrufer. */
+pruefe("alle vier Aufrufer reichen die Beschwerden durch",
+  (src.match(/sitzung\.daten\.tageswerte, sitzung\.daten\.beschwerden\)/g) || []).length === 4);
 pruefe("die Detail-Karte nennt den Grund", grabFn("muskelAuswahlZeichnen").includes("beschwerdeText("));
 pruefe("die Statuszeile erklaert den Modus", grabFn("muskelStatusText").includes('muskelStatus.modus === "wohl"'));
 

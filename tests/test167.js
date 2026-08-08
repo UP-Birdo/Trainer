@@ -283,8 +283,11 @@ pruefe("die Auslastung bekommt die Tageswerte",
    „alles ruhig" und faerbte den Koerper gruen, ausgerechnet nach dem Training.
    Jetzt wird die Quote unter die ROTE Schwelle gedeckelt: Gemessenes bleibt
    sichtbar, das Urteil (Rot) braucht weiterhin die Basis. */
+/* 0.238: Der Deckel wohnt in quotenDeckeln (auslastungsQuoten und die
+   Nachher-Vorschau teilen ihn sich) — die Zusage ist dieselbe. */
 pruefe("die Einfaerbung bleibt ohne Basis aus",
-  grabFn("auslastungsQuoten").includes("basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99"));
+  grabFn("quotenDeckeln").includes("basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99") &&
+  grabFn("auslastungsQuoten").includes("quotenDeckeln(a)"));
 pruefe("die Detail-Karte reicht die Basis durch",
   grabFn("muskelAuswahlZeichnen").includes("auslastungText(key, a, reicht)"));
 pruefe("und faerbt ohne Basis neutral",
