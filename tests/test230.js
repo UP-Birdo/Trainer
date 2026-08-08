@@ -145,8 +145,9 @@ pruefe("ein unbekannter Muskel faellt auf den alten Wert",
 
 /* ---------- 6) Verdrahtung ---------- */
 const kapF = grabFn("kapazitaetsFaktor");
+// 0.231: erfahrungsFaktor bekam `heute` dazu (Pausen-Melze) — die Aussage bleibt.
 pruefe("die fixe Erfahrungs-Tabelle ist aus kapazitaetsFaktor verschwunden",
-  !kapF.includes("anfaenger:0.6") && kapF.includes("erfahrungsFaktor(einrichtung, protokoll)"));
+  !kapF.includes("anfaenger:0.6") && kapF.includes("erfahrungsFaktor(einrichtung, protokoll, heute)"));
 pruefe("Ruhepuls und Ernaehrung fliessen ein",
   kapF.includes("ruhepulsFaktor(tageswerte, heute)") && kapF.includes("ernaehrungFaktor(ernaehrungSchnitt("));
 const ausl = grabFn("muskelAuslastung");

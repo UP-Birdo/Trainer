@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.231.0
+
+- Die App kalibriert sich jetzt an dir. In den ersten zehn Trainings läuft die
+  Kennenlern-Phase: Die App sagt es offen auf der Ergebnis-Seite, liest deine Noten
+  besonders aufmerksam — und wenn deine Trainings durchweg „zu leicht“ oder durchweg
+  sehr schwer waren, schlägt sie vor, deine Profil-Einstufung zu korrigieren. Geändert
+  wird nur, wenn du zustimmst.
+- Nach einer Pause von zwölf Wochen oder mehr beginnt mit dem ersten Training ein Scan:
+  acht Trainings lang dieselbe Aufmerksamkeit von vorn, denn der Stand von vor der Pause
+  gilt nicht mehr ungeprüft. Zusätzlich schmilzt die errechnete Erfahrung bei langer
+  Nicht-Nutzung langsam ab — nie unter deine eigene Profil-Angabe, und beim
+  Wiedereinstieg ist der alte Stand schnell wieder da.
+- Jeder Muskel zeigt jetzt seinen Korridor: ab wie vielen Sätzen pro Woche etwas wächst,
+  wo der Richtwert liegt — und ab wann das Verletzungsrisiko deutlich steigt. Die Zahlen
+  stehen in der Detail-Karte der Muskelkarte und wachsen mit deiner Kapazität mit.
+
 ## 0.230.0
 
 - Das Modell wächst jetzt mit dir. Deine Erfahrungs-Stufe ist keine einmalige Angabe

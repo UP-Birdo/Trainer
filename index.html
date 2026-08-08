@@ -2914,8 +2914,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.230.0";
-const APP_VERSION = 230000;
+const VERSION = "0.231.0";
+const APP_VERSION = 231000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7133,7 +7133,8 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.230 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.231 · Das Training in deiner Hand", punkte:[
+    "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
     "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
     "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
@@ -7178,6 +7179,11 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.231.0", punkte:[
+    "Die App kalibriert sich jetzt an dir. In den ersten zehn Trainings läuft die Kennenlern-Phase: Die App sagt es offen auf der Ergebnis-Seite, liest deine Noten besonders aufmerksam — und wenn deine Trainings durchweg „zu leicht“ oder durchweg sehr schwer waren, schlägt sie vor, deine Profil-Einstufung zu korrigieren. Geändert wird nur, wenn du zustimmst.",
+    "Nach einer Pause von zwölf Wochen oder mehr beginnt mit dem ersten Training ein Scan: acht Trainings lang dieselbe Aufmerksamkeit von vorn, denn der Stand von vor der Pause gilt nicht mehr ungeprüft. Zusätzlich schmilzt die errechnete Erfahrung bei langer Nicht-Nutzung langsam ab — nie unter deine eigene Profil-Angabe, und beim Wiedereinstieg ist der alte Stand schnell wieder da.",
+    "Jeder Muskel zeigt jetzt seinen Korridor: ab wie vielen Sätzen pro Woche etwas wächst, wo der Richtwert liegt — und ab wann das Verletzungsrisiko deutlich steigt. Die Zahlen stehen in der Detail-Karte der Muskelkarte und wachsen mit deiner Kapazität mit."
+  ]},
   { stand:"0.230.0", punkte:[
     "Das Modell wächst jetzt mit dir. Deine Erfahrungs-Stufe ist keine einmalige Angabe mehr: Die App zählt deine aktiven Trainingswochen und stuft dich von selbst hoch — die Profil-Angabe ist nur noch der Startwert, zurückgestuft wird nie.",
     "Auch jeder einzelne Muskel wächst: Verträgt er über Wochen sein Volumen, ohne dass du Beschwerden meldest, steigt seine Kapazität (bis +30 %) — die Warnung kommt dann später, so wie es bei einem Trainierten sein soll. Bei Beschwerden pausiert das Wachstum, nach zwei leeren Wochen fällt es zurück.",
@@ -10842,10 +10848,156 @@ function erfahrungAusVerlauf(wochen){
     aus den eigenen Trainingswochen holt ihn ein und überholt ihn. Er kann
     dadurch nie unter den Start fallen (niemand wird zurückgestuft), aber auch
     nie aufhören zu wachsen, solange trainiert wird. */
-function erfahrungsFaktor(einrichtung, protokoll){
+function erfahrungsFaktor(einrichtung, protokoll, heute){
   const e = einrichtung || {};
   const start = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
-  return Math.max(start, erfahrungAusVerlauf(aktiveTrainingsWochen(protokoll)));
+  let f = erfahrungAusVerlauf(aktiveTrainingsWochen(protokoll));
+  /* 0.231.0 (Nutzer-Entscheidung): Lange Nicht-Nutzung schmilzt den GERECHNETEN
+     Anteil langsam ab — Detraining ist real, auch beim Trainingsalter. Nie
+     unter den Profil-Startwert, und beim Wiedereinstieg ist der alte Stand
+     sofort wieder da, weil die gezählten Wochen nicht verloren gehen
+     (Muskelgedächtnis: Wiederaufbau geht schneller als Erstaufbau). */
+  if(heute){
+    const tage = tageSeitLetztemTraining(protokoll, heute);
+    if(tage !== null) f = Math.round((f - erfahrungsMelze(Math.floor(tage / 7))) * 100) / 100;
+  }
+  return Math.max(start, f);
+}
+
+/** Tage seit dem letzten protokollierten Training — null ohne Protokoll. */
+function tageSeitLetztemTraining(protokoll, heute){
+  let letzter = null;
+  (protokoll || []).forEach(e => { if(e && e.datum && (!letzter || e.datum > letzter)) letzter = e.datum; });
+  if(!letzter) return null;
+  return Math.max(0, tagDifferenz(letzter, heute));
+}
+
+/** Wie viel der gerechneten Erfahrung eine Pause abschmilzt: die ersten zwölf
+    Wochen nichts (normale Unterbrechung), danach 0,005 je Woche, gedeckelt bei
+    0,3. Nach einem Jahr Pause fehlen also ~0,2 — spürbar, aber kein Absturz auf
+    Anfänger-Niveau. Rein/testbar. */
+function erfahrungsMelze(pauseWochen){
+  const w = Math.max(0, Number(pauseWochen) || 0);
+  if(w <= 12) return 0;
+  return Math.min(0.3, Math.round((w - 12) * 0.005 * 1000) / 1000);
+}
+
+/* ============================================================
+   0.231.0 — KALIBRIERUNG (Nutzer-Konzept, 08.08.2026)
+
+   „Am Anfang wird Mikro-Management betrieben, wo genau geschaut wird, wie es um
+   dich steht, um die Grundfitness zu vermuten. Nach langer Nicht-Nutzung wird
+   zurückgebaut oder ein Scan-Monat gefahren, der die App neu kalibriert. Und
+   eine feine Rechnung vom Mindestmaß bis ‚ab hier nicht weiter, dein
+   Verletzungsrisiko steigt'."
+
+   Drei Phasen, die die App selbst erkennt:
+   * KENNENLERNEN — die ersten 10 Trainings. Die App sagt es offen, liest die
+     Noten der Trainings besonders aufmerksam und schlägt vor, die
+     Profil-Einstufung zu korrigieren, wenn sie nicht zum Beobachteten passt.
+   * SCAN — nach einer Pause von ≥ 12 Wochen beginnt mit dem ersten Training
+     dieselbe Aufmerksamkeit von vorn (8 Trainings lang): Der Stand von damals
+     gilt nicht mehr ungeprüft.
+   * KALIBRIERT — der Normalbetrieb.
+
+   Bewusst NICHT gebaut: noch mehr Fragen nach jeder Übung. Die Bewertung fragt
+   seit je jede Übung einzeln (Note 1–5), der Tages-Check fragt das Befinden —
+   die Kalibrierung LIEST diese Antworten, statt sie doppelt zu stellen.
+   ============================================================ */
+const KENNENLERN_TRAININGS = 10;
+const SCAN_TRAININGS = 8;
+const SCAN_PAUSE_TAGE = 84;   // 12 Wochen — dieselbe Grenze wie die Erfahrungs-Melze
+
+/** In welcher Phase ist dieses Konto? Rein/testbar. */
+function kalibrierungsPhase(protokoll, heute){
+  const tage = [...new Set((protokoll || []).map(e => e && e.datum).filter(Boolean))].sort();
+  if(tage.length < KENNENLERN_TRAININGS)
+    return { phase:"kennenlernen", nummer: tage.length, von: KENNENLERN_TRAININGS };
+  // die JÜNGSTE Lücke von ≥ 12 Wochen — seither wird neu gescannt
+  let seitLuecke = null;
+  for(let i = 1; i < tage.length; i++){
+    if(tagDifferenz(tage[i - 1], tage[i]) >= SCAN_PAUSE_TAGE) seitLuecke = i;
+  }
+  if(seitLuecke !== null){
+    const danach = tage.length - seitLuecke;
+    if(danach < SCAN_TRAININGS) return { phase:"scan", nummer: danach, von: SCAN_TRAININGS };
+  }
+  return { phase:"kalibriert", nummer: 0, von: 0 };
+}
+
+/** Passt die Profil-Einstufung zum Beobachteten? Geantwortet wird nur in einer
+    Kalibrierungs-Phase, und nur mit genug Noten (mindestens 3 der letzten 5
+    Trainings bewertet). Durchweg „zu leicht" (Schnitt ≤ 2,2) → eine Stufe
+    hoch vorschlagen; durchweg sehr schwer (≥ 4,3) → eine Stufe runter.
+    Rein/testbar — geändert wird hier nichts, das entscheidet der Nutzer. */
+function kalibrierungsVorschlag(protokoll, einrichtung, heute){
+  const p = kalibrierungsPhase(protokoll, heute);
+  if(p.phase === "kalibriert") return null;
+  const mitNoten = (protokoll || []).filter(e => e && (e.saetze || []).some(s => s && s.note >= 1)).slice(-5);
+  if(mitNoten.length < 3) return null;
+  let sum = 0, n = 0;
+  mitNoten.forEach(e => e.saetze.forEach(s => { if(s && s.note >= 1){ sum += s.note; n++; } }));
+  const schnitt = Math.round(sum / n * 10) / 10;
+  const stufe = (einrichtung || {}).erfahrung || "wieder";
+  const HOCH   = { anfaenger:"wieder", wieder:"fortgeschritten" };
+  const RUNTER = { fortgeschritten:"wieder", wieder:"anfaenger" };
+  if(schnitt <= 2.2 && HOCH[stufe])   return { richtung:"hoch",   neu:HOCH[stufe],   schnitt };
+  if(schnitt >= 4.3 && RUNTER[stufe]) return { richtung:"runter", neu:RUNTER[stufe], schnitt };
+  return null;
+}
+
+/** Der Korridor eines Muskels: Unter dem Mindestmaß wächst nichts (Minimum
+    Effective Volume, grob 40 % des Richtwerts), zwischen Mindestmaß und
+    Richtwert ist die produktive Zone, ab 130 % steigt das Verletzungsrisiko
+    deutlich — dieselbe Grenze, ab der die Karte tiefrot warnt. Rein/testbar. */
+function volumenKorridor(kapazitaet){
+  const k = Number(kapazitaet);
+  if(!(k > 0)) return null;
+  return { mindest: Math.max(2, Math.round(k * 0.4)), stopp: Math.round(k * 1.3 * 10) / 10 };
+}
+
+/** Die Korridor-Zeile der Muskel-Detail-Karte. */
+function korridorZeileHtml(a){
+  if(!a || !(a.kapazitaet > 0)) return "";
+  const kor = volumenKorridor(a.kapazitaet);
+  return '<div class="meta" style="margin-bottom:6px">' +
+    text("Dein Korridor: ab " + kor.mindest + " Sätzen/Woche wächst hier etwas · Richtwert " +
+         a.kapazitaet + " · ab " + kor.stopp + " steigt das Verletzungsrisiko deutlich.") + '</div>';
+}
+
+/** Die Phasen-Karte auf der Ergebnis-Seite — nur während einer Kalibrierung. */
+function kalibrierungsKarteHtml(){
+  if(!sitzung || !sitzung.daten) return "";
+  const p = kalibrierungsPhase(sitzung.daten.protokoll, heuteAlsText());
+  if(p.phase === "kalibriert") return "";
+  const titel = p.phase === "kennenlernen" ? "Die App lernt dich kennen" : "Scan nach deiner Pause";
+  return '<div class="karte"><h2>' + titel + '</h2><div class="meta">' +
+    text("Training " + Math.min(p.nummer + 1, p.von) + " von " + p.von +
+      ". In dieser Phase schaut die App genauer hin: Deine Noten und der Tages-Check stimmen die Einschätzung deiner Grundfitness ab" +
+      (p.phase === "scan" ? " — der Stand von vor der Pause gilt nicht mehr ungeprüft" : "") + ".") +
+    '</div></div>';
+}
+
+/** Der Kalibrierungs-Dialog nach dem Training — höchstens einmal am Tag, und
+    geändert wird nur auf ausdrückliches Ja. */
+function kalibrierungAnbieten(){
+  if(!sitzung || !sitzung.daten) return;
+  const heute = heuteAlsText();
+  const v = kalibrierungsVorschlag(sitzung.daten.protokoll, sitzung.daten.einrichtung, heute);
+  if(!v) return;
+  if(sitzung.daten.einrichtung.kalibrierungGefragt === heute) return;
+  sitzung.daten.einrichtung.kalibrierungGefragt = heute;
+  speichern();
+  const NAME = { anfaenger:"Anfänger", wieder:"Wiedereinsteiger", fortgeschritten:"Fortgeschritten" };
+  frage(v.richtung === "hoch"
+    ? "Kalibrierung: Deine letzten Trainings waren im Schnitt „zu leicht“ (Note " + v.schnitt + "). Soll ich dein Profil auf „" + NAME[v.neu] + "“ stellen? Die Rechnung traut dir dann mehr zu."
+    : "Kalibrierung: Deine letzten Trainings waren im Schnitt sehr schwer (Note " + v.schnitt + "). Soll ich dein Profil auf „" + NAME[v.neu] + "“ stellen? Die Rechnung nimmt dann mehr Rücksicht.", true, ja => {
+    if(!ja) return;
+    sitzung.daten.einrichtung.erfahrung = v.neu;
+    speichern();
+    fortschrittNeuZeichnen();
+    zeigenToast("Profil: " + NAME[v.neu], "erfolg");
+  });
 }
 
 /* ---- Ruhepuls (0.230.0) — der offene Punkt aus Gruppe B, jetzt entschieden:
@@ -11029,7 +11181,7 @@ function kapazitaetsFaktor(profil, einrichtung, heute, tageswerte, protokoll){
      den eigenen Trainingswochen (Nutzer-Direktive „nichts darf fix sein").
      `protokoll` ist optional; ohne rechnet die Funktion wie zuvor mit dem
      Startwert aus dem Profil. */
-  let f = erfahrungsFaktor(einrichtung, protokoll);
+  let f = erfahrungsFaktor(einrichtung, protokoll, heute);
   const e = einrichtung || {};
   const alter = alterJahre(profil, heute);
   if(alter && alter > 30) f *= Math.max(0.75, 1 - (alter - 30) * 0.005);   // Heuristik
@@ -11399,7 +11551,7 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
   const wochen = [];
   for(let w = 1; w <= ANPASSUNG_WOCHEN; w++)
     wochen.push(muskelLast(protokoll, tageVerschieben(heute, -7 * w), 6));
-  const erfF = erfahrungsFaktor(einrichtung, protokoll);
+  const erfF = erfahrungsFaktor(einrichtung, protokoll, heute);
   const raus = {};
   Object.keys(roh).forEach(m => {
     const basis = MUSKEL_KAPAZITAET[m] || KAPAZITAET_STANDARD;
@@ -11925,7 +12077,8 @@ function muskelAuswahlZeichnen(){
          senkt, soll man lesen können, WARUM die Zahl heute niedriger ist. */
       const wohl = beschwerdeText(sitzung.daten.beschwerden, key, heuteAlsText());
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl) + '</div>';
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl) + '</div>' +
+        korridorZeileHtml(a);   // 0.231.0: Mindestmaß · Richtwert · Verletzungsrisiko
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
@@ -19605,6 +19758,7 @@ function abschlussZeigen(plan, eintrag, runden, gespeichert, bestVorher){
     (zeilen ? '<div class="karte">' + zeilen + '</div>'
             : '<div class="karte"><div class="meta">Kein Satz fertig geworden — eingetragen wurde nichts.</div></div>') +
     (serie >= 2 ? '<div class="karte"><h2>🔥 ' + serie + ' Trainings in Serie</h2></div>' : "") +
+    kalibrierungsKarteHtml() +   // 0.231.0: auch hier sagt die App, wenn sie noch lernt
     checkAngebotHtml() +   // 0.230.0: auch das Training auf Zeit endet mit der Frage
     '<div class="meta" style="margin-top:10px">Gezählt wird nur, was du fertig gemacht hast. Der angefangene Satz beim Gong bleibt draußen. Die Zahl der Sätze übernimmt die App in den Plan — Wiederholungen und Gewicht bleiben, wie du sie eingestellt hast.</div>';
   zeige("view-abschluss");
@@ -20168,7 +20322,7 @@ function bewertungAnwenden(){
   // Untertitel (Meilenstein / Ruhetags-Toleranz) bleiben.
   const serienUntertitel = meilenstein ? "Meilenstein erreicht!"
     : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "");
-  document.getElementById("ergebnis-liste").innerHTML = zielKarte +
+  document.getElementById("ergebnis-liste").innerHTML = kalibrierungsKarteHtml() + zielKarte +
     '<div class="karte' + (serienUntertitel ? " zeile" : "") + '"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
     (serienUntertitel ? '<span class="meta">' + serienUntertitel + '</span>' : '') + '</div>' +
     zeilen.map(z => {
@@ -20188,6 +20342,9 @@ function bewertungAnwenden(){
 
   lauf = null;
   zeige("view-ergebnis");
+  // 0.231.0: passt die Profil-Einstufung noch? Gefragt wird nur in einer
+  // Kalibrierungs-Phase, höchstens einmal am Tag, geändert nur auf Ja.
+  setTimeout(kalibrierungAnbieten, 900);
 }
 
 /** 0.230.0 (Nutzer-Direktive „als Frage am Ende jedes Trainings"): Direkt nach
