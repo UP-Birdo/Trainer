@@ -149,8 +149,10 @@ pruefe("der Korridor nennt das Verletzungsrisiko",
   grabFn("korridorWort").includes("Verletzungsrisiko"));
 pruefe("die Melze haengt an der Kapazitaets-Rechnung",
   grabFn("kapazitaetsFaktor").includes("erfahrungsFaktor(einrichtung, protokoll, heute)"));
+/* 0.239: muskelAuslastung rechnet die Kapazitaets-Seite mit dem ECHTEN
+   Protokoll (`echt`, ohne fiktive Vorschau-Eintraege) — die Zusage bleibt. */
 pruefe("und an der Erholung je Muskel",
-  grabFn("muskelAuslastung").includes("erfahrungsFaktor(einrichtung, protokoll, heute)"));
+  grabFn("muskelAuslastung").includes("erfahrungsFaktor(einrichtung, echt, heute)"));
 
 /* ---------- 6) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

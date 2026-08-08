@@ -2921,8 +2921,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.238.0";
-const APP_VERSION = 238000;
+const VERSION = "0.239.0";
+const APP_VERSION = 239000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7140,7 +7140,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.238 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.239 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7187,6 +7187,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.239.0", punkte:[
+    "Eine gründliche Fehlersuche durch die ganze App — sechs Korrekturen: Die ±kg-Knöpfe im laufenden Training funktionieren wieder (sie taten seit Längerem still gar nichts). Bei Zeit-Übungen stimmt die eingetragene Haltezeit jetzt auch nach „Anhalten/Weiter“ oder ±Zeit (vorher konnten gehaltene Sekunden verloren gehen — auch beim Kürzen auf null). Ein Doppeltipp auf „Los geht’s“ kann das Training nicht mehr durcheinanderbringen.",
+    "Dazu drei Rechnungs-Korrekturen: Ein Muskel mit gemeldeten starken Schmerzen zeigt jetzt auch in seiner Detail-Karte den roten Balken (nicht nur auf der Figur). Die Beschwerde-Muster erkennen auch mitarbeitende Muskeln — etwa den unteren Rücken nach Kniebeugen. Und die „Nach diesem Training“-Vorschau rechnet sauber: Der angeschaute Plan verschiebt nicht mehr heimlich die Kapazitäts-Seite der eigenen Prognose."
+  ]},
   { stand:"0.238.0", punkte:[
     "Die Trainings-Vorschau zeigt jetzt, wie deine Muskeln NACH dem Training stünden: Zwei Figuren unter „Nach diesem Training“ färben sich so, wie die geplanten Sätze deine Auslastung verschieben würden — mit derselben Ampel wie überall. Würde ein Muskel damit deutlich über den Richtwert rutschen, steht die Warnung direkt darunter, BEVOR du startest. Zu sehen ab Einfachheits-Stufe 4, ein Tipp auf die Figuren öffnet die Muskelkarte."
   ]},
@@ -10303,7 +10307,11 @@ function planAlsEintrag(plan, heute){
     for(let i = 0; i < n; i++)
       saetze.push({ name: u.name, wdh: u.wdh || 0, gewicht: u.gewicht || 0, note: 3 });
   });
-  return saetze.length ? { datum: heute, typ: "kraft", saetze } : null;
+  /* 0.239.0: `vorschau:true` kennzeichnet den Eintrag als FIKTIV. Er darf nur
+     die LAST erhöhen — nicht die Kapazitäts-Seite der Rechnung verschieben
+     (Erfahrungs-Melze, Noten-Schnitt, Bestwerte, Beschwerde-Muster lesen ihn
+     deshalb nicht). Sonst wären Vorher und Nachher nicht vergleichbar. */
+  return saetze.length ? { datum: heute, typ: "kraft", vorschau: true, saetze } : null;
 }
 
 /** Die Quoten, wie sie NACH diesem Training stünden — oder null, wenn es
@@ -11380,15 +11388,26 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
       ziel[topf][name] = (ziel[topf][name] || 0) + 1;
     };
     (protokoll || []).forEach(t => {
-      if(!t || !t.datum) return;
+      if(!t || !t.datum || t.vorschau) return;   // 0.239.0: fiktive Einträge stiften kein Muster
       const d = tagDifferenz(t.datum, er.datum);
       if(d < 0 || d > MUSTER_VORLAUF_TAGE) return;
-      // dieselben Bausteine wie die Belastungs-Rechnung (v197/v211-Linie)
-      if(alsEinheitZaehlbar(t) && muskelnAufKarte(SPORT_LAST_MUSKELN[t.sportart].p).includes(er.muskel))
-        dazu("sportarten", t.sportart);
+      /* Dieselben Bausteine wie die Belastungs-Rechnung (v197/v211-Linie).
+         0.239.0: SEKUNDÄR zählt mit — `muskelLast` belastet mitarbeitende
+         Muskeln (halb), also können sie auch Beschwerden erklären. Ohne sie
+         entstünde z. B. für den unteren Rücken nach Kniebeugen nie ein Muster,
+         obwohl genau diese Sätze ihn in der Rechnung belastet haben. Fürs
+         ZÄHLEN ist eine Beobachtung eine Beobachtung — halb gewichtet wird
+         die Last, nicht das Ereignis. */
+      if(alsEinheitZaehlbar(t)){
+        const satz = SPORT_LAST_MUSKELN[t.sportart];
+        if(muskelnAufKarte(satz.p).concat(muskelnAufKarte(satz.s)).includes(er.muskel))
+          dazu("sportarten", t.sportart);
+      }
       (t.saetze || []).forEach(s => {
         const info = uebungMuskeln(s.name);
-        if(info && info.muskeln && info.muskeln.includes(er.muskel)) dazu("uebungen", s.name);
+        if(!info) return;
+        if((info.muskeln || []).includes(er.muskel) ||
+           (info.sekundaer || []).includes(er.muskel)) dazu("uebungen", s.name);
       });
     });
   });
@@ -11492,10 +11511,12 @@ const NOTE_GEWICHT = { 1:0.5, 2:0.75, 3:1, 4:1.2, 5:1.3 };
     wenn der Bestwert bei 75 liegt. Rein/testbar. */
 function maxGewichtJeUebung(protokoll){
   const max = {};
-  (protokoll || []).forEach(e => echteSaetze(e).forEach(s => {
+  // 0.239.0: fiktive Vorschau-Einträge sind GEPLANTE Zahlen, keine Messung —
+  // sie dürfen keinen Bestwert stiften (v158-Linie, gleiche Logik wie `soll`).
+  (protokoll || []).forEach(e => { if(e && e.vorschau) return; echteSaetze(e).forEach(s => {
     if(!s.name || !(s.gewicht > 0)) return;
     if(!max[s.name] || s.gewicht > max[s.name]) max[s.name] = s.gewicht;
-  }));
+  }); });
   return max;
 }
 
@@ -11812,6 +11833,13 @@ function satzloseText(info){
 
 /** Auslastung je Muskel: Sätze, Kapazität, Quote und Erholung. Rein/testbar. */
 function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, beschwerden){
+  /* 0.239.0: Ein fiktiver Vorschau-Eintrag (`vorschau:true`, aus
+     `planAlsEintrag`) zählt NUR als Last. Alles, was die KAPAZITÄT bestimmt
+     (Erfahrung samt Melze, Noten, Beschwerde-Muster, Anpassungs-Wochen),
+     rechnet mit dem echten Protokoll — sonst höbe die bloße Vorschau eines
+     Plans die Kapazität (Melze fällt weg, Note-3-Sätze verwässern den
+     Schnitt) und die Nachher-Warnung käme zu spät. */
+  const echt = (protokoll || []).filter(e => e && !e.vorschau);
   const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
   /* 0.228.0: Ein Muskel MIT Beschwerde, aber ohne Last im Fenster, muss trotzdem
      auftauchen — sonst bliebe er grün („bereit"), obwohl gerade gemeldet wurde,
@@ -11825,15 +11853,15 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
      die Anpassung, wie viel Volumen jeder Muskel zuletzt nachweislich vertrug. */
   const wochen = [];
   for(let w = 1; w <= ANPASSUNG_WOCHEN; w++)
-    wochen.push(muskelLast(protokoll, tageVerschieben(heute, -7 * w), 6));
-  const erfF = erfahrungsFaktor(einrichtung, protokoll, heute);
+    wochen.push(muskelLast(echt, tageVerschieben(heute, -7 * w), 6));
+  const erfF = erfahrungsFaktor(einrichtung, echt, heute);
   // 0.237.0: die Beschwerde-Vorläufer EINMAL für alle Muskeln auszählen.
-  const vor = beschwerdeVorlaeufer(protokoll, beschwerden, heute);
+  const vor = beschwerdeVorlaeufer(echt, beschwerden, heute);
   const raus = {};
   Object.keys(roh).forEach(m => {
     const basis = MUSKEL_KAPAZITAET[m] || KAPAZITAET_STANDARD;
     const anp = anpassungsFaktor(wochen, m, basis, beschwerdeFaktor(beschwerden, m, heute));
-    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden, protokoll, anp,
+    const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden, echt, anp,
                                  vertraeglichkeitsFaktor(vor, m));
     /* 0.235.0: gemeldete Beschwerden geben der Quote einen Boden — ein
        schmerzender Muskel darf nie grün („bereit") dastehen. */
@@ -11851,8 +11879,15 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
     Schwelle. Ab 100 % der Richtgröße wird gewarnt, ab 130 % deutlich.
     Rein/testbar. */
 function auslastungStufe(a){
-  if(!a || !(a.saetze > 0)) return "ruhig";
+  if(!a) return "ruhig";
+  /* 0.239.0: Die Quote ZUERST — seit dem Beschwerde-Boden (0.235) kann ein
+     Muskel OHNE Sätze im Fenster auf 1,3 stehen („Schmerzen — stark"). Bis
+     hierher fiel er durch `saetze > 0` auf „ruhig": Karte und fette Warnung
+     zeigten tiefrot, die Detail-Karte desselben Muskels aber einen neutralen
+     Balken. Jetzt urteilt die Stufe über die Quote, „ruhig" bleibt nur, wo
+     wirklich nichts ist. */
   if(a.quote >= 1.3) return "zuviel";
+  if(!(a.saetze > 0)) return "ruhig";
   if(a.quote >= 1.0) return "hoch";
   return "gut";
 }
@@ -19435,6 +19470,10 @@ function vorschauNachherZeichnen(p){
 
 /** Erst hier geht es wirklich los — audioFreischalten() braucht diese Tippgeste (iOS). */
 function trainingLosgehts(){
+  /* 0.239.0: Doppeltipp-Schutz wie an den Trainings-Knöpfen. Ein Doppeltipp
+     auf den Start-Knopf baute ZWEI `lauf`-Objekte; der Countdown des ersten
+     lief als Waise weiter und schob jeden Wdh-Satz sofort weiter. */
+  if(tippGesperrt()) return;
   const plan = vorschauPlan;
   audioFreischalten();
   bildschirmWachhalten();
@@ -19610,6 +19649,11 @@ function schrittBetreten(){
   toeneVerwerfen();
   clearInterval(lauf.timerId);
   lauf.pausiert = false;
+  /* 0.239.0: gehaltene Zeit ABGESCHLOSSENER Etappen dieses Schritts.
+     `countdownStarten` überschreibt `dauer` bei Anhalten/Weiter und ±Zeit mit
+     der Restzeit — wer die Ist-Haltezeit aus `dauer − rest` rechnet, braucht
+     die früheren Etappen von hier. */
+  lauf.zeitGehalten = 0;
   const pauseK = document.getElementById("pause-knopf");
   pauseK.textContent = "Anhalten";   // v171: nicht „Pause" — siehe pauseKnopf
   pauseK.classList.remove("gewaehlt");
@@ -20078,11 +20122,14 @@ function hauptKnopf(){
   if(s.typ === "satz-wdh"){
     satzProtokollieren(s, 0);                                      // Satz fertig
   } else if(s.typ === "satz-zeit"){
-    // Ist-Haltezeit = Solldauer − Restzeit. Bei Pause ist die Restzeit
-    // eingefroren (restBeiPause); sonst würde die weiterlaufende Wanduhr die
-    // Pausensekunden fälschlich als gehaltene Zeit mitzählen.
-    const rest = lauf.pausiert ? lauf.restBeiPause : (lauf.ende - Date.now()) / 1000;
-    const gehalten = Math.round(lauf.dauer - rest);
+    /* Ist-Haltezeit = abgeschlossene Etappen (`zeitGehalten`) + laufende
+       Etappe (`dauer − rest`). 0.239.0: `dauer` trägt nach Anhalten/Weiter
+       oder ±Zeit nur noch die LAUFENDE Etappe — die Rechnung `dauer − rest`
+       allein ergab nach einem „Weiter" plus Überspringen 0 s statt der
+       tatsächlich gehaltenen Zeit. Im Pausiert-Zustand hat `pauseKnopf` die
+       laufende Etappe bereits nach `zeitGehalten` gerechnet. */
+    const etappe = lauf.pausiert ? 0 : Math.max(0, lauf.dauer - (lauf.ende - Date.now()) / 1000);
+    const gehalten = Math.round((lauf.zeitGehalten || 0) + etappe);
     satzProtokollieren(s, begrenzen(gehalten, 0, s.sekunden));     // übersprungen: Ist-Zeit zählt
   }
   // "bereit" und "pause" werden nicht protokolliert — einfach weiter.
@@ -20129,7 +20176,11 @@ function gewichtReiheZeichnen(u){
 /** v159: Gewicht des laufenden Satzes ändern. Nie unter 0; die Anzeige zieht
     mit, damit sichtbar bleibt, was protokolliert wird. */
 function gewichtAendern(richtung){
-  const s = lauf.ablauf && lauf.ablauf[lauf.index];
+  /* 0.239.0: Hier stand `lauf.ablauf` — das Feld heißt seit je `schritte`
+     (alle anderen Stellen lesen es so). `s` war darum immer undefined, die
+     ±kg-Knöpfe taten still NICHTS, protokolliert wurde stets das
+     unveränderte Gewicht. */
+  const s = lauf && lauf.schritte && lauf.schritte[lauf.index];
   const u = s ? lauf.plan.uebungen[s.uebungIndex] : null;
   if(!u) return;
   const schritt = gewichtSchrittFuer(u);
@@ -20143,10 +20194,21 @@ function zeitAendern(delta){
   if(!lauf || lauf.pausiert) return;
   const s = lauf.schritte[lauf.index];
   if(s.typ === "satz-wdh" || s.typ === "bereit") return;
-  const rest = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000) + delta);
+  const restVorher = Math.max(0, Math.ceil((lauf.ende - Date.now())/1000));
+  const rest = Math.max(0, restVorher + delta);
   toeneVerwerfen();
   clearInterval(lauf.timerId);
-  if(rest <= 0){ lauf.index++; schrittBetreten(); return; }
+  // 0.239.0: die bis hier gelaufene Etappe festhalten — der Neustart unten
+  // setzt `dauer` auf die neue Restzeit (s. schrittBetreten/hauptKnopf).
+  lauf.zeitGehalten = (lauf.zeitGehalten || 0) + Math.max(0, lauf.dauer - restVorher);
+  if(rest <= 0){
+    /* 0.239.0: Ein auf 0 gekürzter ZEIT-Satz trägt die gehaltene Zeit ein —
+       vorher ging sie hier wortlos verloren, während „Satz überspringen"
+       (hauptKnopf) sie längst protokollierte (v220-Linie: Geschafftes zählt). */
+    if(s.typ === "satz-zeit")
+      satzProtokollieren(s, begrenzen(Math.round(lauf.zeitGehalten), 0, s.sekunden));
+    lauf.index++; schrittBetreten(); return;
+  }
   countdownStarten(rest);
 }
 
@@ -20159,6 +20221,9 @@ function pauseKnopf(){
   const knopf = document.getElementById("pause-knopf");
   if(!lauf.pausiert){
     lauf.restBeiPause = Math.max(1, Math.ceil((lauf.ende - Date.now())/1000));
+    // 0.239.0: die eben gelaufene Etappe festhalten — `dauer` wird beim
+    // „Weiter" mit der Restzeit neu gesetzt und wüsste nichts mehr von ihr.
+    lauf.zeitGehalten = (lauf.zeitGehalten || 0) + Math.max(0, lauf.dauer - lauf.restBeiPause);
     lauf.pausiert = true;
     toeneVerwerfen();
     clearInterval(lauf.timerId);

@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.239.0
+
+- Eine gründliche Fehlersuche durch die ganze App — sechs Korrekturen: Die ±kg-Knöpfe im
+  laufenden Training funktionieren wieder (sie taten seit Längerem still gar nichts).
+  Bei Zeit-Übungen stimmt die eingetragene Haltezeit jetzt auch nach „Anhalten/Weiter“
+  oder ±Zeit (vorher konnten gehaltene Sekunden verloren gehen — auch beim Kürzen auf
+  null). Ein Doppeltipp auf „Los geht’s“ kann das Training nicht mehr
+  durcheinanderbringen.
+- Dazu drei Rechnungs-Korrekturen: Ein Muskel mit gemeldeten starken Schmerzen zeigt
+  jetzt auch in seiner Detail-Karte den roten Balken (nicht nur auf der Figur). Die
+  Beschwerde-Muster erkennen auch mitarbeitende Muskeln — etwa den unteren Rücken nach
+  Kniebeugen. Und die „Nach diesem Training“-Vorschau rechnet sauber: Der angeschaute
+  Plan verschiebt nicht mehr heimlich die Kapazitäts-Seite der eigenen Prognose.
+
 ## 0.238.0
 
 - Die Trainings-Vorschau zeigt jetzt, wie deine Muskeln NACH dem Training stünden: Zwei

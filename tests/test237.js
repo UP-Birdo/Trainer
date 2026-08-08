@@ -142,8 +142,9 @@ pruefe("malWort spricht Saetze", B.malWort(3) === "dreimal" && B.malWort(13) ===
 /* ---------- 4) Verdrahtung ---------- */
 pruefe("die Kapazitaet rechnet die Vertraeglichkeit mit",
   grabFn("muskelKapazitaet").includes("(vertraeglichkeit || 1)"));
+/* 0.239: gezaehlt wird ueber das ECHTE Protokoll (ohne Vorschau-Eintraege). */
 pruefe("die Auslastung zaehlt die Vorlaeufer EINMAL fuer alle Muskeln",
-  grabFn("muskelAuslastung").includes("beschwerdeVorlaeufer(protokoll, beschwerden, heute)") &&
+  grabFn("muskelAuslastung").includes("beschwerdeVorlaeufer(echt, beschwerden, heute)") &&
   grabFn("muskelAuslastung").includes("vertraeglichkeitsFaktor(vor, m)"));
 pruefe("die Detail-Karte nennt das Muster",
   grabFn("muskelAuswahlZeichnen").includes("beschwerdeMusterText("));
