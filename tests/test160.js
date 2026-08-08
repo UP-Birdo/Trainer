@@ -90,6 +90,8 @@ const code = [
   "const ANPASSUNG_WOCHEN = 0;",
   "function anpassungsFaktor(){ return 1; }",
   "function erholungsTageFuer(){ return 2; }",
+  // 0.235: der Beschwerde-Boden auf der Quote — hier neutral (test235 prueft ihn).
+  "function beschwerdeQuoteFloor(){ return 0; }",
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
   /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne

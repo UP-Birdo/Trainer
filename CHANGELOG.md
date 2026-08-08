@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.235.0
+
+- Deine Antworten auf die Muskel-Fragen färben jetzt direkt die Muskelkarte: Ein Muskel
+  mit gemeldeten starken Schmerzen steht sofort tiefrot da — samt der Warnung, ihn nicht
+  zu trainieren — auch wenn er diese Woche kaum belastet wurde. Leichte Schmerzen und
+  Muskelkater schieben ihn Richtung Gelb. Vorher konnte ein schmerzender, aber wenig
+  trainierter Muskel grün („bereit“) bleiben.
+
 ## 0.234.0
 
 - Der Kurz-Check fragt jetzt wie ein Arzt: Zu jedem Muskel gibt es eine eigene,

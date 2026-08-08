@@ -2915,8 +2915,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.234.0";
-const APP_VERSION = 234000;
+const VERSION = "0.235.0";
+const APP_VERSION = 235000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7134,7 +7134,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.234 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.235 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7181,6 +7181,9 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.235.0", punkte:[
+    "Deine Antworten auf die Muskel-Fragen färben jetzt direkt die Muskelkarte: Ein Muskel mit gemeldeten starken Schmerzen steht sofort tiefrot da — samt der Warnung, ihn nicht zu trainieren — auch wenn er diese Woche kaum belastet wurde. Leichte Schmerzen und Muskelkater schieben ihn Richtung Gelb. Vorher konnte ein schmerzender, aber wenig trainierter Muskel grün („bereit“) bleiben."
+  ]},
   { stand:"0.234.0", punkte:[
     "Der Kurz-Check fragt jetzt wie ein Arzt: Zu jedem Muskel gibt es eine eigene, ausformulierte Frage mit einer kleinen Bewegung zum Ausprobieren — „Fass mit der Hand über den Kopf ans andere Ohr — zieht es dabei in der Schulter?“ statt einer Formel für alle. Dieselben Fragen stellt auch der Wohlbefinden-Tab der Muskelkarte.",
     "Rechenwerte stehen nirgends mehr auf dem Schirm: Statt einer Fitness-Zahl steht dein Stand in Worten („im Aufbau“, „gefestigt“ …), der Muskel-Korridor sagt in einem Satz, wo du gerade stehst („im produktiven Bereich“, „an der Grenze“), und die Kalibrierung begründet sich ohne Zahlen. Gerechnet wird unverändert fein — nur die Anzeige spricht jetzt deine Sprache."
@@ -10237,8 +10240,18 @@ function auslastungsQuoten(){
      Grün und Gelb (was gemessen ist) bleiben, Rot (das Urteil) kommt erst mit
      genug Trainings. */
   const deckel = basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99;
+  const heute = heuteAlsText();
   const q = {};
-  Object.keys(a).forEach(m => { q[m] = Math.min(a[m].quote, deckel); });
+  Object.keys(a).forEach(m => {
+    q[m] = Math.min(a[m].quote, deckel);
+    /* 0.235.0: Der Deckel bremst das VOLUMEN-Urteil, solange die Basis fehlt —
+       eine selbst gemeldete Beschwerde ist aber kein Urteil der App, sondern
+       eine Aussage des Nutzers. Sie färbt deshalb auch auf einem jungen Konto
+       voll durch (sonst bliebe „Schmerzen — stark" die ersten fünf Trainings
+       lang unter der roten Schwelle). */
+    const boden = beschwerdeQuoteFloor(sitzung.daten.beschwerden, m, heute);
+    if(boden > q[m]) q[m] = boden;
+  });
   return q;
 }
 
@@ -11215,6 +11228,24 @@ function beschwerdeFaktor(beschwerden, muskel, heute){
   return Math.min(1, f);
 }
 
+/* 0.235.0 (Nutzer-Frage „warnen die Antworten früh genug?"): Beim Nachprüfen
+   kam die Lücke heraus — die Farbe hängt an der Quote (Last ÷ Kapazität). Ein
+   Muskel OHNE Last im Fenster hatte Quote ≈ 0 und blieb GRÜN („bereit"), selbst
+   wenn gerade Schmerzen gemeldet waren; und „stark schmerzt" erreichte die
+   fette Warnung (ab 1,3) nie. Deshalb: Eine gemeldete Beschwerde gibt der
+   Quote einen BODEN. Das ist keine erfundene Auslastung — die Karte
+   beantwortet „kann ich den trainieren?", und ein schmerzender Muskel ist
+   nicht bereit, egal wie leer sein Wochen-Konto ist. */
+function beschwerdeQuoteFloor(beschwerden, muskel, heute){
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
+  if(schmerz >= 2) return 1.3;   // tiefrot + fette Warnung: nicht trainieren
+  if(schmerz === 1) return 1.0;  // gelb-rot: über dem Richtwert
+  if(kater >= 2)    return 1.0;
+  if(kater === 1)   return 0.7;  // deutlich Richtung „benutzt"
+  return 0;
+}
+
 /** Der Satz dazu — oder leer. Eigene Aussage neben der Quote, wie bei
     Muskelkater (v168) und Leistungsabfall (v161). Rein/testbar. */
 function beschwerdeText(beschwerden, muskel, heute){
@@ -11618,8 +11649,12 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
     const basis = MUSKEL_KAPAZITAET[m] || KAPAZITAET_STANDARD;
     const anp = anpassungsFaktor(wochen, m, basis, beschwerdeFaktor(beschwerden, m, heute));
     const kap = muskelKapazitaet(m, profil, einrichtung, heute, tageswerte, beschwerden, protokoll, anp);
+    /* 0.235.0: gemeldete Beschwerden geben der Quote einen Boden — ein
+       schmerzender Muskel darf nie grün („bereit") dastehen. */
+    const quote = Math.max(Math.round((roh[m].saetze / kap) * 100) / 100,
+                           beschwerdeQuoteFloor(beschwerden, m, heute));
     raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
-                quote: Math.round((roh[m].saetze / kap) * 100) / 100,
+                quote,
                 // 0.230.0: Erholung je Muskel statt einer Zahl für alle
                 erholt: roh[m].tageSeit >= erholungsTageFuer(m, erfF) };
   });

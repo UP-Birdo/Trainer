@@ -86,6 +86,8 @@ new Function("module", "exports", [
   "function erholungsTageFuer(){ return 2; }",
   // 0.232/0.234: die Grundlagen-Zeile zeigt den Stand in Worten (geprueft in test232/234).
   "function fitnessWort(){ return 'gefestigt'; }",
+  // 0.235: der Beschwerde-Boden auf der Quote — hier neutral (test235 prueft ihn).
+  "function beschwerdeQuoteFloor(){ return 0; }",
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
   /* v189: Die Grundlagen-Zeile nennt jetzt auch die gemessenen Pausen. In
