@@ -168,8 +168,15 @@ pruefe("die App ist mindestens auf v216",
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.216", punkte:['));
 /* v217: die Korrektur an der Figuren-Ausrichtung hat ihre eigene Neuigkeit. */
 pruefe("die Korrektur ist als Neuigkeit vermerkt", src.includes('{ stand:"0.217", punkte:['));
-pruefe("die Legende unter den Vorschau-Figuren ist weg",
-  /koerper-legende[\s\S]{0,120}leg\.innerHTML = ""/.test(grabFn("koerperVorschauZeichnen")));
+/* 0.227.0 kehrt diese v217-Entscheidung um — begruendet: Damals trug die Figur
+   EINE Farbe, „mehr Farbe = mehr trainiert" verstand man ohne Beschriftung.
+   Seit der Gruen-Gelb-Rot-Skala tragen die Farben eine Aussage, die man nicht
+   raten kann (gruen = bereit, rot = aufhoeren). Geblieben ist die Text-Diaet:
+   drei Woerter mit Punkten, kein Erklaersatz. */
+pruefe("die Legende unter den Vorschau-Figuren ist eine Skala, kein Text",
+  grabFn("koerperVorschauZeichnen").includes("lastLegendeHtml()") &&
+  /bereit[\s\S]*benutzt[\s\S]*zu viel/.test(grabFn("lastLegendeHtml")) &&
+  !/wenig/.test(grabFn("lastLegendeHtml")));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

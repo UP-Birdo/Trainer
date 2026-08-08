@@ -21,7 +21,9 @@ function grabFn(name){
 
 const modul = { exports: {} };
 new Function("module", "exports",
-  grabFn("lastFarbe") + "\nmodule.exports = { lastFarbe };")(modul, modul.exports);
+  // 0.227.0: lastFarbe mischt ueber den gemeinsamen Helfer farbMischung.
+  grabFn("farbMischung") + "\n" + grabFn("lastFarbe") +
+  "\nmodule.exports = { lastFarbe };")(modul, modul.exports);
 const lastFarbe = modul.exports.lastFarbe;
 
 let ok = 0, fehler = 0;
@@ -38,12 +40,20 @@ pruefe("auch darunter", gleich(lastFarbe(0.5, SIGNAL, WARN), SIGNAL));
 pruefe("bei 130 Prozent ganz im Warnrot", gleich(lastFarbe(1.3, SIGNAL, WARN), WARN));
 pruefe("darueber nicht weiter", gleich(lastFarbe(5, SIGNAL, WARN), WARN));
 
-/* ---------- 2) Der Uebergang ist stetig ---------- */
-const mitte = lastFarbe(1.0, SIGNAL, WARN);
-pruefe("bei 100 Prozent genau dazwischen",
+/* ---------- 2) Der Uebergang ist stetig ----------
+   0.227.0 (Nutzer-Ansage): Die Skala hat einen dritten Ton bekommen — Gruen fuer
+   „bereit". Damit liegt der Verlauf anders: 0 bis 1 wandert von Gruen nach Gelb,
+   1 bis 1,3 von Gelb nach Rot. Der Punkt von v162 bleibt derselbe und wird hier
+   weiter geprueft: STUFENLOS statt Schwelle. Die Aufrufe ohne Gruen-Ton (oben)
+   pruefen zusaetzlich, dass alte Aufrufer unveraendert weiterlaufen. */
+const GRUEN = [90, 164, 105];   // --ok
+const mitte = lastFarbe(1.15, SIGNAL, WARN);
+pruefe("bei 115 Prozent genau zwischen Gelb und Rot",
   gleich(mitte, [Math.round((244+217)/2), Math.round((199+92)/2), Math.round((78+71)/2)]));
 pruefe("es gibt keine Schwelle, sondern viele Werte",
-  new Set([0.7,0.8,0.9,1.0,1.1,1.2,1.3].map(q => lastFarbe(q, SIGNAL, WARN).join(","))).size === 7);
+  new Set([1.0,1.05,1.1,1.15,1.2,1.25,1.3].map(q => lastFarbe(q, SIGNAL, WARN).join(","))).size === 7);
+pruefe("und im gruenen Bereich ebenso",
+  new Set([0,0.2,0.4,0.6,0.8,1.0].map(q => lastFarbe(q, SIGNAL, WARN, GRUEN).join(","))).size === 6);
 /* Beide Farben liegen so, dass ALLE drei Kanaele auf dem Weg vom Signal- zum
    Warnton kleiner werden. Geprueft wird deshalb: kein Kanal springt zurueck —
    die Farbe wandert durchgehend in dieselbe Richtung, ohne Zacken. */
@@ -65,7 +75,8 @@ pruefe("es kommen immer drei ganze Zahlen zurueck",
 /* ---------- 4) Verdrahtung: EINE Stelle faerbt ---------- */
 const canvas = grabFn("muskelnAufCanvas");
 pruefe("die Mal-Funktion nimmt Quoten entgegen", canvas.includes("function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer, quoten)"));
-pruefe("und faerbt je Muskel", canvas.includes("lastFarbe(quoten && quoten[key], signal, warn)"));
+// 0.227.0: dazu der Gruen-Ton, und ein fehlender Eintrag heisst „keine Last" (0).
+pruefe("und faerbt je Muskel", canvas.includes("lastFarbe(quoten ? (quoten[key] || 0) : undefined, signal, warn, ok)"));
 pruefe("die Warnfarbe kommt aus dem Thema", src.includes('function muskelWarnRgb(){ return themeRgb("--warn"'));
 const figuren = grabFn("miniFigurenZeichnen");
 pruefe("die Quoten werden EINMAL je Zeichenlauf geholt",
@@ -74,8 +85,11 @@ pruefe("die Quoten werden EINMAL je Zeichenlauf geholt",
 pruefe("und an jede Figur durchgereicht", figuren.includes("(el.dataset.mfSek || \"\").split(\",\").filter(Boolean), quoten)"));
 pruefe("die Mini-Figur reicht sie weiter",
   grabFn("miniMuskelFigur").includes("muskeln, 205, sekundaer, quoten"));
-pruefe("ohne Konto bleibt es bei leeren Quoten",
-  grabFn("auslastungsQuoten").includes("if(!sitzung || !sitzung.daten) return {}"));
+/* 0.227.0: `null` statt `{}` — mit der Gruen-Skala sind das zwei verschiedene
+   Aussagen. Kein Objekt heisst „keine Daten" (Signalfarbe), ein leeres Objekt
+   hiesse „alles ruhig" (gruen). */
+pruefe("ohne Konto gibt es gar keine Quoten",
+  grabFn("auslastungsQuoten").includes("if(!sitzung || !sitzung.daten) return null"));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

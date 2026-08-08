@@ -258,8 +258,13 @@ pruefe("ohne Grundlage kein Text", A.grundlageText(null) === "");
 /* ---------- 8) Verdrahtung ---------- */
 pruefe("die Auslastung bekommt die Tageswerte",
   grabFn("auslastungsQuoten").includes("sitzung.daten.tageswerte"));
+/* 0.227.0: Die Zusage gilt weiter — nur genauer. Bis 0.226 wurde ohne Basis das
+   ganze Quoten-Objekt geleert; mit der Gruen-Gelb-Rot-Skala hiesse leer aber
+   „alles ruhig" und faerbte den Koerper gruen, ausgerechnet nach dem Training.
+   Jetzt wird die Quote unter die ROTE Schwelle gedeckelt: Gemessenes bleibt
+   sichtbar, das Urteil (Rot) braucht weiterhin die Basis. */
 pruefe("die Einfaerbung bleibt ohne Basis aus",
-  grabFn("auslastungsQuoten").includes("if(!basisReicht(sitzung.daten.protokoll)) return {};"));
+  grabFn("auslastungsQuoten").includes("basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99"));
 pruefe("die Detail-Karte reicht die Basis durch",
   grabFn("muskelAuswahlZeichnen").includes("auslastungText(key, a, reicht)"));
 pruefe("und faerbt ohne Basis neutral",

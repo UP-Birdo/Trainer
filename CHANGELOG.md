@@ -3,6 +3,21 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.227.0
+
+- Neue Farben auf den Muskelfiguren: Grün heißt „bereit“ — der Muskel ist erholt und
+  kann trainiert werden. Je mehr Last dazukommt, desto weiter geht es über Grüngelb in
+  Richtung Gelb („benutzt“), und über dem Richtwert wird daraus Rot bis tiefrot („zu
+  viel“). Vorher konnte die Skala nur zeigen, wie schlimm es steht, nie, dass alles in
+  Ordnung ist.
+- Dazu die passende Legende unter der Figur in der Statistik — und wenn ein Muskel
+  deutlich über dem Richtwert liegt, steht dort jetzt in Rot, dass du ihn gerade nicht
+  weiter trainieren solltest.
+- Solange die App dich noch nicht gut genug kennt (weniger als fünf Trainings), bleibt
+  es bei Grün und Gelb: Rot ist ein Urteil und braucht eine Grundlage.
+- Dialoge lassen sich jetzt auch durch einen Tipp neben das Fenster schließen — falls
+  „OK“ einmal nicht anspringt.
+
 ## 0.226.0
 
 - Der Unendlichkeitsmodus zählt jetzt mit: Am Ende steht je Übung, wie viele Sätze du

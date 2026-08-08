@@ -118,7 +118,9 @@ pruefe("ohne Bestwert wird nichts erfunden", vorschau.includes('"Runde " + schri
 const koerper = grabFn("koerperVorschauZeichnen");
 pruefe("die Statistik-Figur zeigt die Auslastung", koerper.includes("miniLastFigur("));
 pruefe("nicht mehr die Haeufigkeit", !koerper.includes("miniHeatFigur("));
-pruefe("die Muskeln kommen aus derselben Last-Rechnung", koerper.includes("muskelLast("));
+/* 0.227.0: Gemalt werden ALLE Muskeln — seit der Gruen-Skala ist ein ausgeruhter
+   Muskel eine eigene Aussage („bereit") und keine leere Flaeche mehr. */
+pruefe("die Figur zeigt den ganzen Koerper", koerper.includes("MUSKEL_ORDER, quoten"));
 pruefe("die Farben aus dem Belastungs-Modell", koerper.includes("auslastungsQuoten()"));
 const figur = grabFn("miniLastFigur");
 pruefe("gemalt wird mit derselben Funktion wie die volle Karte", figur.includes("muskelnAufCanvas("));

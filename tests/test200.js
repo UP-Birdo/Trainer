@@ -86,7 +86,8 @@ pruefe("und er hebt nichts an",
 /* Gegenprobe am Dialog selbst: ohne mitAbbrechen gibt es wirklich kein Nein. */
 pruefe("frage() blendet den Nein-Knopf ohne mitAbbrechen aus",
   grabFn("frage").includes("nein.hidden = !mitAbbrechen"));
-pruefe("und OK liefert ja=true", grabFn("frage").includes("if(dann) dann(true)"));
+// 0.227.0: OK und Abbrechen laufen ueber denselben Schliess-Weg; die Antwort ist sein Argument.
+pruefe("und OK liefert ja=true", grabFn("frage").includes("ja.onclick   = () => schliessen(true)"));
 /* Die Frage sagt jetzt, was OK bedeutet — der Knopf heisst nicht Ja. */
 pruefe("der Text erklaert den OK-Knopf", nachtrag.includes("Mit OK hebe ich"));
 

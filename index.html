@@ -2459,8 +2459,22 @@ function frage(textInhalt, mitAbbrechen, dann){
   document.getElementById("dialog-text").textContent = textInhalt;
   nein.hidden = !mitAbbrechen;
   hintergrund.classList.add("offen");
-  ja.onclick   = () => { hintergrund.classList.remove("offen"); if(dann) dann(true); };
-  nein.onclick = () => { hintergrund.classList.remove("offen"); if(dann) dann(false); };
+  /* 0.227.0 (Nutzer-Befund „manchmal schließt sich der Dialog beim OK nicht
+     direkt"): Die Ursache ließ sich nicht festnageln — die naheliegende Wache
+     (der Capture-Klick aus v175) scheidet nachweislich aus, sie hängt an
+     `#inhalt`, und der Dialog liegt außerhalb davon. Statt eine Vermutung
+     einzubauen (v217-Lehre) bekommt der Dialog denselben zweiten Ausweg, den
+     das Aktionsmenü seit je hat: Ein Tipp NEBEN das Fenster schließt es.
+     Das führt nichts Neues ein und lässt niemanden feststecken. */
+  const schliessen = antwort => {
+    hintergrund.classList.remove("offen");
+    hintergrund.onclick = null;                 // keine Reste für den nächsten Dialog
+    ja.onclick = null; nein.onclick = null;
+    if(dann) dann(antwort);
+  };
+  ja.onclick   = () => schliessen(true);
+  nein.onclick = () => schliessen(false);
+  hintergrund.onclick = e => { if(e.target === hintergrund) schliessen(false); };
 }
 function meldung(t){ frage(t, false, null); }
 
@@ -2896,8 +2910,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.226.0";
-const APP_VERSION = 226000;
+const VERSION = "0.227.0";
+const APP_VERSION = 227000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7111,7 +7125,8 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.226 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.227 · Das Training in deiner Hand", punkte:[
+    "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
     "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
     "Die Figur oben in der Statistik zeigt deine Auslastung — dieselbe Aussage wie die große Muskelkarte.",
     "Der Unendlichkeitsmodus: Du gibst eine Zeit vor, deine Übungen laufen in Runden durch, bis sie um ist. Ein Band oben zeigt in Grün, Gelb und Rot, wie du in der Zeit liegst, und sagt jeden Wechsel an; danach kommt eine Übersicht mit dem, was du geschafft hast.",
@@ -7153,6 +7168,12 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.227.0", punkte:[
+    "Neue Farben auf den Muskelfiguren: Grün heißt „bereit“ — der Muskel ist erholt und kann trainiert werden. Je mehr Last dazukommt, desto weiter geht es über Grüngelb in Richtung Gelb („benutzt“), und über dem Richtwert wird daraus Rot bis tiefrot („zu viel“). Vorher konnte die Skala nur zeigen, wie schlimm es steht, nie, dass alles in Ordnung ist.",
+    "Dazu die passende Legende unter der Figur in der Statistik — und wenn ein Muskel deutlich über dem Richtwert liegt, steht dort jetzt in Rot, dass du ihn gerade nicht weiter trainieren solltest.",
+    "Solange die App dich noch nicht gut genug kennt (weniger als fünf Trainings), bleibt es bei Grün und Gelb: Rot ist ein Urteil und braucht eine Grundlage.",
+    "Dialoge lassen sich jetzt auch durch einen Tipp neben das Fenster schließen — falls „OK“ einmal nicht anspringt."
+  ]},
   { stand:"0.226.0", punkte:[
     "Der Unendlichkeitsmodus zählt jetzt mit: Am Ende steht je Übung, wie viele Sätze du geschafft hast — und daneben dein Bestwert. Wer ihn überbietet, sieht „neuer Bestwert“.",
     "Vor dem Start steht das Ziel schon da: „Ziel 6 Sätze · Bestwert 5“. Die geschaffte Zahl übernimmt die App als Satz-Zahl in den Plan, damit auf den einfacheren Stufen und in den Schätzungen etwas Sinnvolles steht. Wiederholungen und Gewicht bleiben unangetastet — nach einem neuen Bestwert fragt die App nur, ob sie die Wiederholungen um eine anheben soll.",
@@ -10095,6 +10116,7 @@ function themeRgb(name, fallback){
 /** Signalgelb als [r,g,b] (für die Muskel-Einfärbung). */
 function muskelSignalRgb(){ return themeRgb("--signal", "F4C74E"); }
 function muskelWarnRgb(){ return themeRgb("--warn", "D95C47"); }
+function muskelOkRgb(){ return themeRgb("--ok", "5AA469"); }   // 0.227.0: „bereit"
 
 /* ============================================================
    v162: ÜBERLASTETE MUSKELN WERDEN LANGSAM ROT — überall.
@@ -10110,25 +10132,60 @@ function muskelWarnRgb(){ return themeRgb("--warn", "D95C47"); }
    „hoch" und „zu viel" (v160), nur stufenlos gezeichnet.
    ============================================================ */
 
-/** Mischfarbe nach Auslastung. Rein/testbar. */
-function lastFarbe(quote, signal, warn){
-  const t = Math.max(0, Math.min(1, ((quote || 0) - 0.7) / 0.6));
-  return [0, 1, 2].map(i => Math.round(signal[i] + (warn[i] - signal[i]) * t));
+/* 0.227.0 (Nutzer-Ansage): DREI FARBEN STATT EINER RICHTUNG.
+
+   „Grüne Muskeln sind bereit zum Trainieren — abgekühlt, weil sie nicht genutzt
+   wurden, blass bis ins starke Grün. Danach Gelb, auch in Stufen: wurde benutzt.
+   Und sobald die Warnung kommt, dass dieser Muskel zu viel trainiert wurde, soll
+   es rot werden, auch in Stufen bis tiefrot."
+
+   Bis 0.226 lief die Skala von Signalgelb nach Rot — sie konnte also nur sagen,
+   wie SCHLIMM es steht, nie, dass alles gut ist. Ein ausgeruhter Muskel sah aus
+   wie ein leicht belasteter. Die neue Skala hat einen Nullpunkt:
+
+     Quote 0,0  ruhig       kräftiges Grün   „bereit"
+     Quote 0,5  halb voll   blasses Grün/Gelb
+     Quote 1,0  Richtwert   Gelb             „benutzt"
+     Quote 1,3+ darüber     tiefes Rot       „zu viel"
+
+   Die Schwellen sind unverändert die aus v160 (`auslastungStufe`) — neu ist nur,
+   dass der Bereich DARUNTER eine eigene Farbe bekommt statt einer blassen. */
+
+/** Zwei Farben mischen. Rein/testbar. */
+function farbMischung(a, b, t){
+  const s = Math.max(0, Math.min(1, t));
+  return [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * s));
+}
+
+/** Mischfarbe nach Auslastung. `quote` undefined heißt „keine Daten" — dann
+    bleibt es bei der Signalfarbe, wie vor 0.227 (Bibliothek ohne Konto). Eine
+    Quote von 0 ist dagegen eine Aussage: ruhig, also grün. Rein/testbar. */
+function lastFarbe(quote, signal, warn, ok){
+  if(quote === undefined || quote === null || !isFinite(quote)) return signal.slice();
+  const q = Math.max(0, quote);
+  if(q >= 1) return farbMischung(signal, warn, (q - 1) / 0.3);
+  if(!ok) return signal.slice();          // ohne Grün-Ton: alte Darstellung
+  return farbMischung(ok, signal, q);
 }
 
 /** Auslastungs-Quote je Muskel für die Einfärbung. Einmal je Zeichenlauf
     berechnet — nicht je Figur, sonst liefe das Protokoll bei einer Liste mit
     zwanzig Übungen zwanzigmal durch. */
 function auslastungsQuoten(){
-  if(!sitzung || !sitzung.daten) return {};
-  // v167: Auch die rote Einfärbung ist ein Urteil. Ohne ausreichende Basis
-  // bleibt sie aus — die Figuren zeigen dann die gewohnte Signalfarbe.
-  if(!basisReicht(sitzung.daten.protokoll)) return {};
+  if(!sitzung || !sitzung.daten) return null;   // 0.227.0: null = keine Daten, {} = alles ruhig
   const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
                              sitzung.daten.einrichtung, heuteAlsText(),
                              sitzung.daten.tageswerte);
+  /* v167: Die rote Einfärbung ist ein URTEIL. Ohne ausreichende Basis bleibt es
+     aus — bis 0.226 wurde dafür das ganze Quoten-Objekt geleert.
+     0.227.0 macht es feiner, und das ist mit der neuen Skala auch nötig: Ein
+     leeres Objekt hieße jetzt „alles ruhig" und färbte den ganzen Körper grün —
+     ausgerechnet direkt nach dem Training. Stattdessen wird die Quote gedeckelt:
+     Grün und Gelb (was gemessen ist) bleiben, Rot (das Urteil) kommt erst mit
+     genug Trainings. */
+  const deckel = basisReicht(sitzung.daten.protokoll) ? Infinity : 0.99;
   const q = {};
-  Object.keys(a).forEach(m => { q[m] = a[m].quote; });
+  Object.keys(a).forEach(m => { q[m] = Math.min(a[m].quote, deckel); });
   return q;
 }
 
@@ -10254,14 +10311,16 @@ function muskelCanvasFuer(ansicht){
 function muskelnAufCanvas(cx, ansicht, muskeln, alpha, sekundaer, quoten){
   cx.clearRect(0, 0, cx.canvas.width, cx.canvas.height);
   const d = muskelDaten[ansicht]; if(!d || !d.hit) return;
-  const signal = muskelSignalRgb(), warn = muskelWarnRgb();
+  const signal = muskelSignalRgb(), warn = muskelWarnRgb(), ok = muskelOkRgb();
   const bild = cx.createImageData(cx.canvas.width, cx.canvas.height), px = bild.data;
   const malen = (liste, a) => {
     for(const key of (liste || [])){
       const list = d.pixel[MUSKEL_ORDER.indexOf(key) + 1]; if(!list) continue;
-      // v162: Die Farbe hängt an der Auslastung DIESES Muskels. Ohne Quoten
-      // (z. B. Bibliothek ohne Konto) bleibt alles bei der Signalfarbe.
-      const [r,g,b] = lastFarbe(quoten && quoten[key], signal, warn);
+      /* v162: Die Farbe hängt an der Auslastung DIESES Muskels. Ohne Quoten
+         (z. B. Bibliothek ohne Konto) bleibt alles bei der Signalfarbe.
+         0.227.0: Steht ein Quoten-Objekt bereit, ist ein FEHLENDER Eintrag die
+         Aussage „keine Last" — also 0 und damit grün, nicht „keine Daten". */
+      const [r,g,b] = lastFarbe(quoten ? (quoten[key] || 0) : undefined, signal, warn, ok);
       for(let k=0;k<list.length;k++){ const p = list[k]*4; px[p]=r; px[p+1]=g; px[p+2]=b; px[p+3]=a; }
     }
   };
@@ -11371,23 +11430,56 @@ function muskelLegendeZeichnen(){
    `lastFarbe` nimmt ohne Quote die gewohnte Signalfarbe. Man sieht also von
    Anfang an, WAS belastet ist, und erst mit genug Daten auch WIE STARK. */
 function koerperVorschauZeichnen(){
-  const heute = heuteAlsText();
   const quoten = auslastungsQuoten();
-  const muskeln = Object.keys(muskelLast(sitzung.daten.protokoll, heute, MUSKEL_HEAT_TAGE));
+  /* 0.227.0: ALLE Muskeln werden gemalt, nicht nur die belasteten — ein
+     ausgeruhter Muskel ist seit der neuen Skala eine eigene Aussage („bereit",
+     grün) und keine leere Fläche mehr. */
   const vorne = document.getElementById("koerper-front");
   const hinten = document.getElementById("koerper-back");
-  if(vorne)  miniLastFigur(vorne, "front", muskeln, quoten);
-  if(hinten) miniLastFigur(hinten, "back", muskeln, quoten);
-  /* v217 (Nutzer-Wunsch „den Text unter den Vorschau-Bildern weg"): Die
-     Farbskala „wenig — viel" steht nur noch in der vollen Muskelkarte, wo sie
-     zu den Farben gehört. In der Kachel ist sie eine Zeile Erklärung für ein
-     Bild, das man ohnehin antippt — dieselbe Text-Diät wie v120/v123. */
+  if(vorne)  miniLastFigur(vorne, "front", MUSKEL_ORDER, quoten);
+  if(hinten) miniLastFigur(hinten, "back", MUSKEL_ORDER, quoten);
+  /* v217 nahm die Farbskala aus der Kachel („den Text unter den Vorschau-Bildern
+     weg") — richtig, solange die Figur nur EINE Farbe kannte und „mehr Farbe =
+     mehr trainiert" bedeutete. Seit 0.227.0 tragen die Farben eine Aussage, die
+     man nicht raten kann: Grün heißt bereit, Rot heißt aufhören. Eine Skala ohne
+     Beschriftung wäre dann ein Rätsel, kein Bild. Sie ist deshalb zurück — als
+     eine Zeile aus drei Punkten, nicht als Erklärtext. */
   const leg = document.getElementById("koerper-legende");
-  if(leg){ leg.innerHTML = ""; leg.hidden = true; }
-  // v120: den „noch kein Training"-Hinweis aus der Ansicht nehmen (weniger Text) —
-  // die Figur reicht, Details gibt es per Tipp auf die Karte (Muskelkarte).
+  if(leg){ leg.innerHTML = lastLegendeHtml(); leg.hidden = false; }
+  /* v120 nahm den „noch kein Training"-Hinweis heraus. Was hier steht, ist
+     etwas anderes: die WARNUNG. Sie ist der eine Fall, den man nicht übersehen
+     darf, und sie steht direkt unter der Figur, auf der man sie sieht. */
   const hinweis = document.getElementById("koerper-hinweis");
-  if(hinweis) hinweis.textContent = "";
+  if(hinweis){
+    const warnung = lastWarnungText(auslastungsQuoten());
+    hinweis.innerHTML = warnung
+      ? '<strong style="color:var(--warn)">' + text(warnung) + '</strong>' : "";
+  }
+}
+
+/** Die Skala als eine Zeile: bereit — benutzt — zu viel. Dieselbe Reihenfolge
+    und dieselben Farben wie die Figur darüber. */
+function lastLegendeHtml(){
+  const punkt = (farbe, wort) =>
+    '<span style="white-space:nowrap"><span style="color:var(--' + farbe + ')">■</span> ' + wort + '</span>';
+  return '<div class="meta" style="display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:8px">' +
+    punkt("ok", "bereit") + punkt("signal", "benutzt") + punkt("warn", "zu viel") + '</div>';
+}
+
+/** Die fette Warnung, wenn ein Muskel deutlich über dem Richtwert liegt —
+    oder leer. Rein/testbar: bekommt die Quoten, liest nichts selbst.
+
+    Gewarnt wird erst ab der Stufe „zuviel" (1,3), nicht schon ab „hoch" (1,0):
+    Über dem Richtwert zu liegen ist eine normale harte Woche; das Wort
+    „aufhören" muss selten bleiben, sonst hört es niemand mehr. */
+function lastWarnungText(quoten){
+  const treffer = Object.keys(quoten || {}).filter(m => quoten[m] >= 1.3);
+  if(!treffer.length) return "";
+  const namen = treffer.map(m => (MUSKEL_INFO[m] || {}).name || m);
+  return namen.length === 1
+    ? namen[0] + " ist deutlich über dem Richtwert — diesen Muskel jetzt nicht weiter trainieren."
+    : namen.slice(0, 3).join(", ") + (namen.length > 3 ? " und weitere" : "") +
+      " sind deutlich über dem Richtwert — diese Muskeln jetzt nicht weiter trainieren.";
 }
 /* #endregion Trainings-Heatmap */
 
