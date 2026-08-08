@@ -126,6 +126,7 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
    und nicht darunter rutschen. */
 .uebung-figur.zwei .mini-figur{--fb:66px}
 .uebung-kopf .uebung-mini{--fb:28px}
+.kcheck-mini{--fb:26px}   /* 0.232.0: die Figur neben der Kurz-Check-Frage */
 /* v97: Hover-Effekte NUR auf Geräten mit echtem Zeiger. iOS lässt :hover nach
    einem Tap "kleben" (bis man woanders tippt) — der getippte Knopf blieb dunkel,
    weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
@@ -2914,8 +2915,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.231.0";
-const APP_VERSION = 231000;
+const VERSION = "0.232.0";
+const APP_VERSION = 232000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7133,7 +7134,8 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.231 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.232 · Das Training in deiner Hand", punkte:[
+    "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
     "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
@@ -7179,6 +7181,12 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.232.0", punkte:[
+    "Nach dem Training gibt es jetzt den Kurz-Check: Zu jedem eben trainierten Muskel steht seine Figur mit der Frage, wie er sich anfühlt — Ok, Zieht oder Schmerzt. Eine Antwort genügt, sie fließt sofort in Kapazität, Farben und Warnungen ein. Die Note je Übung bleibt daneben bestehen: Sie misst die Leistung, der Kurz-Check das Gefühl.",
+    "Die Kalibrierung fragt nicht mehr, sie handelt: Passt deine Profil-Einstufung nicht zu deinen Trainings, stellt die App sie selbst um — und sagt dir offen, was sie getan hat und warum.",
+    "Hinter den groben Stufen rechnet jetzt eine feine Wertung mit vielen Zwischenstufen: Deine Trainingswochen, die Noten-Tendenz und Pausen ergeben eine Fitness-Zahl von 0 bis 100 — sie steht in der Grundlagen-Zeile der Muskelkarte. Anfänger/Wiedereinsteiger/Fortgeschritten sind nur noch die Oberfläche.",
+    "Und beim Auto-Update siehst du jetzt einen kurzen Lade-Bildschirm statt eines kommentarlosen Neustarts."
+  ]},
   { stand:"0.231.0", punkte:[
     "Die App kalibriert sich jetzt an dir. In den ersten zehn Trainings läuft die Kennenlern-Phase: Die App sagt es offen auf der Ergebnis-Seite, liest deine Noten besonders aufmerksam — und wenn deine Trainings durchweg „zu leicht“ oder durchweg sehr schwer waren, schlägt sie vor, deine Profil-Einstufung zu korrigieren. Geändert wird nur, wenn du zustimmst.",
     "Nach einer Pause von zwölf Wochen oder mehr beginnt mit dem ersten Training ein Scan: acht Trainings lang dieselbe Aufmerksamkeit von vorn, denn der Stand von vor der Pause gilt nicht mehr ungeprüft. Zusätzlich schmilzt die errechnete Erfahrung bei langer Nicht-Nutzung langsam ab — nie unter deine eigene Profil-Angabe, und beim Wiedereinstieg ist der alte Stand schnell wieder da.",
@@ -10851,7 +10859,9 @@ function erfahrungAusVerlauf(wochen){
 function erfahrungsFaktor(einrichtung, protokoll, heute){
   const e = einrichtung || {};
   const start = ({ anfaenger:0.6, wieder:0.8, fortgeschritten:1.0 })[e.erfahrung] || 0.8;
-  let f = erfahrungAusVerlauf(aktiveTrainingsWochen(protokoll));
+  /* 0.232.0: plus die stufenlose Noten-Drift — die feine Wertung, die zwischen
+     den groben Stufen liegt (±0,05 aus dem Schnitt der letzten Trainings). */
+  let f = Math.round((erfahrungAusVerlauf(aktiveTrainingsWochen(protokoll)) + notenDrift(protokoll)) * 1000) / 1000;
   /* 0.231.0 (Nutzer-Entscheidung): Lange Nicht-Nutzung schmilzt den GERECHNETEN
      Anteil langsam ab — Detraining ist real, auch beim Trainingsalter. Nie
      unter den Profil-Startwert, und beim Wiedereinstieg ist der alte Stand
@@ -10925,19 +10935,57 @@ function kalibrierungsPhase(protokoll, heute){
   return { phase:"kalibriert", nummer: 0, von: 0 };
 }
 
-/** Passt die Profil-Einstufung zum Beobachteten? Geantwortet wird nur in einer
-    Kalibrierungs-Phase, und nur mit genug Noten (mindestens 3 der letzten 5
-    Trainings bewertet). Durchweg „zu leicht" (Schnitt ≤ 2,2) → eine Stufe
-    hoch vorschlagen; durchweg sehr schwer (≥ 4,3) → eine Stufe runter.
-    Rein/testbar — geändert wird hier nichts, das entscheidet der Nutzer. */
-function kalibrierungsVorschlag(protokoll, einrichtung, heute){
-  const p = kalibrierungsPhase(protokoll, heute);
-  if(p.phase === "kalibriert") return null;
+/** Der Noten-Schnitt der letzten fünf bewerteten Trainings — die gemeinsame
+    Quelle für Kalibrierung UND Feindrift. `null` unter drei bewerteten
+    Trainings. Rein/testbar. */
+function notenSchnitt(protokoll){
   const mitNoten = (protokoll || []).filter(e => e && (e.saetze || []).some(s => s && s.note >= 1)).slice(-5);
   if(mitNoten.length < 3) return null;
   let sum = 0, n = 0;
   mitNoten.forEach(e => e.saetze.forEach(s => { if(s && s.note >= 1){ sum += s.note; n++; } }));
-  const schnitt = Math.round(sum / n * 10) / 10;
+  return Math.round(sum / n * 10) / 10;
+}
+
+/* 0.232.0 (Nutzer-Entscheidung): DIE FEINE WERTUNG HINTER DEN GROBEN STUFEN.
+   „Anfänger/Fortgeschritten sollen nur die groben Sachen sein — im Hintergrund
+   eine feinere Wertung mit viel mehr Zwischenstufen."
+   Die gibt es als stufenlosen Faktor längst (Wochen-Kurve in 0,01-Schritten,
+   Melze in 0,005-Schritten); hier kommt die dritte Feinkomponente dazu: */
+
+/** Feindrift aus den Trainings-Noten — stufenlos, nicht erst ab einer Schwelle.
+    Schnitt 3 („passend") ist neutral; jede Zehntelnote verschiebt um 0,0025,
+    gedeckelt auf ±0,05. Wer also knapp unter „passend" trainiert, bekommt schon
+    ein wenig mehr zugetraut — nicht erst beim Stufensprung. Rein/testbar. */
+function notenDrift(protokoll){
+  const schnitt = notenSchnitt(protokoll);
+  if(schnitt === null) return 0;
+  return Math.max(-0.05, Math.min(0.05, Math.round((3 - schnitt) * 0.025 * 1000) / 1000));
+}
+
+/** Die Fitness-Zahl 0–100 — die feine Wertung als eine lesbare Zahl (0,6 → 0,
+    1,1 → 100). Nur Anzeige: gerechnet wird überall mit dem Faktor selbst. */
+function fitnessZahl(faktor){
+  return Math.max(0, Math.min(100, Math.round(((Number(faktor) || 0.6) - 0.6) / 0.5 * 100)));
+}
+
+/** Die grobe Stufe als ABLEITUNG aus der feinen Wertung — die Oberfläche,
+    nicht die Rechnung. Rein/testbar. */
+function stufeAusFaktor(faktor){
+  if(faktor < 0.75) return "anfaenger";
+  if(faktor < 0.95) return "wieder";
+  return "fortgeschritten";
+}
+
+/** Passt die Profil-Einstufung zum Beobachteten? Geantwortet wird nur in einer
+    Kalibrierungs-Phase, und nur mit genug Noten. Durchweg „zu leicht"
+    (Schnitt ≤ 2,2) → eine Stufe hoch; durchweg sehr schwer (≥ 4,3) → eine
+    runter. Rein/testbar — das ANWENDEN passiert seit 0.232.0 automatisch
+    (Nutzer-Entscheidung), diese Funktion urteilt nur. */
+function kalibrierungsVorschlag(protokoll, einrichtung, heute){
+  const p = kalibrierungsPhase(protokoll, heute);
+  if(p.phase === "kalibriert") return null;
+  const schnitt = notenSchnitt(protokoll);
+  if(schnitt === null) return null;
   const stufe = (einrichtung || {}).erfahrung || "wieder";
   const HOCH   = { anfaenger:"wieder", wieder:"fortgeschritten" };
   const RUNTER = { fortgeschritten:"wieder", wieder:"anfaenger" };
@@ -10978,26 +11026,25 @@ function kalibrierungsKarteHtml(){
     '</div></div>';
 }
 
-/** Der Kalibrierungs-Dialog nach dem Training — höchstens einmal am Tag, und
-    geändert wird nur auf ausdrückliches Ja. */
-function kalibrierungAnbieten(){
+/** Die Kalibrierung nach dem Training — seit 0.232.0 AUTOMATISCH
+    (Nutzer-Entscheidung: „man soll nicht gefragt werden, es soll automatisch
+    passieren"; kassiert die 0.231-Regel „nur auf Ja" wieder ein). Höchstens
+    einmal am Tag, und die App SAGT, was sie getan hat und warum — automatisch
+    heißt nicht heimlich. */
+function kalibrierungAnwenden(){
   if(!sitzung || !sitzung.daten) return;
   const heute = heuteAlsText();
   const v = kalibrierungsVorschlag(sitzung.daten.protokoll, sitzung.daten.einrichtung, heute);
   if(!v) return;
   if(sitzung.daten.einrichtung.kalibrierungGefragt === heute) return;
   sitzung.daten.einrichtung.kalibrierungGefragt = heute;
+  sitzung.daten.einrichtung.erfahrung = v.neu;
   speichern();
+  fortschrittNeuZeichnen();
   const NAME = { anfaenger:"Anfänger", wieder:"Wiedereinsteiger", fortgeschritten:"Fortgeschritten" };
-  frage(v.richtung === "hoch"
-    ? "Kalibrierung: Deine letzten Trainings waren im Schnitt „zu leicht“ (Note " + v.schnitt + "). Soll ich dein Profil auf „" + NAME[v.neu] + "“ stellen? Die Rechnung traut dir dann mehr zu."
-    : "Kalibrierung: Deine letzten Trainings waren im Schnitt sehr schwer (Note " + v.schnitt + "). Soll ich dein Profil auf „" + NAME[v.neu] + "“ stellen? Die Rechnung nimmt dann mehr Rücksicht.", true, ja => {
-    if(!ja) return;
-    sitzung.daten.einrichtung.erfahrung = v.neu;
-    speichern();
-    fortschrittNeuZeichnen();
-    zeigenToast("Profil: " + NAME[v.neu], "erfolg");
-  });
+  meldung(v.richtung === "hoch"
+    ? "Kalibrierung: Deine letzten Trainings waren im Schnitt „zu leicht“ (Note " + v.schnitt + "). Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung traut dir mehr zu."
+    : "Kalibrierung: Deine letzten Trainings waren im Schnitt sehr schwer (Note " + v.schnitt + "). Dein Profil steht jetzt auf „" + NAME[v.neu] + "“ — die Rechnung nimmt mehr Rücksicht.");
 }
 
 /* ---- Ruhepuls (0.230.0) — der offene Punkt aus Gruppe B, jetzt entschieden:
@@ -11460,14 +11507,19 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
      selbst, es gibt nichts nachzutragen. Also nur unter „hat", nie unter
      „fehlt" (dieselbe Begründung wie bei den Pausen). */
   if(einheitenGezaehlt(protokoll, heute)) hat.push("Ausdauer");
+  /* 0.232.0: die feine Wertung als eine lesbare Zahl — damit man SIEHT, dass
+     zwischen den groben Stufen viele Zwischenstufen liegen. */
+  const fitness = fitnessZahl(erfahrungsFaktor(e, protokoll, heute));
   return { trainings, hat, fehlt, reicht: basisReicht(protokoll),
-           annahme: !e.erfahrung };
+           fitness, annahme: !e.erfahrung };
 }
 
 /** Die Grundlagen-Zeile als Text. Rein/testbar. */
 function grundlageText(g){
   if(!g) return "";
   const teile = ["Grundlage: " + g.trainings + " Training" + (g.trainings === 1 ? "" : "s")];
+  // 0.232.0: die feine Wertung, sichtbar gemacht
+  if(g.fitness !== undefined) teile.push("Fitness-Zahl " + g.fitness + "/100");
   if(g.hat.length)   teile.push(g.hat.join(" · "));
   const satz = teile.join(" · ") + ".";
   const ohne = g.fehlt.length ? " Ohne " + g.fehlt.join(", ") + "." : "";
@@ -19759,9 +19811,11 @@ function abschlussZeigen(plan, eintrag, runden, gespeichert, bestVorher){
             : '<div class="karte"><div class="meta">Kein Satz fertig geworden — eingetragen wurde nichts.</div></div>') +
     (serie >= 2 ? '<div class="karte"><h2>🔥 ' + serie + ' Trainings in Serie</h2></div>' : "") +
     kalibrierungsKarteHtml() +   // 0.231.0: auch hier sagt die App, wenn sie noch lernt
+    koerperCheckHtml(eintrag) +  // 0.232.0: wie fühlen sich die Muskeln an?
     checkAngebotHtml() +   // 0.230.0: auch das Training auf Zeit endet mit der Frage
     '<div class="meta" style="margin-top:10px">Gezählt wird nur, was du fertig gemacht hast. Der angefangene Satz beim Gong bleibt draußen. Die Zahl der Sätze übernimmt die App in den Plan — Wiederholungen und Gewicht bleiben, wie du sie eingestellt hast.</div>';
   zeige("view-abschluss");
+  miniFigurenZeichnen("#abschluss-liste");   // 0.232.0: die Figuren des Kurz-Checks
 
   /* 0.226.0 (Nutzer-Entscheidung): „Bei den Wiederholungen kann nachgefragt
      werden, ob man sie erhöhen möchte." Also NUR auf ausdrückliches Ja — damit
@@ -20322,7 +20376,10 @@ function bewertungAnwenden(){
   // Untertitel (Meilenstein / Ruhetags-Toleranz) bleiben.
   const serienUntertitel = meilenstein ? "Meilenstein erreicht!"
     : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "");
-  document.getElementById("ergebnis-liste").innerHTML = kalibrierungsKarteHtml() + zielKarte +
+  // 0.232.0: der Eintrag für den Kurz-Check — VOR lauf = null festhalten
+  const checkEintrag = lauf.protokollEintrag;
+  document.getElementById("ergebnis-liste").innerHTML = kalibrierungsKarteHtml() +
+    koerperCheckHtml(checkEintrag) + zielKarte +
     '<div class="karte' + (serienUntertitel ? " zeile" : "") + '"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
     (serienUntertitel ? '<span class="meta">' + serienUntertitel + '</span>' : '') + '</div>' +
     zeilen.map(z => {
@@ -20342,15 +20399,81 @@ function bewertungAnwenden(){
 
   lauf = null;
   zeige("view-ergebnis");
-  // 0.231.0: passt die Profil-Einstufung noch? Gefragt wird nur in einer
-  // Kalibrierungs-Phase, höchstens einmal am Tag, geändert nur auf Ja.
-  setTimeout(kalibrierungAnbieten, 900);
+  miniFigurenZeichnen("#ergebnis-liste");   // 0.232.0: die Figuren des Kurz-Checks
+  // 0.232.0: Die Kalibrierung wendet sich selbst an (Nutzer-Entscheidung) —
+  // nur in einer Phase, höchstens einmal am Tag, mit offener Ansage.
+  setTimeout(kalibrierungAnwenden, 900);
 }
 
 /** 0.230.0 (Nutzer-Direktive „als Frage am Ende jedes Trainings"): Direkt nach
     dem Training ist der Moment, an dem die Erholungs-Daten entstehen — der
     Tages-Check wird hier ANGEBOTEN, wenn er heute noch fehlt. Ein Angebot, kein
     Zwang, und nur auf Stufen, die den Check überhaupt kennen (Leitplanke 8). */
+/* ============================================================
+   0.232.0 — DER KÖRPER-CHECK NACH DEM TRAINING (Nutzer-Wunsch)
+
+   „Nach einem Training ist es schwer zu sagen, wie es war — mit nur EINER
+   Skala. Lieber die Skala UND detailliertere Fragen: zieht dieser Muskel,
+   drückt es dort, spürst du etwas — mit den Muskel-Figuren dazu."
+
+   Also: Die Note je Übung bleibt (sie misst die LEISTUNG), und danach fragt
+   eine Karte je TRAINIERTEM Muskel nach dem GEFÜHL — mit seiner Figur daneben,
+   drei Antworten, ein Tipp. Die Antworten schreiben in die Beschwerden-Liste
+   von 0.228 und fließen damit sofort in Kapazität, Farbe und Warnung ein —
+   kein zweiter Datenweg. „Zieht" wird als leichter Muskelkater gelesen (der
+   Muskel hat gearbeitet), „Schmerzt" als Schmerz Stufe 1; wer mehr sagen will,
+   nutzt den Wohlbefinden-Tab mit den vollen Stufen.
+   ============================================================ */
+
+/** Die primär trainierten Muskeln dieses Eintrags, häufigste zuerst, höchstens
+    sechs — mehr Fragen beantwortet direkt nach dem Training niemand ehrlich.
+    Rein/testbar. */
+function trainierteMuskelnAusEintrag(eintrag){
+  const zaehler = {};
+  echteSaetze(eintrag).forEach(s => {
+    const info = uebungMuskeln(s.name);
+    if(info && info.muskeln) info.muskeln.forEach(m => { zaehler[m] = (zaehler[m] || 0) + 1; });
+  });
+  return Object.keys(zaehler).sort((a, b) => zaehler[b] - zaehler[a]).slice(0, 6);
+}
+
+function koerperCheckHtml(eintrag){
+  if(!viewErlaubt("view-tagescheck")) return "";   // Leitplanke 8: Fragen erst ab Stufe 4
+  const muskeln = trainierteMuskelnAusEintrag(eintrag);
+  if(!muskeln.length) return "";
+  const zeilen = muskeln.map(m => {
+    const info = MUSKEL_INFO[m] || {};
+    const fig = miniFigurHtml({ ansicht: MUSKEL_SEITE[m] === "back" ? "back" : "front", muskeln:[m] }, "kcheck-mini");
+    return '<div class="zeile" style="gap:8px;margin-bottom:6px">' + fig +
+      '<span style="flex:1;min-width:0;font-size:14px">' + text(info.name || m) + '</span>' +
+      '<span class="note" style="flex:0 0 auto">' +
+        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'nichts\',this)">Ok</button>' +
+        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'zieht\',this)">Zieht</button>' +
+        '<button class="schmal" onclick="koerperCheckAntwort(\'' + m + '\',\'schmerzt\',this)">Schmerzt</button>' +
+      '</span></div>';
+  }).join("");
+  return '<div class="karte"><h2>Kurz-Check</h2>' +
+    '<div class="meta" style="margin-bottom:8px">Wie fühlen sich die eben trainierten Muskeln an? Jede Antwort fließt sofort in die Rechnung ein.</div>' +
+    zeilen + '</div>';
+}
+
+/** Eine Antwort des Kurz-Checks — schreibt in die Beschwerden von 0.228. */
+function koerperCheckAntwort(muskel, art, knopf){
+  const d = sitzung.daten, heute = heuteAlsText();
+  if(art === "schmerzt"){
+    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, muskel, "schmerz", 1);
+  } else if(art === "zieht"){
+    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, muskel, "kater", 1);
+  } else {
+    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, muskel, "kater", 0);
+    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, muskel, "schmerz", 0);
+  }
+  speichern();
+  fortschrittNeuZeichnen();
+  if(knopf && knopf.parentNode)
+    [...knopf.parentNode.children].forEach(b => b.classList.toggle("gewaehlt", b === knopf));
+}
+
 function checkAngebotHtml(){
   if(!viewErlaubt("view-tagescheck")) return "";
   const heute = heuteAlsText();
@@ -20402,7 +20525,18 @@ function updateAnwenden(){
                  document.getElementById("view-login").classList.contains("aktiv");
   if(!sicher || lauf) return;          // Training/Bewertung nie unterbrechen
   updateWartet = false;
-  location.reload();                    // holt per "Netz zuerst" die neue Version
+  /* 0.232.0 (Nutzer-Wunsch): ein Lade-Bildschirm statt eines kommentarlosen
+     Neuladens. Vorher fror die App für einen Wimpernschlag ein und war
+     plötzlich anders — jetzt sagt sie, was gerade passiert. Bewusst als
+     Overlay im ALTEN Stand (die neue Fassung lädt ja gerade erst). */
+  const deckel = document.createElement("div");
+  deckel.style.cssText = "position:fixed;inset:0;z-index:9999;background:var(--ground);" +
+    "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px";
+  deckel.innerHTML = '<div style="font-size:34px">🔥</div>' +
+    '<div style="color:var(--chalk);font-weight:700">Neue Version wird geladen …</div>' +
+    '<div class="meta">Deine Daten bleiben unberührt.</div>';
+  document.body.appendChild(deckel);
+  setTimeout(() => location.reload(), 350);   // kurz zeigen, dann per "Netz zuerst" neu
 }
 
 document.addEventListener("visibilitychange", () => {

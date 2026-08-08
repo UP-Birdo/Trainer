@@ -36,7 +36,9 @@ new Function("module", "exports", [
   grabFn("tagDifferenz"), grabFn("wocheSeitEpoche"),
   grabZeile("KENNENLERN_TRAININGS"), grabZeile("SCAN_TRAININGS"), grabZeile("SCAN_PAUSE_TAGE"),
   grabFn("aktiveTrainingsWochen"), grabFn("erfahrungAusVerlauf"),
-  grabFn("tageSeitLetztemTraining"), grabFn("erfahrungsMelze"), grabFn("erfahrungsFaktor"),
+  grabFn("tageSeitLetztemTraining"), grabFn("erfahrungsMelze"),
+  // 0.232: erfahrungsFaktor rechnet die Noten-Drift mit, der Vorschlag liest notenSchnitt
+  grabFn("notenSchnitt"), grabFn("notenDrift"), grabFn("erfahrungsFaktor"),
   grabFn("kalibrierungsPhase"), grabFn("kalibrierungsVorschlag"), grabFn("volumenKorridor"),
   "module.exports = { tageSeitLetztemTraining, erfahrungsMelze, erfahrungsFaktor, " +
   "kalibrierungsPhase, kalibrierungsVorschlag, volumenKorridor };"
@@ -131,13 +133,15 @@ pruefe("ohne Kapazitaet kein Korridor", A.volumenKorridor(0) === null && A.volum
 pruefe("die Ergebnis-Seite traegt die Phasen-Karte",
   grabFn("bewertungAnwenden").includes("kalibrierungsKarteHtml()"));
 pruefe("die Abschluss-Seite ebenso", grabFn("abschlussZeigen").includes("kalibrierungsKarteHtml()"));
-pruefe("nach dem Training wird der Vorschlag angeboten",
-  grabFn("bewertungAnwenden").includes("setTimeout(kalibrierungAnbieten, 900)"));
-const anbieten = grabFn("kalibrierungAnbieten");
-pruefe("hoechstens einmal am Tag", anbieten.includes("kalibrierungGefragt === heute"));
-pruefe("geaendert wird nur auf Ja", anbieten.includes("if(!ja) return"));
-pruefe("und dann wirklich das Profil", anbieten.includes("einrichtung.erfahrung = v.neu"));
-pruefe("alles Abgeleitete zieht mit", anbieten.includes("fortschrittNeuZeichnen()"));
+/* 0.232 (Nutzer-Entscheidung): Die Kalibrierung wendet sich selbst an — die
+   0.231-Regel „nur auf Ja" ist einkassiert. Sie bleibt aber ANGESAGT. */
+pruefe("nach dem Training wendet sich die Kalibrierung an",
+  grabFn("bewertungAnwenden").includes("setTimeout(kalibrierungAnwenden, 900)"));
+const anwenden = grabFn("kalibrierungAnwenden");
+pruefe("hoechstens einmal am Tag", anwenden.includes("kalibrierungGefragt === heute"));
+pruefe("automatisch, ohne Rueckfrage", !anwenden.includes("frage(") && anwenden.includes("einrichtung.erfahrung = v.neu"));
+pruefe("aber offen angesagt", anwenden.includes("meldung("));
+pruefe("alles Abgeleitete zieht mit", anwenden.includes("fortschrittNeuZeichnen()"));
 pruefe("die Detail-Karte zeigt den Korridor",
   grabFn("muskelAuswahlZeichnen").includes("korridorZeileHtml(a)"));
 pruefe("der Korridor nennt das Verletzungsrisiko",

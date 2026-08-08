@@ -84,6 +84,8 @@ new Function("module", "exports", [
   "const ANPASSUNG_WOCHEN = 0;",
   "function anpassungsFaktor(){ return 1; }",
   "function erholungsTageFuer(){ return 2; }",
+  // 0.232: die Grundlagen-Zeile zeigt die Fitness-Zahl (geprueft in test232).
+  "function fitnessZahl(){ return 50; }",
   grabFn("muskelKapazitaet"),
   grabFn("basisReicht"),
   /* v189: Die Grundlagen-Zeile nennt jetzt auch die gemessenen Pausen. In

@@ -47,6 +47,9 @@ new Function("module", "exports", [
   grabZeile("RUHEPULS_MINDEST"), grabZeile("ERNAEHRUNG_MINDEST"),
   grabZeile("ANPASSUNG_WOCHEN"), grabZeile("ANPASSUNG_SCHRITT"), grabZeile("ANPASSUNG_DECKEL"),
   grabObjekt("MUSKEL_ERHOLUNG"),
+  // 0.232: erfahrungsFaktor rechnet die Noten-Drift mit — hier neutral gestellt
+  // (die Historie dieses Tests traegt keine Noten; die Drift prueft test232).
+  "function notenDrift(){ return 0; }",
   grabFn("aktiveTrainingsWochen"), grabFn("erfahrungAusVerlauf"), grabFn("erfahrungsFaktor"),
   grabFn("ruhepulsBasis"), grabFn("ruhepulsFaktor"),
   grabFn("ernaehrungSchnitt"), grabFn("ernaehrungFaktor"),

@@ -3,6 +3,22 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.232.0
+
+- Nach dem Training gibt es jetzt den Kurz-Check: Zu jedem eben trainierten Muskel steht
+  seine Figur mit der Frage, wie er sich anfühlt — Ok, Zieht oder Schmerzt. Eine Antwort
+  genügt, sie fließt sofort in Kapazität, Farben und Warnungen ein. Die Note je Übung
+  bleibt daneben bestehen: Sie misst die Leistung, der Kurz-Check das Gefühl.
+- Die Kalibrierung fragt nicht mehr, sie handelt: Passt deine Profil-Einstufung nicht zu
+  deinen Trainings, stellt die App sie selbst um — und sagt dir offen, was sie getan hat
+  und warum.
+- Hinter den groben Stufen rechnet jetzt eine feine Wertung mit vielen Zwischenstufen:
+  Deine Trainingswochen, die Noten-Tendenz und Pausen ergeben eine Fitness-Zahl von 0
+  bis 100 — sie steht in der Grundlagen-Zeile der Muskelkarte.
+  Anfänger/Wiedereinsteiger/Fortgeschritten sind nur noch die Oberfläche.
+- Und beim Auto-Update siehst du jetzt einen kurzen Lade-Bildschirm statt eines
+  kommentarlosen Neustarts.
+
 ## 0.231.0
 
 - Die App kalibriert sich jetzt an dir. In den ersten zehn Trainings läuft die
