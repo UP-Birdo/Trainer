@@ -2927,8 +2927,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.242.0";
-const APP_VERSION = 242000;
+const VERSION = "0.242.1";
+const APP_VERSION = 242001;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7195,6 +7195,9 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.242.1", punkte:[
+    "Zwei Korrekturen an der neuen automatischen Wertung, gefunden bei der Gegenprobe: Zeit-Übungen (z. B. Plank) wurden aus dem falschen Protokoll-Feld gelesen und wären immer als „nicht geschafft“ gewertet worden — jetzt zählt die wirklich gehaltene Zeit. Und ein sauber geschafftes Training wiegt in der Muskel-Rechnung wieder voll: Das interne Steigern-Signal hatte die Sätze versehentlich als „leicht“ eingestuft, was die Auslastung zu grün gezeigt und die Kalibrierung verzerrt hätte."
+  ]},
   { stand:"0.242.0", punkte:[
     "Die Noten-Bewertung nach dem Training ist weg — niemand kann ehrlich sagen, ob ein Training „eine 2 oder eine 3“ war. Stattdessen kommt der Muskel-Check als geführter Durchgang: Nach jedem Training (auch nach dem Training auf Zeit) zeigt dir die App nacheinander jeden beanspruchten Muskel GROSS im Bild, mit einer konkreten Bewegung zum Ausprobieren — und du antwortest in fünf einfachen Stufen von „Alles gut“ bis „Schmerzt stark“. Jede Antwort fließt sofort in die Rechnung ein.",
     "Die automatische Steigerung braucht deine Note nicht mehr: Sie rechnet jetzt objektiv — wer sein Soll auf allen Sätzen schafft, steigert; wer darunter bleibt, hält oder geht zurück. Deine Muskel-Antworten bremsen dabei: Meldet ein beteiligter Muskel Schmerzen, wird nicht gesteigert.",
@@ -20895,7 +20898,9 @@ function noteAbleiten(u, saetze, antworten){
   const eigene = (saetze || []).filter(s => s && s.uebungId === u.id && !s.drop);
   if(!eigene.length) note = 3;
   else if(u.modus === "zeit"){
-    const minZeit = Math.min(...eigene.map(s => Number(s.zeit) || 0));
+    // 0.242.1: Das Protokoll-Feld heißt `dauer` (satzProtokollieren) — `zeit`
+    // tragen nur die abgehakten Soll-Sätze, und die laufen hier nie durch.
+    const minZeit = Math.min(...eigene.map(s => Number(s.dauer) || 0));
     note = minZeit >= u.dauer ? 2 : (minZeit >= u.dauer * 0.6 ? 4 : 5);
   } else {
     note = sollVerfehlt(u, saetze) ? 3 : 2;
@@ -21031,7 +21036,16 @@ function bewertungAnwenden(antworten){
   // Noten in die Satzzeilen des Protokolls übernehmen. Die Notiz (v72) hat
   // der Muskel-Check-Abschluss schon in den Eintrag geschrieben (0.242).
   if(lauf.protokollEintrag){
-    lauf.protokollEintrag.saetze.forEach(s => { s.note = bewertung[s.uebungId] ?? null; });
+    /* 0.242.1: Im PROTOKOLL nie unter 3. Die abgeleitete 2 ist ein
+       PROGRESSIONS-Signal („Soll geschafft → steigern"), keine Aussage über
+       die Anstrengung — als Satz-Note gelesen würde sie jeden gehaltenen Satz
+       25 % leichter wiegen (NOTE_GEWICHT), den Noten-Schnitt Richtung „zu
+       leicht" ziehen und die Auto-Kalibrierung zur Hochstufung verleiten.
+       4/5 bleiben: Verfehltes IST eine Anstrengungs-Aussage. */
+    lauf.protokollEintrag.saetze.forEach(s => {
+      const n = bewertung[s.uebungId];
+      s.note = n == null ? null : Math.max(3, n);
+    });
   }
   speichern();
 

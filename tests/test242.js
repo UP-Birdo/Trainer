@@ -55,11 +55,11 @@ pruefe("zu wenig Gewicht ist auch verfehlt",
   T.noteAbleiten(KB, [satz(10, 50)], {}) === 3);
 pruefe("komplett uebersprungen -> neutral (3)", T.noteAbleiten(KB, [], {}) === 3);
 pruefe("Zeit voll gehalten -> steigern",
-  T.noteAbleiten(PLANK, [{ uebungId:"u2", zeit:45 }], {}) === 2);
+  T.noteAbleiten(PLANK, [{ uebungId:"u2", dauer:45 }], {}) === 2);
 pruefe("Zeit knapp gehalten -> halten",
-  T.noteAbleiten(PLANK, [{ uebungId:"u2", zeit:30 }], {}) === 4);
+  T.noteAbleiten(PLANK, [{ uebungId:"u2", dauer:30 }], {}) === 4);
 pruefe("Zeit weit verfehlt -> Rueckschritt",
-  T.noteAbleiten(PLANK, [{ uebungId:"u2", zeit:20 }], {}) === 5);
+  T.noteAbleiten(PLANK, [{ uebungId:"u2", dauer:20 }], {}) === 5);
 pruefe("nie Note 1 (kein Sprung mehr ohne Beleg)",
   !grabFn("noteAbleiten").includes("note = 1"));
 
@@ -118,6 +118,14 @@ pruefe("das Training auf Zeit auch (Timer zu Ende)",
   grabFn("trainingAbschliessen").includes("muskelCheckOeffnen(plan, eintrag, zeigen)"));
 pruefe("die Progression liest die ABGELEITETE Note",
   grabFn("bewertungAnwenden").includes("noteAbleiten(u, gemachteSaetze, antworten)"));
+/* 0.242.1: Die 2 ist ein Progressions-Signal, keine Anstrengungs-Aussage —
+   im Protokoll steht nie unter 3 (sonst wiegt jeder gehaltene Satz leichter
+   und die Auto-Kalibrierung stuft faelschlich hoch). */
+pruefe("die Satz-Note im Protokoll faellt nie unter 3",
+  grabFn("bewertungAnwenden").includes("Math.max(3, n)"));
+pruefe("Zeit-Ableitung liest das echte Protokoll-Feld (dauer)",
+  grabFn("noteAbleiten").includes("Number(s.dauer) || 0") &&
+  grabFn("satzProtokollieren").includes("eintrag.dauer = istSekunden"));
 pruefe("die alte Handnoten-Knopfleiste ist weg", !src.includes('id="note-'));
 pruefe("Ergebnis- und Abschluss-Seite tragen keinen Karten-Check mehr",
   !src.includes("koerperCheckHtml("));

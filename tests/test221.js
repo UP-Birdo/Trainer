@@ -167,9 +167,12 @@ const anwenden = grabFn("bewertungAnwenden");
 pruefe("die Progression fragt nach festeWerte", anwenden.includes("if(plan && !festeWerte)"));
 pruefe("auch die Ziele bleiben dann unberuehrt",
   anwenden.includes("(plan && !festeWerte) ? kraftZieleAnwenden(plan) : []"));
-/* Die Noten wandern trotzdem ins Protokoll — bewertet wird weiter. */
+/* Die Noten wandern trotzdem ins Protokoll — bewertet wird weiter.
+   0.242.1: abgeleitet und im Protokoll nie unter 3 (Progressions-Signal 2
+   ist keine Anstrengungs-Aussage). */
 pruefe("die Noten werden weiterhin gespeichert",
-  anwenden.includes("s.note = bewertung[s.uebungId]"));
+  anwenden.includes("const n = bewertung[s.uebungId]") &&
+  anwenden.includes("s.note = n == null ? null : Math.max(3, n)"));
 
 /* ---------- 8) Anzeige ---------- */
 pruefe("die geschaetzte Dauer ist im Modus die Vorgabe",

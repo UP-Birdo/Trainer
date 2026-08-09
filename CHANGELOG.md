@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.242.1
+
+- Zwei Korrekturen an der neuen automatischen Wertung, gefunden bei der Gegenprobe:
+  Zeit-Übungen (z. B. Plank) wurden aus dem falschen Protokoll-Feld gelesen und wären
+  immer als „nicht geschafft“ gewertet worden — jetzt zählt die wirklich gehaltene Zeit.
+  Und ein sauber geschafftes Training wiegt in der Muskel-Rechnung wieder voll: Das
+  interne Steigern-Signal hatte die Sätze versehentlich als „leicht“ eingestuft, was die
+  Auslastung zu grün gezeigt und die Kalibrierung verzerrt hätte.
+
 ## 0.242.0
 
 - Die Noten-Bewertung nach dem Training ist weg — niemand kann ehrlich sagen, ob ein
