@@ -3,6 +3,18 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.245.0
+
+- Im Muskel-Check kommst du jetzt zurück: Oben links steht „Zurück“, ein Rahmen zeigt
+  dir, was du beim ersten Mal geantwortet hast, und eine neue Antwort ersetzt die alte
+  vollständig.
+- Muskeln, die du heute schon beantwortet hast, fragt der Muskel-Check nicht noch einmal
+  — deine Auskunft steht ja bereits in der Rechnung. Ändern oder nachtragen kannst du
+  jederzeit: Muskel auf der Karte antippen, „Wie fühlt er sich an?“.
+- Die Muskelkarte hat oben nur noch die zwei Ansichten „Dein Körper“ und „Erkunden“. Der
+  Muskel-Check war nie eine Ansicht, sondern eine Aktion — er steht jetzt als eigener
+  Knopf unter der Figur.
+
 ## 0.244.0
 
 - Vier feste Zahlen passen sich jetzt dir an: Lange Ausdauer-Einheiten zählen voll, wenn

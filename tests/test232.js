@@ -92,9 +92,15 @@ pruefe("fuenf Antworten je Muskel (aus dem Register)",
 pruefe("nur auf erlaubten Stufen (Leitplanke 8)",
   grabFn("muskelCheckMuskeln").includes('viewErlaubt("view-tagescheck")'));
 const antwort = grabFn("muskelCheckAntwort");
-pruefe("die Antwort schreibt in die Beschwerden", antwort.includes("beschwerdeSetzen(d.beschwerden, heute, m, a.art, a.wert)"));
+/* 0.245: Die Antwort geht weiter ueber beschwerdeSetzen — nur schreibt sie
+   seither IMMER beide Arten (gewaehlte mit Wert, andere mit 0), damit eine
+   Korrektur nach "Zurueck" die alte Art nicht stehen laesst. Details: test245. */
+pruefe("die Antwort schreibt in die Beschwerden",
+  antwort.includes("beschwerdeSetzen(d.beschwerden, heute, m,") &&
+  antwort.includes("a.wert : 0)"));
 pruefe("Alles gut loescht beide Arten des Tages",
-  antwort.includes('"kater", 0') && antwort.includes('"schmerz", 0'));
+  antwort.includes('"kater"') && antwort.includes('"schmerz"') &&
+  (antwort.match(/beschwerdeSetzen\(/g) || []).length === 2);
 pruefe("die Antwort rechnet sofort durch", antwort.includes("fortschrittNeuZeichnen()"));
 pruefe("beide Trainings-Enden tragen den Muskel-Check",
   grabFn("bewertungOeffnen").includes("muskelCheckOeffnen(") &&

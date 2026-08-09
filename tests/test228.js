@@ -111,15 +111,19 @@ pruefe("Schmerz hat Vorrang vor Kater im Text",
 /* ---------- 5) Verdrahtung: Erfassung ---------- */
 /* 0.243: Der Wohlbefinden-Tab ist im Muskel-Check-Wizard aufgegangen — die
    0.228-Zusagen (fuenf Antworten, sofort in die Rechnung) gelten dort weiter. */
-pruefe("an der Tab-Stelle startet der Muskel-Check",
-  src.includes('id="muskel-modus-check"') && src.includes('onclick="muskelCheckStarten()"'));
+// 0.245: derselbe Knopf, nur nicht mehr in der Tab-Reihe (s. test245).
+pruefe("auf der Muskelkarte startet ein Knopf den Muskel-Check",
+  src.includes('id="muskel-check-knopf"') && src.includes('onclick="muskelCheckStarten()"'));
 pruefe("es gibt fuenf Antworten auf einer Ebene",
   (src.slice(src.indexOf("const MCHECK_ANTWORTEN"), src.indexOf("];", src.indexOf("const MCHECK_ANTWORTEN")))
      .match(/\{ text:/g) || []).length === 5);
 const fragen = grabFn("muskelCheckAntwort");
-pruefe("Alles gut loescht BEIDE Arten",
-  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, m, "kater", 0)') &&
-  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, m, "schmerz", 0)'));
+/* 0.245: Jede Antwort schreibt BEIDE Arten (die gewaehlte mit Wert, die andere
+   mit 0). „Alles gut" loescht damit weiterhin beide — und eine Korrektur nach
+   „Zurueck" laesst keine alte Art stehen. */
+pruefe("jede Antwort schreibt BEIDE Arten",
+  /beschwerdeSetzen\(d\.beschwerden, heute, m, "kater", *a\.art === "kater" *\? a\.wert : 0\)/.test(fragen) &&
+  /beschwerdeSetzen\(d\.beschwerden, heute, m, "schmerz", *a\.art === "schmerz" *\? a\.wert : 0\)/.test(fragen));
 pruefe("gespeichert wird sofort", fragen.includes("speichern()"));
 pruefe("und alles Abgeleitete zieht mit", fragen.includes("fortschrittNeuZeichnen()"));
 pruefe("der Datenvertrag ist additiv",

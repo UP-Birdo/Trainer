@@ -29,8 +29,11 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
 /* ---------- 1) Der Tab ist ersetzt ---------- */
-pruefe("der Muskel-Check-Knopf steht an der alten Stelle",
-  src.includes('id="muskel-modus-check"') && src.includes('onclick="muskelCheckStarten()"'));
+/* 0.245: Der Knopf steht nicht mehr IN der Tab-Reihe (er war nie ein Modus,
+   s. test245) — die 0.243-Zusage bleibt aber: es gibt genau einen Knopf auf
+   der Muskelkarte, der den Wizard ohne Liste startet. */
+pruefe("der Muskel-Check-Knopf startet den Wizard",
+  src.includes('id="muskel-check-knopf"') && src.includes('onclick="muskelCheckStarten()"'));
 pruefe("der Wohlbefinden-Tab ist weg",
   !src.includes('id="muskel-modus-wohl"') && !src.includes("muskelModus('wohl')"));
 pruefe("beschwerdeFragen ist restlos abgebaut", !src.includes("function beschwerdeFragen("));

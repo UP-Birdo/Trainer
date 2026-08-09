@@ -93,6 +93,13 @@ const mitZurueck = [
   "view-verlauf", "view-gewicht", "view-koerpermasse", "view-kalender", "view-muskeln",
   "view-papierkorb", "view-bibliothek", "view-profil", "view-ziele", "view-sportarten",
   "view-uebung-picker", "view-neuigkeiten", "view-wissen",
+  /* 0.245: Der Muskel-Check stand bis dahin bewusst in der Liste OHNE Zurueck
+     (er gehoert zum Training). Seither hat er einen echten Schritt-Zurueck, und
+     der kann kein Training abbrechen: Im ersten Schritt NACH einem Training ist
+     der Knopf versteckt, und `zurueckKnopfDerAnsicht` uebergeht versteckte
+     Knoepfe — der Wisch findet dort also nichts. In allen anderen Schritten
+     geht er genau einen Muskel zurueck. */
+  "view-muskelcheck",
   // v164: Auf Stufe 1/2 gibt es keine Tab-Leiste — dort IST dieser Knopf der
   // einzige Weg zurueck (er ist nur ab Stufe 3 ausgeblendet).
   "view-einstellungen"
@@ -109,7 +116,6 @@ pruefe("die Sportarten-Ansicht schert nicht mehr aus",
 const ohneZurueck = [
   ["view-editor",     "ein Wisch wuerde hier Aenderungen verlieren"],
   ["view-training",   "ein Wisch wuerde hier das Training abbrechen"],
-  ["view-muskelcheck", "der Muskel-Check gehoert zum Training (0.242, ersetzt view-bewertung)"],
   ["view-ergebnis",   "das Ergebnis gehoert zum Training"],
   ["view-start",      "die Tab-Startseite hat kein Zurueck"],
   ["view-plaene",     "Tab-Ansicht"],

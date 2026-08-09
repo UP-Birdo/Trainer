@@ -356,6 +356,11 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    Anweisung gut lesbar, die Antworten als volle Reihen untereinander. */
 .mcheck-figur{--fb:150px;display:block;margin:8px auto}
 .mcheck-frage{font-size:15px;line-height:1.6;margin:10px 0;color:var(--chalk)}
+/* 0.245: Geht man im Wizard zurück, zeigt ein Rahmen die schon gegebene
+   Antwort. Bewusst KEIN gelber Hintergrund — Gelb gehört im Haus der einen
+   Hauptaktion je Bildschirm; hier ist es eine Auskunft, keine Aufforderung.
+   `inset`-Schatten statt `border`, damit der Knopf seine Größe behält. */
+.mcheck-gewaehlt{box-shadow:inset 0 0 0 2px var(--signal)}
 
 /* Umschalter Wdh/Zeit */
 .umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
@@ -1951,7 +1956,12 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      seither objektiv (geschafft vs. Soll, s. noteAbleiten).
      ============================================================ -->
 <section id="view-muskelcheck" class="view">
-  <div class="kopf"><h1>Muskel-Check</h1><span class="meta" id="mcheck-stand"></span></div>
+  <!-- 0.245 (Nutzer-Meldung „es gibt kein Zurück"): Der Knopf steht wie überall
+       im Kopf, `data-zurueck` schiebt ihn per CSS nach links. Im ERSTEN Schritt
+       nach einem Training ist er versteckt — dahinter liegt kein Bildschirm
+       mehr, das Training ist vorbei. -->
+  <div class="kopf"><h1>Muskel-Check</h1><span class="meta" id="mcheck-stand"></span>
+    <button class="schmal" id="mcheck-zurueck" hidden onclick="muskelCheckZurueck()" data-zurueck>Zurück</button></div>
   <div id="mcheck-schritt"></div>
   <div class="karte" id="mcheck-notiz-karte" hidden>
     <label for="mcheck-notiz">Notiz zum Training (optional)</label>
@@ -2145,12 +2155,15 @@ button.gewaehlt{background:var(--signal);color:#16181C}
   <div class="karte">
     <div class="muskel-tabs zeile" style="margin-bottom:10px">
       <!-- v195: „Dein Körper" steht vorne (Nutzer-Ansage), „Erkunden" bleibt als
-           Neben-Tab zum Nachschlagen. -->
+           Neben-Tab zum Nachschlagen.
+           0.245 (Nutzer-Meldung „die drei Knöpfe sehen komisch aus"): Der
+           Muskel-Check saß seit 0.243 als DRITTER Knopf zwischen den beiden —
+           er ist aber kein Modus, sondern ein Absprung. Also leuchtete er nie
+           auf, während links oder rechts von ihm immer einer gelb war, und
+           drei lange Wörter drängten sich in eine Zeile. Er steht jetzt als
+           eigene Aktion unter der Figur (`muskel-check-knopf`); hier bleiben
+           die zwei echten Ansichten. -->
       <button id="muskel-modus-heat" class="muskel-tab muskel-an" onclick="muskelModus('trainiert')">Dein Körper</button>
-      <!-- 0.243.0 (Nutzer-Auftrag): Der Wohlbefinden-Tab (0.228) ist im
-           Muskel-Check-Wizard aufgegangen — derselbe Platz, derselbe Zweck,
-           aber geführt: Muskel groß im Bild, Bewegungs-Frage, fünf Antworten. -->
-      <button id="muskel-modus-check" class="muskel-tab" onclick="muskelCheckStarten()">Muskel-Check</button>
       <button id="muskel-modus-info" class="muskel-tab" onclick="muskelModus('erkunden')">Erkunden</button>
     </div>
     <!-- v122: dritte Ansicht „Beide" — vorne und hinten nebeneinander (Nutzer-Wunsch). -->
@@ -2164,6 +2177,9 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <div id="muskel-figuren" class="muskel-figuren"></div>
     <div id="muskel-status" class="meta" style="text-align:center;margin-top:8px"></div>
     <div id="muskel-legende" hidden></div>
+    <!-- 0.245: der Muskel-Check als das, was er ist — eine Aktion, und zwar
+         direkt unter dem Bild, auf das sie sich bezieht. -->
+    <button id="muskel-check-knopf" class="breit abstand" onclick="muskelCheckStarten()">Muskel-Check starten</button>
   </div>
   <div id="muskel-auswahl"></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
@@ -2927,8 +2943,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.244.0";
-const APP_VERSION = 244000;
+const VERSION = "0.245.0";
+const APP_VERSION = 245000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7148,11 +7164,11 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.244 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.245 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
-    "Die Muskelkarte hat einen Tab „Wohlbefinden“: Muskel antippen, sagen wie er sich anfühlt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher.",
+    "Die Muskelkarte hat einen Knopf „Muskel-Check starten“: Er führt dich durch die Muskeln, über die es gerade etwas zu sagen gibt — Schmerzen und Muskelkater nimmt die Rechnung zurück und warnt früher. Einen einzelnen Muskel tippst du direkt auf der Karte an.",
     "Die Muskelfiguren haben jetzt drei Farben: Grün heißt bereit, Gelb heißt benutzt, Rot heißt zu viel — mit Legende und einer Warnung, wenn ein Muskel deutlich über dem Richtwert liegt.",
     "Der Unendlichkeitsmodus zählt deine Runden mit: Bestwert je Übung, Ziel vor dem Start, und die geschaffte Zahl wandert als Satz-Zahl in den Plan. Wiederholungen ändert die App nur, wenn du ja sagst.",
     "Die Figur oben in der Statistik zeigt deine Auslastung — dieselbe Aussage wie die große Muskelkarte.",
@@ -7195,6 +7211,11 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.245.0", punkte:[
+    "Im Muskel-Check kommst du jetzt zurück: Oben links steht „Zurück“, ein Rahmen zeigt dir, was du beim ersten Mal geantwortet hast, und eine neue Antwort ersetzt die alte vollständig.",
+    "Muskeln, die du heute schon beantwortet hast, fragt der Muskel-Check nicht noch einmal — deine Auskunft steht ja bereits in der Rechnung. Ändern oder nachtragen kannst du jederzeit: Muskel auf der Karte antippen, „Wie fühlt er sich an?“.",
+    "Die Muskelkarte hat oben nur noch die zwei Ansichten „Dein Körper“ und „Erkunden“. Der Muskel-Check war nie eine Ansicht, sondern eine Aktion — er steht jetzt als eigener Knopf unter der Figur."
+  ]},
   { stand:"0.244.0", punkte:[
     "Vier feste Zahlen passen sich jetzt dir an: Lange Ausdauer-Einheiten zählen voll, wenn du nachweislich regelmäßig so lange trainierst (bisher war bei 60 Minuten Schluss — egal für wen). Muskelkater klingt je Muskel unterschiedlich lange aus (Waden schneller als Oberschenkel). Die Beschwerde-Muster schauen bei großen Muskeln bis drei Tage zurück — Muskelkater kommt dort oft erst am übernächsten Tag, das 48-Stunden-Fenster hätte genau diese Zusammenhänge verpasst.",
     "Und der Muskel-Check fragt noch seltener: Ein Muskel, der vier Wochen ohne jede Meldung war, kommt nur noch alle vier Wochen als Stichprobe dran statt alle zwei."
@@ -12577,19 +12598,31 @@ function muskelTippen(e){
 
 /** Manueller Muskel-Check aus der Karte — ohne Trainings-Bezug. Ohne Liste
     werden die Muskeln gefragt, über die es ehrlich etwas zu sagen gibt:
-    belastet im Fenster oder mit offener Beschwerde, stärkste Quote zuerst. */
+    belastet im Fenster oder mit offener Beschwerde, stärkste Quote zuerst.
+    0.245 (Nutzer-Ansage): Was HEUTE schon beantwortet wurde, kommt hier nicht
+    noch einmal — die Auskunft steht ja bereits in der Rechnung. Wer sie
+    trotzdem ändern will, tippt den Muskel auf der Karte an und nimmt „Wie
+    fühlt er sich an?"; dieser Weg reicht die Liste ausdrücklich herein und
+    wird deshalb NIE gefiltert. Ebenso ungefiltert bleibt der Wizard nach dem
+    Training: Dort hat sich der Zustand seit der letzten Antwort geändert. */
 function muskelCheckStarten(muskeln){
   if(!viewErlaubt("view-muskeln")) return;
-  let liste = muskeln;
+  let liste = muskeln, schonHeute = 0;
   if(!liste){
+    const heute = heuteAlsText(), checks = sitzung.daten.muskelChecks || {};
     const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
-                               sitzung.daten.einrichtung, heuteAlsText(),
+                               sitzung.daten.einrichtung, heute,
                                sitzung.daten.tageswerte, sitzung.daten.beschwerden);
-    liste = Object.keys(a).sort((x, y) => (a[y].quote || 0) - (a[x].quote || 0));
+    const alle = Object.keys(a).sort((x, y) => (a[y].quote || 0) - (a[x].quote || 0));
+    liste = alle.filter(m => checks[m] !== heute);
+    schonHeute = alle.length - liste.length;
   }
   if(!liste.length){
-    meldung("Gerade gibt es nichts zu prüfen — in den letzten " + LAST_MAX_TAGE +
-            " Tagen wurde kein Muskel belastet und nichts gemeldet.");
+    meldung(schonHeute
+      ? "Heute schon durch — jeder belastete Muskel ist beantwortet, und die Antworten stehen bereits in der Rechnung. "
+        + "Willst du einen einzelnen ändern oder nachtragen, tippe ihn auf der Karte an und nimm „Wie fühlt er sich an?“."
+      : "Gerade gibt es nichts zu prüfen — in den letzten " + LAST_MAX_TAGE +
+        " Tagen wurde kein Muskel belastet und nichts gemeldet.");
     return;
   }
   muskelCheckOeffnen(null, null, () => muskelnOeffnen(), liste);
@@ -20978,6 +21011,11 @@ function muskelCheckSchritt(){
   const stand = document.getElementById("mcheck-stand");
   const fertigReihe = document.getElementById("mcheck-fertig-reihe");
   const notizKarte = document.getElementById("mcheck-notiz-karte");
+  /* 0.245: „Zurück" gibt es überall — nur nicht im ersten Schritt NACH einem
+     Training: dahinter liegt das beendete Training, dorthin führt kein Weg
+     zurück. Beim manuellen Start (kein Eintrag) führt er von Schritt 1 aus
+     zurück auf die Muskelkarte. */
+  document.getElementById("mcheck-zurueck").hidden = mcheck.index === 0 && !!mcheck.eintrag;
   if(mcheck.index >= mcheck.muskeln.length){
     // Abschluss-Schritt: nur noch die Notiz (optional) und Speichern.
     stand.textContent = "";
@@ -20995,28 +21033,46 @@ function muskelCheckSchritt(){
   stand.textContent = (mcheck.index + 1) + " von " + mcheck.muskeln.length;
   notizKarte.hidden = true;
   fertigReihe.hidden = true;
+  /* 0.245: Wer zurückgeht, muss sehen, was er beim ersten Mal gesagt hat —
+     sonst rät er beim Korrigieren. `mcheck.antworten` hält genau das. */
+  const gegeben = mcheck.antworten[m];
   schritt.innerHTML = '<div class="karte">' +
     '<h2>' + text(info.name || m) + '</h2>' +
     miniFigurHtml({ ansicht: MUSKEL_SEITE[m] === "back" ? "back" : "front", muskeln:[m] }, "mcheck-figur") +
     '<div class="mcheck-frage">' + text(muskelCheckFrage(m)) + '</div>' +
-    MCHECK_ANTWORTEN.map((a, i) =>
-      '<button class="breit abstand"' + (a.warn ? ' style="color:var(--warn)"' : '') +
-      ' onclick="muskelCheckAntwort(' + i + ')">' + a.text + '</button>').join("") +
+    MCHECK_ANTWORTEN.map((a, i) => {
+      const schonSo = gegeben && (a.art || null) === gegeben.art && (a.wert || 0) === gegeben.wert;
+      return '<button class="breit abstand' + (schonSo ? ' mcheck-gewaehlt' : '') + '"' +
+        (a.warn ? ' style="color:var(--warn)"' : '') +
+        ' onclick="muskelCheckAntwort(' + i + ')">' + a.text + '</button>';
+    }).join("") +
     '</div>';
   miniFigurenZeichnen("#mcheck-schritt");
 }
 
+/** Einen Schritt zurück — im ersten Schritt eines manuellen Checks zurück auf
+    die Muskelkarte. Die schon gegebenen Antworten bleiben stehen (sie sind
+    gespeichert und wirken); wird eine erneut angetippt, überschreibt sie die
+    alte vollständig (s. muskelCheckAntwort). */
+function muskelCheckZurueck(){
+  if(!mcheck) return;
+  if(mcheck.index === 0){ mcheck = null; muskelnOeffnen(); return; }
+  mcheck.index--;
+  muskelCheckSchritt();
+}
+
 /** Eine Antwort: schreibt sofort in die Beschwerden (0.228-Weg), merkt die
-    Stichprobe und geht zum nächsten Muskel. */
+    Stichprobe und geht zum nächsten Muskel.
+    0.245: Geschrieben werden IMMER beide Arten — die gewählte mit ihrem Wert,
+    die andere mit 0. Vorher setzte eine Antwort nur ihre eigene Art; wer nach
+    „Zurück" von „Schmerzt stark" auf „Zieht leicht" wechselte, ließ den
+    Schmerz-Eintrag des Tages stehen: eine Korrektur, die nichts korrigiert
+    (`beschwerdeSetzen` ersetzt nur je Datum/Muskel/ART). */
 function muskelCheckAntwort(i){
   const a = MCHECK_ANTWORTEN[i], m = mcheck.muskeln[mcheck.index];
   const d = sitzung.daten, heute = heuteAlsText();
-  if(a.art){
-    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, m, a.art, a.wert);
-  } else {
-    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, m, "kater", 0);
-    d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, m, "schmerz", 0);
-  }
+  d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, m, "kater",   a.art === "kater"   ? a.wert : 0);
+  d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, m, "schmerz", a.art === "schmerz" ? a.wert : 0);
   d.muskelChecks[m] = heute;
   mcheck.antworten[m] = { art: a.art || null, wert: a.wert || 0 };
   speichern();
