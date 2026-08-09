@@ -81,8 +81,10 @@ pruefe("ohne Kapazitaet kein Satz", A.korridorWort(5, 0) === "");
 /* 0.242: Der Kurz-Check ist der Muskel-Check-Wizard geworden. */
 const karte = grabFn("muskelCheckSchritt");
 pruefe("der Kurz-Check stellt die Frage des Muskels", karte.includes("muskelCheckFrage(m)"));
-pruefe("der Wohlbefinden-Tab stellt dieselbe Frage",
-  grabFn("beschwerdeFragen").includes("aktionsMenue(muskelCheckFrage(key)"));
+/* 0.243: Der Wohlbefinden-Tab ist im Wizard aufgegangen — der Einzel-Muskel-
+   Knopf der Detail-Karte fuehrt in DENSELBEN Wizard (dieselbe Frage). */
+pruefe("der Einzel-Muskel-Weg fuehrt in denselben Wizard",
+  grabFn("muskelAuswahlZeichnen").includes("muskelCheckStarten("));
 /* Die Zahlen sind wirklich von der Oberflaeche verschwunden. */
 pruefe("keine Fitness-Zahl mehr in der Grundlagen-Zeile",
   !grabFn("grundlageText").includes("Fitness-Zahl") &&

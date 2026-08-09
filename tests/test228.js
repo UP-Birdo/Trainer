@@ -106,17 +106,17 @@ pruefe("Schmerz hat Vorrang vor Kater im Text",
                     { datum:HEUTE, muskel:"abs", art:"schmerz", wert:1 }], "abs", HEUTE).indexOf("Schmerzen") > 0);
 
 /* ---------- 5) Verdrahtung: Erfassung ---------- */
-pruefe("der dritte Tab steht in der Karte", src.includes('id="muskel-modus-wohl"'));
-pruefe("er schaltet den Modus", src.includes("muskelModus('wohl')"));
-pruefe("der Modus faerbt die Knoepfe mit", grabFn("muskelModusAnwenden").includes('m === "wohl"'));
-const tippen = grabFn("muskelTippen");
-pruefe("ein Tipp im Modus fragt nach", tippen.includes('muskelStatus.modus === "wohl"') && tippen.includes("beschwerdeFragen(key)"));
-const fragen = grabFn("beschwerdeFragen");
+/* 0.243: Der Wohlbefinden-Tab ist im Muskel-Check-Wizard aufgegangen — die
+   0.228-Zusagen (fuenf Antworten, sofort in die Rechnung) gelten dort weiter. */
+pruefe("an der Tab-Stelle startet der Muskel-Check",
+  src.includes('id="muskel-modus-check"') && src.includes('onclick="muskelCheckStarten()"'));
 pruefe("es gibt fuenf Antworten auf einer Ebene",
-  (fragen.match(/\{ text:/g) || []).length === 5);
+  (src.slice(src.indexOf("const MCHECK_ANTWORTEN"), src.indexOf("];", src.indexOf("const MCHECK_ANTWORTEN")))
+     .match(/\{ text:/g) || []).length === 5);
+const fragen = grabFn("muskelCheckAntwort");
 pruefe("Alles gut loescht BEIDE Arten",
-  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, key, "kater", 0)') &&
-  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, key, "schmerz", 0)'));
+  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, m, "kater", 0)') &&
+  fragen.includes('beschwerdeSetzen(d.beschwerden, heute, m, "schmerz", 0)'));
 pruefe("gespeichert wird sofort", fragen.includes("speichern()"));
 pruefe("und alles Abgeleitete zieht mit", fragen.includes("fortschrittNeuZeichnen()"));
 pruefe("der Datenvertrag ist additiv",
@@ -129,11 +129,15 @@ pruefe("die Kapazitaet kennt den Faktor",
    gruen, obwohl gerade gemeldet wurde, dass er wehtut. */
 pruefe("ein gemeldeter Muskel ohne Last kommt dazu",
   grabFn("muskelAuslastung").includes("beschwerdeFaktor(beschwerden, e.muskel, heute) < 1"));
-/* 0.238: Die Nachher-Vorschau (nachherQuoten) ist der vierte Aufrufer. */
-pruefe("alle vier Aufrufer reichen die Beschwerden durch",
-  (src.match(/sitzung\.daten\.tageswerte, sitzung\.daten\.beschwerden\)/g) || []).length === 4);
+/* 0.238: Die Nachher-Vorschau ist der vierte Aufrufer; 0.243: der manuelle
+   Muskel-Check (muskelCheckStarten) der fuenfte. */
+pruefe("alle fuenf Aufrufer reichen die Beschwerden durch",
+  (src.match(/sitzung\.daten\.tageswerte, sitzung\.daten\.beschwerden\)/g) || []).length === 5);
 pruefe("die Detail-Karte nennt den Grund", grabFn("muskelAuswahlZeichnen").includes("beschwerdeText("));
-pruefe("die Statuszeile erklaert den Modus", grabFn("muskelStatusText").includes('muskelStatus.modus === "wohl"'));
+// 0.243: Die Statuszeile hat keinen wohl-Modus mehr — der Wizard erklaert
+// selbst, was mit den Antworten passiert (Ausklingen + Muster).
+pruefe("der Wizard erklaert das Ausklingen und das Muster",
+  grabFn("muskelCheckSchritt").includes("BESCHWERDE_TAGE"));
 
 /* ---------- 7) Verdrahtung: eine Faerbung ---------- */
 pruefe("die grosse Karte malt die Auslastung",

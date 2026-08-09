@@ -2147,10 +2147,10 @@ button.gewaehlt{background:var(--signal);color:#16181C}
       <!-- v195: „Dein Körper" steht vorne (Nutzer-Ansage), „Erkunden" bleibt als
            Neben-Tab zum Nachschlagen. -->
       <button id="muskel-modus-heat" class="muskel-tab muskel-an" onclick="muskelModus('trainiert')">Dein Körper</button>
-      <!-- 0.228.0 (Nutzer-Wunsch, dreimal): Muskel antippen und sagen, wie er
-           sich anfühlt. Steht zwischen den beiden anderen, weil er zu „Dein
-           Körper" gehört — Erkunden bleibt das Nachschlagewerk am Rand. -->
-      <button id="muskel-modus-wohl" class="muskel-tab" onclick="muskelModus('wohl')">Wohlbefinden</button>
+      <!-- 0.243.0 (Nutzer-Auftrag): Der Wohlbefinden-Tab (0.228) ist im
+           Muskel-Check-Wizard aufgegangen — derselbe Platz, derselbe Zweck,
+           aber geführt: Muskel groß im Bild, Bewegungs-Frage, fünf Antworten. -->
+      <button id="muskel-modus-check" class="muskel-tab" onclick="muskelCheckStarten()">Muskel-Check</button>
       <button id="muskel-modus-info" class="muskel-tab" onclick="muskelModus('erkunden')">Erkunden</button>
     </div>
     <!-- v122: dritte Ansicht „Beide" — vorne und hinten nebeneinander (Nutzer-Wunsch). -->
@@ -2927,8 +2927,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.242.1";
-const APP_VERSION = 242001;
+const VERSION = "0.243.0";
+const APP_VERSION = 243000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7148,7 +7148,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.242 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.243 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7195,6 +7195,9 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.243.0", punkte:[
+    "Der Tab „Wohlbefinden“ in der Muskelkarte ist zum Knopf „Muskel-Check“ geworden: Ein Tipp startet den geführten Durchgang — dieselben großen Figuren und Bewegungs-Fragen wie nach dem Training, über alle zuletzt belasteten Muskeln (die vollsten zuerst). Und wenn du nur EINEN Muskel melden willst: Muskel in „Dein Körper“ antippen und in seiner Karte auf „Wie fühlt er sich an?“ — derselbe Check, nur für diesen einen."
+  ]},
   { stand:"0.242.1", punkte:[
     "Zwei Korrekturen an der neuen automatischen Wertung, gefunden bei der Gegenprobe: Zeit-Übungen (z. B. Plank) wurden aus dem falschen Protokoll-Feld gelesen und wären immer als „nicht geschafft“ gewertet worden — jetzt zählt die wirklich gehaltene Zeit. Und ein sauber geschafftes Training wiegt in der Muskel-Rechnung wieder voll: Das interne Steigern-Signal hatte die Sätze versehentlich als „leicht“ eingestuft, was die Auslastung zu grün gezeigt und die Kalibrierung verzerrt hätte."
   ]},
@@ -10425,12 +10428,12 @@ function muskelModus(m){
 }
 /** Modus-Schalter + Legende auf den aktuellen Modus einstellen. */
 function muskelModusAnwenden(){
-  const m = muskelStatus.modus || "erkunden";
+  // 0.243: „wohl" gibt es nicht mehr — der Platz gehört dem Muskel-Check-Knopf,
+  // und der ist kein Modus, sondern ein Absprung in den Wizard.
+  const m = muskelStatus.modus === "wohl" ? (muskelStatus.modus = "trainiert") : (muskelStatus.modus || "erkunden");
   const bi = document.getElementById("muskel-modus-info"), bh = document.getElementById("muskel-modus-heat");
-  const bw = document.getElementById("muskel-modus-wohl");   // 0.228.0
   if(bi) bi.classList.toggle("muskel-an", m === "erkunden");
   if(bh) bh.classList.toggle("muskel-an", m === "trainiert");
-  if(bw) bw.classList.toggle("muskel-an", m === "wohl");
   /* 0.228.0: Die Legende gehört zu jeder Ansicht, die den Körper einfärbt —
      also zu beiden Auslastungs-Modi. Nur „Erkunden" braucht sie nicht, dort
      bedeutet die Farbe „ausgewählt". */
@@ -12509,10 +12512,8 @@ function muskelTreffer(e){
     den getippten Muskel fokussieren (zeigt unten die eigenen Übungen). */
 function muskelTippen(e){
   const key = muskelTreffer(e); if(!key) return;
-  /* 0.228.0: Im Wohlbefinden-Modus IST der Tipp die Eingabe — ein Menü mit fünf
-     Antworten statt eines Formulars mit zwei Schiebereglern. Wer sagen will
-     „das zwickt", soll das in zwei Tipps erledigen können. */
-  if(muskelStatus.modus === "wohl"){ beschwerdeFragen(key); return; }
+  // 0.243: Der Wohlbefinden-Modus ist im Wizard aufgegangen — melden geht über
+  // den Muskel-Check-Knopf oder den Frage-Knopf der Detail-Karte.
   if(muskelStatus.modus === "trainiert"){
     muskelStatus.gewaehlt = [key];
     muskelAuswahlZeichnen(); muskelStatusText();
@@ -12529,33 +12530,30 @@ function muskelTippen(e){
   muskelMalen(); muskelAuswahlZeichnen(); muskelStatusText();
 }
 
-/** 0.228.0: Wie fühlt sich dieser Muskel an? Fünf Antworten, eine Ebene — die
-    Skalen (0–3) stehen dahinter, nicht davor. „Alles gut" löscht die Meldung
-    des Tages, damit ein Fehlgriff nicht bis zum Ausklingen stehen bleibt. */
-function beschwerdeFragen(key){
-  const name = (MUSKEL_INFO[key] || {}).name || key;
-  const heute = heuteAlsText();
-  const setzen = (art, wert) => {
-    const d = sitzung.daten;
-    if(art === null){
-      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, "kater", 0);
-      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, "schmerz", 0);
-    } else {
-      d.beschwerden = beschwerdeSetzen(d.beschwerden, heute, key, art, wert);
-    }
-    speichern();
-    muskelLastZeichnen(); muskelAuswahlZeichnen(); muskelStatusText();
-    fortschrittNeuZeichnen();   // v214: die Rechnung hat sich geändert
-    zeigenToast(name + ": notiert", "erfolg");
-  };
-  // 0.234.0: die ausformulierte Check-Frage statt der immergleichen Formel
-  aktionsMenue(muskelCheckFrage(key), [
-    { text:"Alles gut",              tun:() => setzen(null, 0) },
-    { text:"Leichter Muskelkater",   tun:() => setzen("kater", 1) },
-    { text:"Starker Muskelkater",    tun:() => setzen("kater", 2) },
-    { text:"Schmerzen — leicht",     tun:() => setzen("schmerz", 1) },
-    { text:"Schmerzen — stark", stil:"gefahr", tun:() => setzen("schmerz", 2) }
-  ]);
+/* 0.243: Hier stand `beschwerdeFragen` (0.228, das Fünf-Antworten-Menü des
+   Wohlbefinden-Modus). Ersatzlos in den Muskel-Check-Wizard aufgegangen —
+   dieselben fünf Antworten, derselbe Beschwerden-Weg, aber mit großer Figur
+   und Bewegungs-Anweisung. Einstiege: der Muskel-Check-Knopf der Karte
+   (`muskelCheckStarten`) und der Frage-Knopf der Detail-Karte. */
+
+/** Manueller Muskel-Check aus der Karte — ohne Trainings-Bezug. Ohne Liste
+    werden die Muskeln gefragt, über die es ehrlich etwas zu sagen gibt:
+    belastet im Fenster oder mit offener Beschwerde, stärkste Quote zuerst. */
+function muskelCheckStarten(muskeln){
+  if(!viewErlaubt("view-muskeln")) return;
+  let liste = muskeln;
+  if(!liste){
+    const a = muskelAuslastung(sitzung.daten.protokoll, sitzung.daten.profil,
+                               sitzung.daten.einrichtung, heuteAlsText(),
+                               sitzung.daten.tageswerte, sitzung.daten.beschwerden);
+    liste = Object.keys(a).sort((x, y) => (a[y].quote || 0) - (a[x].quote || 0));
+  }
+  if(!liste.length){
+    meldung("Gerade gibt es nichts zu prüfen — in den letzten " + LAST_MAX_TAGE +
+            " Tagen wurde kein Muskel belastet und nichts gemeldet.");
+    return;
+  }
+  muskelCheckOeffnen(null, null, () => muskelnOeffnen(), liste);
 }
 
 /** Detail-Karten je gewähltem Muskel — je nach Modus: Beispiel-Übungen (erkunden)
@@ -12603,8 +12601,12 @@ function muskelAuswahlZeichnen(){
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
         ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + wohl + muster + erhSatz) + '</div>' +
         korridorZeileHtml(a);   // 0.231.0: Mindestmaß · Richtwert · Verletzungsrisiko
-      if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + LAST_MAX_TAGE + ' Tagen nicht trainiert.</div></div>';
-      return kopf + last + eh.map(g => {
+      /* 0.243: Der Weg zum Melden EINES Muskels — früher der Wohlbefinden-Tab,
+         jetzt derselbe Wizard, nur für genau diesen Muskel. */
+      const fragen = '<button class="schmal" style="margin:4px 0 8px" onclick="muskelCheckStarten([\'' +
+        key + '\'])">Wie fühlt er sich an?</button>';
+      if(!eh.length) return kopf + last + fragen + '<div class="meta">In den letzten ' + LAST_MAX_TAGE + ' Tagen nicht trainiert.</div></div>';
+      return kopf + last + fragen + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
         return '<div class="meta">' + wann + ": " + text(g.namen.join(", ")) + '</div>';
       }).join("") + '</div>';
@@ -12698,13 +12700,9 @@ function grundlagenZeileHtml(){
    Aufruf an beide Stellen hier unten dazu.) */
 function muskelStatusText(){
   const el = document.getElementById("muskel-status");
-  /* 0.228.0: Im Wohlbefinden-Modus sagt die Zeile, was der Tipp bewirkt — sonst
-     tippt man auf einen Muskel und bekommt unerwartet ein Menü. */
-  if(muskelStatus.modus === "wohl"){
-    el.innerHTML = text("Tippe einen Muskel an und sag, wie er sich anfühlt. Schmerzen und Muskelkater nimmt die Rechnung zurück — sie klingen über " +
-      BESCHWERDE_TAGE + " Tage von selbst wieder aus. Wiederholt sich eine Beschwerde nach derselben Übung oder Sportart, merkt sich die App das Muster und warnt dort früher — und aus deinen Meldungen lernt sie, wie schnell sich jeder Muskel bei dir erholt.") + grundlagenZeileHtml();
-    return;
-  }
+  /* 0.243: Der Wohlbefinden-Zweig (0.228) ist raus — sein Erklärtext lebt
+     sinngemäß im Muskel-Check weiter (Meldungen klingen über BESCHWERDE_TAGE
+     Tage aus, Muster und Erholungs-Lernen lesen sie). */
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
       el.innerHTML = text("Unten die Übungen der letzten " + LAST_MAX_TAGE + " Tage.") +
@@ -20919,10 +20917,12 @@ let mcheck = null;
 
 /** Der Wizard — `fertig(plan, eintrag, antworten)` läuft nach dem letzten
     Schritt (Kraft: Progression; Unendlichkeitsmodus: Abschluss-Seite). */
-function muskelCheckOeffnen(plan, eintrag, fertig){
+function muskelCheckOeffnen(plan, eintrag, fertig, muskeln){
+  // 0.243: `muskeln` explizit = manueller Start aus der Karte — dort wird
+  // genau das Gewünschte gefragt, ohne die adaptive Auswahl.
   mcheck = { plan, eintrag, antworten:{}, index:0, fertig,
-             muskeln: muskelCheckMuskeln(eintrag, sitzung.daten.protokoll,
-                                         sitzung.daten.beschwerden, heuteAlsText()) };
+             muskeln: muskeln || muskelCheckMuskeln(eintrag, sitzung.daten.protokoll,
+                                                    sitzung.daten.beschwerden, heuteAlsText()) };
   muskelCheckSchritt();
   zeige("view-muskelcheck");
 }
@@ -20936,9 +20936,11 @@ function muskelCheckSchritt(){
     // Abschluss-Schritt: nur noch die Notiz (optional) und Speichern.
     stand.textContent = "";
     schritt.innerHTML = mcheck.muskeln.length
-      ? '<div class="karte"><div class="meta">Alle Muskeln durch — deine Antworten sind schon in der Rechnung.</div></div>' : "";
+      ? '<div class="karte"><div class="meta">Alle Muskeln durch — deine Antworten sind schon in der Rechnung. Meldungen klingen über ' +
+        BESCHWERDE_TAGE + ' Tage von selbst aus; wiederholt sich eine Beschwerde nach derselben Übung oder Sportart, merkt sich die App das Muster und warnt dort früher.</div></div>' : "";
     document.getElementById("mcheck-notiz").value = (mcheck.eintrag && mcheck.eintrag.notiz) || "";
-    notizKarte.hidden = false;
+    // 0.243: Beim manuellen Start (ohne Trainings-Eintrag) gibt es nichts zu notieren.
+    notizKarte.hidden = !mcheck.eintrag;
     fertigReihe.hidden = false;
     return;
   }

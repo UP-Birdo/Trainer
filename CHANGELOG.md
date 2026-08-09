@@ -3,6 +3,14 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.243.0
+
+- Der Tab „Wohlbefinden“ in der Muskelkarte ist zum Knopf „Muskel-Check“ geworden: Ein
+  Tipp startet den geführten Durchgang — dieselben großen Figuren und Bewegungs-Fragen
+  wie nach dem Training, über alle zuletzt belasteten Muskeln (die vollsten zuerst). Und
+  wenn du nur EINEN Muskel melden willst: Muskel in „Dein Körper“ antippen und in seiner
+  Karte auf „Wie fühlt er sich an?“ — derselbe Check, nur für diesen einen.
+
 ## 0.242.1
 
 - Zwei Korrekturen an der neuen automatischen Wertung, gefunden bei der Gegenprobe:
