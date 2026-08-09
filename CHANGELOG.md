@@ -3,6 +3,26 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.246.0
+
+- Neu: <strong>„Wie die App von dir lernt“</strong> — hinter dem „i“ unter der
+  Grundlagen-Zeile der Muskelkarte, hinter dem „i“ auf der Kennenlern-Karte nach dem
+  Training, und als eigener Abschnitt in „Gut zu wissen“. Dort steht nach Zeitpunkten
+  sortiert, was sich wann ändert: sofort nach einer Meldung, nach jedem Training, in den
+  ersten zehn Trainings, Woche für Woche, über Monate, nach einer langen Pause — und
+  warum die App mit der Zeit immer weniger fragt.
+- Dazu steht auch drin, was NICHT mitwächst: die Sicherheits-Grenzen. Dass es diese
+  Richtungen gibt, ist belegt — die genaue Größe nicht, und eine erfundene Genauigkeit
+  wäre schlechter als eine vorsichtige feste Zahl.
+- „Gut zu wissen“ ist auf den neuesten Stand gebracht. Der Abschnitt zur Bewertung
+  beschrieb noch die alten Noten von 1 bis 5 — die gibt es seit dem Muskel-Check nicht
+  mehr. Jetzt steht dort, wie die Steigerung wirklich entsteht (die App liest die
+  Schwere an deinen Sätzen ab) und was den Plan bewusst NICHT anfasst.
+- Neu erklärt sind außerdem die Muskelkarte (was die Farben bedeuten, wie eine Belastung
+  ausklingt, wo der Muskel-Check startet) — und richtiggestellt, dass ein abgebrochenes
+  Training nichts mehr verliert: Was du geschafft hast, wird eingetragen, nur bewertet
+  wird es nicht.
+
 ## 0.245.0
 
 - Im Muskel-Check kommst du jetzt zurück: Oben links steht „Zurück“, ein Rahmen zeigt
