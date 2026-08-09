@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.247.0
+
+- Die Muskelkarte ist ruhiger geworden. Unter der Figur stand ein langer grauer Absatz —
+  worauf die Einschätzung beruht, was der App fehlt, was das für die Ausdauer bedeutet.
+  Der ist jetzt in dasselbe „i“ gewandert wie „Wie die App von dir lernt“. Draußen
+  bleibt eine Zeile: wie viele Trainings die Grundlage sind und wie dein Stand gerade
+  heißt.
+- Verloren geht nichts — ein Tipp auf das „i“, und alles steht wieder da: der volle Text
+  zuerst, der Lern-Teil darunter.
+
 ## 0.246.0
 
 - Neu: <strong>„Wie die App von dir lernt“</strong> — hinter dem „i“ unter der

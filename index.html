@@ -2943,8 +2943,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.246.0";
-const APP_VERSION = 246000;
+const VERSION = "0.247.0";
+const APP_VERSION = 247000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7178,7 +7178,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.246 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.247 · Das Training in deiner Hand", punkte:[
     "Neu: „Wie die App von dir lernt“ — hinter dem „i“ auf der Muskelkarte und in „Gut zu wissen“ steht in Klartext, zu welchem Zeitpunkt sich was ändert: sofort, nach jedem Training, in den ersten zehn, Woche für Woche, über Monate — und was bewusst fest bleibt.",
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
@@ -7226,6 +7226,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.247.0", punkte:[
+    "Die Muskelkarte ist ruhiger geworden. Unter der Figur stand ein langer grauer Absatz — worauf die Einschätzung beruht, was der App fehlt, was das für die Ausdauer bedeutet. Der ist jetzt in dasselbe „i“ gewandert wie „Wie die App von dir lernt“. Draußen bleibt eine Zeile: wie viele Trainings die Grundlage sind und wie dein Stand gerade heißt.",
+    "Verloren geht nichts — ein Tipp auf das „i“, und alles steht wieder da: der volle Text zuerst, der Lern-Teil darunter."
+  ]},
   { stand:"0.246.0", punkte:[
     "Neu: <strong>„Wie die App von dir lernt“</strong> — hinter dem „i“ unter der Grundlagen-Zeile der Muskelkarte, hinter dem „i“ auf der Kennenlern-Karte nach dem Training, und als eigener Abschnitt in „Gut zu wissen“. Dort steht nach Zeitpunkten sortiert, was sich wann ändert: sofort nach einer Meldung, nach jedem Training, in den ersten zehn Trainings, Woche für Woche, über Monate, nach einer langen Pause — und warum die App mit der Zeit immer weniger fragt.",
     "Dazu steht auch drin, was NICHT mitwächst: die Sicherheits-Grenzen. Dass es diese Richtungen gibt, ist belegt — die genaue Größe nicht, und eine erfundene Genauigkeit wäre schlechter als eine vorsichtige feste Zahl.",
@@ -11218,16 +11222,28 @@ const LERNEN_INFO = [
 function lernenInfoZeilen(){
   return LERNEN_INFO.map(p => "<strong style='color:var(--chalk)'>" + p.wann + "</strong> " + p.was);
 }
-/** Der aufklappbare Block hinter einem „i". `id` muss je Auftritt eigen sein. */
-function lernenInfoHtml(id){
+/** Der aufklappbare Block hinter einem „i". `id` muss je Auftritt eigen sein.
+    `vorspann` ist zusätzliches HTML, das ÜBER dem Lern-Text landet — 0.247:
+    Die Muskelkarte legt dort ihre lange Grundlagen-Zeile ab, statt sie
+    dauerhaft auf den Schirm zu stellen. Mit Vorspann bekommt der Lern-Teil
+    eine eigene Überschrift, sonst liefen zwei Themen ineinander. */
+function lernenInfoHtml(id, vorspann){
   return '<div id="' + id + '" class="meta info-text" hidden style="line-height:1.8">' +
+    (vorspann || "") +
+    (vorspann ? '<div style="margin-top:12px;color:var(--chalk);font-weight:600">Wie die App von dir lernt</div>' : "") +
     lernenInfoZeilen().map(z => "• " + z).join("<br>") + '</div>';
 }
-/** Beschriftete „i"-Zeile davor — ein nacktes „i" fände hier niemand. */
-function lernenInfoKnopfHtml(id){
-  return '<div class="zeile" style="margin-top:8px"><span class="meta">Wie die App von dir lernt</span>' +
-    '<button class="info-knopf" onclick="infoUmschalten(\'' + id + '\')" aria-label="Wie die App von dir lernt">i</button></div>' +
-    lernenInfoHtml(id);
+/** Beschriftete „i"-Zeile davor — ein nacktes „i" fände hier niemand. Ohne
+    eigene `beschriftung` steht dort der Name des Lern-Texts; die Muskelkarte
+    gibt stattdessen ihre Kurzform mit, damit die Zeile beides tut: die
+    wichtigste Auskunft zeigen UND den Rest aufklappen. */
+function lernenInfoKnopfHtml(id, beschriftung, vorspann){
+  const label = beschriftung || "Wie die App von dir lernt";
+  return '<div class="zeile" style="margin-top:8px">' +
+    '<span class="meta" style="opacity:.8">' + text(label) + '</span>' +
+    '<button class="info-knopf" onclick="infoUmschalten(\'' + id + '\')" aria-label="' +
+    text(label) + '">i</button></div>' +
+    lernenInfoHtml(id, vorspann);
 }
 
 /** Die Phasen-Karte auf der Ergebnis-Seite — nur während einer Kalibrierung. */
@@ -12184,6 +12200,16 @@ function grundlageText(g){
   return satz + ohne + genauer + hinweis + zuwenig;
 }
 
+/** 0.247: Die KURZFORM für die immer sichtbare Zeile — nur die Anzahl der
+    Trainings und der Stand in Worten. Alles Weitere (worauf gerechnet wird,
+    was fehlt, die Aufforderung) steht im vollen `grundlageText` hinter dem
+    „i". Rein/testbar. */
+function grundlageKurz(g){
+  if(!g) return "";
+  return "Grundlage: " + g.trainings + " Training" + (g.trainings === 1 ? "" : "s") +
+         (g.stand ? " · Stand: " + g.stand : "");
+}
+
 /* ------------------------------------------------------------
    v184: Was diese Karte NICHT zählen kann — und das auch sagt.
 
@@ -12837,9 +12863,18 @@ function grundlagenZeileHtml(){
   /* 0.246: Die Grundlagen-Zeile sagt, WORAUF die App rechnet — die Anschlussfrage
      „und wie wird das mit der Zeit besser?" gehört direkt daneben. Beide
      Aufrufer unten schreiben in dasselbe `#muskel-status` und schließen sich
-     gegenseitig aus, die feste id kommt darum nie doppelt vor. */
-  return zeile(grundlageText(g)) + (einordnung ? zeile(einordnung) : "") +
-         lernenInfoKnopfHtml("info-lernen");
+     gegenseitig aus, die feste id kommt darum nie doppelt vor.
+
+     0.247 (Nutzer-Meldung „das über dem i nimmt viel Platz"): Draußen steht
+     jetzt nur noch die Kurzform. Der volle Text — worauf gerechnet wird, was
+     fehlt, die Einordnung der Ausdauer-Einheiten — ist in dasselbe „i"
+     gewandert, über den Lern-Text. Die v167-Zusage bleibt gewahrt: Was fehlt,
+     ist weiter da und EINEN Tipp entfernt; es füllt nur nicht mehr die halbe
+     Karte, bevor jemand danach gefragt hat. Die Kurzform bleibt sichtbar, weil
+     sie die eine Zahl trägt, an der man sofort sieht, wie belastbar das Urteil
+     der Karte gerade ist. */
+  return lernenInfoKnopfHtml("info-lernen", grundlageKurz(g),
+    zeile(grundlageText(g)) + (einordnung ? zeile(einordnung) : ""));
 }
 
 /* v176/v177: Die Hinweis-Zeilen stehen auf der Muskelkarte IMMER, wenn es

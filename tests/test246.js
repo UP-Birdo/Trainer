@@ -42,6 +42,9 @@ function grabBlock(name, open, close){
 const modul = { exports: {} };
 new Function("module", "exports", [
   grabBlock("LERNEN_INFO", "[", "]"),
+  // 0.247: die Beschriftung laeuft durch die Escape-Stelle der App.
+  "function text(s){ return String(s).replace(/[&<>\"']/g, z => " +
+    "({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[z])); }",
   grabFn("lernenInfoZeilen"),
   grabFn("lernenInfoHtml"),
   grabFn("lernenInfoKnopfHtml"),
@@ -99,8 +102,9 @@ pruefe("die Zeilen kommen aus dem Register",
   pruefe("beide Auftritte zeigen denselben Inhalt",
     T.lernenInfoHtml("x").replace(/id="x"/, "") === T.lernenInfoHtml("y").replace(/id="y"/, ""));
 }
+// 0.247: derselbe Knopf, nur mit Kurzform als Beschriftung und Vorspann (test247).
 pruefe("die Muskelkarte haengt ihn an die Grundlagen-Zeile",
-  grabFn("grundlagenZeileHtml").includes('lernenInfoKnopfHtml("info-lernen")'));
+  grabFn("grundlagenZeileHtml").includes('lernenInfoKnopfHtml("info-lernen",'));
 pruefe("die Phasen-Karte nach dem Training hat ihren eigenen",
   grabFn("kalibrierungsKarteHtml").includes('lernenInfoKnopfHtml("info-lernen-phase")'));
 {
