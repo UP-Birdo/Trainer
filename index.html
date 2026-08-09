@@ -2921,8 +2921,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.239.0";
-const APP_VERSION = 239000;
+const VERSION = "0.240.0";
+const APP_VERSION = 240000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7140,7 +7140,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.239 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.240 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7187,6 +7187,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.240.0", punkte:[
+    "Die Muskelkarte hat kein starres 8-Tage-Fenster mehr: Training klingt jetzt allmählich aus, statt am achten Tag schlagartig aus der Rechnung zu fallen. Wie lange es nachwirkt, hängt an der Erholungszeit des Muskels — ein sehr hartes Beintraining vor neun Tagen ist damit nicht einfach „weg“.",
+    "Und die Erholungszeit wird persönlich: Die App lernt aus deinen Meldungen, wie schnell sich jeder Muskel bei DIR erholt. Meldet sich ein Muskel wiederholt noch, wenn er laut Rechnung längst erholt wäre, bekommt er mehr Tage; verträgst du frühes Wiedertrainieren nachweislich ohne Beschwerden, weniger. Immer mit Mindest-Beobachtungen und Deckel — und die Detail-Karte sagt dir offen, wenn sie bei einem Muskel von der Regel abweicht."
+  ]},
   { stand:"0.239.0", punkte:[
     "Eine gründliche Fehlersuche durch die ganze App — sechs Korrekturen: Die ±kg-Knöpfe im laufenden Training funktionieren wieder (sie taten seit Längerem still gar nichts). Bei Zeit-Übungen stimmt die eingetragene Haltezeit jetzt auch nach „Anhalten/Weiter“ oder ±Zeit (vorher konnten gehaltene Sekunden verloren gehen — auch beim Kürzen auf null). Ein Doppeltipp auf „Los geht’s“ kann das Training nicht mehr durcheinanderbringen.",
     "Dazu drei Rechnungs-Korrekturen: Ein Muskel mit gemeldeten starken Schmerzen zeigt jetzt auch in seiner Detail-Karte den roten Balken (nicht nur auf der Figur). Die Beschwerde-Muster erkennen auch mitarbeitende Muskeln — etwa den unteren Rücken nach Kniebeugen. Und die „Nach diesem Training“-Vorschau rechnet sauber: Der angeschaute Plan verschiebt nicht mehr heimlich die Kapazitäts-Seite der eigenen Prognose."
@@ -11243,6 +11247,172 @@ function erholungsTageFuer(muskel, erfF){
 }
 
 /* ============================================================
+   0.240.0 — DIE ABKLINGENDE LAST + PERSÖNLICHE ERHOLUNG (Nutzer-Direktive)
+
+   Nutzer-Ansage (09.08.2026, sinngemäß): „Alles in den acht Tagen spielt in
+   die Muskelkarte ein, aber Beschwerden oder sehr hartes Training davor nicht.
+   Du musst herausfinden, wie schnell dieser Muskel bei DIESER Person
+   regeneriert, und es immer weiter anpassen — der Muskel wächst mit dem
+   Training. Die Einschränkung von 8 Tagen ist nicht passend, muss variabel
+   sein."
+
+   Zwei Bauteile:
+   1. DIE HARTE FENSTERKANTE IST WEG. Ein Satz fällt nicht mehr am Tag 8
+      schlagartig aus der Rechnung, sondern klingt aus (`lastGewicht`): volle
+      Wirkung in den jüngsten Tagen, danach linear gegen null. WIE LANGE,
+      bestimmt die Erholungszeit des Muskels — langsame Muskeln „erinnern"
+      hartes Training länger (bis Tag 7 + Erholungstage). Die Gesamtfläche
+      des Gewichts ist für jede Erholungszeit konstant 8 — genau die Fläche
+      des alten 8-Tage-Fensters. Dadurch bleibt die Kapazitäts-Eichung
+      (Sätze je Woche, v160) unverändert gültig: Wer gleichmäßig trainiert,
+      bekommt dieselbe Quote wie bisher; nur Kanten-Artefakte verschwinden
+      (der Montags-Trainierer hatte direkt nach dem Training ZWEI Montage
+      voll im Fenster). Damit ist auch die „Bekannte Baustelle"
+      8-Tage-Fenster aus der Tiefenprüfung eingelöst.
+   2. DIE ERHOLUNGSZEIT WIRD PERSÖNLICH (`erholungPersoenlich`). Gelernt wird
+      aus den eigenen Daten, je Muskel: Kommen Beschwerden wiederholt erst
+      NACH Ablauf der angenommenen Erholung (der Muskel meldet sich, wenn er
+      längst „erholt" sein müsste), braucht er bei dieser Person länger —
+      +1 Tag ab drei, +2 ab sechs solchen Episoden. Verträgt sie frühes
+      Wiedertrainieren nachweislich (vor Ablauf der Erholung trainiert, ohne
+      Beschwerde in den zwei Tagen danach), geht es einen Tag schneller.
+      Leitplanken wie überall: Mindestzahl an Beobachtungen, Deckel (+2/−1
+      um die Basis, nie unter 1 Tag), Ausklingen (nur die letzten 180 Tage),
+      und die Detail-Karte SAGT es („braucht bei dir länger — N statt B
+      Tage"). Eine Episode = ein Trainings-Anker: Wer denselben Schmerz drei
+      Tage nacheinander meldet, erzeugt EINE Beobachtung, nicht drei.
+      Die persönliche Erholung wirkt doppelt: auf das `erholt`-Kennzeichen
+      UND auf die Abkling-Kurve — wer langsamer regeneriert, trägt altes
+      Training länger im Konto. */
+const LAST_MAX_TAGE = 13;          // weiter zurück wiegt nichts mehr (7 + max. 6 Tage Erholung)
+const ERHOLUNG_LERN_FENSTER = 180; // ältere Beobachtungen prägen nicht mehr
+const ERHOLUNG_LERN_MIN = 3;       // Episoden, ab denen die Erholung länger wird
+const ERHOLUNG_FRUEH_MIN = 6;      // frühe, vertragene Wiederholungen für „schneller"
+
+/** Gewicht eines `d` Tage alten Satzes: voll in den jüngsten (8 − E) Tagen,
+    danach linear ausklingend über 2·E Tage. Fläche = konstant 8 für jedes E
+    (die Eichung des alten 8-Tage-Fensters bleibt). Rein/testbar. */
+function lastGewicht(d, erholungsTage){
+  if(d < 0) return 0;
+  const e = Math.min(6, Math.max(1, Math.round(erholungsTage || ERHOLUNG_TAGE)));
+  const kern = 8 - e;                       // volle Tage: d = 0 .. kern−1
+  if(d < kern) return 1;
+  const rest = 1 - (d - kern + 1) / (2 * e + 1);
+  return rest > 0 ? Math.round(rest * 1000) / 1000 : 0;
+}
+
+/** Trainings-Tage je Muskel (primär UND sekundär — dieselben Bausteine wie
+    `muskelLast`), aufsteigend, ein Eintrag je Tag. EIN Lauf für alle Muskeln;
+    fiktive Vorschau-Einträge zählen nicht. Rein/testbar. */
+function muskelTrainingsTageAlle(protokoll){
+  const map = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum || e.vorschau) return;
+    const dazu = m => { (map[m] || (map[m] = new Set())).add(e.datum); };
+    if(alsEinheitZaehlbar(e)){
+      const s = SPORT_LAST_MUSKELN[e.sportart];
+      muskelnAufKarte(s.p).concat(muskelnAufKarte(s.s)).forEach(dazu);
+    }
+    (e.saetze || []).forEach(x => {
+      const info = uebungMuskeln(x.name);
+      if(!info) return;
+      (info.muskeln || []).forEach(dazu);
+      (info.sekundaer || []).forEach(dazu);
+    });
+  });
+  Object.keys(map).forEach(m => { map[m] = [...map[m]].sort(); });
+  return map;
+}
+
+/** Persönliche Erholungszeit dieses Muskels: Basis ± gelernte Verschiebung.
+    `tage` sind die Trainings-Tage des Muskels (aus `muskelTrainingsTageAlle`).
+    Rein/testbar. */
+function erholungPersoenlich(tage, beschwerden, muskel, heute, basis){
+  if(!tage || !tage.length) return basis;
+  /* Träge Episoden: eine Beschwerde (Schmerz ≥ 1, Kater ≥ 2) meldet sich erst
+     an oder NACH dem Tag, an dem der Muskel laut Basis erholt wäre — verankert
+     am jüngsten Training davor, ein Anker zählt einmal. */
+  const anker = new Set();
+  (beschwerden || []).forEach(b => {
+    if(!b || b.muskel !== muskel || !b.datum) return;
+    const alt = tagDifferenz(b.datum, heute);
+    if(alt < 0 || alt > ERHOLUNG_LERN_FENSTER) return;
+    if(!((b.art === "schmerz" && b.wert >= 1) || (b.art === "kater" && b.wert >= 2))) return;
+    let anchorTag = null, dTage = null;
+    for(let i = tage.length - 1; i >= 0; i--){
+      const d = tagDifferenz(tage[i], b.datum);
+      if(d >= 0){ anchorTag = tage[i]; dTage = d; break; }
+    }
+    // Bezug nur, wenn das Training nah genug liegt — sonst erklärt es nichts.
+    if(anchorTag === null || dTage < basis || dTage > basis + 4) return;
+    anker.add(anchorTag);
+  });
+  const traege = anker.size;
+  /* Frühe, vertragene Wiederholungen: VOR Ablauf der Basis-Erholung wieder
+     trainiert, und in den zwei Tagen danach keine Beschwerde gemeldet. */
+  let frueh = 0;
+  for(let i = 1; i < tage.length; i++){
+    const alt = tagDifferenz(tage[i], heute);
+    if(alt < 0 || alt > ERHOLUNG_LERN_FENSTER) continue;
+    if(tagDifferenz(tage[i - 1], tage[i]) >= basis) continue;
+    const beschwert = (beschwerden || []).some(b => b && b.muskel === muskel && b.datum &&
+      ((b.art === "schmerz" && b.wert >= 1) || (b.art === "kater" && b.wert >= 2)) &&
+      tagDifferenz(tage[i], b.datum) >= 0 && tagDifferenz(tage[i], b.datum) <= 2);
+    if(!beschwert) frueh++;
+  }
+  let schub = 0;
+  if(traege >= 2 * ERHOLUNG_LERN_MIN) schub = 2;
+  else if(traege >= ERHOLUNG_LERN_MIN) schub = 1;
+  else if(frueh >= ERHOLUNG_FRUEH_MIN) schub = -1;
+  return Math.max(1, basis + schub);
+}
+
+/** Der Satz zur gelernten Erholung — oder leer, solange nichts gelernt ist. */
+function erholungText(persoenlich, basis){
+  if(!(persoenlich > 0) || persoenlich === basis) return "";
+  return persoenlich > basis
+    ? " Deine Meldungen zeigen: Dieser Muskel braucht bei dir länger, um sich zu erholen — die Rechnung gibt ihm " +
+      persoenlich + " statt " + basis + " Tage."
+    : " Frühes Wiedertrainieren verträgst du hier nachweislich gut — die Rechnung rechnet mit " +
+      persoenlich + " statt " + basis + " Tagen.";
+}
+
+/** Wie `muskelLast`, aber mit abklingendem Gewicht statt harter Fensterkante.
+    `erholungFuer(m)` liefert die (persönliche) Erholungszeit des Muskels —
+    sie formt die Kurve. Rein/testbar. */
+function muskelLastAbklingend(protokoll, heute, erholungFuer){
+  const last = {};
+  const maxGew = maxGewichtJeUebung(protokoll);
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > LAST_MAX_TAGE) return;
+    const dazu = (m, anteil) => {
+      const g = lastGewicht(d, erholungFuer(m));
+      if(!(g > 0) || !(anteil > 0)) return;
+      if(!last[m]) last[m] = { saetze:0, tageSeit:d };
+      last[m].saetze += anteil * g;
+      if(d < last[m].tageSeit) last[m].tageSeit = d;
+    };
+    if(alsEinheitZaehlbar(e)){
+      const satz = SPORT_LAST_MUSKELN[e.sportart];
+      const wiegt = aktivitaetSaetze(e.dauerMin);
+      muskelnAufKarte(satz.p).forEach(m => dazu(m, wiegt));
+      muskelnAufKarte(satz.s).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
+    }
+    echteSaetze(e).forEach(s => {
+      const info = uebungMuskeln(s.name);
+      if(!info) return;
+      const wiegt = satzGewichtung(s, maxGew[s.name] || 0);
+      (info.muskeln || []).forEach(m => dazu(m, wiegt));
+      (info.sekundaer || []).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
+    });
+  });
+  Object.keys(last).forEach(m => { last[m].saetze = Math.round(last[m].saetze * 10) / 10; });
+  return last;
+}
+
+/* ============================================================
    0.228.0 — BESCHWERDEN JE MUSKEL (Nutzer-Wunsch, dreimal gestellt)
 
    „Bei der Muskelkarte fehlt mir neben Erkunden noch Wohlbefinden, damit ich
@@ -11840,7 +12010,17 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
      Plans die Kapazität (Melze fällt weg, Note-3-Sätze verwässern den
      Schnitt) und die Nachher-Warnung käme zu spät. */
   const echt = (protokoll || []).filter(e => e && !e.vorschau);
-  const roh = muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE);
+  /* 0.240.0: Die Last klingt AB statt am Tag 8 hart auszufallen — geformt von
+     der (persönlichen) Erholungszeit je Muskel. Erfahrung und Erholung werden
+     dafür VOR der Last gerechnet; die Erholungs-Map entsteht faul je Muskel
+     und wird unten fürs `erholt`-Kennzeichen wiederverwendet. */
+  const erfF = erfahrungsFaktor(einrichtung, echt, heute);
+  const trainingsTage = muskelTrainingsTageAlle(echt);
+  const erhMerk = {};
+  const erholungFuer = m => erhMerk[m] !== undefined ? erhMerk[m]
+    : (erhMerk[m] = erholungPersoenlich(trainingsTage[m] || [], beschwerden, m, heute,
+                                        erholungsTageFuer(m, erfF)));
+  const roh = muskelLastAbklingend(protokoll, heute, erholungFuer);
   /* 0.228.0: Ein Muskel MIT Beschwerde, aber ohne Last im Fenster, muss trotzdem
      auftauchen — sonst bliebe er grün („bereit"), obwohl gerade gemeldet wurde,
      dass er wehtut. Er kommt mit 0 Sätzen dazu; seine Quote entsteht dann allein
@@ -11854,7 +12034,6 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
   const wochen = [];
   for(let w = 1; w <= ANPASSUNG_WOCHEN; w++)
     wochen.push(muskelLast(echt, tageVerschieben(heute, -7 * w), 6));
-  const erfF = erfahrungsFaktor(einrichtung, echt, heute);
   // 0.237.0: die Beschwerde-Vorläufer EINMAL für alle Muskeln auszählen.
   const vor = beschwerdeVorlaeufer(echt, beschwerden, heute);
   const raus = {};
@@ -11869,8 +12048,8 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
                            beschwerdeQuoteFloor(beschwerden, m, heute));
     raus[m] = { saetze: roh[m].saetze, kapazitaet: kap, tageSeit: roh[m].tageSeit,
                 quote,
-                // 0.230.0: Erholung je Muskel statt einer Zahl für alle
-                erholt: roh[m].tageSeit >= erholungsTageFuer(m, erfF) };
+                // 0.230.0: Erholung je Muskel; 0.240.0: persönlich gelernt
+                erholt: roh[m].tageSeit >= erholungFuer(m) };
   });
   return raus;
 }
@@ -12092,13 +12271,15 @@ function muskelLastZeichnen(ansicht){
   });
 }
 
-/** Übungen der letzten MUSKEL_HEAT_TAGE Tage, die diesen Muskel trainiert haben
-    (neueste zuerst) — je Eintrag { tage, namen[] }. */
+/** Übungen der letzten LAST_MAX_TAGE Tage, die diesen Muskel trainiert haben
+    (neueste zuerst) — je Eintrag { tage, namen[] }. 0.240.0: dieselbe
+    Reichweite wie die abklingende Last — wer färbt, muss antworten (v211):
+    auch ein 10 Tage altes Training, das noch nachwirkt, gehört in die Liste. */
 function muskelTrainingDetail(key){
   const heute = heuteAlsText(), treffer = [];
   for(const e of sitzung.daten.protokoll){
     if(!e.datum) continue;
-    const d = tagDifferenz(e.datum, heute); if(d < 0 || d > MUSKEL_HEAT_TAGE) continue;
+    const d = tagDifferenz(e.datum, heute); if(d < 0 || d > LAST_MAX_TAGE) continue;
     const namen = [];
     /* v211: Die Einfärbung zählt den Lauf mit (heute über `muskelLast`) —
        dann muss er auch in der Liste darunter stehen. Sonst wäre ein Muskel
@@ -12310,10 +12491,17 @@ function muskelAuswahlZeichnen(){
          Senkung ableitet („dreimal nach Beinbeugen"). Ohne Muster leer. */
       const muster = beschwerdeMusterText(
         beschwerdeVorlaeufer(sitzung.daten.protokoll, sitzung.daten.beschwerden, heuteAlsText()), key);
+      /* 0.240.0: die gelernte Erholungszeit — steht nur da, wenn sie bei
+         diesem Muskel von der Basis abweicht (Transparenz-Regel). */
+      const basisErh = erholungsTageFuer(key,
+        erfahrungsFaktor(sitzung.daten.einrichtung, sitzung.daten.protokoll, heuteAlsText()));
+      const erhSatz = erholungText(erholungPersoenlich(
+        muskelTrainingsTageAlle(sitzung.daten.protokoll)[key] || [],
+        sitzung.daten.beschwerden, key, heuteAlsText(), basisErh), basisErh);
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl + muster) + '</div>' +
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl + muster + erhSatz) + '</div>' +
         korridorZeileHtml(a);   // 0.231.0: Mindestmaß · Richtwert · Verletzungsrisiko
-      if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + MUSKEL_HEAT_TAGE + ' Tagen nicht trainiert.</div></div>';
+      if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + LAST_MAX_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {
         const wann = g.tage === 0 ? "heute" : g.tage === 1 ? "gestern" : "vor " + g.tage + " Tagen";
         return '<div class="meta">' + wann + ": " + text(g.namen.join(", ")) + '</div>';
@@ -12412,12 +12600,12 @@ function muskelStatusText(){
      tippt man auf einen Muskel und bekommt unerwartet ein Menü. */
   if(muskelStatus.modus === "wohl"){
     el.innerHTML = text("Tippe einen Muskel an und sag, wie er sich anfühlt. Schmerzen und Muskelkater nimmt die Rechnung zurück — sie klingen über " +
-      BESCHWERDE_TAGE + " Tage von selbst wieder aus. Wiederholt sich eine Beschwerde nach derselben Übung oder Sportart, merkt sich die App das Muster und warnt dort früher.") + grundlagenZeileHtml();
+      BESCHWERDE_TAGE + " Tage von selbst wieder aus. Wiederholt sich eine Beschwerde nach derselben Übung oder Sportart, merkt sich die App das Muster und warnt dort früher — und aus deinen Meldungen lernt sie, wie schnell sich jeder Muskel bei dir erholt.") + grundlagenZeileHtml();
     return;
   }
   if(muskelStatus.modus === "trainiert"){
     if(muskelStatus.gewaehlt.length){
-      el.innerHTML = text("Unten die Übungen der letzten " + MUSKEL_HEAT_TAGE + " Tage.") +
+      el.innerHTML = text("Unten die Übungen der letzten " + LAST_MAX_TAGE + " Tage.") +
                      grundlagenZeileHtml() + belastungsHinweiseHtml();
       return;
     }

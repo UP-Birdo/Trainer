@@ -3,6 +3,19 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.240.0
+
+- Die Muskelkarte hat kein starres 8-Tage-Fenster mehr: Training klingt jetzt allmählich
+  aus, statt am achten Tag schlagartig aus der Rechnung zu fallen. Wie lange es
+  nachwirkt, hängt an der Erholungszeit des Muskels — ein sehr hartes Beintraining vor
+  neun Tagen ist damit nicht einfach „weg“.
+- Und die Erholungszeit wird persönlich: Die App lernt aus deinen Meldungen, wie schnell
+  sich jeder Muskel bei DIR erholt. Meldet sich ein Muskel wiederholt noch, wenn er laut
+  Rechnung längst erholt wäre, bekommt er mehr Tage; verträgst du frühes
+  Wiedertrainieren nachweislich ohne Beschwerden, weniger. Immer mit
+  Mindest-Beobachtungen und Deckel — und die Detail-Karte sagt dir offen, wenn sie bei
+  einem Muskel von der Regel abweicht.
+
 ## 0.239.0
 
 - Eine gründliche Fehlersuche durch die ganze App — sechs Korrekturen: Die ±kg-Knöpfe im

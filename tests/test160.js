@@ -95,6 +95,12 @@ const code = [
   // 0.237: die Beschwerde-Historie je Uebung/Sportart — hier neutral (test237).
   "function beschwerdeVorlaeufer(){ return {}; }",
   "function vertraeglichkeitsFaktor(){ return 1; }",
+  /* 0.240: abklingende Last — die Kurve laeuft ECHT mit (bei Erholung 2 wiegen
+     die Tage 0–5 voll, die Test-Eintraege liegen alle dort; test240 prueft die
+     Kurve selbst). Die persoenliche Erholung ist hier neutral gestellt. */
+  "const LAST_MAX_TAGE = 13;",
+  "function muskelTrainingsTageAlle(){ return {}; }",
+  "function erholungPersoenlich(t, b, m, h, basis){ return basis; }",
   grabFn("muskelKapazitaet"),
   "const NOTE_GEWICHT = " + grabLiteral("NOTE_GEWICHT") + ";",   // v161
   /* v189: satzGewichtung wiegt zusaetzlich nach der gemessenen Pause. Ohne
@@ -105,6 +111,8 @@ const code = [
   grabFn("maxGewichtJeUebung"),
   grabFn("satzGewichtung"),
   grabFn("muskelLast"),
+  grabFn("lastGewicht"),            // 0.240: echte Abkling-Kurve
+  grabFn("muskelLastAbklingend"),   // 0.240: ersetzt das harte Fenster in der Auslastung
   grabFn("muskelAuslastung"),
   grabFn("auslastungStufe"),
   "module.exports = { alterJahre, kapazitaetsFaktor, muskelKapazitaet, muskelLast," +

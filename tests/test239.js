@@ -68,8 +68,10 @@ pruefe("beschwerdeVorlaeufer kennt Sekundaer-Muskeln",
     a.includes("erfahrungsFaktor(einrichtung, echt, heute)") &&
     a.includes("beschwerdeVorlaeufer(echt, beschwerden, heute)") &&
     a.includes("muskelLast(echt, tageVerschieben(heute, -7 * w), 6)"));
+  /* 0.240: die Last klingt ab (muskelLastAbklingend), bekommt aber weiter das
+     VOLLE Protokoll — nur dort zaehlt der fiktive Vorschau-Eintrag. */
   pruefe("die LAST rechnet weiter mit dem vollen Protokoll (Vorschau zaehlt dort)",
-    a.includes("muskelLast(protokoll, heute, MUSKEL_HEAT_TAGE)"));
+    a.includes("muskelLastAbklingend(protokoll, heute, erholungFuer)"));
 }
 
 /* ---------- 3) Trainings-Fixes ---------- */
