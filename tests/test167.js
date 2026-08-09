@@ -298,9 +298,16 @@ pruefe("die Statuszeile warnt nur mit Basis",
   grabFn("muskelStatusText").includes("basisReicht(sitzung.daten.protokoll)"));
 pruefe("die Grundlagen-Zeile steht auf der Muskelkarte",
   grabFn("muskelStatusText").includes("grundlagenZeileHtml()"));
+/* 0.247/0.248: Draussen steht die Kurzform, der volle `grundlageText` liegt in
+   der eigenen Ansicht hinter dem "i" (lernenOeffnen). Beides kommt weiter aus
+   derselben Quelle — die v167-Zusage "der Nutzer SIEHT, was fehlt" gilt, sie
+   kostet nur einen Tipp. */
 pruefe("sie kommt aus rechnungsGrundlage",
   grabFn("grundlagenZeileHtml").includes("rechnungsGrundlage(") &&
-  grabFn("grundlagenZeileHtml").includes("grundlageText("));
+  grabFn("grundlagenZeileHtml").includes("grundlageKurz(g)"));
+pruefe("der volle Text steht in der Lern-Ansicht",
+  grabFn("lernenOeffnen").includes("rechnungsGrundlage(") &&
+  grabFn("lernenOeffnen").includes("grundlageText(g)"));
 pruefe("Nutzertext in der Statuszeile wird escapet",
   grabFn("muskelStatusText").includes("el.innerHTML = text("));
 

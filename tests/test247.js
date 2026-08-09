@@ -50,9 +50,8 @@ new Function("module", "exports", [
   grabFn("grundlageText"),
   grabFn("grundlageKurz"),
   grabFn("lernenInfoZeilen"),
-  grabFn("lernenInfoHtml"),
-  grabFn("lernenInfoKnopfHtml"),
-  "module.exports = { grundlageText, grundlageKurz, lernenInfoHtml, lernenInfoKnopfHtml };"
+  grabFn("lernenKnopfHtml"),
+  "module.exports = { grundlageText, grundlageKurz, lernenKnopfHtml };"
 ].join("\n"))(modul, modul.exports);
 const T = modul.exports;
 
@@ -88,53 +87,35 @@ pruefe("ohne Grundlage kein Text", T.grundlageKurz(null) === "");
     lang.includes("Wiedereinsteiger") && lang.includes("Für eine Warnung"));
 }
 
-/* ---------- 2) Ein "i", beides drin, nichts verloren ---------- */
+/* ---------- 2) Die sichtbare Zeile traegt die Kurzform und sonst nichts ------
+   0.248: Der Rest klappt nicht mehr auf, sondern liegt in `view-lernen`
+   (test248). Was hier gilt: draussen NUR die Kurzform. */
 {
-  const vorspann = '<div class="meta">' + T.grundlageText(gLang) + '</div>' +
-                   '<div class="meta">Einordnung der Laeufe</div>';
-  const html = T.lernenInfoKnopfHtml("info-lernen", T.grundlageKurz(gLang), vorspann);
-
+  const html = T.lernenKnopfHtml(T.grundlageKurz(gLang), "view-muskeln");
   pruefe("die sichtbare Zeile zeigt die Kurzform",
-    html.indexOf("Grundlage: 3 Trainings · Stand: solide") < html.indexOf('id="info-lernen"'));
-  pruefe("der volle Text steht IM Block, nicht davor",
-    html.indexOf("Damit würde die Einschätzung genauer") > html.indexOf('id="info-lernen"'));
-  pruefe("die Einordnung ist mitgewandert", html.includes("Einordnung der Laeufe"));
-  pruefe("der Lern-Text steht dahinter und hat eine eigene Ueberschrift",
-    html.indexOf("Wie die App von dir lernt<") > html.indexOf("Damit würde die Einschätzung genauer") &&
-    html.indexOf("Sofort.") > html.indexOf("Wie die App von dir lernt<"));
-  pruefe("der Block ist zugeklappt", /id="info-lernen"[^>]*hidden/.test(html));
-  pruefe("es gibt genau EIN i und EINEN Block",
-    (html.match(/info-knopf/g) || []).length === 1 &&
-    (html.match(/id="info-lernen"/g) || []).length === 1);
+    html.includes(">Grundlage: 3 Trainings · Stand: solide</span>"));
+  pruefe("und nichts von der langen Aufforderung",
+    !html.includes("genauer") && !html.includes("Wiedereinsteiger"));
+  pruefe("es gibt genau EIN i", (html.match(/info-knopf/g) || []).length === 1);
   pruefe("das aria-label traegt dieselbe Beschriftung",
     html.includes('aria-label="Grundlage: 3 Trainings · Stand: solide"'));
 }
 
-/* ---------- 3) Der andere Auftritt bleibt, wie er war ---------- */
-{
-  const phase = T.lernenInfoKnopfHtml("info-lernen-phase");
-  pruefe("ohne Beschriftung steht dort der Name des Lern-Texts",
-    phase.includes(">Wie die App von dir lernt</span>"));
-  pruefe("ohne Vorspann gibt es KEINE zweite Ueberschrift im Block",
-    (phase.match(/Wie die App von dir lernt/g) || []).length === 2);   // Zeile + aria-label
-  pruefe("und er schaltet weiter seinen eigenen Block",
-    phase.includes("infoUmschalten('info-lernen-phase')") && !phase.includes('id="info-lernen"'));
-}
-
-/* ---------- 4) Verdrahtung ---------- */
+/* ---------- 3) Verdrahtung ---------- */
 {
   const zeile = grabFn("grundlagenZeileHtml");
-  pruefe("die Muskelkarte reicht Kurzform UND Vorspann herein",
-    zeile.includes('lernenInfoKnopfHtml("info-lernen", grundlageKurz(g),'));
-  pruefe("der volle Text und die Einordnung sind der Vorspann",
-    zeile.includes("zeile(grundlageText(g))") && zeile.includes("zeile(einordnung)"));
-  pruefe("die lange Zeile steht NICHT mehr zusaetzlich draussen",
-    !/return zeile\(grundlageText/.test(zeile));
+  pruefe("die Muskelkarte reicht die Kurzform herein",
+    zeile.includes('lernenKnopfHtml(grundlageKurz(g), "view-muskeln")'));
+  pruefe("die lange Zeile steht NICHT mehr draussen",
+    !zeile.includes("grundlageText(") && !zeile.includes("satzloseText("));
 }
-pruefe("die Phasen-Karte ruft weiter ohne Zusatz auf",
-  grabFn("kalibrierungsKarteHtml").includes('lernenInfoKnopfHtml("info-lernen-phase")'));
+{
+  const seite = grabFn("lernenOeffnen");
+  pruefe("der volle Text lebt jetzt in der Lern-Ansicht",
+    seite.includes("zeile(grundlageText(g))") && seite.includes("zeile(einordnung)"));
+}
 
-/* ---------- 5) Version und Neuigkeit ---------- */
+/* ---------- 4) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);
 pruefe("die App ist mindestens auf 0.247.0",

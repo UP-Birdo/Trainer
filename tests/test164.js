@@ -100,6 +100,8 @@ const mitZurueck = [
      Knoepfe — der Wisch findet dort also nichts. In allen anderen Schritten
      geht er genau einen Muskel zurueck. */
   "view-muskelcheck",
+  // 0.248: "Wie die App von dir lernt" als eigene Ansicht statt Aufklapp-Block.
+  "view-lernen",
   // v164: Auf Stufe 1/2 gibt es keine Tab-Leiste — dort IST dieser Knopf der
   // einzige Weg zurueck (er ist nur ab Stufe 3 ausgeblendet).
   "view-einstellungen"

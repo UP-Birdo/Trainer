@@ -184,8 +184,12 @@ pruefe("die Einordnung rechnet selbst keine Saetze aus einem Lauf",
   !/uebungMuskeln|kapazitaet|quote/.test(grabFn("satzloseEinheiten")));
 
 /* ---------- 6) Verdrahtung ---------- */
-const grundlagen = grabFn("grundlagenZeileHtml");
-pruefe("die Grundlagen-Zeile holt die Einordnung",
+/* 0.248: Der volle Text samt Einordnung ist aus `grundlagenZeileHtml` in die
+   eigene Ansicht `lernenOeffnen` gewandert (das "i" klappt nicht mehr auf,
+   es oeffnet eine Seite). Die v184-Zusagen sind Wort fuer Wort mitgewandert
+   und werden hier an ihrem neuen Ort geprueft. */
+const grundlagen = grabFn("lernenOeffnen");
+pruefe("die Lern-Ansicht holt die Einordnung",
   grundlagen.includes("satzloseText(satzloseEinheiten("));
 pruefe("sie steht weiterhin auf derselben Quelle wie v167",
   grundlagen.includes("rechnungsGrundlage(") && grundlagen.includes("grundlageText("));

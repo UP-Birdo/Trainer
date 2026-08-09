@@ -3,6 +3,29 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.248.0
+
+- <strong>Deine Wiederholungen zählen jetzt mit.</strong> Bis hierher war ein Satz ein
+  Satz — ein Satz mit 100 Wiederholungen wog in der Muskelkarte genauso viel wie einer
+  mit acht. Wer in einem langen Satz durchzieht, wurde als fast unbelastet geführt. Ab
+  jetzt zählt jede Wiederholung über dem üblichen Bereich anteilig weiter, und der lange
+  ununterbrochene Satz bekommt einen kleinen Zuschlag: Ein Satz mit 100 Wiederholungen
+  wiegt damit mehr als fünf Sätze zu je 20.
+- Bis 20 Wiederholungen ändert sich nichts. Das ist Absicht: In diesem Bereich setzt ein
+  Satz ähnlich viel Reiz, ob mit acht oder mit fünfzehn Wiederholungen — der schwere
+  Dreier und der lockere Fünfzehner sind beides EIN harter Satz. Deine bisherigen Zahlen
+  bleiben also vergleichbar, korrigiert wird nur, wo es wirklich falsch war.
+- <strong>„Gut zu wissen“ ist eine Klapp-Liste geworden.</strong> Statt zwölf
+  aufgeklappter Abschnitte, an denen man vorbeiscrollt, stehen jetzt nur die
+  Überschriften da. Eine antippen klappt sie auf — und die vorher offene schließt sich
+  dabei von selbst.
+- Dazu ist wieder Veraltetes rausgeflogen: Der Hinweis auf das Feld „Getan“ (das es seit
+  Langem nicht mehr gibt) und die Behauptung, Drills würden sich über die Bewertung
+  steigern.
+- <strong>Das „i“ auf der Muskelkarte öffnet jetzt eine eigene Seite</strong> statt
+  unter der Figur aufzuklappen — mit Zurück-Knopf wie überall. Dort steht zuerst, womit
+  die App gerade rechnet, darunter, wie sie mit der Zeit besser wird.
+
 ## 0.247.0
 
 - Die Muskelkarte ist ruhiger geworden. Unter der Figur stand ein langer grauer Absatz —

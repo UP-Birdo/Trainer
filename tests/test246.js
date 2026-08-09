@@ -46,9 +46,8 @@ new Function("module", "exports", [
   "function text(s){ return String(s).replace(/[&<>\"']/g, z => " +
     "({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[z])); }",
   grabFn("lernenInfoZeilen"),
-  grabFn("lernenInfoHtml"),
-  grabFn("lernenInfoKnopfHtml"),
-  "module.exports = { LERNEN_INFO, lernenInfoZeilen, lernenInfoHtml, lernenInfoKnopfHtml };"
+  grabFn("lernenKnopfHtml"),
+  "module.exports = { LERNEN_INFO, lernenInfoZeilen, lernenKnopfHtml };"
 ].join("\n"))(modul, modul.exports);
 const T = modul.exports;
 
@@ -88,37 +87,33 @@ pruefe("kein Zeitpunkt kommt doppelt",
 pruefe("die Zeilen kommen aus dem Register",
   T.lernenInfoZeilen().length === T.LERNEN_INFO.length &&
   T.lernenInfoZeilen()[0].includes(T.LERNEN_INFO[0].was));
+/* 0.248: Statt eines Aufklapp-Blocks je Auftritt fuehrt das "i" jetzt in die
+   eigene Ansicht `view-lernen` — der Inhalt entsteht dort EINMAL (test248). */
 {
-  const a = T.lernenInfoKnopfHtml("info-lernen");
-  const b = T.lernenInfoKnopfHtml("info-lernen-phase");
-  pruefe("der Block ist zugeklappt und traegt seine id",
-    a.includes('id="info-lernen"') && a.includes("hidden"));
-  pruefe("das i schaltet GENAU seinen Block",
-    a.includes("infoUmschalten('info-lernen')") &&
-    b.includes("infoUmschalten('info-lernen-phase')") &&
-    !a.includes("info-lernen-phase"));
+  const a = T.lernenKnopfHtml(null, "view-muskeln");
+  const b = T.lernenKnopfHtml(null, "view-ergebnis");
+  pruefe("das i fuehrt in die Lern-Ansicht und merkt sich den Rueckweg",
+    a.includes("lernenOeffnen('view-muskeln')") &&
+    b.includes("lernenOeffnen('view-ergebnis')"));
   pruefe("der Knopf ist beschriftet (ein nacktes i faende niemand)",
     a.includes("Wie die App von dir lernt") && a.includes('aria-label='));
-  pruefe("beide Auftritte zeigen denselben Inhalt",
-    T.lernenInfoHtml("x").replace(/id="x"/, "") === T.lernenInfoHtml("y").replace(/id="y"/, ""));
+  pruefe("er klappt nichts mehr auf", !a.includes("infoUmschalten") && !a.includes("hidden"));
 }
-// 0.247: derselbe Knopf, nur mit Kurzform als Beschriftung und Vorspann (test247).
 pruefe("die Muskelkarte haengt ihn an die Grundlagen-Zeile",
-  grabFn("grundlagenZeileHtml").includes('lernenInfoKnopfHtml("info-lernen",'));
-pruefe("die Phasen-Karte nach dem Training hat ihren eigenen",
-  grabFn("kalibrierungsKarteHtml").includes('lernenInfoKnopfHtml("info-lernen-phase")'));
+  grabFn("grundlagenZeileHtml").includes('lernenKnopfHtml(grundlageKurz(g), "view-muskeln")'));
+pruefe("die Phasen-Karte nach dem Training fuehrt zurueck aufs Ergebnis",
+  grabFn("kalibrierungsKarteHtml").includes('lernenKnopfHtml(null, "view-ergebnis")'));
 {
-  const wissen = grabFn("wissenOeffnen");
+  const wissen = grabFn("wissenAbschnitte");
   pruefe("Gut zu wissen baut den Text NICHT selbst zusammen",
     wissen.includes('abschnitt("Wie die App von dir lernt", lernenInfoZeilen())'));
-  pruefe("die drei Auftritte sind wirklich drei verschiedene ids",
-    new Set(["info-lernen", "info-lernen-phase"]).size === 2 &&
-    !wissen.includes('lernenInfoHtml('));
+  pruefe("und die Lern-Ansicht ebenso wenig",
+    grabFn("lernenOeffnen").includes("lernenInfoZeilen()"));
 }
 
 /* ---------- 3) Gut zu wissen ist wieder wahr ---------- */
 {
-  const wissen = grabFn("wissenOeffnen");
+  const wissen = grabFn("wissenAbschnitte");
   pruefe("die abgeschaffte Handnote steht nicht mehr im Regelwerk",
     !wissen.includes("bewertest du jede Übung von 1 bis 5") &&
     !wissen.includes("1 = viel zu leicht") && !wissen.includes("5 = nicht geschafft"));

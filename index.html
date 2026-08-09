@@ -722,6 +722,14 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
   flex:0 0 auto;line-height:1;transition:var(--transition);font-weight:700}
 .info-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 6px rgba(244,199,78,0.15);transform:scale(1.05)}
 .info-text{margin-top:8px;line-height:1.6;animation:slideDown 0.3s ease-out}
+/* 0.248: „Gut zu wissen" als Klapp-Liste — die Überschrift IST der Knopf.
+   Volle Breite und links ausgerichtet, damit sie wie eine Zeile wirkt und
+   nicht wie eine Schaltfläche; das „+/–" rechts sagt den Zustand. */
+.wissen-kopf{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  width:100%;text-align:left;background:transparent;box-shadow:none;padding:4px 0;
+  min-height:40px;font-size:15px;font-weight:700;color:var(--chalk)}
+.wissen-kopf:active:not(:disabled){transform:none;opacity:.6}
+.wissen-pfeil{font-family:var(--mono);font-size:18px;color:var(--muted);flex:0 0 auto}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
 
 /* Toast-Benachrichtigungen (Feedback nach Aktionen) */
@@ -1253,6 +1261,19 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </section>
 
 <!-- ============================================================
+     Ansicht: Wie die App von dir lernt (0.248 — Nutzer-Auftrag).
+     Bis 0.247 klappte derselbe Text unter der Figur auf und schob die
+     halbe Muskelkarte nach unten. Als eigene Ansicht hat er Platz, und
+     der Weg zurück ist der gewohnte — inklusive Wisch.
+     ============================================================ -->
+<section id="view-lernen" class="view">
+  <div class="kopf"><h1>Wie die App von dir lernt</h1>
+    <button class="schmal" onclick="lernenSchliessen()" data-zurueck>Zurück</button></div>
+  <div id="lernen-inhalt"></div>
+  <div class="wasserzeichen" aria-hidden="true"></div>
+</section>
+
+<!-- ============================================================
      Ansicht: Neuigkeiten (Versions-Verlauf, nutzerfreundlich gruppiert)
      ============================================================ -->
 <section id="view-neuigkeiten" class="view">
@@ -1344,7 +1365,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" onclick="sportartenTabZurueck()" data-zurueck>Zurück</button>
     <h1>Sportarten</h1>
     <button class="info-knopf" onclick="infoUmschalten('info-sportarten')" aria-label="Info" style="margin-left:auto">i</button></div>
-  <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatisch generierte Pläne gibt es nur für Krafttraining</strong> — die anderen Sportarten haben eigene Pläne mit Stoppuhr und Drills: Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel bzw. auf Nachfrage, und die Statistik zeigt km pro Woche.</div>
+  <div id="info-sportarten" class="meta info-text" hidden>Mehrfachauswahl. Unter jeder Sportart steht, was in ihr üblicherweise gezählt wird. <strong style="color:var(--chalk)">Automatisch generierte Pläne gibt es nur für Krafttraining</strong> — die anderen Sportarten haben eigene Pläne mit Stoppuhr und Drills: Drills steigern sich wie Übungen aus dem Geschafften, Ausdauer über die 20-%-Regel bzw. auf Nachfrage, und die Statistik zeigt km pro Woche.</div>
   <div class="karte"><div id="sportarten-liste" class="abstand"></div></div>
   <div class="wasserzeichen" aria-hidden="true"></div>
 </section>
@@ -2943,8 +2964,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.247.0";
-const APP_VERSION = 247000;
+const VERSION = "0.248.0";
+const APP_VERSION = 248000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3861,6 +3882,11 @@ const VIEW_MIN_STUFE = {
      Eine „1" gehört NICHT in diese Tabelle: Der Register-Vertrag (test154)
      verlangt, dass hier nur echte Sperren stehen und alles ab Stufe 1
      ausdrücklich in der Ab-Stufe-1-Liste des Tests geführt wird. */
+  /* 0.248: „Wie die App von dir lernt" ist reine Auskunft — sie verlangt
+     nichts und bewertet nichts (Leitplanke 8: „was nichts verlangt, darf ab
+     Stufe 3"). Die 3 ist zugleich die niedrigste Stufe, von der aus sie
+     erreichbar ist: die Ergebnis-Seite nach dem Training. */
+  "view-lernen": 3,
   "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
   "view-statdetail": 4,     // v205: die Einträge hinter einer abgeleiteten Statistik
   "view-eintrag": 4,        // v218: Training bearbeiten — erreichbar über den Verlauf
@@ -7051,26 +7077,38 @@ function kalenderOeffnen(){
 }
 
 /* Gut zu wissen: das Regelwerk der App an einem Ort — Doku, die beim
-   Nutzer wohnt statt in einem Chatverlauf. */
-function wissenOeffnen(){
-  const abschnitt = (titel, zeilen) =>
-    '<div class="karte"><h2>' + titel + '</h2><div class="meta" style="line-height:1.8;margin-top:8px">' +
-    zeilen.map(z => '• ' + z).join("<br>") + '</div></div>';
-  document.getElementById("wissen-inhalt").innerHTML =
+   Nutzer wohnt statt in einem Chatverlauf.
+
+   0.248 (Nutzer-Auftrag): Es sind zwölf Abschnitte geworden, alle
+   aufgeklappt — man scrollte an allem vorbei, um irgendetwas zu finden.
+   Jetzt stehen nur die ÜBERSCHRIFTEN da; ein Tipp öffnet eine, und die
+   vorher offene schließt sich dabei. Genau EIN Index (`wissenOffen`) hält den
+   Zustand — damit ist „nur eine offen" keine Absprache zwischen mehreren
+   Schaltern, sondern die einzige Form, die es gibt. */
+let wissenOffen = -1;
+
+/** Die Abschnitte — als Funktion, weil einzelne Zeilen vom Gerät und vom
+    Lern-Register abhängen (`systemText`, `lernenInfoZeilen`). */
+function wissenAbschnitte(){
+  const abschnitt = (titel, zeilen) => ({ titel, zeilen });
+  return [
     abschnitt("Was diese App anders macht", [
       "<strong style='color:var(--chalk)'>Ende-zu-Ende verschlüsselt.</strong> Deine Daten liegen nur auf diesem Gerät — es gibt keinen Server, der gehackt werden könnte.",
       "<strong style='color:var(--chalk)'>Keine Werbung, kein Abo, kein Tracking.</strong> Nichts wird gemessen oder verkauft — du bist der Nutzer, nicht das Produkt.",
       "<strong style='color:var(--chalk)'>Komplett offline.</strong> Im Keller-Gym ohne Empfang genauso wie im Flugzeug.",
       "<strong style='color:var(--chalk)'>Deine Daten gehören dir.</strong> Verschlüsselte Sicherung zum Mitnehmen, Wiederherstellungscode fürs vergessene Passwort.",
       "<strong style='color:var(--chalk)'>Passt sich dir an.</strong> Einfachheits-Stufe 1 (Notizblock) bis 5 (Vollausbau) — jederzeit umschaltbar, nie mit Datenverlust."
-    ]) +
+    ]),
     abschnitt("Einfachheit (Stufe 1–5)", [
       "Stufe 1 ist ein Notizblock: <strong style='color:var(--chalk)'>jede Zeile ist eine Übung</strong> — der Name allein reicht.",
       "<strong style='color:var(--chalk)'>Muster:</strong> „Sätze 2 Wdh 20 Liegestütze“ (oder „Sätze 3 Zeit 45 Plank“) setzt Sätze und Werte gleich mit — die Zeilen SIND die Übungen des Plans, auch auf Stufe 5.",
-      "„Getan“ hält auf den einfachen Stufen schnell fest, was du gemacht hast.",
+      /* 0.248: Hier stand „‚Getan‘ hält auf den einfachen Stufen schnell fest,
+         was du gemacht hast." Die Schnellnotiz „Getan" ist seit v155 entfernt —
+         festgehalten wird seit v174 mit dem Haken an der Zeile selbst. */
+      "<strong style='color:var(--chalk)'>Haken an der Zeile</strong> hält fest, was du gemacht hast — pro Tag und Abschnitt. Ab Stufe 4 steht das im Verlauf.",
       "Stufe 2 ergänzt Felder für Sätze und Wiederholungen, Stufe 3 echtes Training mit Timer, Stufe 4 die Statistik, Stufe 5 alles (Assistent, Sportarten, Ziele).",
       "Umstellen unter Mehr → Einfachheit — ändert nie deine Daten: Runterstellen blendet nur aus, Hochstellen wieder ein."
-    ]) +
+    ]),
     abschnitt("Daten & Sicherheit", [
       "<strong style='color:var(--chalk)'>App-Updates löschen keine Daten.</strong> Der Code kommt von der Website, deine Daten liegen verschlüsselt auf diesem Gerät.",
       "Deine Daten verlassen das Handy nie — es gibt keinen Server.",
@@ -7078,7 +7116,7 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Ohne Passwort UND ohne Code</strong> sind die Daten endgültig unlesbar — der Preis echter Verschlüsselung.",
       "<strong style='color:var(--chalk)'>Neues Handy?</strong> Sicherung exportieren, auf dem neuen Gerät „Sicherung wiederherstellen“.",
       "„Angemeldet bleiben“ legt den Schlüssel aufs Gerät — der Schutz ist dann die " + systemText("iPhone-Sperre", "Android-Displaysperre", "Gerätesperre") + ". „Abmelden“ löscht ihn sofort."
-    ]) +
+    ]),
     /* 0.246: Dieser Abschnitt beschrieb bis dahin die Handnoten 1–5. Die gibt
        es seit 0.242 nicht mehr — die App liest die Schwere an den Sätzen ab
        und fragt stattdessen den Muskel-Check. Ein Regelwerk, das eine
@@ -7093,8 +7131,8 @@ function wissenOeffnen(){
       "Zeit-Übungen (Plank) zählen die <strong style='color:var(--chalk)'>wirklich gehaltene</strong> Zeit, nicht die geplante — auch über Anhalten und Weiter hinweg.",
       "Pausen bleiben immer zwischen 30 und 300 Sekunden.",
       "<strong style='color:var(--chalk)'>Was den Plan NICHT anfasst:</strong> „Erledigt“, ein nachgetragenes Training und ein abgebrochenes. Sie tragen ein, was war — angepasst wird nichts."
-    ]) +
-    abschnitt("Wie die App von dir lernt", lernenInfoZeilen()) +
+    ]),
+    abschnitt("Wie die App von dir lernt", lernenInfoZeilen()),
     abschnitt("Muskelkarte & Belastung", [
       "<strong style='color:var(--chalk)'>Grün = bereit, Gelb = benutzt, Rot = zu viel.</strong> Die Farbe ist keine Häufigkeit, sondern deine Auslastung: Sätze, Gewicht, Pausen und bei Ausdauer das Tempo — gemessen an dem, was dieser Muskel bei DIR verträgt.",
       "Ein Training <strong style='color:var(--chalk)'>klingt aus</strong>, statt an einem Stichtag zu verschwinden. Wie schnell, hängt vom Muskel ab und davon, was die App über deine Erholung gelernt hat.",
@@ -7103,7 +7141,7 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Einzelnen Muskel</strong> antippen → Detail-Karte mit Auslastung, deinen Übungen der letzten Tage und dem Knopf „Wie fühlt er sich an?“.",
       "Vor dem Start zeigt die <strong style='color:var(--chalk)'>Trainings-Vorschau</strong> zwei Figuren mit dem Stand, den die geplanten Sätze erzeugen würden — gewarnt wird im Konjunktiv, vorher.",
       "Die <strong style='color:var(--chalk)'>Grundlagen-Zeile</strong> sagt offen, worauf die Einschätzung beruht und was der App noch fehlt."
-    ]) +
+    ]),
     abschnitt("Flamme & Serie", [
       "Die Flamme zählt <strong style='color:var(--chalk)'>Trainings</strong> in ununterbrochener Serie — nicht Kalendertage.",
       "<strong style='color:var(--chalk)'>Bis zu 2 Ruhetage am Stück</strong> kosten die Flamme nie. Erst mehr als 3 Tage Abstand reißen die Kette.",
@@ -7112,7 +7150,7 @@ function wissenOeffnen(){
       "Manuell markierte Ruhetage im Kalender verlängern die Toleranz NICHT — sonst wäre die Serie wertlos.",
       "<strong style='color:var(--chalk)'>Nachtragen holt die Flamme zurück.</strong> Die Serie wird immer neu aus deinen Trainings gerechnet, nie gespeichert: Trägst du am vierten Tag noch ein Training von einem der drei Tage davor nach, brennt sie wieder — als wäre sie nie ausgegangen.",
       "Nachtragen geht über den Kalender, für beliebig weit zurückliegende Tage. Die Serie lebt aber nur auf, wenn der nachgetragene Tag die Lücke wirklich schließt."
-    ]) +
+    ]),
     abschnitt("Training", [
       "<strong style='color:var(--chalk)'>„Letztes Mal“</strong> unter der Uhr zeigt, was du bei der Übung zuletzt wirklich geschafft hast — das kann kein Papier-Heft.",
       "Wird die App mitten im Training beendet, bietet sie beim nächsten Öffnen an, <strong style='color:var(--chalk)'>genau dort weiterzumachen</strong>.",
@@ -7123,13 +7161,13 @@ function wissenOeffnen(){
       "<strong style='color:var(--chalk)'>Zirkel:</strong> Runde für Runde je ein Satz pro Übung, Reihenfolge pro Runde neu gemischt.",
       // 0.246: Der Abbruch wirft seit v220 nichts mehr weg (er bewertet nur nicht).
       "<strong style='color:var(--chalk)'>Abbrechen verliert nichts:</strong> Was du geschafft hast, wird eingetragen — mit der wirklich trainierten Dauer. Nur bewertet und angepasst wird nichts."
-    ]) +
+    ]),
     abschnitt("Aufwärmen & Dehnen", [
       "<strong style='color:var(--chalk)'>Vorher dynamisch</strong> (Marschieren, Kreisen, Schwingen) — bringt Muskeln auf Temperatur.",
       "<strong style='color:var(--chalk)'>Nachher statisch</strong>, je 30 s halten, wenn die Muskeln warm sind.",
       "Fachlicher Konsens: langes statisches Dehnen auf kalte Muskeln senkt Kraft und Leistung um 5–10 %.",
       "Pro Plan einzeln an- und abschaltbar (Plan bearbeiten → Bonus-Programme)."
-    ]) +
+    ]),
     abschnitt("Statistik", [
       "<strong style='color:var(--chalk)'>Volumen</strong> = Wdh × Gewicht. Körpergewichtsübungen zählen Wdh × 1, Zeit-Übungen Sekunden ÷ 10.",
       "Die Kurven zoomen automatisch heraus: bis 12 Wochen Wochenbalken, danach Monatsbalken.",
@@ -7137,20 +7175,46 @@ function wissenOeffnen(){
       "Der Kalender lässt sich <strong style='color:var(--chalk)'>blättern</strong> (‹ ›); Tage antippen für Einzeltermine und Ruhetage.",
       "Ziele zeichnen eine Ziel-Linie in die Fortschritts-Kurve; die Einschätzung rechnet mit ~1 Wdh Fortschritt pro Einheit.",
       "Im Verlauf lässt sich jeder Eintrag <strong style='color:var(--chalk)'>bearbeiten</strong> (Datum, Notiz) und löschen — mit Rückgängig."
-    ]) +
+    ]),
     abschnitt("Pläne & Sportarten", [
       "Plan-Karte <strong style='color:var(--chalk)'>lange gedrückt halten</strong> → Bearbeiten, Duplizieren, Verschieben, Löschen (mit Rückgängig).",
       "Beim Plan-Erstellen stehen <strong style='color:var(--chalk)'>alle Sportarten</strong> zur Wahl. Heißt ein Abschnitt wie eine Sportart („Laufen“), wird er ihr automatisch zugeordnet.",
-      "<strong style='color:var(--chalk)'>Automatisch generierte Pläne</strong> gibt es für Krafttraining (Trainingsplanung). Andere Sportarten haben eigene Pläne mit Stoppuhr und Drills — Drills steigern sich über die Bewertung, Ausdauer über die 20-%-Regel mit Entlastungswoche.",
+      // 0.248: Der Verweis auf die Handnoten stimmte seit 0.242 nicht mehr.
+      "<strong style='color:var(--chalk)'>Automatisch generierte Pläne</strong> gibt es für Krafttraining (Trainingsplanung). Andere Sportarten haben eigene Pläne mit Stoppuhr und Drills — Drills steigern sich wie Übungen aus dem Geschafften, Ausdauer über die 20-%-Regel mit Entlastungswoche.",
       "Die Trainingsplanung baut Pläne aus deinen Antworten — selbst gebaute Pläne bleiben dabei immer erhalten.",
       "Startgewichte sind bewusst vorsichtig: zu leicht korrigiert die Progression in 2–3 Trainings, zu schwer der Orthopäde.",
       "Geräte merkt sich die App <strong style='color:var(--chalk)'>pro Ort und pro Sportart</strong> getrennt. Neue Geräte angetippt? Der Knopf baut passende Übungen in die automatischen Pläne ein."
-    ]) +
+    ]),
     abschnitt("Feedback & Fehler", [
       "Mehr → <strong style='color:var(--chalk)'>Feedback:</strong> Bug oder Wunsch beschreiben — die App öffnet ein fertig ausgefülltes GitHub-Issue, dort nur noch abschicken.",
       "Geht etwas schief, zeigt die App den Fehler ehrlich an und bietet an, ihn direkt auf GitHub zu melden — samt technischer Details."
-    ]);
+    ])
+  ];
+}
+
+function wissenOeffnen(){
+  wissenOffen = -1;   // jede Sitzung beginnt zugeklappt: erst die Landkarte
+  wissenZeichnen();
   zeige("view-wissen");
+}
+
+/** Genau EINE Kategorie ist offen. Dieselbe nochmal antippen klappt zu. */
+function wissenUmschalten(i){
+  wissenOffen = wissenOffen === i ? -1 : i;
+  wissenZeichnen();
+}
+
+function wissenZeichnen(){
+  document.getElementById("wissen-inhalt").innerHTML = wissenAbschnitte().map((a, i) => {
+    const offen = wissenOffen === i;
+    return '<div class="karte">' +
+      '<button class="wissen-kopf" onclick="wissenUmschalten(' + i + ')" aria-expanded="' + offen + '">' +
+        '<span>' + text(a.titel) + '</span>' +
+        '<span class="wissen-pfeil">' + (offen ? "–" : "+") + '</span></button>' +
+      (offen ? '<div class="meta info-text" style="line-height:1.8">' +
+               a.zeilen.map(z => "• " + z).join("<br>") + '</div>' : "") +
+      '</div>';
+  }).join("");
 }
 
 /* Versions-Verlauf für die NUTZER-Sicht: bewusst gruppiert (nicht jede Version)
@@ -7178,7 +7242,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.247 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.248 · Das Training in deiner Hand", punkte:[
     "Neu: „Wie die App von dir lernt“ — hinter dem „i“ auf der Muskelkarte und in „Gut zu wissen“ steht in Klartext, zu welchem Zeitpunkt sich was ändert: sofort, nach jedem Training, in den ersten zehn, Woche für Woche, über Monate — und was bewusst fest bleibt.",
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
@@ -7226,6 +7290,13 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.248.0", punkte:[
+    "<strong>Deine Wiederholungen zählen jetzt mit.</strong> Bis hierher war ein Satz ein Satz — ein Satz mit 100 Wiederholungen wog in der Muskelkarte genauso viel wie einer mit acht. Wer in einem langen Satz durchzieht, wurde als fast unbelastet geführt. Ab jetzt zählt jede Wiederholung über dem üblichen Bereich anteilig weiter, und der lange ununterbrochene Satz bekommt einen kleinen Zuschlag: Ein Satz mit 100 Wiederholungen wiegt damit mehr als fünf Sätze zu je 20.",
+    "Bis 20 Wiederholungen ändert sich nichts. Das ist Absicht: In diesem Bereich setzt ein Satz ähnlich viel Reiz, ob mit acht oder mit fünfzehn Wiederholungen — der schwere Dreier und der lockere Fünfzehner sind beides EIN harter Satz. Deine bisherigen Zahlen bleiben also vergleichbar, korrigiert wird nur, wo es wirklich falsch war.",
+    "<strong>„Gut zu wissen“ ist eine Klapp-Liste geworden.</strong> Statt zwölf aufgeklappter Abschnitte, an denen man vorbeiscrollt, stehen jetzt nur die Überschriften da. Eine antippen klappt sie auf — und die vorher offene schließt sich dabei von selbst.",
+    "Dazu ist wieder Veraltetes rausgeflogen: Der Hinweis auf das Feld „Getan“ (das es seit Langem nicht mehr gibt) und die Behauptung, Drills würden sich über die Bewertung steigern.",
+    "<strong>Das „i“ auf der Muskelkarte öffnet jetzt eine eigene Seite</strong> statt unter der Figur aufzuklappen — mit Zurück-Knopf wie überall. Dort steht zuerst, womit die App gerade rechnet, darunter, wie sie mit der Zeit besser wird."
+  ]},
   { stand:"0.247.0", punkte:[
     "Die Muskelkarte ist ruhiger geworden. Unter der Figur stand ein langer grauer Absatz — worauf die Einschätzung beruht, was der App fehlt, was das für die Ausdauer bedeutet. Der ist jetzt in dasselbe „i“ gewandert wie „Wie die App von dir lernt“. Draußen bleibt eine Zeile: wie viele Trainings die Grundlage sind und wie dein Stand gerade heißt.",
     "Verloren geht nichts — ein Tipp auf das „i“, und alles steht wieder da: der volle Text zuerst, der Lern-Teil darunter."
@@ -11222,29 +11293,47 @@ const LERNEN_INFO = [
 function lernenInfoZeilen(){
   return LERNEN_INFO.map(p => "<strong style='color:var(--chalk)'>" + p.wann + "</strong> " + p.was);
 }
-/** Der aufklappbare Block hinter einem „i". `id` muss je Auftritt eigen sein.
-    `vorspann` ist zusätzliches HTML, das ÜBER dem Lern-Text landet — 0.247:
-    Die Muskelkarte legt dort ihre lange Grundlagen-Zeile ab, statt sie
-    dauerhaft auf den Schirm zu stellen. Mit Vorspann bekommt der Lern-Teil
-    eine eigene Überschrift, sonst liefen zwei Themen ineinander. */
-function lernenInfoHtml(id, vorspann){
-  return '<div id="' + id + '" class="meta info-text" hidden style="line-height:1.8">' +
-    (vorspann || "") +
-    (vorspann ? '<div style="margin-top:12px;color:var(--chalk);font-weight:600">Wie die App von dir lernt</div>' : "") +
-    lernenInfoZeilen().map(z => "• " + z).join("<br>") + '</div>';
-}
-/** Beschriftete „i"-Zeile davor — ein nacktes „i" fände hier niemand. Ohne
-    eigene `beschriftung` steht dort der Name des Lern-Texts; die Muskelkarte
-    gibt stattdessen ihre Kurzform mit, damit die Zeile beides tut: die
-    wichtigste Auskunft zeigen UND den Rest aufklappen. */
-function lernenInfoKnopfHtml(id, beschriftung, vorspann){
+/* 0.248 (Nutzer-Auftrag „das i soll ein separates Fenster öffnen"): Der Text
+   klappt nicht mehr unter der Figur auf — er bekommt seine eigene Ansicht
+   (`view-lernen`) mit dem gewohnten Zurück-Knopf. Aufgeklappt schob er die
+   halbe Muskelkarte nach unten; als eigene Seite hat er Platz und stört
+   nichts. `lernenZurueck` merkt sich, von wo aus geöffnet wurde — die
+   Muskelkarte und die Ergebnis-Seite nach dem Training führen beide hierher
+   und müssen beide sauber zurückfinden. */
+let lernenZurueck = "view-muskeln";
+
+/** Beschriftete „i"-Zeile — ein nacktes „i" fände hier niemand. Ohne eigene
+    `beschriftung` steht dort der Name der Seite; die Muskelkarte gibt
+    stattdessen ihre Kurzform mit, damit die Zeile beides tut: die wichtigste
+    Auskunft zeigen UND den Weg zum Rest öffnen. */
+function lernenKnopfHtml(beschriftung, zurueck){
   const label = beschriftung || "Wie die App von dir lernt";
   return '<div class="zeile" style="margin-top:8px">' +
     '<span class="meta" style="opacity:.8">' + text(label) + '</span>' +
-    '<button class="info-knopf" onclick="infoUmschalten(\'' + id + '\')" aria-label="' +
-    text(label) + '">i</button></div>' +
-    lernenInfoHtml(id, vorspann);
+    '<button class="info-knopf" onclick="lernenOeffnen(\'' + zurueck + '\')" aria-label="' +
+    text(label) + '">i</button></div>';
 }
+
+/** Die eigene Ansicht: erst womit die App GERADE rechnet (die volle
+    Grundlagen-Zeile samt Einordnung), dann wie sie besser wird. */
+function lernenOeffnen(zurueck){
+  lernenZurueck = zurueck || "view-muskeln";
+  const g = rechnungsGrundlage(sitzung.daten.protokoll, sitzung.daten.profil,
+                               sitzung.daten.einrichtung, sitzung.daten.tageswerte, heuteAlsText());
+  const einordnung = satzloseText(satzloseEinheiten(sitzung.daten.protokoll, heuteAlsText()));
+  /* v184: Beide Zeilen laufen durch DIESELBE escapende Stelle, und eine stumme
+     Einordnung erzeugt keine leere Zeile. Der Block ist mit 0.248 von
+     `grundlagenZeileHtml` hierher gewandert, die Zusagen sind mitgewandert. */
+  const zeile = s => '<div class="meta" style="line-height:1.7;margin-top:6px">' + text(s) + '</div>';
+  document.getElementById("lernen-inhalt").innerHTML =
+    '<div class="karte"><h2>Womit die App gerade rechnet</h2>' +
+      zeile(grundlageText(g)) + (einordnung ? zeile(einordnung) : "") + '</div>' +
+    '<div class="karte"><h2>Wie sie besser wird</h2>' +
+      '<div class="meta" style="line-height:1.8;margin-top:8px">' +
+      lernenInfoZeilen().map(z => "• " + z).join("<br>") + '</div></div>';
+  zeige("view-lernen");
+}
+function lernenSchliessen(){ zeige(lernenZurueck); }
 
 /** Die Phasen-Karte auf der Ergebnis-Seite — nur während einer Kalibrierung. */
 function kalibrierungsKarteHtml(){
@@ -11257,7 +11346,7 @@ function kalibrierungsKarteHtml(){
       ". In dieser Phase schaut die App genauer hin: Deine Noten und der Tages-Check stimmen die Einschätzung deiner Grundfitness ab" +
       (p.phase === "scan" ? " — der Stand von vor der Pause gilt nicht mehr ungeprüft" : "") + ".") +
     // 0.246: Genau hier fragt man sich, was „lernt dich kennen" eigentlich heißt.
-    lernenInfoKnopfHtml("info-lernen-phase") +
+    lernenKnopfHtml(null, "view-ergebnis") +
     '</div></div>';
 }
 
@@ -11880,12 +11969,64 @@ function maxGewichtJeUebung(protokoll){
   return max;
 }
 
+/* 0.248.0 (Nutzer-Befund): DIE WIEDERHOLUNGEN ZÄHLEN MIT.
+
+   „Ich kann einen Satz mit 100 Wdh machen, was schwerer ist als 5 Sätze je
+   20 Wdh — bitte auch jede Wdh nutzen und rechnen."
+
+   Der Befund stimmte: Bis hierher ging `satz.wdh` in die Belastungs-Rechnung
+   ÜBERHAUPT NICHT ein. Ein Satz war ein Satz — 8 Wdh wogen genauso viel wie
+   100. Wer in einem langen Satz durchzog, wurde von der Muskelkarte als
+   nahezu unbelastet geführt.
+
+   WARUM ES SO LANGE GUTGING — und warum die Korrektur trotzdem vorsichtig
+   ausfällt: Das Modell zählt „harte Sätze", und genau das ist der übliche
+   Maßstab der Trainingswissenschaft. Er ist deshalb brauchbar, weil ein Satz
+   im ÜBLICHEN Bereich (etwa bis 20 Wdh) ähnlich viel Reiz setzt, egal ob er
+   8 oder 15 Wiederholungen hat — der schwere Dreier und der lockere
+   Fünfzehner sind beides EIN harter Satz. Diese Äquivalenz ist belegt; sie
+   hört nur oberhalb des Bereichs auf. Ein Satz mit 100 Wdh ist kein harter
+   Satz, sondern fünf.
+
+   Also genau dort ansetzen und sonst nichts anfassen:
+   * bis WDH_SATZ_BAND bleibt alles wie bisher (Faktor 1) — die Eichung der
+     Kapazitäten, jede bestehende Rechnung und jeder alte Datenstand bleiben
+     unberührt. Das ist der weitaus häufigste Fall.
+   * darüber zählt jede Wiederholung anteilig weiter (`wdh / BAND`).
+   * dazu ein kleiner, gedeckelter Zuschlag für den sehr langen,
+     UNUNTERBROCHENEN Satz — er ermüdet stärker als dieselbe Zahl
+     Wiederholungen mit Pausen dazwischen. Belegte Richtung, unbelegte Größe:
+     also dieselben höchstens 10 % wie bei Pause, Schlaf und Alter.
+   * ein Deckel gegen Tippfehler — kein einzelner Satz wiegt je mehr als
+     WDH_FAKTOR_MAX Sätze.
+
+   Damit kommt der Fall des Nutzers so heraus, wie er ihn beschreibt:
+   1 × 100 Wdh = 5,5 gegen 5 × 20 Wdh = 5,0.
+
+   Zeit-Übungen tragen kein `wdh` und bleiben unverändert bei 1 — ihre Dauer
+   wiegt an anderer Stelle („kein Wert, kein Effekt"). */
+const WDH_SATZ_BAND  = 20;     // bis hierher gilt: ein Satz ist ein Satz
+const WDH_LANG_BONUS = 1.10;   // ab dem doppelten Band: der Zuschlag fürs Durchziehen
+const WDH_FAKTOR_MAX = 8;      // Deckel gegen vertippte Zahlen
+
+/** Wie viele Sätze ist ein Satz mit dieser Wiederholungszahl wert? 1 = der
+    Normalfall. Rein/testbar. */
+function wdhFaktor(wdh){
+  const n = Number(wdh);
+  if(!isFinite(n) || n <= 0) return 1;            // kein Wert, kein Effekt
+  if(n <= WDH_SATZ_BAND) return 1;                // im belegten Band unverändert
+  const bonus = n > WDH_SATZ_BAND * 2 ? WDH_LANG_BONUS : 1;
+  return Math.min(WDH_FAKTOR_MAX, Math.round(n / WDH_SATZ_BAND * bonus * 100) / 100);
+}
+
 /** Wie schwer wog dieser Satz? Die NOTE ist das bessere Signal, weil sie die
     tatsächliche Anstrengung misst — sie hat darum Vorrang. Nur wo keine Note
     vorliegt (nachgetragen, Training vor der Bewertung abgebrochen), springt die
     relative Intensität ein. Beides zu multiplizieren würde denselben Umstand
     doppelt bestrafen: Wer leicht hebt, vergibt ohnehin schon Note 1 oder 2.
-    Ohne beides bleibt es beim neutralen 1 — geraten wird nicht. Rein/testbar. */
+    Ohne beides bleibt es beim neutralen 1 — geraten wird nicht.
+    0.248: Die Wiederholungen kommen als eigener Faktor dazu (s. `wdhFaktor`) —
+    sie sagen etwas anderes als die Note. Rein/testbar. */
 function satzGewichtung(satz, maxGewicht){
   const n = satz && Number(satz.note);
   let wert;
@@ -11895,7 +12036,8 @@ function satzGewichtung(satz, maxGewicht){
     wert = 0.6 + 0.4 * rel;
   } else wert = 1;
   // v189: Die gemessene Pause (v188) wiegt zusätzlich — klein und gedeckelt.
-  return Math.round(wert * pauseFaktor(satz && satz.pause) * 100) / 100;
+  return Math.round(wert * pauseFaktor(satz && satz.pause) *
+                    wdhFaktor(satz && satz.wdh) * 100) / 100;
 }
 
 /* v189 (ROADMAP, Belastungs-Modell A6, Teil 2): Die gemessene Pause geht in die
@@ -12858,8 +13000,6 @@ function muskelTeileHtml(key){
 function grundlagenZeileHtml(){
   const g = rechnungsGrundlage(sitzung.daten.protokoll, sitzung.daten.profil,
                                sitzung.daten.einrichtung, sitzung.daten.tageswerte, heuteAlsText());
-  const zeile = s => '<div class="meta" style="margin-top:6px;opacity:.8">' + text(s) + '</div>';
-  const einordnung = satzloseText(satzloseEinheiten(sitzung.daten.protokoll, heuteAlsText()));
   /* 0.246: Die Grundlagen-Zeile sagt, WORAUF die App rechnet — die Anschlussfrage
      „und wie wird das mit der Zeit besser?" gehört direkt daneben. Beide
      Aufrufer unten schreiben in dasselbe `#muskel-status` und schließen sich
@@ -12867,14 +13007,17 @@ function grundlagenZeileHtml(){
 
      0.247 (Nutzer-Meldung „das über dem i nimmt viel Platz"): Draußen steht
      jetzt nur noch die Kurzform. Der volle Text — worauf gerechnet wird, was
-     fehlt, die Einordnung der Ausdauer-Einheiten — ist in dasselbe „i"
-     gewandert, über den Lern-Text. Die v167-Zusage bleibt gewahrt: Was fehlt,
-     ist weiter da und EINEN Tipp entfernt; es füllt nur nicht mehr die halbe
-     Karte, bevor jemand danach gefragt hat. Die Kurzform bleibt sichtbar, weil
-     sie die eine Zahl trägt, an der man sofort sieht, wie belastbar das Urteil
-     der Karte gerade ist. */
-  return lernenInfoKnopfHtml("info-lernen", grundlageKurz(g),
-    zeile(grundlageText(g)) + (einordnung ? zeile(einordnung) : ""));
+     fehlt, die Einordnung der Ausdauer-Einheiten — ist hinter das „i"
+     gewandert. Die v167-Zusage bleibt gewahrt: Was fehlt, ist weiter da und
+     EINEN Tipp entfernt; es füllt nur nicht mehr die halbe Karte, bevor
+     jemand danach gefragt hat. Die Kurzform bleibt sichtbar, weil sie die
+     eine Zahl trägt, an der man sofort sieht, wie belastbar das Urteil der
+     Karte gerade ist.
+
+     0.248: Das „i" klappt nichts mehr auf, es öffnet `view-lernen` — der Text
+     schob die halbe Karte nach unten. Der volle Grundlagen-Text lebt darum
+     jetzt in `lernenOeffnen`. */
+  return lernenKnopfHtml(grundlageKurz(g), "view-muskeln");
 }
 
 /* v176/v177: Die Hinweis-Zeilen stehen auf der Muskelkarte IMMER, wenn es
@@ -20853,6 +20996,7 @@ function navAktualisieren(id){
   const bereiche = { "view-start":"nav-start", "view-plaene":"nav-plaene", "view-ziele":"nav-start",
                      "view-statistik":"nav-statistik", "view-verlauf":"nav-statistik", "view-muskeln":"nav-statistik",
                      "view-kalender":"nav-statistik", "view-gewicht":"nav-statistik",
+                     "view-lernen":"nav-statistik",         // 0.248: gehört zur Muskelkarte
                      "view-koerpermasse":"nav-statistik",   // v134
                      "view-profil":"nav-einst",          // v61: Profil + Sportarten liegen unter "Mehr"
                      "view-sportarten":"nav-einst", "view-sportart":"nav-einst",

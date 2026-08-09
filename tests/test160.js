@@ -109,6 +109,9 @@ const code = [
   "const PAUSE_STUFEN = " + grabLiteral("PAUSE_STUFEN") + ";",
   grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
+  // 0.248: die Wiederholungen wiegen mit — hier echt mitgezogen (test248 prueft sie).
+  "const WDH_SATZ_BAND = 20, WDH_LANG_BONUS = 1.10, WDH_FAKTOR_MAX = 8;",
+  grabFn("wdhFaktor"),
   grabFn("satzGewichtung"),
   // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
   "function paceSchnittJeSportart(){ return {}; }",
