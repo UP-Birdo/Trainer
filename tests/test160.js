@@ -119,6 +119,10 @@ const code = [
   // 0.244: der persoenliche Ausdauer-Deckel — hier der alte Standard (test244).
   "function aktivitaetsDeckel(){ return 6; }",
   grabFn("aktivitaetsMinuten"),   // 0.249: effektive Minuten (test249 prueft sie)
+  // 0.250: Soll-Saetze zaehlen in die Last; Schwierigkeit hier neutral (test250).
+  grabFn("lastSaetze"),
+  "function messwertSchnittJeSportart(){ return {}; }",
+  "function messwertFaktor(){ return 1; }",
   grabFn("muskelLast"),
   grabFn("lastGewicht"),            // 0.240: echte Abkling-Kurve
   grabFn("muskelLastAbklingend"),   // 0.240: ersetzt das harte Fenster in der Auslastung
@@ -199,8 +203,11 @@ pruefe("mitarbeitende Muskeln zaehlen halb", last.triceps.saetze === 4);
 pruefe("Tage seit dem letzten Reiz", last.pectoral.tageSeit === 0);
 pruefe("aeltere Einheit setzt den Zaehler nicht zurueck",
   muskelLast([eintrag("2026-07-24", "LH-Bankdrücken", 2)], HEUTE, 7).pectoral.tageSeit === 3);
-pruefe("Soll-Saetze zaehlen nicht mit (v158)",
-  muskelLast([eintrag("2026-07-27", "LH-Bankdrücken", 4, { soll:true })], HEUTE, 7).pectoral === undefined);
+/* 0.250 (Nutzer-Entscheidung): Soll-Saetze zaehlen in die LAST — wer Erledigt
+   drueckt, hat trainiert. Die v158-Linie gilt weiter bei Bestwerten/Noten
+   (echteSaetze); test250 prueft beide Seiten. */
+pruefe("Soll-Saetze zaehlen in die Last (0.250)",
+  muskelLast([eintrag("2026-07-27", "LH-Bankdrücken", 4, { soll:true })], HEUTE, 7).pectoral.saetze === 4);
 pruefe("unbekannte Uebungen werden uebergangen",
   Object.keys(muskelLast([eintrag("2026-07-27", "Phantasie-Übung", 4)], HEUTE, 7)).length === 0);
 pruefe("leeres Protokoll ergibt nichts",

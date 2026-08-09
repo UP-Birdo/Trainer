@@ -70,6 +70,10 @@ new Function("module", "exports", [
   grabFn("aktivitaetsMinuten"),
   // 0.244: der persoenliche Ausdauer-Deckel — hier der alte Standard (test244).
   "function aktivitaetsDeckel(){ return 6; }",
+  // 0.250: Soll-Saetze zaehlen in die Last; Schwierigkeit hier neutral (test250).
+  grabFn("lastSaetze"),
+  "function messwertSchnittJeSportart(){ return {}; }",
+  "function messwertFaktor(){ return 1; }",
   grabFn("muskelLast"),
   grabFn("satzloseEinheiten"),
   "module.exports = { aktivitaetSaetze, alsEinheitZaehlbar, einheitenGezaehlt, muskelLast," +

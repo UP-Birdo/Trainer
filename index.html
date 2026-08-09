@@ -2964,8 +2964,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.249.0";
-const APP_VERSION = 249000;
+const VERSION = "0.250.0";
+const APP_VERSION = 250000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7242,7 +7242,7 @@ function wissenZeichnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.249 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.250 · Das Training in deiner Hand", punkte:[
     "Neu: „Wie die App von dir lernt“ — hinter dem „i“ auf der Muskelkarte und in „Gut zu wissen“ steht in Klartext, zu welchem Zeitpunkt sich was ändert: sofort, nach jedem Training, in den ersten zehn, Woche für Woche, über Monate — und was bewusst fest bleibt.",
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
@@ -7290,6 +7290,12 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.250.0", punkte:[
+    "<strong>„Erledigt“ zählt jetzt voll in die Belastung.</strong> Wenn du sagst, du hast diesen Plan gemacht, hast du trainiert — die Muskelkarte färbt jetzt alles Enthaltene mit, samt Wiederholungen, Gewichten und Haltezeiten. Die Trainingsdauer schätzt die App aus deinen aktuellen Übungs-Werten. Bestwerte und Rekorde stiften abgehakte Sätze weiterhin nicht: Geplant ist nicht gemessen — aber es ist Arbeit.",
+    "<strong>Die Schwierigkeit wiegt mit.</strong> Beim Klettern zählt jetzt dein Grad: Eine Einheit über deinem üblichen Schwierigkeitsgrad belastet die Muskeln mehr, eine darunter weniger — gemessen an deinem eigenen Schnitt, nicht an einer Tabelle. Damit rechnet jede Sportart-Klasse mit ihrer eigenen Härte: Kraft über Gewicht und Wiederholungen, Ausdauer über Dauer und Tempo, Skalen-Sportarten über den Grad.",
+    "<strong>Die Muskelkarte gibt dir dazu zwei neue Sätze:</strong> Sind deine Kletter-Muskeln über dem Richtwert, rät sie dir, heute eine Stufe unter deinem üblichen Grad zu bleiben statt dich zu steigern. Und schaffst du inzwischen nachweislich einen höheren Grad als vor ein paar Wochen, sagt sie dir genau das.",
+    "Ins Muskel-Wachstum fließt das alles automatisch ein — es rechnet seit jeher mit den gewichteten Wochen-Lasten, also zählen dort jetzt auch Wiederholungen, Haltezeiten, Erledigt-Trainings und der Grad."
+  ]},
   { stand:"0.249.0", punkte:[
     "<strong>Die ganze Belastungs-Rechnung wurde einmal komplett durchgeprüft</strong> — jedes Feld, das ein Eintrag tragen kann, gegen jede Stelle, die rechnet. Drei Lücken gefunden und geschlossen:",
     "<strong>Zeit-Übungen wiegen jetzt nach ihrer Dauer.</strong> Ein 30-Sekunden-Plank zählte bisher genauso viel wie ein zehnminütiges Halten — dieselbe Lücke wie bei den Wiederholungen, nur bei der Zeit. Bis 90 Sekunden bleibt alles wie bisher, darüber zählt jede Sekunde anteilig weiter. Auch die Vorher-Nachher-Vorschau rechnet lange Halte jetzt richtig.",
@@ -11645,6 +11651,7 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
   const last = {};
   const maxGew = maxGewichtJeUebung(protokoll);
   const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
+  const messwerte = messwertSchnittJeSportart(protokoll, heute);   // 0.250: Schwierigkeit wiegt mit
   const ausdauerDeckel = aktivitaetsDeckel(protokoll, heute);   // 0.244: persönlicher Deckel
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
@@ -11660,11 +11667,13 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
       // 0.249: die EFFEKTIVEN Minuten — die Strecke rettet eine fehlende Dauer.
-      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) * paceFaktor(e, pace);
+      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) *
+                    paceFaktor(e, pace) * messwertFaktor(e, messwerte);
       muskelnAufKarte(satz.p).forEach(m => dazu(m, wiegt));
       muskelnAufKarte(satz.s).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
     }
-    echteSaetze(e).forEach(s => {
+    // 0.250: `lastSaetze` — auch Soll-Sätze („Erledigt") sind Arbeit.
+    lastSaetze(e).forEach(s => {
       const info = uebungMuskeln(s.name);
       if(!info) return;
       const wiegt = satzGewichtung(s, maxGew[s.name] || 0);
@@ -12284,11 +12293,116 @@ function paceFaktor(eintrag, schnitt){
   return 1;
 }
 
+/* 0.250 (Nutzer-Auftrag „Messwerte einbauen — bei allen Sportarten"): DIE
+   SCHWIERIGKEIT WIEGT MIT. Das Gegenstück zum Tempo (0.241) für Sportarten,
+   deren Messgröße eine INTENSITÄT ist (Kennzeichen `mass.intensiv`, derzeit
+   Klettern): Eine Einheit über dem eigenen üblichen Grad belastet mehr, eine
+   darunter weniger — relativ zum EIGENEN Schnitt, nie zu einer Tabelle.
+   Dieselbe Zurückhaltung wie überall: Richtung belegt, Größe nicht → ±10 %,
+   ohne Messwert oder Schnitt neutral („kein Wert, kein Effekt").
+   Damit deckt die Rechnung alle Sportart-Klassen: Kraft/Drills über Note +
+   Gewicht + Umfang, Ausdauer über Dauer + Tempo, Skalen-Sportarten über die
+   Schwierigkeit. */
+const MESSWERT_MINDEST_EINHEITEN = 3;
+
+/** Eigener Schwierigkeits-Schnitt je Sportart (Skalen-Rang bzw. Zahl,
+    letzte 180 Tage, ab drei Einheiten mit Messwert). Rein/testbar. */
+function messwertSchnittJeSportart(protokoll, heute){
+  const summen = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum || e.vorschau || e.typ !== "aktivitaet") return;
+    if(!(sportart(e.sportart).mass || {}).intensiv) return;
+    const z = massZahl(e.sportart, e.messwert);
+    if(z === null) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > ERHOLUNG_LERN_FENSTER) return;
+    const s = summen[e.sportart] || (summen[e.sportart] = { summe:0, n:0 });
+    s.summe += z; s.n++;
+  });
+  const raus = {};
+  Object.keys(summen).forEach(id => {
+    if(summen[id].n >= MESSWERT_MINDEST_EINHEITEN) raus[id] = summen[id].summe / summen[id].n;
+  });
+  return raus;
+}
+
+/** Gewicht einer Einheit nach ihrer Schwierigkeit relativ zum eigenen
+    Schnitt — ein ganzer Grad darüber wiegt 10 % mehr. Rein/testbar. */
+function messwertFaktor(eintrag, schnitt){
+  if(!eintrag || !(sportart(eintrag.sportart).mass || {}).intensiv) return 1;
+  const basis = schnitt && schnitt[eintrag.sportart];
+  const z = massZahl(eintrag.sportart, eintrag.messwert);
+  if(z === null || !(basis >= 0)) return 1;
+  const diff = z - basis;   // Skala: Differenz in Rängen
+  if(diff >= 1)    return 1.1;
+  if(diff >= 0.5)  return 1.05;
+  if(diff <= -1)   return 0.9;
+  if(diff <= -0.5) return 0.95;
+  return 1;
+}
+
+/** Bester Messwert im jüngsten Fenster gegen den besten davor — der
+    Fortschritts-Satz („vor ein paar Wochen war bei 5c Schluss"). Je
+    intensiver Sportart höchstens ein Satz; leer, wenn nichts zu sagen ist.
+    Rein/testbar. */
+function messwertFortschritt(protokoll, heute, jungTage){
+  const jung = jungTage || 42;
+  const beste = {};   // je Sportart: { jung:Rang|null, alt:Rang|null }
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum || e.vorschau || e.typ !== "aktivitaet") return;
+    if(!(sportart(e.sportart).mass || {}).intensiv) return;
+    const z = massZahl(e.sportart, e.messwert);
+    if(z === null) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > ERHOLUNG_LERN_FENSTER) return;
+    const b = beste[e.sportart] || (beste[e.sportart] = { jung:null, alt:null });
+    const seite = d <= jung ? "jung" : "alt";
+    if(b[seite] === null || z > b[seite]) b[seite] = z;
+  });
+  const raus = [];
+  Object.keys(beste).forEach(id => {
+    const b = beste[id];
+    if(b.jung === null || b.alt === null || b.jung <= b.alt) return;
+    const skala = (sportart(id).mass || {}).skala;
+    raus.push({ sportart:id,
+      jetzt: skala ? skala[b.jung] : b.jung,
+      vorher: skala ? skala[b.alt] : b.alt });
+  });
+  return raus;
+}
+function messwertFortschrittText(fortschritte){
+  return (fortschritte || []).map(f =>
+    sportartName(f.sportart) + ": Inzwischen schaffst du " + f.jetzt +
+    " — vor ein paar Wochen war bei " + f.vorher + " Schluss.").join(" ");
+}
+
+/** Der Rat vor der nächsten Skalen-Einheit: Liegen die Hauptmuskeln der
+    Sportart über dem Richtwert, ist heute nicht der Tag für den nächsten
+    Grad. Rein/testbar — `quoten` kommt gedeckelt herein. */
+function messwertRat(sportarten, quoten){
+  const raus = [];
+  (sportarten || []).forEach(id => {
+    if(!(sportart(id).mass || {}).intensiv || !SPORT_LAST_MUSKELN[id]) return;
+    const heiss = muskelnAufKarte(SPORT_LAST_MUSKELN[id].p)
+      .filter(m => (quoten || {})[m] >= 1.3)
+      .map(m => (MUSKEL_INFO[m] || {}).name || m);
+    if(heiss.length) raus.push({ sportart:id, muskeln:heiss });
+  });
+  return raus;
+}
+function messwertRatText(raete){
+  return (raete || []).map(r =>
+    sportartName(r.sportart) + " heute: " + r.muskeln.join(", ") +
+    (r.muskeln.length === 1 ? " liegt" : " liegen") +
+    " über dem Richtwert — bleib besser eine Stufe unter deinem üblichen Grad, statt dich zu steigern.").join(" ");
+}
+
 function muskelLast(protokoll, heute, tage){
   const last = {};
   const fenster = tage || MUSKEL_HEAT_TAGE;
   const maxGew = maxGewichtJeUebung(protokoll);   // über die GANZE Historie, nicht nur das Fenster
   const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
+  const messwerte = messwertSchnittJeSportart(protokoll, heute);   // 0.250: Schwierigkeit wiegt mit
   const ausdauerDeckel = aktivitaetsDeckel(protokoll, heute);   // 0.244: persönlicher Deckel
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
@@ -12298,7 +12412,8 @@ function muskelLast(protokoll, heute, tage){
     // 0.249: die EFFEKTIVEN Minuten — die Strecke rettet eine fehlende Dauer.
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) * paceFaktor(e, pace);
+      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) *
+                    paceFaktor(e, pace) * messwertFaktor(e, messwerte);
       [].concat(muskelnAufKarte(satz.p).map(m => [m, wiegt]),
                 muskelnAufKarte(satz.s).map(m => [m, SEKUNDAER_ANTEIL * wiegt]))
         .forEach(([m, anteil]) => {
@@ -12307,7 +12422,8 @@ function muskelLast(protokoll, heute, tage){
           if(d < last[m].tageSeit) last[m].tageSeit = d;
         });
     }
-    echteSaetze(e).forEach(s => {
+    // 0.250: `lastSaetze` — auch Soll-Sätze („Erledigt") sind Arbeit.
+    lastSaetze(e).forEach(s => {
       const info = uebungMuskeln(s.name);
       if(!info) return;
       const wiegt = satzGewichtung(s, maxGew[s.name] || 0);
@@ -12442,10 +12558,12 @@ function satzloseEinheiten(protokoll, heute, tage){
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > fenster) return;
-    if(echteSaetze(e).length) return;
-    // v197: Ausdauer-Einheiten zählen jetzt über ihre Dauer mit — sie gehören
-    // nicht mehr in diese Zeile. Übrig bleiben die, die WIRKLICH nicht zählen:
-    // abgehakte Soll-Einträge und Einheiten ohne Dauer bzw. ohne Zuordnung.
+    /* 0.250: Soll-Sätze zählen jetzt in die Last (`lastSaetze`) — abgehakte
+       Erledigt-Einträge gehören damit nicht mehr in diese Zeile. Genannt wird
+       nur noch, was WIRKLICH nichts beiträgt: Sätze, die keine bekannte
+       Übung treffen, und Einheiten ohne Dauer bzw. ohne Sportart-Zuordnung —
+       dieselbe Trefferprüfung wie in der Last-Rechnung selbst. */
+    if(lastSaetze(e).some(s => uebungMuskeln(s.name))) return;
     if(alsEinheitZaehlbar(e)) return;
     anzahl++;
     if(e.sportart && !sportarten.includes(e.sportart)) sportarten.push(e.sportart);
@@ -12460,9 +12578,11 @@ function satzloseText(info){
   if(!info || !(info.anzahl > 0)) return "";
   const eine = info.anzahl === 1;
   const namen = info.sportarten.map(sportartName).filter(Boolean).join(", ");
+  // 0.250: Soll-Sätze zählen inzwischen — übrig bleibt „ohne Sätze und ohne
+  // zählbare Dauer", und genau das sagt der Satz jetzt.
   return info.anzahl + (eine ? " Einheit" : " Einheiten") + " dieser Woche" +
          (namen ? " (" + namen + ")" : "") + (eine ? " zählt" : " zählen") +
-         " hier nicht mit: die Karte rechnet mit gemessenen Sätzen. " +
+         " hier nicht mit: die Karte braucht Sätze oder eine Dauer mit zugeordneter Sportart. " +
          "Im Kalender und im Verlauf " + (eine ? "steht sie" : "stehen sie") + ".";
 }
 
@@ -12693,7 +12813,15 @@ const BELASTUNGS_HINWEISE = [
   { id:"entlastung",
     satz: () => entlastungText(wochenOhneEntlastung(sitzung.daten.protokoll, heuteAlsText())) },
   { id:"gewicht",
-    satz: () => gewichtTrendText(gewichtTrend(sitzung.daten.gewichte, heuteAlsText())) }
+    satz: () => gewichtTrendText(gewichtTrend(sitzung.daten.gewichte, heuteAlsText())) },
+  /* 0.250: Skalen-Sportarten (Klettern) — der Rat, heute nicht den nächsten
+     Grad zu versuchen, wenn die Hauptmuskeln über dem Richtwert liegen; und
+     der Fortschritts-Satz, wenn der Grad nachweislich gestiegen ist. */
+  { id:"messwert-rat",
+    satz: () => messwertRatText(messwertRat(sitzung.daten.einrichtung.sportarten || [],
+                                            auslastungsQuoten() || {})) },
+  { id:"messwert-fortschritt",
+    satz: () => messwertFortschrittText(messwertFortschritt(sitzung.daten.protokoll, heuteAlsText())) }
 ];
 
 /** Alle Hinweise, die gerade etwas zu sagen haben — je einer als Zeile.
@@ -13613,7 +13741,13 @@ const SPORTARTEN = [
     // Bedarf leicht austauschbar (UIAA, Bouldern …).
     // presets (v150): vier Stützpunkte für die Wizard-Frage — nicht die ganze
     // Skala, die wäre als Auswahl unbrauchbar. Feiner stellt man im Editor.
-    mass:{ label:"Schwierigkeit", skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a", presets:["4","5c","6b","7a"] }, einheiten:"Zeit · Schwierigkeit" },
+    /* 0.250: `intensiv:true` — dieser Messwert IST eine Belastungs-Intensität
+       (ein höherer Grad heißt kleinere Griffe, steilere Wand, mehr Kraft je
+       Zug; die Richtung ist im Klettersport unstrittig). Er wiegt darum in
+       der Muskellast mit (`messwertFaktor`, ±10 % wie Tempo und Pause).
+       Yogas Beweglichkeits-Grad trägt das Kennzeichen bewusst NICHT: mehr
+       Beweglichkeit ist ein Fortschritts-Maß, keine höhere Last. */
+    mass:{ label:"Schwierigkeit", intensiv:true, skala:["3","4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"], start:"5a", presets:["4","5c","6b","7a"] }, einheiten:"Zeit · Schwierigkeit" },
   { id:"tischtennis", name:"Tischtennis",         farbe:"#C86BD6", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   { id:"tennis",      name:"Tennis",              farbe:"#E08A3C", planTyp:"aktivitaet", fortschritt:"spiel", einheiten:"Zeit" },
   // v186: eigene Intervall-Vorgabe — im Kampfsport ist die Runde 3 Minuten lang
@@ -20207,6 +20341,19 @@ function trainingLosgehts(){
 function echteSaetze(eintrag){
   const s = eintrag && Array.isArray(eintrag.saetze) ? eintrag.saetze : [];
   return s.filter(x => x && !x.soll);
+}
+
+/** 0.250 (Nutzer-Entscheidung): FÜR DIE BELASTUNG zählen auch Soll-Sätze —
+    „wenn ich sage, ich habe diesen Plan gemacht, soll alles Enthaltene
+    gewertet werden." Wer „Erledigt" drückt, HAT trainiert; die Muskeln davon
+    grau zu lassen war eine Lücke in der Prognose, keine Vorsicht. Die
+    v158-Linie gilt daneben unverändert dort, wo sie hingehört: Soll-Sätze
+    stiften weiterhin KEINE Bestwerte, keine Rekorde und keine Noten
+    (`echteSaetze` bleibt der Filter aller Mess-Leser) — geplant ist nicht
+    gemessen, aber es ist Arbeit. */
+function lastSaetze(eintrag){
+  const s = eintrag && Array.isArray(eintrag.saetze) ? eintrag.saetze : [];
+  return s.filter(x => !!x);
 }
 
 /** Ist das ein reiner Soll-Eintrag (per „Erledigt" angelegt)? Rein/testbar. */

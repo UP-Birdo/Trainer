@@ -58,6 +58,10 @@ new Function("module", "exports", [
   grabConst("MUSKEL_HEAT_TAGE"),
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),
+  grabFn("lastSaetze"),   // 0.250: die Last zaehlt auch Soll-Saetze — Kriterium unten
+  /* 0.250: satzloseEinheiten prueft je Satz, ob er eine bekannte Uebung
+     trifft (dieselbe Trefferpruefung wie die Last-Rechnung). */
+  "function uebungMuskeln(n){ return n === 'LH-Bankdrücken' ? { muskeln:['pectoral'] } : null; }",
   /* v197: Ausdauer-Einheiten zaehlen jetzt ueber ihre Dauer mit — sie gehoeren
      damit NICHT mehr in die v184-Zeile. Die echten Funktionen werden mitgezogen,
      damit dieser Test die neue Grenze wirklich prueft (unten ergaenzt). */
@@ -103,10 +107,11 @@ pruefe("ein echtes Krafttraining zaehlt NICHT mit",
 pruefe("gemischt wird nur die Aktivitaet gezaehlt",
   A.satzloseEinheiten([kraft(1), lauf(2), kraft(3)], HEUTE).anzahl === 1);
 
-/* Das Kriterium ist GEMESSEN, nicht „hat Saetze" — sonst waere die v158-Luecke
-   weiter unsichtbar. */
-pruefe("ein Erledigt-Eintrag zaehlt mit (nur Sollwerte)",
-  A.satzloseEinheiten([soll(1)], HEUTE).anzahl === 1);
+/* 0.250 (Nutzer-Entscheidung): Soll-Saetze zaehlen jetzt in die LAST — ein
+   Erledigt-Eintrag ist damit KEINE unzaehlbare Einheit mehr. Die Zeile nennt
+   nur noch, was wirklich nicht zaehlbar ist. */
+pruefe("ein Erledigt-Eintrag zaehlt NICHT mehr als satzlos (er faerbt jetzt)",
+  A.satzloseEinheiten([soll(1)], HEUTE).anzahl === 0);
 pruefe("ein Eintrag mit soll:false gilt als gemessen", (() => {
   const e = kraft(1); e.saetze[0].soll = false;
   return A.satzloseEinheiten([e], HEUTE).anzahl === 0;
@@ -169,7 +174,9 @@ pruefe("eine unbekannte Sportart erzeugt keine Luecke im Text", (() => {
   const s = A.satzloseText(A.satzloseEinheiten([lauf(0, "quidditch")], HEUTE));
   return s.includes("1 Einheit dieser Woche zählt") && !s.includes("()") && !s.includes("undefined");
 })());
-pruefe("der Text sagt, WORAUF die Karte rechnet", t3.includes("gemessenen Sätzen"));
+// 0.250: Soll-Saetze zaehlen inzwischen — der Text nennt das neue Kriterium.
+pruefe("der Text sagt, WORAUF die Karte rechnet",
+  t3.includes("Sätze oder eine Dauer"));
 pruefe("und wohin die Einheiten stattdessen gehoeren",
   t3.includes("Kalender") && t3.includes("Verlauf"));
 pruefe("er warnt nicht und wertet nicht",
@@ -180,8 +187,11 @@ pruefe("er warnt nicht und wertet nicht",
  "auslastungStufe", "auslastungText", "auslastungsQuoten"].forEach(fn =>
   pruefe(fn + " weiss nichts von der Einordnung",
     !/satzlose/.test(grabFn(fn))));
+/* 0.250: `uebungMuskeln` steht jetzt bewusst drin — als TREFFERpruefung (zaehlt
+   dieser Satz irgendwo?), nicht als Umrechnung. Die Zusage bleibt: keine
+   Kapazitaet, keine Quote, kein Umrechnen eines Laufs in Saetze. */
 pruefe("die Einordnung rechnet selbst keine Saetze aus einem Lauf",
-  !/uebungMuskeln|kapazitaet|quote/.test(grabFn("satzloseEinheiten")));
+  !/kapazitaet|quote|satzGewichtung|aktivitaetSaetze\(e\.dauerMin\) \*/.test(grabFn("satzloseEinheiten")));
 
 /* ---------- 6) Verdrahtung ---------- */
 /* 0.248: Der volle Text samt Einordnung ist aus `grundlagenZeileHtml` in die

@@ -3,6 +3,26 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.250.0
+
+- <strong>„Erledigt“ zählt jetzt voll in die Belastung.</strong> Wenn du sagst, du hast
+  diesen Plan gemacht, hast du trainiert — die Muskelkarte färbt jetzt alles Enthaltene
+  mit, samt Wiederholungen, Gewichten und Haltezeiten. Die Trainingsdauer schätzt die
+  App aus deinen aktuellen Übungs-Werten. Bestwerte und Rekorde stiften abgehakte Sätze
+  weiterhin nicht: Geplant ist nicht gemessen — aber es ist Arbeit.
+- <strong>Die Schwierigkeit wiegt mit.</strong> Beim Klettern zählt jetzt dein Grad:
+  Eine Einheit über deinem üblichen Schwierigkeitsgrad belastet die Muskeln mehr, eine
+  darunter weniger — gemessen an deinem eigenen Schnitt, nicht an einer Tabelle. Damit
+  rechnet jede Sportart-Klasse mit ihrer eigenen Härte: Kraft über Gewicht und
+  Wiederholungen, Ausdauer über Dauer und Tempo, Skalen-Sportarten über den Grad.
+- <strong>Die Muskelkarte gibt dir dazu zwei neue Sätze:</strong> Sind deine
+  Kletter-Muskeln über dem Richtwert, rät sie dir, heute eine Stufe unter deinem
+  üblichen Grad zu bleiben statt dich zu steigern. Und schaffst du inzwischen
+  nachweislich einen höheren Grad als vor ein paar Wochen, sagt sie dir genau das.
+- Ins Muskel-Wachstum fließt das alles automatisch ein — es rechnet seit jeher mit den
+  gewichteten Wochen-Lasten, also zählen dort jetzt auch Wiederholungen, Haltezeiten,
+  Erledigt-Trainings und der Grad.
+
 ## 0.249.0
 
 - <strong>Die ganze Belastungs-Rechnung wurde einmal komplett durchgeprüft</strong> —
