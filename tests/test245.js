@@ -114,6 +114,39 @@ const neuerLauf = (muskeln, eintrag) => ({ plan:null, eintrag: eintrag || null, 
     T.lesen().mcheck.antworten.calves.art === null && T.lesen().mcheck.antworten.calves.wert === 0);
 }
 
+/* ---------- 1b) Zweimal dasselbe aendert NICHTS (Nutzer-Rueckfrage) ----------
+   Die Zusage: Es zaehlt der STAND, nicht die Zahl der Tastendruecke. Dieselbe
+   Antwort mehrfach zu druecken darf weder Eintraege haeufen noch den Wert
+   verstaerken; nur ein WECHSEL der Antwort aendert etwas. */
+{
+  const daten = { beschwerden:[], muskelChecks:{} };
+  T.aufbauen(neuerLauf(["chest"]), daten);
+  const nochmal = i => { T.lesen().mcheck.index = 0; T.muskelCheckAntwort(i); };
+
+  T.muskelCheckAntwort(4);   // Schmerzt stark
+  nochmal(4); nochmal(4);    // und noch zweimal dasselbe
+  let b = T.lesen().daten.beschwerden;
+  pruefe("dreimal dieselbe Antwort ergibt genau EINEN Eintrag", b.length === 1);
+  pruefe("und der Wert bleibt derselbe (nichts summiert sich)",
+    stand(b, "chest", "schmerz", HEUTE).length === 1 && stand(b, "chest", "schmerz", HEUTE)[0] === 2);
+
+  nochmal(0); nochmal(0);    // zweimal Alles gut
+  b = T.lesen().daten.beschwerden;
+  pruefe("zweimal Alles gut laesst die Liste leer (kein Null-Eintrag)", b.length === 0);
+
+  nochmal(3);                // Schmerzt leicht — jetzt SOLL sich etwas aendern
+  b = T.lesen().daten.beschwerden;
+  pruefe("ein Wechsel der Antwort aendert den Wert",
+    b.length === 1 && stand(b, "chest", "schmerz", HEUTE)[0] === 1);
+  nochmal(2);                // Zieht stark — andere Art, alte muss weichen
+  b = T.lesen().daten.beschwerden;
+  pruefe("der Wechsel der ART laesst die alte nicht stehen",
+    b.length === 1 && stand(b, "chest", "kater", HEUTE)[0] === 2 &&
+    stand(b, "chest", "schmerz", HEUTE).length === 0);
+  pruefe("und die gemerkte Antwort ist immer die letzte",
+    T.lesen().mcheck.antworten.chest.art === "kater" && T.lesen().mcheck.antworten.chest.wert === 2);
+}
+
 /* ---------- 2) Zurueck im ersten Schritt ---------- */
 {
   T.aufbauen(neuerLauf(["biceps", "triceps"]), { beschwerden:[], muskelChecks:{} });
