@@ -2927,8 +2927,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.243.0";
-const APP_VERSION = 243000;
+const VERSION = "0.244.0";
+const APP_VERSION = 244000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7148,7 +7148,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.243 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.244 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7195,6 +7195,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.244.0", punkte:[
+    "Vier feste Zahlen passen sich jetzt dir an: Lange Ausdauer-Einheiten zählen voll, wenn du nachweislich regelmäßig so lange trainierst (bisher war bei 60 Minuten Schluss — egal für wen). Muskelkater klingt je Muskel unterschiedlich lange aus (Waden schneller als Oberschenkel). Die Beschwerde-Muster schauen bei großen Muskeln bis drei Tage zurück — Muskelkater kommt dort oft erst am übernächsten Tag, das 48-Stunden-Fenster hätte genau diese Zusammenhänge verpasst.",
+    "Und der Muskel-Check fragt noch seltener: Ein Muskel, der vier Wochen ohne jede Meldung war, kommt nur noch alle vier Wochen als Stichprobe dran statt alle zwei."
+  ]},
   { stand:"0.243.0", punkte:[
     "Der Tab „Wohlbefinden“ in der Muskelkarte ist zum Knopf „Muskel-Check“ geworden: Ein Tipp startet den geführten Durchgang — dieselben großen Figuren und Bewegungs-Fragen wie nach dem Training, über alle zuletzt belasteten Muskeln (die vollsten zuerst). Und wenn du nur EINEN Muskel melden willst: Muskel in „Dein Körper“ antippen und in seiner Karte auf „Wie fühlt er sich an?“ — derselbe Check, nur für diesen einen."
   ]},
@@ -11429,6 +11433,7 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
   const last = {};
   const maxGew = maxGewichtJeUebung(protokoll);
   const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
+  const ausdauerDeckel = aktivitaetsDeckel(protokoll, heute);   // 0.244: persönlicher Deckel
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
@@ -11442,7 +11447,7 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
     };
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin) * paceFaktor(e, pace);
+      const wiegt = aktivitaetSaetze(e.dauerMin, ausdauerDeckel) * paceFaktor(e, pace);
       muskelnAufKarte(satz.p).forEach(m => dazu(m, wiegt));
       muskelnAufKarte(satz.s).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
     }
@@ -11486,6 +11491,14 @@ const BESCHWERDE_FAKTOR = {
   schmerz: { 1:0.90, 2:0.80, 3:0.75 }
 };
 
+/** 0.244: Das Ausklingen folgt dem MUSKEL statt einer Zahl für alle — große
+    Muskeln tragen Kater länger als kleine (dieselbe Erkenntnis wie bei der
+    Erholung, 0.230). Fenster = 2 Tage + Basis-Erholung: Waden 3, Standard 4
+    (wie bisher), Beine/Rücken 5. Rein/testbar. */
+function beschwerdeFensterFuer(muskel){
+  return 2 + (MUSKEL_ERHOLUNG[muskel] || ERHOLUNG_TAGE);
+}
+
 /** Wert setzen: EIN Eintrag je Tag, Muskel und Art — ein zweiter am selben Tag
     korrigiert den ersten (wie bei Gewicht und Tageswerten). Wert 0 löscht. */
 function beschwerdeSetzen(liste, datum, muskel, art, wert){
@@ -11512,8 +11525,9 @@ function beschwerdeStand(beschwerden, muskel, art, heute, tage){
     (auch ohne Angabe — „kein Wert, kein Effekt"). Nie über 1: Das Profil darf
     nur warnen, nie mehr zumuten (Nutzer-Entscheidung). Rein/testbar. */
 function beschwerdeFaktor(beschwerden, muskel, heute){
-  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
-  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
+  const fenster = beschwerdeFensterFuer(muskel);   // 0.244: klingt je Muskel aus
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute, fenster);
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute, fenster);
   const f = Math.min(BESCHWERDE_FAKTOR.kater[kater] || 1,
                      BESCHWERDE_FAKTOR.schmerz[schmerz] || 1);
   return Math.min(1, f);
@@ -11528,8 +11542,9 @@ function beschwerdeFaktor(beschwerden, muskel, heute){
    beantwortet „kann ich den trainieren?", und ein schmerzender Muskel ist
    nicht bereit, egal wie leer sein Wochen-Konto ist. */
 function beschwerdeQuoteFloor(beschwerden, muskel, heute){
-  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
-  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
+  const fenster = beschwerdeFensterFuer(muskel);   // 0.244: klingt je Muskel aus
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute, fenster);
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute, fenster);
   if(schmerz >= 2) return 1.3;   // tiefrot + fette Warnung: nicht trainieren
   if(schmerz === 1) return 1.0;  // gelb-rot: über dem Richtwert
   if(kater >= 2)    return 1.0;
@@ -11540,8 +11555,9 @@ function beschwerdeQuoteFloor(beschwerden, muskel, heute){
 /** Der Satz dazu — oder leer. Eigene Aussage neben der Quote, wie bei
     Muskelkater (v168) und Leistungsabfall (v161). Rein/testbar. */
 function beschwerdeText(beschwerden, muskel, heute){
-  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute);
-  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute);
+  const fenster = beschwerdeFensterFuer(muskel);   // 0.244: klingt je Muskel aus
+  const kater   = beschwerdeStand(beschwerden, muskel, "kater", heute, fenster);
+  const schmerz = beschwerdeStand(beschwerden, muskel, "schmerz", heute, fenster);
   if(schmerz >= 2) return " Du hast hier starke Schmerzen gemeldet — diesen Muskel jetzt nicht trainieren. Hält es an, gehört es zum Arzt.";
   if(schmerz === 1) return " Du hast hier Schmerzen gemeldet — die Rechnung nimmt den Muskel entsprechend zurück.";
   if(kater >= 2)    return " Du hast hier starken Muskelkater gemeldet — er arbeitet noch.";
@@ -11602,6 +11618,9 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
   });
   const raus = {};
   Object.values(ereignisse).forEach(er => {
+    /* 0.244: Der Vorlauf folgt dem Muskel — Kater großer Muskeln kommt bis
+       72 h später (DOMS), das 48-h-Fenster hätte genau diese Muster verpasst. */
+    const vorlauf = Math.max(MUSTER_VORLAUF_TAGE, MUSKEL_ERHOLUNG[er.muskel] || ERHOLUNG_TAGE);
     const gesehen = new Set();
     const dazu = (topf, name) => {
       const k = topf + "|" + name;
@@ -11615,7 +11634,7 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
     (protokoll || []).forEach(t => {
       if(!t || !t.datum || t.vorschau) return;   // 0.239.0: fiktive Einträge stiften kein Muster
       const d = tagDifferenz(t.datum, er.datum);
-      if(d < 0 || d > MUSTER_VORLAUF_TAGE) return;
+      if(d < 0 || d > vorlauf) return;
       /* Dieselben Bausteine wie die Belastungs-Rechnung (v197/v211-Linie).
          0.239.0: SEKUNDÄR zählt mit — `muskelLast` belastet mitarbeitende
          Muskeln (halb), also können sie auch Beschwerden erklären. Ohne sie
@@ -11875,10 +11894,29 @@ function einheitenGezaehlt(protokoll, heute, tage){
 }
 
 /** Satz-Äquivalente einer Aktivitäts-Einheit aus ihrer Dauer. Rein/testbar. */
-function aktivitaetSaetze(dauerMin){
+function aktivitaetSaetze(dauerMin, deckel){
   const min = Number(dauerMin);
   if(!(min > 0)) return 0;
-  return Math.min(AKTIVITAET_MAX_SAETZE, Math.round(min / AKTIVITAET_MINUTEN_JE_SATZ * 10) / 10);
+  // 0.244: Der Deckel kann persönlich sein (aktivitaetsDeckel) — ohne Angabe
+  // gilt der alte Standard von 6 (60 min).
+  return Math.min(deckel || AKTIVITAET_MAX_SAETZE, Math.round(min / AKTIVITAET_MINUTEN_JE_SATZ * 10) / 10);
+}
+
+/** 0.244: Der Ausdauer-Deckel passt sich an — wer nachweislich regelmäßig
+    länger trainiert, dessen lange Einheiten zählen auch voll. Median der
+    eigenen Einheitsdauern (180 Tage, ab drei Einheiten), nie unter dem
+    Standard (6 = 60 min), gedeckelt bei 18 (3 h — darüber wäre die
+    Satz-Äquivalenz Scheingenauigkeit). Vorschau-Einträge zählen nie.
+    Rein/testbar. */
+function aktivitaetsDeckel(protokoll, heute){
+  const dauern = (protokoll || []).filter(e => e && !e.vorschau && e.typ === "aktivitaet" &&
+      e.datum && e.dauerMin > 0 && !(e.saetze || []).length)
+    .filter(e => { const d = tagDifferenz(e.datum, heute); return d >= 0 && d <= ERHOLUNG_LERN_FENSTER; })
+    .map(e => Number(e.dauerMin)).sort((a, b) => a - b);
+  if(dauern.length < 3) return AKTIVITAET_MAX_SAETZE;
+  const median = dauern[Math.floor(dauern.length / 2)];
+  return Math.max(AKTIVITAET_MAX_SAETZE,
+    Math.min(18, Math.round(median / AKTIVITAET_MINUTEN_JE_SATZ * 10) / 10));
 }
 
 /** Zählt dieser Protokoll-Eintrag als Ausdauer-Einheit (statt über Sätze)?
@@ -11942,6 +11980,7 @@ function muskelLast(protokoll, heute, tage){
   const fenster = tage || MUSKEL_HEAT_TAGE;
   const maxGew = maxGewichtJeUebung(protokoll);   // über die GANZE Historie, nicht nur das Fenster
   const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
+  const ausdauerDeckel = aktivitaetsDeckel(protokoll, heute);   // 0.244: persönlicher Deckel
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
@@ -11949,7 +11988,7 @@ function muskelLast(protokoll, heute, tage){
     // v197: die Ausdauer-Einheit — dieselbe Ablage wie ein Satz, andere Herkunft.
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin) * paceFaktor(e, pace);
+      const wiegt = aktivitaetSaetze(e.dauerMin, ausdauerDeckel) * paceFaktor(e, pace);
       [].concat(muskelnAufKarte(satz.p).map(m => [m, wiegt]),
                 muskelnAufKarte(satz.s).map(m => [m, SEKUNDAER_ANTEIL * wiegt]))
         .forEach(([m, anteil]) => {
@@ -20879,10 +20918,17 @@ function muskelCheckMuskeln(eintrag, protokoll, beschwerden, heute){
   if(kalibrierungsPhase(protokoll, heute).phase !== "kalibriert") return alle;
   const checks = (sitzung.daten && sitzung.daten.muskelChecks) || {};
   const quoten = auslastungsQuoten() || {};
-  return alle.filter(m =>
-    beschwerdeFaktor(beschwerden, m, heute) < 1 ||
-    (quoten[m] || 0) >= 1 ||
-    !checks[m] || tagDifferenz(checks[m], heute) >= MCHECK_STICHPROBE_TAGE);
+  return alle.filter(m => {
+    if(beschwerdeFaktor(beschwerden, m, heute) < 1) return true;
+    if((quoten[m] || 0) >= 1) return true;
+    /* 0.244: Die Stichprobe streckt sich — ein Muskel, der vier Wochen ohne
+       jede Meldung war, wird nur noch alle 28 Tage gefragt statt alle 14
+       („immer weniger Fragen", je stabiler die Lage). */
+    const ruhig = beschwerdeStand(beschwerden, m, "schmerz", heute, 28) === 0 &&
+                  beschwerdeStand(beschwerden, m, "kater", heute, 28) === 0;
+    const intervall = ruhig ? MCHECK_STICHPROBE_TAGE * 2 : MCHECK_STICHPROBE_TAGE;
+    return !checks[m] || tagDifferenz(checks[m], heute) >= intervall;
+  });
 }
 
 /** Die objektive Note statt der Handwertung: Soll auf allen Sätzen gehalten →

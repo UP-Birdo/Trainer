@@ -37,6 +37,9 @@ new Function("module", "exports", [
   grabZeile("BESCHWERDE_TAGE"),
   src.slice(src.indexOf("const BESCHWERDE_FAKTOR = {"), src.indexOf("};", src.indexOf("const BESCHWERDE_FAKTOR = {")) + 2),
   grabFn("beschwerdeSetzen"), grabFn("beschwerdeStand"),
+  // 0.244: das Ausklingen je Muskel — hier neutral auf den alten Standard 4
+  // gestellt (test244 prueft die echte Staffelung).
+  "function beschwerdeFensterFuer(){ return 4; }",
   grabFn("beschwerdeFaktor"), grabFn("beschwerdeText"),
   "module.exports = { BESCHWERDE_TAGE, beschwerdeSetzen, beschwerdeStand, beschwerdeFaktor, beschwerdeText };"
 ].join("\n"))(modul, modul.exports);

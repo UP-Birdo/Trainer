@@ -80,8 +80,9 @@ pruefe("der Lauf kennt seine Primaer-Muskeln", A.SPORT_LAST_MUSKELN.laufen.p.len
 /* EINE Regel: Die Belastungs-Rechnung nutzt dieselben Bausteine. */
 pruefe("die Belastungs-Rechnung nutzt dieselbe Bedingung",
   grabFn("muskelLast").includes("alsEinheitZaehlbar(e)"));
+/* 0.244: die Umrechnung bekam den persoenlichen Deckel als zweiten Parameter. */
 pruefe("und dieselbe Umrechnung",
-  grabFn("muskelLast").includes("aktivitaetSaetze(e.dauerMin)"));
+  grabFn("muskelLast").includes("aktivitaetSaetze(e.dauerMin,"));
 
 /* ---------- 3) Das Plus-Menue ---------- */
 {

@@ -33,6 +33,8 @@ function grabZeile(name){
 const modul = { exports: {} };
 new Function("module", "exports", [
   grabFn("tagDifferenz"), grabZeile("BESCHWERDE_TAGE"),
+  // 0.244: das Ausklingen je Muskel — hier neutral (test244 prueft es).
+  "function beschwerdeFensterFuer(){ return 4; }",
   grabFn("beschwerdeStand"), grabFn("beschwerdeQuoteFloor"),
   "module.exports = { beschwerdeQuoteFloor };"
 ].join("\n"))(modul, modul.exports);

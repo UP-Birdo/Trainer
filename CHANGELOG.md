@@ -3,6 +3,17 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.244.0
+
+- Vier feste Zahlen passen sich jetzt dir an: Lange Ausdauer-Einheiten zählen voll, wenn
+  du nachweislich regelmäßig so lange trainierst (bisher war bei 60 Minuten Schluss —
+  egal für wen). Muskelkater klingt je Muskel unterschiedlich lange aus (Waden schneller
+  als Oberschenkel). Die Beschwerde-Muster schauen bei großen Muskeln bis drei Tage
+  zurück — Muskelkater kommt dort oft erst am übernächsten Tag, das 48-Stunden-Fenster
+  hätte genau diese Zusammenhänge verpasst.
+- Und der Muskel-Check fragt noch seltener: Ein Muskel, der vier Wochen ohne jede
+  Meldung war, kommt nur noch alle vier Wochen als Stichprobe dran statt alle zwei.
+
 ## 0.243.0
 
 - Der Tab „Wohlbefinden“ in der Muskelkarte ist zum Knopf „Muskel-Check“ geworden: Ein

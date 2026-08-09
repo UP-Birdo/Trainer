@@ -45,6 +45,8 @@ const modul = { exports: {} };
 new Function("module", "exports", [
   grabZahl("ERHOLUNG_LERN_FENSTER"), grabZahl("ERHOLUNG_LERN_MIN"),
   grabZahl("ERHOLUNG_FRUEH_MIN"), grabZahl("PACE_MINDEST_EINHEITEN"),
+  // 0.244: der Vorlauf folgt dem Muskel — hier neutral (test244 prueft ihn).
+  "const MUSKEL_ERHOLUNG = {};", "const ERHOLUNG_TAGE = 2;",
   grabZahl("MUSTER_VORLAUF_TAGE"), grabZahl("MUSTER_FENSTER_TAGE"),
   grabZahl("MUSTER_MIN"), grabZahl("MUSTER_STARK"),
   grabZahl("AKTIVITAET_MINUTEN_JE_SATZ"), grabZahl("AKTIVITAET_MAX_SAETZE"),

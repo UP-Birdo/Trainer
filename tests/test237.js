@@ -56,6 +56,9 @@ new Function("module", "exports", [
   grabBlock("SPORT_LAST_MUSKELN", "{", "}"),
   grabFn("istSollEintrag"), grabFn("aktivitaetSaetze"), grabFn("alsEinheitZaehlbar"),
   grabFn("tagDifferenz"),
+  // 0.244: der Vorlauf folgt dem Muskel — hier neutral (leere Tabelle -> ueberall
+  // 48 h wie zuvor; die Staffelung prueft test244).
+  "const MUSKEL_ERHOLUNG = {};", "const ERHOLUNG_TAGE = 2;",
   grabZahl("MUSTER_VORLAUF_TAGE"), grabZahl("MUSTER_FENSTER_TAGE"),
   grabZahl("MUSTER_MIN"), grabZahl("MUSTER_STARK"),
   grabFn("beschwerdeVorlaeufer"), grabFn("beschwerdeMusterFuer"),
