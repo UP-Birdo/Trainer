@@ -109,7 +109,7 @@ pruefe("die Sportarten-Ansicht schert nicht mehr aus",
 const ohneZurueck = [
   ["view-editor",     "ein Wisch wuerde hier Aenderungen verlieren"],
   ["view-training",   "ein Wisch wuerde hier das Training abbrechen"],
-  ["view-bewertung",  "die Bewertung gehoert zum Training"],
+  ["view-muskelcheck", "der Muskel-Check gehoert zum Training (0.242, ersetzt view-bewertung)"],
   ["view-ergebnis",   "das Ergebnis gehoert zum Training"],
   ["view-start",      "die Tab-Startseite hat kein Zurueck"],
   ["view-plaene",     "Tab-Ansicht"],

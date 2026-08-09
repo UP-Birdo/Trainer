@@ -3,6 +3,24 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.242.0
+
+- Die Noten-Bewertung nach dem Training ist weg — niemand kann ehrlich sagen, ob ein
+  Training „eine 2 oder eine 3“ war. Stattdessen kommt der Muskel-Check als geführter
+  Durchgang: Nach jedem Training (auch nach dem Training auf Zeit) zeigt dir die App
+  nacheinander jeden beanspruchten Muskel GROSS im Bild, mit einer konkreten Bewegung
+  zum Ausprobieren — und du antwortest in fünf einfachen Stufen von „Alles gut“ bis
+  „Schmerzt stark“. Jede Antwort fließt sofort in die Rechnung ein.
+- Die automatische Steigerung braucht deine Note nicht mehr: Sie rechnet jetzt objektiv
+  — wer sein Soll auf allen Sätzen schafft, steigert; wer darunter bleibt, hält oder
+  geht zurück. Deine Muskel-Antworten bremsen dabei: Meldet ein beteiligter Muskel
+  Schmerzen, wird nicht gesteigert.
+- Und die App fragt mit der Zeit immer weniger: Am Anfang (und nach langen Pausen) kommt
+  der Check nach jedem Training für jeden Muskel — sie lernt dich kennen. Sobald sie
+  kalibriert ist, fragt sie nur noch, wo es nötig ist: bei offenen Beschwerden, wenn die
+  Rechnung einen Muskel am Richtwert sieht, oder als Stichprobe alle zwei Wochen. Den
+  Rest prognostiziert sie aus deinen früheren Antworten.
+
 ## 0.241.0
 
 - Kein erfasster Wert führt mehr ins Leere — vier Verdrahtungen: Dein TEMPO zählt jetzt

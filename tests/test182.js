@@ -150,8 +150,10 @@ pruefe("die beiden Saetze sind verschieden",
 const bewertung = grabFn("bewertungOeffnen");
 pruefe("der Bewertungs-Trichter nimmt den Stand auf",
   /planStandMerken\(eintrag, sitzung\.daten\.plaene\.find\(p => p\.id === plan\.id\)\)/.test(bewertung));
+/* 0.242: Statt des Noten-Bildschirms laeuft der Muskel-Check-Wizard — der
+   Stand wird weiterhin VOR dem ersten Zeigen aufgenommen. */
 pruefe("und zwar VOR dem Zeigen der Bewertung",
-  bewertung.indexOf("planStandMerken") < bewertung.indexOf('zeige("view-bewertung")'));
+  bewertung.indexOf("planStandMerken") < bewertung.indexOf("muskelCheckOeffnen("));
 const ablegen = grabFn("aktivitaetAblegen");
 pruefe("die reine Aktivitaet nimmt ihn auch auf", /planStandMerken\(eintrag,/.test(ablegen));
 pruefe("und zwar VOR zieleAnwenden (das hebt Strecke und Dauer)",

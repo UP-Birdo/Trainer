@@ -78,7 +78,8 @@ pruefe("die Grenzen stimmen mit dem Korridor ueberein",
 pruefe("ohne Kapazitaet kein Satz", A.korridorWort(5, 0) === "");
 
 /* ---------- 3) Verdrahtung ---------- */
-const karte = grabFn("koerperCheckHtml");
+/* 0.242: Der Kurz-Check ist der Muskel-Check-Wizard geworden. */
+const karte = grabFn("muskelCheckSchritt");
 pruefe("der Kurz-Check stellt die Frage des Muskels", karte.includes("muskelCheckFrage(m)"));
 pruefe("der Wohlbefinden-Tab stellt dieselbe Frage",
   grabFn("beschwerdeFragen").includes("aktionsMenue(muskelCheckFrage(key)"));

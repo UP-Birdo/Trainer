@@ -81,24 +81,24 @@ pruefe("hoechstens sechs Muskeln", (() => {
   return A.trainierteMuskelnAusEintrag(gross).length <= 6;
 })());
 
-/* ---------- 3) Verdrahtung: Kurz-Check ---------- */
-const karte = grabFn("koerperCheckHtml");
+/* ---------- 3) Verdrahtung: Muskel-Check ----------
+   0.242: Der Kurz-Check-Kartenblock ist zum WIZARD geworden (view-muskelcheck)
+   — dieselben Zusagen, neuer Ort. */
+const karte = grabFn("muskelCheckSchritt");
 pruefe("die Karte fragt mit der Muskel-Figur", karte.includes("miniFigurHtml("));
-pruefe("drei Antworten je Muskel",   // im Quelltext escaped: \'nichts\'
-  karte.includes("\\'nichts\\'") && karte.includes("\\'zieht\\'") && karte.includes("\\'schmerzt\\'"));
-pruefe("nur auf erlaubten Stufen (Leitplanke 8)", karte.includes('viewErlaubt("view-tagescheck")'));
-const antwort = grabFn("koerperCheckAntwort");
-pruefe("Schmerzt schreibt Schmerz Stufe 1", antwort.includes('"schmerz", 1'));
-pruefe("Zieht schreibt leichten Kater", antwort.includes('"kater", 1'));
-pruefe("Ok loescht beide Arten des Tages",
+pruefe("fuenf Antworten je Muskel (aus dem Register)",
+  /const MCHECK_ANTWORTEN = \[/.test(src) &&
+  src.includes('{ text:"Alles gut" }') && src.includes('"Schmerzt stark"'));
+pruefe("nur auf erlaubten Stufen (Leitplanke 8)",
+  grabFn("muskelCheckMuskeln").includes('viewErlaubt("view-tagescheck")'));
+const antwort = grabFn("muskelCheckAntwort");
+pruefe("die Antwort schreibt in die Beschwerden", antwort.includes("beschwerdeSetzen(d.beschwerden, heute, m, a.art, a.wert)"));
+pruefe("Alles gut loescht beide Arten des Tages",
   antwort.includes('"kater", 0') && antwort.includes('"schmerz", 0'));
 pruefe("die Antwort rechnet sofort durch", antwort.includes("fortschrittNeuZeichnen()"));
-pruefe("beide Trainings-Enden tragen den Kurz-Check",
-  grabFn("bewertungAnwenden").includes("koerperCheckHtml(checkEintrag)") &&
-  grabFn("abschlussZeigen").includes("koerperCheckHtml(eintrag)"));
-pruefe("die Figuren werden nachgezeichnet",
-  grabFn("bewertungAnwenden").includes('miniFigurenZeichnen("#ergebnis-liste")') &&
-  grabFn("abschlussZeigen").includes('miniFigurenZeichnen("#abschluss-liste")'));
+pruefe("beide Trainings-Enden tragen den Muskel-Check",
+  grabFn("bewertungOeffnen").includes("muskelCheckOeffnen(") &&
+  grabFn("trainingAbschliessen").includes("muskelCheckOeffnen("));
 
 /* ---------- 4) Verdrahtung: feine Wertung und Auto-Kalibrierung ---------- */
 pruefe("die Drift steckt im Erfahrungs-Faktor",
