@@ -45,9 +45,9 @@ new Function("module", "exports", [
   grabConst("MUSKEL_HEAT_TAGE"),
   grabArray("PAUSE_STUFEN"),
   grabFn("pauseFaktor"),
-  // 0.248: die Wiederholungen wiegen mit — hier echt mitgezogen (test248 prueft sie).
-  "const WDH_SATZ_BAND = 20, WDH_LANG_BONUS = 1.10, WDH_FAKTOR_MAX = 8;",
-  grabFn("wdhFaktor"),
+  // 0.248/0.249: der Satz-Umfang wiegt mit — hier echt mitgezogen (test248/249 pruefen ihn).
+  "const WDH_SATZ_BAND = 20, ZEIT_SATZ_BAND = 90, UMFANG_LANG_BONUS = 1.10, UMFANG_FAKTOR_MAX = 8;",
+  grabFn("umfangFaktor"), grabFn("wdhFaktor"), grabFn("zeitFaktor"), grabFn("satzUmfangFaktor"),
   grabFn("satzGewichtung"),
   grabFn("tagDifferenz"),
   grabFn("echteSaetze"),

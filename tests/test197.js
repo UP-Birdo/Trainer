@@ -65,6 +65,9 @@ new Function("module", "exports", [
   // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
   "function paceSchnittJeSportart(){ return {}; }",
   "function paceFaktor(){ return 1; }",
+  // 0.249: die effektiven Minuten — ohne Schnitt gibt die echte Funktion die
+  // eingetragene Dauer zurueck, alle Zusagen hier bleiben unveraendert.
+  grabFn("aktivitaetsMinuten"),
   // 0.244: der persoenliche Ausdauer-Deckel — hier der alte Standard (test244).
   "function aktivitaetsDeckel(){ return 6; }",
   grabFn("muskelLast"),

@@ -55,6 +55,8 @@ new Function("module", "exports", [
   grabFn("aktivitaetSaetze"), grabFn("alsEinheitZaehlbar"),
   "function muskelnAufKarte(k){ return (k || []).slice(); }",
   "function uebungMuskeln(name){ return name === 'Kniebeugen' ? { muskeln:['quadriceps'], sekundaer:['lowerback'] } : null; }",
+  // 0.249: die effektiven Minuten — paceFaktor rechnet damit (test249 prueft sie).
+  grabFn("aktivitaetsMinuten"),
   grabFn("paceSchnittJeSportart"), grabFn("paceFaktor"),
   grabFn("erholungPersoenlich"),
   grabFn("beschwerdeVorlaeufer"), grabFn("beschwerdeMusterFuer"),

@@ -82,7 +82,8 @@ pruefe("die Belastungs-Rechnung nutzt dieselbe Bedingung",
   grabFn("muskelLast").includes("alsEinheitZaehlbar(e)"));
 /* 0.244: die Umrechnung bekam den persoenlichen Deckel als zweiten Parameter. */
 pruefe("und dieselbe Umrechnung",
-  grabFn("muskelLast").includes("aktivitaetSaetze(e.dauerMin,"));
+  // 0.249: gerechnet wird mit den effektiven Minuten (Strecke rettet die Dauer).
+  grabFn("muskelLast").includes("aktivitaetSaetze(aktivitaetsMinuten(e, pace),"));
 
 /* ---------- 3) Das Plus-Menue ---------- */
 {

@@ -3,6 +3,25 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.249.0
+
+- <strong>Die ganze Belastungs-Rechnung wurde einmal komplett durchgeprüft</strong> —
+  jedes Feld, das ein Eintrag tragen kann, gegen jede Stelle, die rechnet. Drei Lücken
+  gefunden und geschlossen:
+- <strong>Zeit-Übungen wiegen jetzt nach ihrer Dauer.</strong> Ein 30-Sekunden-Plank
+  zählte bisher genauso viel wie ein zehnminütiges Halten — dieselbe Lücke wie bei den
+  Wiederholungen, nur bei der Zeit. Bis 90 Sekunden bleibt alles wie bisher, darüber
+  zählt jede Sekunde anteilig weiter. Auch die Vorher-Nachher-Vorschau rechnet lange
+  Halte jetzt richtig.
+- <strong>Die Strecke rettet eine fehlende Dauer.</strong> Ein Eintrag „Laufen 5 km“
+  ohne Zeitangabe wog bisher fast nichts — die Strecke stand daneben und wurde
+  ignoriert. Kennt die App dein Tempo (ab drei Einheiten mit Strecke), schätzt sie die
+  Dauer jetzt ehrlich aus deiner eigenen Pace. Aus einer Schätzung entsteht dabei nie
+  ein Tempo-Urteil.
+- <strong>Die Entlastungs-Beobachtung zählt den Umfang statt roher Satz-Zahlen.</strong>
+  Eine Woche mit wenigen sehr langen Sätzen galt ihr bisher als „leichte Woche“ — jetzt
+  wiegt sie gleich schwer wie dieselbe Arbeit in vielen kurzen Sätzen.
+
 ## 0.248.0
 
 - <strong>Deine Wiederholungen zählen jetzt mit.</strong> Bis hierher war ein Satz ein

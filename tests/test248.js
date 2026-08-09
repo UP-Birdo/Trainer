@@ -45,12 +45,17 @@ function grabBlock(name, open, close){
   throw new Error("Klammern unausgeglichen: " + name);
 }
 
+/* 0.249: Der Faktor ist generisch geworden (`umfangFaktor`, gilt auch fuer
+   Zeit-Saetze — test249). Die 0.248-Zusagen hier gelten Wert fuer Wert weiter;
+   nur die Konstanten-Namen sind mitgezogen. */
 const modul = { exports: {} };
 new Function("module", "exports", [
-  grabZahl("WDH_SATZ_BAND"), grabZahl("WDH_LANG_BONUS"), grabZahl("WDH_FAKTOR_MAX"),
+  grabZahl("WDH_SATZ_BAND"), grabZahl("ZEIT_SATZ_BAND"),
+  grabZahl("UMFANG_LANG_BONUS"), grabZahl("UMFANG_FAKTOR_MAX"),
   grabBlock("NOTE_GEWICHT", "{", "}"), grabBlock("PAUSE_STUFEN", "[", "]"),
-  grabFn("wdhFaktor"), grabFn("pauseFaktor"), grabFn("satzGewichtung"),
-  "module.exports = { wdhFaktor, satzGewichtung, WDH_SATZ_BAND, WDH_FAKTOR_MAX };"
+  grabFn("umfangFaktor"), grabFn("wdhFaktor"), grabFn("zeitFaktor"),
+  grabFn("satzUmfangFaktor"), grabFn("pauseFaktor"), grabFn("satzGewichtung"),
+  "module.exports = { wdhFaktor, satzGewichtung, WDH_SATZ_BAND, WDH_FAKTOR_MAX: UMFANG_FAKTOR_MAX };"
 ].join("\n"))(modul, modul.exports);
 const T = modul.exports;
 
@@ -112,8 +117,9 @@ pruefe("der Faktor waechst nie rueckwaerts",
   pruefe("eine Zeit-Uebung ohne wdh bleibt unveraendert",
     T.satzGewichtung(satz({ note:3, dauer:90 }), 0) === 1);
 }
+// 0.249: der Umfang laeuft ueber satzUmfangFaktor (auch Zeit-Saetze, test249).
 pruefe("die Last-Rechnungen ziehen den Faktor ueber satzGewichtung mit",
-  grabFn("satzGewichtung").includes("wdhFaktor(satz && satz.wdh)") &&
+  grabFn("satzGewichtung").includes("satzUmfangFaktor(satz)") &&
   grabFn("muskelLast").includes("satzGewichtung(s, maxGew[s.name] || 0)") &&
   grabFn("muskelLastAbklingend").includes("satzGewichtung(s, maxGew[s.name] || 0)"));
 

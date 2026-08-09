@@ -2964,8 +2964,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.248.0";
-const APP_VERSION = 248000;
+const VERSION = "0.249.0";
+const APP_VERSION = 249000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7242,7 +7242,7 @@ function wissenZeichnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.248 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.249 · Das Training in deiner Hand", punkte:[
     "Neu: „Wie die App von dir lernt“ — hinter dem „i“ auf der Muskelkarte und in „Gut zu wissen“ steht in Klartext, zu welchem Zeitpunkt sich was ändert: sofort, nach jedem Training, in den ersten zehn, Woche für Woche, über Monate — und was bewusst fest bleibt.",
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
@@ -7290,6 +7290,12 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.249.0", punkte:[
+    "<strong>Die ganze Belastungs-Rechnung wurde einmal komplett durchgeprüft</strong> — jedes Feld, das ein Eintrag tragen kann, gegen jede Stelle, die rechnet. Drei Lücken gefunden und geschlossen:",
+    "<strong>Zeit-Übungen wiegen jetzt nach ihrer Dauer.</strong> Ein 30-Sekunden-Plank zählte bisher genauso viel wie ein zehnminütiges Halten — dieselbe Lücke wie bei den Wiederholungen, nur bei der Zeit. Bis 90 Sekunden bleibt alles wie bisher, darüber zählt jede Sekunde anteilig weiter. Auch die Vorher-Nachher-Vorschau rechnet lange Halte jetzt richtig.",
+    "<strong>Die Strecke rettet eine fehlende Dauer.</strong> Ein Eintrag „Laufen 5 km“ ohne Zeitangabe wog bisher fast nichts — die Strecke stand daneben und wurde ignoriert. Kennt die App dein Tempo (ab drei Einheiten mit Strecke), schätzt sie die Dauer jetzt ehrlich aus deiner eigenen Pace. Aus einer Schätzung entsteht dabei nie ein Tempo-Urteil.",
+    "<strong>Die Entlastungs-Beobachtung zählt den Umfang statt roher Satz-Zahlen.</strong> Eine Woche mit wenigen sehr langen Sätzen galt ihr bisher als „leichte Woche“ — jetzt wiegt sie gleich schwer wie dieselbe Arbeit in vielen kurzen Sätzen."
+  ]},
   { stand:"0.248.0", punkte:[
     "<strong>Deine Wiederholungen zählen jetzt mit.</strong> Bis hierher war ein Satz ein Satz — ein Satz mit 100 Wiederholungen wog in der Muskelkarte genauso viel wie einer mit acht. Wer in einem langen Satz durchzieht, wurde als fast unbelastet geführt. Ab jetzt zählt jede Wiederholung über dem üblichen Bereich anteilig weiter, und der lange ununterbrochene Satz bekommt einen kleinen Zuschlag: Ein Satz mit 100 Wiederholungen wiegt damit mehr als fünf Sätze zu je 20.",
     "Bis 20 Wiederholungen ändert sich nichts. Das ist Absicht: In diesem Bereich setzt ein Satz ähnlich viel Reiz, ob mit acht oder mit fünfzehn Wiederholungen — der schwere Dreier und der lockere Fünfzehner sind beides EIN harter Satz. Deine bisherigen Zahlen bleiben also vergleichbar, korrigiert wird nur, wo es wirklich falsch war.",
@@ -10450,8 +10456,14 @@ function planAlsEintrag(plan, heute){
   (plan.uebungen || []).forEach(u => {
     if(!u || !u.name) return;
     const n = Math.max(1, u.saetze || 1);
-    for(let i = 0; i < n; i++)
-      saetze.push({ name: u.name, wdh: u.wdh || 0, gewicht: u.gewicht || 0, note: 3 });
+    for(let i = 0; i < n; i++){
+      const s = { name: u.name, wdh: u.wdh || 0, gewicht: u.gewicht || 0, note: 3 };
+      /* 0.249: Zeit-Übungen tragen Modus und geplante Dauer — seit der Umfang
+         wiegt (`satzUmfangFaktor`), muss die Vorschau denselben Satz bauen wie
+         das echte Training, sonst zeigt „Nachher" für lange Halte zu wenig. */
+      if(u.modus === "zeit"){ s.modus = "zeit"; s.dauer = u.dauer || 0; s.wdh = 0; }
+      saetze.push(s);
+    }
   });
   /* 0.239.0: `vorschau:true` kennzeichnet den Eintrag als FIKTIV. Er darf nur
      die LAST erhöhen — nicht die Kapazitäts-Seite der Rechnung verschieben
@@ -11647,7 +11659,8 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
     };
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin, ausdauerDeckel) * paceFaktor(e, pace);
+      // 0.249: die EFFEKTIVEN Minuten — die Strecke rettet eine fehlende Dauer.
+      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) * paceFaktor(e, pace);
       muskelnAufKarte(satz.p).forEach(m => dazu(m, wiegt));
       muskelnAufKarte(satz.s).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
     }
@@ -12003,20 +12016,38 @@ function maxGewichtJeUebung(protokoll){
    Damit kommt der Fall des Nutzers so heraus, wie er ihn beschreibt:
    1 × 100 Wdh = 5,5 gegen 5 × 20 Wdh = 5,0.
 
-   Zeit-Übungen tragen kein `wdh` und bleiben unverändert bei 1 — ihre Dauer
-   wiegt an anderer Stelle („kein Wert, kein Effekt"). */
-const WDH_SATZ_BAND  = 20;     // bis hierher gilt: ein Satz ist ein Satz
-const WDH_LANG_BONUS = 1.10;   // ab dem doppelten Band: der Zuschlag fürs Durchziehen
-const WDH_FAKTOR_MAX = 8;      // Deckel gegen vertippte Zahlen
+   0.249 (Nutzer-Auftrag „check die gesamte Rechnung"): Dieselbe Lücke gab es
+   bei den ZEIT-Sätzen — `satz.dauer` wog nicht, ein 30-Sekunden-Plank zählte
+   wie ein zehnminütiges Halten. Deshalb ist der Faktor jetzt GENERISCH
+   (`umfangFaktor`): ein Band, in dem ein Satz ein Satz ist, darüber zählt
+   der Umfang anteilig, ein gedeckelter Zuschlag fürs Durchziehen, ein Deckel
+   gegen Tippfehler. `wdhFaktor` und `zeitFaktor` sind seine zwei Anwendungen;
+   `satzUmfangFaktor` entscheidet am Satz selbst, welche gilt — die EINE
+   Stelle, die künftige Satz-Formen erweitern. */
+const WDH_SATZ_BAND     = 20;     // Wiederholungen: bis hierher ist ein Satz ein Satz
+const ZEIT_SATZ_BAND    = 90;     // Sekunden: das obere Ende des üblichen Zeit-Satzes
+const UMFANG_LANG_BONUS = 1.10;   // ab dem doppelten Band: der Zuschlag fürs Durchziehen
+const UMFANG_FAKTOR_MAX = 8;      // Deckel gegen vertippte Zahlen
 
-/** Wie viele Sätze ist ein Satz mit dieser Wiederholungszahl wert? 1 = der
-    Normalfall. Rein/testbar. */
-function wdhFaktor(wdh){
-  const n = Number(wdh);
-  if(!isFinite(n) || n <= 0) return 1;            // kein Wert, kein Effekt
-  if(n <= WDH_SATZ_BAND) return 1;                // im belegten Band unverändert
-  const bonus = n > WDH_SATZ_BAND * 2 ? WDH_LANG_BONUS : 1;
-  return Math.min(WDH_FAKTOR_MAX, Math.round(n / WDH_SATZ_BAND * bonus * 100) / 100);
+/** Wie viele Sätze ist ein Satz dieses Umfangs wert? 1 = der Normalfall.
+    Rein/testbar. */
+function umfangFaktor(wert, band){
+  const n = Number(wert);
+  if(!isFinite(n) || n <= 0 || !(band > 0)) return 1;   // kein Wert, kein Effekt
+  if(n <= band) return 1;                               // im belegten Band unverändert
+  const bonus = n > band * 2 ? UMFANG_LANG_BONUS : 1;
+  return Math.min(UMFANG_FAKTOR_MAX, Math.round(n / band * bonus * 100) / 100);
+}
+function wdhFaktor(wdh){ return umfangFaktor(wdh, WDH_SATZ_BAND); }
+function zeitFaktor(dauer){ return umfangFaktor(dauer, ZEIT_SATZ_BAND); }
+
+/** Der Umfang EINES Satzes — Zeit-Sätze nach ihrer wirklich gehaltenen Dauer
+    (`dauer`; Soll-Sätze tragen `zeit`), alle anderen nach den Wiederholungen.
+    Rein/testbar. */
+function satzUmfangFaktor(satz){
+  if(!satz) return 1;
+  if(satz.modus === "zeit") return zeitFaktor(satz.dauer || satz.zeit);
+  return wdhFaktor(satz.wdh);
 }
 
 /** Wie schwer wog dieser Satz? Die NOTE ist das bessere Signal, weil sie die
@@ -12025,8 +12056,9 @@ function wdhFaktor(wdh){
     relative Intensität ein. Beides zu multiplizieren würde denselben Umstand
     doppelt bestrafen: Wer leicht hebt, vergibt ohnehin schon Note 1 oder 2.
     Ohne beides bleibt es beim neutralen 1 — geraten wird nicht.
-    0.248: Die Wiederholungen kommen als eigener Faktor dazu (s. `wdhFaktor`) —
-    sie sagen etwas anderes als die Note. Rein/testbar. */
+    0.248: Der Umfang kommt als eigener Faktor dazu (Wiederholungen; seit
+    0.249 über `satzUmfangFaktor` auch die Dauer der Zeit-Sätze) — er sagt
+    etwas anderes als die Note. Rein/testbar. */
 function satzGewichtung(satz, maxGewicht){
   const n = satz && Number(satz.note);
   let wert;
@@ -12037,7 +12069,7 @@ function satzGewichtung(satz, maxGewicht){
   } else wert = 1;
   // v189: Die gemessene Pause (v188) wiegt zusätzlich — klein und gedeckelt.
   return Math.round(wert * pauseFaktor(satz && satz.pause) *
-                    wdhFaktor(satz && satz.wdh) * 100) / 100;
+                    satzUmfangFaktor(satz) * 100) / 100;
 }
 
 /* v189 (ROADMAP, Belastungs-Modell A6, Teil 2): Die gemessene Pause geht in die
@@ -12214,13 +12246,37 @@ function paceSchnittJeSportart(protokoll, heute){
   return raus;
 }
 
+/* 0.249 (Nutzer-Auftrag „check die gesamte Rechnung"): DIE STRECKE RETTET DIE
+   DAUER. Eine Einheit „Laufen 5 km" ohne (brauchbare) Zeitangabe bekam
+   `dauerMin = 1` — und wog damit 0,1 Sätze, ein Zehntel eines einzigen
+   Kraft-Satzes für einen Fünf-Kilometer-Lauf. Die Strecke stand daneben und
+   wurde ignoriert. Wo der eigene Pace-Schnitt existiert (dieselbe Quelle wie
+   der Tempo-Faktor, ab drei Einheiten mit Strecke), lässt sich die Dauer
+   ehrlich schätzen: Strecke ÷ eigener Schnitt. Geschätzt wird NUR, wenn die
+   eingetragene Dauer unglaubwürdig klein ist (unter 40 % der nach eigener
+   Pace zu erwartenden Zeit — das wäre mehr als das 2,5-fache der eigenen
+   Geschwindigkeit, menschlich ausgeschlossen, also ein Erfassungs-Loch).
+   Ohne Schnitt bleibt die eingetragene Dauer, wie sie ist — geraten wird
+   nicht, und die Grundlagen-Zeile sagt ohnehin, was fehlt. */
+function aktivitaetsMinuten(eintrag, schnitt){
+  const min = Number(eintrag && eintrag.dauerMin) || 0;
+  const basis = eintrag && schnitt && schnitt[eintrag.sportart];
+  if(!(eintrag && eintrag.strecke > 0) || !(basis > 0)) return min;
+  const erwartet = eintrag.strecke / basis;
+  return min < erwartet * 0.4 ? Math.round(erwartet * 10) / 10 : min;
+}
+
 /** Gewicht einer Einheit nach ihrem Tempo relativ zum eigenen Schnitt —
-    dieselbe Stufen-Bauart wie `pauseFaktor`. Rein/testbar. */
+    dieselbe Stufen-Bauart wie `pauseFaktor`. Rein/testbar.
+    0.249: gerechnet wird mit den EFFEKTIVEN Minuten (`aktivitaetsMinuten`) —
+    eine geschätzte Dauer ergibt rel = 1, also neutral: Aus einer Schätzung
+    darf kein Tempo-Urteil entstehen. */
 function paceFaktor(eintrag, schnitt){
-  if(!eintrag || !(eintrag.strecke > 0) || !(eintrag.dauerMin > 0)) return 1;
+  if(!eintrag || !(eintrag.strecke > 0)) return 1;
   const basis = schnitt && schnitt[eintrag.sportart];
-  if(!(basis > 0)) return 1;
-  const rel = (eintrag.strecke / eintrag.dauerMin) / basis;
+  const min = aktivitaetsMinuten(eintrag, schnitt);
+  if(!(basis > 0) || !(min > 0)) return 1;
+  const rel = (eintrag.strecke / min) / basis;
   if(rel >= 1.15) return 1.1;    // deutlich schneller als sonst
   if(rel >= 1.05) return 1.05;
   if(rel <= 0.85) return 0.9;    // deutlich lockerer
@@ -12239,9 +12295,10 @@ function muskelLast(protokoll, heute, tage){
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > fenster) return;
     // v197: die Ausdauer-Einheit — dieselbe Ablage wie ein Satz, andere Herkunft.
+    // 0.249: die EFFEKTIVEN Minuten — die Strecke rettet eine fehlende Dauer.
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin, ausdauerDeckel) * paceFaktor(e, pace);
+      const wiegt = aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel) * paceFaktor(e, pace);
       [].concat(muskelnAufKarte(satz.p).map(m => [m, wiegt]),
                 muskelnAufKarte(satz.s).map(m => [m, SEKUNDAER_ANTEIL * wiegt]))
         .forEach(([m, anteil]) => {
@@ -12523,7 +12580,15 @@ function wochenLast(protokoll){
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const w = isoWoche(e.datum);
-    summe[w] = (summe[w] || 0) + ((e.saetze || []).length);
+    /* 0.249: Der UMFANG zählt, nicht die rohe Anzahl — sonst wäre für die
+       Entlastungs-Beobachtung eine Woche mit 1 × 100 Wdh eine „leichte" Woche
+       (1 Satz) gegenüber 5 × 20 (5 Sätze), obwohl beide gleich schwer sind.
+       Bewusst NUR der Umfangs-Faktor, nicht die volle `satzGewichtung`:
+       Soll-Sätze („Erledigt") zählen hier seit jeher mit, tragen aber weder
+       Note noch gemessene Pause — die volle Gewichtung würde gemessene und
+       abgehakte Wochen verschieden behandeln und Scheinvergleiche erzeugen. */
+    summe[w] = (summe[w] || 0) +
+      (e.saetze || []).reduce((s, satz) => s + (satz ? satzUmfangFaktor(satz) : 0), 0);
   });
   return summe;
 }

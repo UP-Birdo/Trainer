@@ -109,15 +109,16 @@ const code = [
   "const PAUSE_STUFEN = " + grabLiteral("PAUSE_STUFEN") + ";",
   grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
-  // 0.248: die Wiederholungen wiegen mit — hier echt mitgezogen (test248 prueft sie).
-  "const WDH_SATZ_BAND = 20, WDH_LANG_BONUS = 1.10, WDH_FAKTOR_MAX = 8;",
-  grabFn("wdhFaktor"),
+  // 0.248/0.249: der Satz-Umfang wiegt mit — hier echt mitgezogen (test248/249 pruefen ihn).
+  "const WDH_SATZ_BAND = 20, ZEIT_SATZ_BAND = 90, UMFANG_LANG_BONUS = 1.10, UMFANG_FAKTOR_MAX = 8;",
+  grabFn("umfangFaktor"), grabFn("wdhFaktor"), grabFn("zeitFaktor"), grabFn("satzUmfangFaktor"),
   grabFn("satzGewichtung"),
   // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
   "function paceSchnittJeSportart(){ return {}; }",
   "function paceFaktor(){ return 1; }",
   // 0.244: der persoenliche Ausdauer-Deckel — hier der alte Standard (test244).
   "function aktivitaetsDeckel(){ return 6; }",
+  grabFn("aktivitaetsMinuten"),   // 0.249: effektive Minuten (test249 prueft sie)
   grabFn("muskelLast"),
   grabFn("lastGewicht"),            // 0.240: echte Abkling-Kurve
   grabFn("muskelLastAbklingend"),   // 0.240: ersetzt das harte Fenster in der Auslastung

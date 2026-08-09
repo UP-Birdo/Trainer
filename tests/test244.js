@@ -107,9 +107,10 @@ pruefe("der Vorlauf folgt der Erholung des Muskels",
 }
 
 /* ---------- 5) Verdrahtung + Version ---------- */
+// 0.249: gerechnet wird mit den effektiven Minuten (Strecke rettet die Dauer).
 pruefe("beide Last-Rechnungen nutzen den persoenlichen Deckel",
-  grabFn("muskelLast").includes("aktivitaetSaetze(e.dauerMin, ausdauerDeckel)") &&
-  grabFn("muskelLastAbklingend").includes("aktivitaetSaetze(e.dauerMin, ausdauerDeckel)"));
+  grabFn("muskelLast").includes("aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel)") &&
+  grabFn("muskelLastAbklingend").includes("aktivitaetSaetze(aktivitaetsMinuten(e, pace), ausdauerDeckel)"));
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);
 pruefe("die App ist mindestens auf 0.244.0",

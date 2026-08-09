@@ -40,6 +40,13 @@ new Function("module", "exports", [
   grabConst("ENTLASTUNG_BLICK"),
   grabFn("isoWoche"),
   grabFn("tageVerschieben"),
+  /* 0.249: wochenLast summiert den Satz-UMFANG statt der rohen Anzahl
+     (test249 prueft die Wirkung). Fuer normale Saetze ist der Faktor exakt 1 —
+     alle Zusagen dieser Datei gelten damit unveraendert weiter. */
+  grabConst("WDH_SATZ_BAND"), grabConst("ZEIT_SATZ_BAND"),
+  grabConst("UMFANG_LANG_BONUS"), grabConst("UMFANG_FAKTOR_MAX"),
+  grabFn("umfangFaktor"), grabFn("wdhFaktor"), grabFn("zeitFaktor"),
+  grabFn("satzUmfangFaktor"),
   grabFn("wochenLast"),
   grabFn("wochenOhneEntlastung"),
   grabFn("entlastungText"),
