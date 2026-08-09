@@ -3,6 +3,20 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.241.0
+
+- Kein erfasster Wert führt mehr ins Leere — vier Verdrahtungen: Dein TEMPO zählt jetzt
+  in der Belastung — eine Ausdauer-Einheit deutlich über deinem üblichen Schnitt wiegt
+  mehr, eine lockere weniger (aus Strecke und Zeit gerechnet, ab drei Einheiten mit
+  Strecke).
+- Der Muskelkater aus dem Tages-Check wirkt jetzt genau am gemeldeten Muskel — derselbe
+  Weg wie Muskelkarte und Kurz-Check, eine Liste, keine Doppel-Erfassung mehr. Und die
+  Erholungs-Lernung liest zusätzlich deine Noten: Wer kurz nach dem letzten Training
+  wieder trainiert und „viel zu schwer“ bewertet, belegt unvollständige Erholung — ganz
+  ohne Beschwerde-Meldung.
+- Außerdem wiegen starke Meldungen jetzt doppelt: „Schmerzen — stark“ prägt die
+  Beschwerde-Muster und die gelernte Erholungszeit schneller als eine leichte Meldung.
+
 ## 0.240.0
 
 - Die Muskelkarte hat kein starres 8-Tage-Fenster mehr: Training klingt jetzt allmählich

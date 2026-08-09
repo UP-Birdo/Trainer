@@ -55,6 +55,9 @@ const code = [
   grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
   grabFn("satzGewichtung"),
+  // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
+  "function paceSchnittJeSportart(){ return {}; }",
+  "function paceFaktor(){ return 1; }",
   grabFn("muskelLast"),
   grabFn("leistungFaellt"),
   "module.exports = { NOTE_GEWICHT, maxGewichtJeUebung, satzGewichtung, muskelLast, leistungFaellt };"

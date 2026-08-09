@@ -2921,8 +2921,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.240.0";
-const APP_VERSION = 240000;
+const VERSION = "0.241.0";
+const APP_VERSION = 241000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7140,7 +7140,7 @@ function wissenOeffnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.240 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.241 · Das Training in deiner Hand", punkte:[
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
     "Das Modell wächst mit dir: Erfahrung aus deinen Trainingswochen statt einer fixen Angabe, Muskel-Kapazität, die mit vertragenem Volumen steigt, eigene Erholungszeit je Muskel — dazu Ruhepuls und Ernährung als neue Werte.",
@@ -7187,6 +7187,11 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.241.0", punkte:[
+    "Kein erfasster Wert führt mehr ins Leere — vier Verdrahtungen: Dein TEMPO zählt jetzt in der Belastung — eine Ausdauer-Einheit deutlich über deinem üblichen Schnitt wiegt mehr, eine lockere weniger (aus Strecke und Zeit gerechnet, ab drei Einheiten mit Strecke).",
+    "Der Muskelkater aus dem Tages-Check wirkt jetzt genau am gemeldeten Muskel — derselbe Weg wie Muskelkarte und Kurz-Check, eine Liste, keine Doppel-Erfassung mehr. Und die Erholungs-Lernung liest zusätzlich deine Noten: Wer kurz nach dem letzten Training wieder trainiert und „viel zu schwer“ bewertet, belegt unvollständige Erholung — ganz ohne Beschwerde-Meldung.",
+    "Außerdem wiegen starke Meldungen jetzt doppelt: „Schmerzen — stark“ prägt die Beschwerde-Muster und die gelernte Erholungszeit schneller als eine leichte Meldung."
+  ]},
   { stand:"0.240.0", punkte:[
     "Die Muskelkarte hat kein starres 8-Tage-Fenster mehr: Training klingt jetzt allmählich aus, statt am achten Tag schlagartig aus der Rechnung zu fallen. Wie lange es nachwirkt, hängt an der Erholungszeit des Muskels — ein sehr hartes Beintraining vor neun Tagen ist damit nicht einfach „weg“.",
     "Und die Erholungszeit wird persönlich: Die App lernt aus deinen Meldungen, wie schnell sich jeder Muskel bei DIR erholt. Meldet sich ein Muskel wiederholt noch, wenn er laut Rechnung längst erholt wäre, bekommt er mehr Tage; verträgst du frühes Wiedertrainieren nachweislich ohne Beschwerden, weniger. Immer mit Mindest-Beobachtungen und Deckel — und die Detail-Karte sagt dir offen, wenn sie bei einem Muskel von der Regel abweicht."
@@ -8938,14 +8943,12 @@ const TAGES_FRAGEN = [
 
 /* Muskelkater wird nach REGION gefragt statt pauschal — das ist der stärkste
    Teil des Nutzer-Vorschlags: So trifft er genau die Muskeln, um die es geht,
-   statt einen globalen Faktor zu verschieben. */
-/* Je betroffener Region ein voller Punkt, gedeckelt bei zwei: Ein halber Punkt
-   verschwindet beim Runden — wer eine Region ankreuzt und danach dieselbe Zahl
-   sieht, hält das zu Recht für kaputt. Ab zwei Regionen ist es breite Ermüdung
-   und der Deckel greift; mehr abzuziehen würde Muskelkater zum Hauptfaktor
-   machen, und der ist nach einem guten Training normal. */
-const CHECK_KATER_ABZUG = 1;
-const CHECK_KATER_MAX   = 2;
+   statt einen globalen Faktor zu verschieben.
+   0.241.0: Genau DESHALB wirkt er jetzt auch dort — die Antworten schreiben
+   je Muskel in die Beschwerden-Liste (0.228-Weg, wie Karte und Kurz-Check:
+   EIN Formular, EINE Liste, 61B-Entscheidung). Der frühere globale
+   Befinden-Abzug je Region (`CHECK_KATER_ABZUG`/`_MAX`) ist entfallen —
+   dieselbe Angabe darf nicht zweimal in die Rechnung (v202-Linie). */
 
 /** Die Fragen, die für DIESES Profil gelten. Rein/testbar. */
 function checkFragen(profil){
@@ -8969,8 +8972,8 @@ function befindenAusCheck(antworten){
   const a = antworten || {};
   let abzug = 0;
   TAGES_FRAGEN.forEach(f => { abzug += (a[f.id] || 0) * f.abzug; });
-  const regionen = (a.kater || []).length;
-  abzug += Math.min(CHECK_KATER_MAX, regionen) * CHECK_KATER_ABZUG;
+  // 0.241.0: Muskelkater senkt das Befinden nicht mehr — er wirkt je Muskel
+  // über die Beschwerden (s. Kommentar oben).
   return Math.max(1, Math.min(5, Math.round(5 - abzug)));
 }
 
@@ -8992,18 +8995,10 @@ function checkZeilen(antworten, datum, profil){
   return zeilen;
 }
 
-/** Muskelkater-Regionen der letzten Tage. Rein/testbar. */
-function katerRegionen(tageswerte, heute, tage){
-  const fenster = tage === undefined ? CHECK_KATER_TAGE : tage;
-  const raus = new Set();
-  (tageswerte || []).forEach(e => {
-    if(!e || !e.datum || !e.art || e.art.indexOf("kater:") !== 0 || !(e.wert > 0)) return;
-    const d = tagDifferenz(e.datum, heute);
-    if(d >= 0 && d <= fenster) raus.add(e.art.slice(6));
-  });
-  return raus;
-}
-
+/* 0.241.0: `katerRegionen` und `CHECK_KATER_TAGE` sind entfallen — der einzige
+   Leser war der Kater-Satz der Detail-Karte, und der kommt jetzt aus den
+   Beschwerden. Die `kater:<Region>`-Zeilen werden weiter GESPEICHERT
+   (additiver Datenvertrag, Kurve „Muskelkater" bleibt). */
 /** Die Muskeln zu diesen Regionen. Rein/testbar. */
 function katerMuskeln(regionen){
   const raus = new Set();
@@ -9013,7 +9008,6 @@ function katerMuskeln(regionen){
   });
   return raus;
 }
-const CHECK_KATER_TAGE = 2;   // Muskelkater hält typischerweise 24–72 Stunden an
 
 /** Alle Einträge einer Art, chronologisch. Rein/testbar. */
 function werteReihe(liste, art){
@@ -9133,6 +9127,14 @@ function tagesCheckSpeichern(){
   const heute = heuteAlsText();
   checkZeilen(checkAntworten, heute, profil).forEach(z =>
     werteSetzen(sitzung.daten.tageswerte, z.datum, z.art, z.wert));
+  /* 0.241.0: Der Kater aus dem Check wirkt JE MUSKEL — dieselbe Liste wie
+     Karte und Kurz-Check (0.228/0.232). Als „leicht" (Stufe 1): Der Check
+     fragt nur ob, nicht wie stark. Ein am selben Tag über die Karte
+     gemeldeter STÄRKERER Wert wird nicht überschrieben. */
+  katerMuskeln(new Set(checkAntworten.kater)).forEach(m => {
+    if(beschwerdeStand(sitzung.daten.beschwerden, m, "kater", heute, 0) < 1)
+      sitzung.daten.beschwerden = beschwerdeSetzen(sitzung.daten.beschwerden, heute, m, "kater", 1);
+  });
   speichern();
   tageswertArt = "befinden";     // dorthin, wo das Ergebnis steht
   tageswertZeichnen();
@@ -11302,13 +11304,22 @@ function lastGewicht(d, erholungsTage){
 }
 
 /** Trainings-Tage je Muskel (primär UND sekundär — dieselben Bausteine wie
-    `muskelLast`), aufsteigend, ein Eintrag je Tag. EIN Lauf für alle Muskeln;
-    fiktive Vorschau-Einträge zählen nicht. Rein/testbar. */
+    `muskelLast`), aufsteigend, ein Eintrag je Tag. 0.241.0: dazu je Tag die
+    HÖCHSTE Satz-Note der primär treffenden Übungen — das Leistungssignal fürs
+    Erholungs-Lernen. EIN Lauf für alle Muskeln; fiktive Vorschau-Einträge
+    zählen nicht. Ergebnis je Muskel: { tage:[...], note:{datum:maxNote} }.
+    Rein/testbar. */
 function muskelTrainingsTageAlle(protokoll){
   const map = {};
   (protokoll || []).forEach(e => {
     if(!e || !e.datum || e.vorschau) return;
-    const dazu = m => { (map[m] || (map[m] = new Set())).add(e.datum); };
+    const eintrag = m => map[m] || (map[m] = { tage: new Set(), note: {} });
+    const dazu = m => { eintrag(m).tage.add(e.datum); };
+    const dazuNote = (m, n) => {
+      const z = eintrag(m);
+      z.tage.add(e.datum);
+      if(n >= 1 && n <= 5 && !(z.note[e.datum] >= n)) z.note[e.datum] = n;
+    };
     if(alsEinheitZaehlbar(e)){
       const s = SPORT_LAST_MUSKELN[e.sportart];
       muskelnAufKarte(s.p).concat(muskelnAufKarte(s.s)).forEach(dazu);
@@ -11316,28 +11327,35 @@ function muskelTrainingsTageAlle(protokoll){
     (e.saetze || []).forEach(x => {
       const info = uebungMuskeln(x.name);
       if(!info) return;
-      (info.muskeln || []).forEach(dazu);
+      const n = Number(x.note);
+      (info.muskeln || []).forEach(m => dazuNote(m, n));
       (info.sekundaer || []).forEach(dazu);
     });
   });
-  Object.keys(map).forEach(m => { map[m] = [...map[m]].sort(); });
-  return map;
+  const raus = {};
+  Object.keys(map).forEach(m => {
+    raus[m] = { tage: [...map[m].tage].sort(), note: map[m].note };
+  });
+  return raus;
 }
 
 /** Persönliche Erholungszeit dieses Muskels: Basis ± gelernte Verschiebung.
-    `tage` sind die Trainings-Tage des Muskels (aus `muskelTrainingsTageAlle`).
-    Rein/testbar. */
-function erholungPersoenlich(tage, beschwerden, muskel, heute, basis){
-  if(!tage || !tage.length) return basis;
-  /* Träge Episoden: eine Beschwerde (Schmerz ≥ 1, Kater ≥ 2) meldet sich erst
-     an oder NACH dem Tag, an dem der Muskel laut Basis erholt wäre — verankert
-     am jüngsten Training davor, ein Anker zählt einmal. */
-  const anker = new Set();
+    `info` kommt aus `muskelTrainingsTageAlle` ({ tage, note }). Rein/testbar. */
+function erholungPersoenlich(info, beschwerden, muskel, heute, basis){
+  const tage = (info && info.tage) || [];
+  const noten = (info && info.note) || {};
+  if(!tage.length) return basis;
+  /* Träge Belege, Quelle 1 — Beschwerden: eine Meldung (Schmerz ≥ 1,
+     Kater ≥ 2) erst an oder NACH dem Tag, an dem der Muskel laut Basis erholt
+     wäre — verankert am jüngsten Training davor. Ein Anker zählt einmal;
+     STARKE Meldungen (Schmerz ≥ 2, Kater ≥ 3) wiegen doppelt (0.241). */
+  const anker = {};
   (beschwerden || []).forEach(b => {
     if(!b || b.muskel !== muskel || !b.datum) return;
     const alt = tagDifferenz(b.datum, heute);
     if(alt < 0 || alt > ERHOLUNG_LERN_FENSTER) return;
     if(!((b.art === "schmerz" && b.wert >= 1) || (b.art === "kater" && b.wert >= 2))) return;
+    const stark = (b.art === "schmerz" && b.wert >= 2) || (b.art === "kater" && b.wert >= 3);
     let anchorTag = null, dTage = null;
     for(let i = tage.length - 1; i >= 0; i--){
       const d = tagDifferenz(tage[i], b.datum);
@@ -11345,21 +11363,29 @@ function erholungPersoenlich(tage, beschwerden, muskel, heute, basis){
     }
     // Bezug nur, wenn das Training nah genug liegt — sonst erklärt es nichts.
     if(anchorTag === null || dTage < basis || dTage > basis + 4) return;
-    anker.add(anchorTag);
+    if(!(anker[anchorTag] >= (stark ? 2 : 1))) anker[anchorTag] = stark ? 2 : 1;
   });
-  const traege = anker.size;
-  /* Frühe, vertragene Wiederholungen: VOR Ablauf der Basis-Erholung wieder
-     trainiert, und in den zwei Tagen danach keine Beschwerde gemeldet. */
+  /* Frühe Wiederholungen — und träge Belege, Quelle 2 (0.241, Daten-Inventur
+     Punkt 2 — das Leistungssignal): Wer VOR Ablauf der Basis wieder trainiert
+     und dabei eine Übung dieses Muskels mit Note 5 („zu schwer") bewertet,
+     belegt unvollständige Erholung GANZ OHNE Beschwerde-Meldung. Anker ist
+     das vorige Training (dessen Erholung nicht reichte). „Vertragen" heißt
+     dann: weder Beschwerde in den zwei Tagen danach noch Note 5. */
   let frueh = 0;
   for(let i = 1; i < tage.length; i++){
     const alt = tagDifferenz(tage[i], heute);
     if(alt < 0 || alt > ERHOLUNG_LERN_FENSTER) continue;
     if(tagDifferenz(tage[i - 1], tage[i]) >= basis) continue;
+    if(noten[tage[i]] >= 5){
+      if(!(anker[tage[i - 1]] >= 1)) anker[tage[i - 1]] = 1;
+      continue;
+    }
     const beschwert = (beschwerden || []).some(b => b && b.muskel === muskel && b.datum &&
       ((b.art === "schmerz" && b.wert >= 1) || (b.art === "kater" && b.wert >= 2)) &&
       tagDifferenz(tage[i], b.datum) >= 0 && tagDifferenz(tage[i], b.datum) <= 2);
     if(!beschwert) frueh++;
   }
+  const traege = Object.keys(anker).reduce((s, t) => s + anker[t], 0);
   let schub = 0;
   if(traege >= 2 * ERHOLUNG_LERN_MIN) schub = 2;
   else if(traege >= ERHOLUNG_LERN_MIN) schub = 1;
@@ -11383,6 +11409,7 @@ function erholungText(persoenlich, basis){
 function muskelLastAbklingend(protokoll, heute, erholungFuer){
   const last = {};
   const maxGew = maxGewichtJeUebung(protokoll);
+  const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
@@ -11396,7 +11423,7 @@ function muskelLastAbklingend(protokoll, heute, erholungFuer){
     };
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin);
+      const wiegt = aktivitaetSaetze(e.dauerMin) * paceFaktor(e, pace);
       muskelnAufKarte(satz.p).forEach(m => dazu(m, wiegt));
       muskelnAufKarte(satz.s).forEach(m => dazu(m, SEKUNDAER_ANTEIL * wiegt));
     }
@@ -11545,7 +11572,14 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
     const d = tagDifferenz(e.datum, heute);
     if(d < 0 || d > MUSTER_FENSTER_TAGE) return;
     const zaehlt = (e.art === "schmerz" && e.wert >= 1) || (e.art === "kater" && e.wert >= 2);
-    if(zaehlt) ereignisse[e.muskel + "|" + e.datum] = { muskel: e.muskel, datum: e.datum };
+    if(!zaehlt) return;
+    /* 0.241.0: die STÄRKE wiegt — starke Meldungen (Schmerz ≥ 2, Kater ≥ 3)
+       zählen doppelt auf die Muster-Schwellen. Der Text nennt weiterhin die
+       ECHTE Ereignis-Zahl („dreimal"), nie das Gewicht. */
+    const gewicht = ((e.art === "schmerz" && e.wert >= 2) || (e.art === "kater" && e.wert >= 3)) ? 2 : 1;
+    const k = e.muskel + "|" + e.datum;
+    if(!ereignisse[k] || ereignisse[k].gewicht < gewicht)
+      ereignisse[k] = { muskel: e.muskel, datum: e.datum, gewicht };
   });
   const raus = {};
   Object.values(ereignisse).forEach(er => {
@@ -11555,7 +11589,9 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
       if(gesehen.has(k)) return;
       gesehen.add(k);
       const ziel = raus[er.muskel] || (raus[er.muskel] = { uebungen:{}, sportarten:{} });
-      ziel[topf][name] = (ziel[topf][name] || 0) + 1;
+      const eintrag = ziel[topf][name] || (ziel[topf][name] = { n:0, g:0 });
+      eintrag.n += 1;
+      eintrag.g += er.gewicht;
     };
     (protokoll || []).forEach(t => {
       if(!t || !t.datum || t.vorschau) return;   // 0.239.0: fiktive Einträge stiften kein Muster
@@ -11585,27 +11621,32 @@ function beschwerdeVorlaeufer(protokoll, beschwerden, heute){
 }
 
 /** Die Muster eines Muskels — nur was die Mindestzahl erreicht, stärkste
-    zuerst. Rein/testbar. */
+    zuerst. 0.241.0: Die Schwellen messen das GEWICHT (starke Meldungen zählen
+    doppelt), `anzahl` bleibt die echte Ereignis-Zahl für den Text.
+    Rein/testbar. */
 function beschwerdeMusterFuer(vorlaeufer, muskel){
   const v = (vorlaeufer || {})[muskel];
   if(!v) return [];
   const liste = [];
   Object.keys(v.uebungen).forEach(n => {
-    if(v.uebungen[n] >= MUSTER_MIN) liste.push({ name:n, anzahl:v.uebungen[n], sportart:false });
+    if(v.uebungen[n].g >= MUSTER_MIN)
+      liste.push({ name:n, anzahl:v.uebungen[n].n, gewicht:v.uebungen[n].g, sportart:false });
   });
   Object.keys(v.sportarten).forEach(n => {
-    if(v.sportarten[n] >= MUSTER_MIN) liste.push({ name:n, anzahl:v.sportarten[n], sportart:true });
+    if(v.sportarten[n].g >= MUSTER_MIN)
+      liste.push({ name:n, anzahl:v.sportarten[n].n, gewicht:v.sportarten[n].g, sportart:true });
   });
-  return liste.sort((a, b) => b.anzahl - a.anzahl);
+  return liste.sort((a, b) => b.gewicht - a.gewicht);
 }
 
 /** Wirkung der Muster auf die Kapazität dieses Muskels: 1 ohne Muster,
-    0,95 ab MUSTER_MIN, 0,9 ab MUSTER_STARK — nie darunter, nie über 1
-    (nur senken; das Heben macht die 0.230-Anpassung). Rein/testbar. */
+    0,95 ab MUSTER_MIN, 0,9 ab MUSTER_STARK (gemessen am Gewicht) — nie
+    darunter, nie über 1 (nur senken; das Heben macht die 0.230-Anpassung).
+    Rein/testbar. */
 function vertraeglichkeitsFaktor(vorlaeufer, muskel){
   const muster = beschwerdeMusterFuer(vorlaeufer, muskel);
   if(!muster.length) return 1;
-  return muster[0].anzahl >= MUSTER_STARK ? 0.9 : 0.95;
+  return muster[0].gewicht >= MUSTER_STARK ? 0.9 : 0.95;
 }
 
 /** Kleine Zahlen als Wort — „dreimal nach Beinbeugen" liest sich wie ein
@@ -11835,10 +11876,53 @@ function alsEinheitZaehlbar(eintrag){
   return aktivitaetSaetze(eintrag.dauerMin) > 0 && !!SPORT_LAST_MUSKELN[eintrag.sportart];
 }
 
+/* 0.241.0 — DAS TEMPO WIEGT MIT (Daten-Inventur, Punkt 1).
+   Die Strecke wird überall erfasst, die Pace stand aber nur in der Anzeige —
+   ein Tempolauf zählte wie lockeres Traben gleicher Dauer. Jetzt wiegt jede
+   Ausdauer-Einheit nach ihrem Tempo RELATIV ZUM EIGENEN SCHNITT der Sportart
+   (Strecke je Minute, letzte 180 Tage, ab drei Einheiten mit Strecke).
+   Das ist das Ausdauer-Gegenstück zur Satz-Note (v161) — mit der üblichen
+   Zurückhaltung: Richtung belegt, Größe nicht → ±10 % Deckel (v189-Linie),
+   ohne Strecke oder Schnitt neutral („kein Wert, kein Effekt"). */
+const PACE_MINDEST_EINHEITEN = 3;
+
+/** Durchschnitts-Tempo je Sportart (Strecke je Minute). Rein/testbar. */
+function paceSchnittJeSportart(protokoll, heute){
+  const summen = {};
+  (protokoll || []).forEach(e => {
+    if(!e || !e.datum || e.vorschau) return;
+    if(e.typ !== "aktivitaet" || !(e.strecke > 0) || !(e.dauerMin > 0)) return;
+    const d = tagDifferenz(e.datum, heute);
+    if(d < 0 || d > ERHOLUNG_LERN_FENSTER) return;
+    const s = summen[e.sportart] || (summen[e.sportart] = { strecke:0, min:0, n:0 });
+    s.strecke += e.strecke; s.min += e.dauerMin; s.n++;
+  });
+  const raus = {};
+  Object.keys(summen).forEach(id => {
+    if(summen[id].n >= PACE_MINDEST_EINHEITEN) raus[id] = summen[id].strecke / summen[id].min;
+  });
+  return raus;
+}
+
+/** Gewicht einer Einheit nach ihrem Tempo relativ zum eigenen Schnitt —
+    dieselbe Stufen-Bauart wie `pauseFaktor`. Rein/testbar. */
+function paceFaktor(eintrag, schnitt){
+  if(!eintrag || !(eintrag.strecke > 0) || !(eintrag.dauerMin > 0)) return 1;
+  const basis = schnitt && schnitt[eintrag.sportart];
+  if(!(basis > 0)) return 1;
+  const rel = (eintrag.strecke / eintrag.dauerMin) / basis;
+  if(rel >= 1.15) return 1.1;    // deutlich schneller als sonst
+  if(rel >= 1.05) return 1.05;
+  if(rel <= 0.85) return 0.9;    // deutlich lockerer
+  if(rel <= 0.95) return 0.95;
+  return 1;
+}
+
 function muskelLast(protokoll, heute, tage){
   const last = {};
   const fenster = tage || MUSKEL_HEAT_TAGE;
   const maxGew = maxGewichtJeUebung(protokoll);   // über die GANZE Historie, nicht nur das Fenster
+  const pace = paceSchnittJeSportart(protokoll, heute);   // 0.241: Tempo wiegt mit
   (protokoll || []).forEach(e => {
     if(!e || !e.datum) return;
     const d = tagDifferenz(e.datum, heute);
@@ -11846,7 +11930,7 @@ function muskelLast(protokoll, heute, tage){
     // v197: die Ausdauer-Einheit — dieselbe Ablage wie ein Satz, andere Herkunft.
     if(alsEinheitZaehlbar(e)){
       const satz = SPORT_LAST_MUSKELN[e.sportart];
-      const wiegt = aktivitaetSaetze(e.dauerMin);
+      const wiegt = aktivitaetSaetze(e.dauerMin) * paceFaktor(e, pace);
       [].concat(muskelnAufKarte(satz.p).map(m => [m, wiegt]),
                 muskelnAufKarte(satz.s).map(m => [m, SEKUNDAER_ANTEIL * wiegt]))
         .forEach(([m, anteil]) => {
@@ -11921,6 +12005,9 @@ function rechnungsGrundlage(protokoll, profil, einrichtung, tageswerte, heute){
      selbst, es gibt nichts nachzutragen. Also nur unter „hat", nie unter
      „fehlt" (dieselbe Begründung wie bei den Pausen). */
   if(einheitenGezaehlt(protokoll, heute)) hat.push("Ausdauer");
+  /* 0.241.0: das Tempo — kommt aus Strecke + Zeit des Trainings selbst,
+     also nur unter „hat" (dieselbe Begründung wie bei den Pausen). */
+  if(Object.keys(paceSchnittJeSportart(protokoll, heute)).length) hat.push("Tempo");
   /* 0.234.0 (Nutzer-Entscheidung): kein Rechenwert auf dem Schirm — der Stand
      der feinen Wertung steht in WORTEN da, gerechnet wird unverändert fein. */
   const stand = fitnessWort(erfahrungsFaktor(e, protokoll, heute));
@@ -12018,7 +12105,7 @@ function muskelAuslastung(protokoll, profil, einrichtung, heute, tageswerte, bes
   const trainingsTage = muskelTrainingsTageAlle(echt);
   const erhMerk = {};
   const erholungFuer = m => erhMerk[m] !== undefined ? erhMerk[m]
-    : (erhMerk[m] = erholungPersoenlich(trainingsTage[m] || [], beschwerden, m, heute,
+    : (erhMerk[m] = erholungPersoenlich(trainingsTage[m], beschwerden, m, heute,
                                         erholungsTageFuer(m, erfF)));
   const roh = muskelLastAbklingend(protokoll, heute, erholungFuer);
   /* 0.228.0: Ein Muskel MIT Beschwerde, aber ohne Last im Fenster, muss trotzdem
@@ -12479,10 +12566,9 @@ function muskelAuswahlZeichnen(){
       // eigener Satz daneben — es ist eine andere Aussage als „viel Umfang".
       const faellt = leistungFaellt(sitzung.daten.plaene).has(key)
         ? " Zuletzt bliebst du hier unter deinem Soll — ein Zeichen, dass die Erholung nicht reicht." : "";
-      // v168: Muskelkater aus dem Tages-Check — auch das ist eine EIGENE
-      // Aussage und wird nicht in die Quote verrührt (wie v161 beim Leistungsabfall).
-      const kater = katerMuskeln(katerRegionen(sitzung.daten.tageswerte, heuteAlsText())).has(key)
-        ? " Du hast hier Muskelkater gemeldet — der Muskel arbeitet noch." : "";
+      /* v168 stand hier der Kater-Satz aus dem Tages-Check — seit 0.241.0
+         schreibt der Check in die Beschwerden-Liste, und `beschwerdeText`
+         (wohl) sagt es: EIN Datenweg, EIN Satz. */
       /* 0.228.0: die Angabe je MUSKEL aus dem Wohlbefinden-Modus. Sie steht
          neben der Quote, nicht darin — auch wenn sie zusätzlich die Kapazität
          senkt, soll man lesen können, WARUM die Zahl heute niedriger ist. */
@@ -12496,10 +12582,10 @@ function muskelAuswahlZeichnen(){
       const basisErh = erholungsTageFuer(key,
         erfahrungsFaktor(sitzung.daten.einrichtung, sitzung.daten.protokoll, heuteAlsText()));
       const erhSatz = erholungText(erholungPersoenlich(
-        muskelTrainingsTageAlle(sitzung.daten.protokoll)[key] || [],
+        muskelTrainingsTageAlle(sitzung.daten.protokoll)[key],
         sitzung.daten.beschwerden, key, heuteAlsText(), basisErh), basisErh);
       const last = '<div class="meta" style="border-left:3px solid ' + farbe +
-        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + kater + wohl + muster + erhSatz) + '</div>' +
+        ';padding-left:8px;line-height:1.5;margin-bottom:6px">' + text(auslastungText(key, a, reicht) + faellt + wohl + muster + erhSatz) + '</div>' +
         korridorZeileHtml(a);   // 0.231.0: Mindestmaß · Richtwert · Verletzungsrisiko
       if(!eh.length) return kopf + last + '<div class="meta">In den letzten ' + LAST_MAX_TAGE + ' Tagen nicht trainiert.</div></div>';
       return kopf + last + eh.map(g => {

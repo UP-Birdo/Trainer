@@ -110,6 +110,9 @@ const code = [
   grabFn("pauseFaktor"),
   grabFn("maxGewichtJeUebung"),
   grabFn("satzGewichtung"),
+  // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
+  "function paceSchnittJeSportart(){ return {}; }",
+  "function paceFaktor(){ return 1; }",
   grabFn("muskelLast"),
   grabFn("lastGewicht"),            // 0.240: echte Abkling-Kurve
   grabFn("muskelLastAbklingend"),   // 0.240: ersetzt das harte Fenster in der Auslastung

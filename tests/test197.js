@@ -62,6 +62,9 @@ new Function("module", "exports", [
   grabFn("aktivitaetSaetze"),
   grabFn("alsEinheitZaehlbar"),
   grabFn("einheitenGezaehlt"),
+  // 0.241: das Tempo wiegt mit — hier neutral gestellt (test241 prueft es).
+  "function paceSchnittJeSportart(){ return {}; }",
+  "function paceFaktor(){ return 1; }",
   grabFn("muskelLast"),
   grabFn("satzloseEinheiten"),
   "module.exports = { aktivitaetSaetze, alsEinheitZaehlbar, einheitenGezaehlt, muskelLast," +

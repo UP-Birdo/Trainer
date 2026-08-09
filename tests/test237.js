@@ -81,8 +81,9 @@ const kater = (datum, muskel, wert) => ({ datum, muskel, art:"kater", wert });
   const besch = [schmerz("2026-08-02", "quadriceps"), schmerz("2026-08-05", "quadriceps"),
                  schmerz("2026-08-08", "quadriceps")];
   const v = B.beschwerdeVorlaeufer(prot, besch, HEUTE);
+  /* 0.241: je Uebung { n: Ereignisse, g: Gewicht } — stark zaehlt doppelt. */
   pruefe("drei Beschwerden nach Kniebeugen ergeben das Muster",
-    v.quadriceps && v.quadriceps.uebungen["Kniebeugen"] === 3);
+    v.quadriceps && v.quadriceps.uebungen["Kniebeugen"].n === 3);
   const muster = B.beschwerdeMusterFuer(v, "quadriceps");
   pruefe("das Muster erreicht die Mindestzahl", muster.length === 1 && muster[0].anzahl === 3);
   pruefe("und senkt die Kapazitaet um 5 %", B.vertraeglichkeitsFaktor(v, "quadriceps") === 0.95);
@@ -93,14 +94,14 @@ const kater = (datum, muskel, wert) => ({ datum, muskel, art:"kater", wert });
   const v = B.beschwerdeVorlaeufer([kraft("2026-08-07", "Kniebeugen", 3)],
     [schmerz("2026-08-08", "quadriceps")], HEUTE);
   pruefe("drei Saetze am Vortag sind EINE Beobachtung",
-    v.quadriceps.uebungen["Kniebeugen"] === 1);
+    v.quadriceps.uebungen["Kniebeugen"].n === 1);
 }
 /* Auch doppelte Meldungen am selben Tag sind EIN Ereignis. */
 {
   const v = B.beschwerdeVorlaeufer([kraft("2026-08-07", "Kniebeugen")],
     [schmerz("2026-08-08", "quadriceps"), kater("2026-08-08", "quadriceps", 2)], HEUTE);
   pruefe("Schmerz + Kater am selben Tag sind EIN Ereignis",
-    v.quadriceps.uebungen["Kniebeugen"] === 1);
+    v.quadriceps.uebungen["Kniebeugen"].n === 1);
 }
 
 /* ---------- 2) Signale und Fenster ---------- */
@@ -109,7 +110,7 @@ const kater = (datum, muskel, wert) => ({ datum, muskel, art:"kater", wert });
   pruefe("leichter Kater (1) stiftet kein Ereignis",
     !B.beschwerdeVorlaeufer(prot, [kater("2026-08-08", "quadriceps", 1)], HEUTE).quadriceps);
   pruefe("starker Kater (2) schon",
-    B.beschwerdeVorlaeufer(prot, [kater("2026-08-08", "quadriceps", 2)], HEUTE).quadriceps.uebungen["Kniebeugen"] === 1);
+    B.beschwerdeVorlaeufer(prot, [kater("2026-08-08", "quadriceps", 2)], HEUTE).quadriceps.uebungen["Kniebeugen"].n === 1);
   pruefe("ein Training DREI Tage davor zaehlt nicht (Fenster 48 h)",
     !B.beschwerdeVorlaeufer([kraft("2026-08-05", "Kniebeugen")],
       [schmerz("2026-08-08", "quadriceps")], HEUTE).quadriceps);
@@ -129,7 +130,7 @@ const kater = (datum, muskel, wert) => ({ datum, muskel, art:"kater", wert });
   const besch = tage.map(d => schmerz(d.slice(0, 8) + String(Number(d.slice(8)) + 1).padStart(2, "0"), "quadriceps"));
   const v = B.beschwerdeVorlaeufer(prot, besch, HEUTE);
   pruefe("fuenf Beschwerden nach dem Laufen ergeben das Sportart-Muster",
-    v.quadriceps && v.quadriceps.sportarten.laufen === 5);
+    v.quadriceps && v.quadriceps.sportarten.laufen.n === 5);
   pruefe("ab fuenf greift der Deckel: hoechstens 10 %",
     B.vertraeglichkeitsFaktor(v, "quadriceps") === 0.9);
   const muster = B.beschwerdeMusterFuer(v, "quadriceps");

@@ -49,9 +49,8 @@ new Function("module", "exports", [
   grabLiteral("CHECK_SKALEN", "{"),
   grabLiteral("TAGES_FRAGEN"),
   grabLiteral("TAGESWERTE"),
-  grabConst("CHECK_KATER_ABZUG"),
-  grabConst("CHECK_KATER_MAX"),
-  grabConst("CHECK_KATER_TAGE"),
+  /* 0.241: CHECK_KATER_ABZUG/_MAX/_TAGE und katerRegionen sind abgebaut —
+     der Kater wirkt je Muskel ueber die Beschwerden (ein Datenweg). */
   grabConst("SCHLAF_TAGE"),
   grabConst("BEFINDEN_MINDEST"),
   grabLiteral("BEFINDEN_STUFEN"),
@@ -60,15 +59,14 @@ new Function("module", "exports", [
   grabFn("checkRegionen"),
   grabFn("befindenAusCheck"),
   grabFn("checkZeilen"),
-  grabFn("katerRegionen"),
   grabFn("katerMuskeln"),
   grabFn("befindenSchnitt"),
   grabFn("befindenFaktor"),
   grabFn("tageswerteFuer"),
   grabFn("tageswertDef"),
   "module.exports = { TAGES_FRAGEN, TAGESWERTE, CHECK_SKALEN, MUSKEL_INFO, BEFINDEN_STUFEN," +
-  " CHECK_KATER_TAGE, checkFragen, checkRegionen, befindenAusCheck, checkZeilen," +
-  " katerRegionen, katerMuskeln, befindenSchnitt, befindenFaktor, tageswerteFuer, tageswertDef };"
+  " checkFragen, checkRegionen, befindenAusCheck, checkZeilen," +
+  " katerMuskeln, befindenSchnitt, befindenFaktor, tageswerteFuer, tageswertDef };"
 ].join("\n"))(modul, modul.exports);
 const A = modul.exports;
 
@@ -131,10 +129,11 @@ pruefe("das Ergebnis bleibt zwischen 1 und 5", (() => {
   const b = A.befindenAusCheck(alles);
   return b >= 1 && b <= 5;
 })());
-pruefe("Muskelkater senkt das Befinden", A.befindenAusCheck({ kater:["Beine"] }) < 5);
-pruefe("aber gedeckelt — viele Regionen senken nicht endlos",
-  A.befindenAusCheck({ kater:["Beine","Brust"] }) ===
-  A.befindenAusCheck({ kater:A.checkRegionen() }));
+/* 0.241: Muskelkater senkt das Befinden NICHT mehr — er wirkt je Muskel ueber
+   die Beschwerden-Liste (dieselbe Angabe nicht zweimal, v202-Linie). */
+pruefe("Muskelkater senkt das Befinden nicht mehr (wirkt je Muskel)",
+  A.befindenAusCheck({ kater:["Beine"] }) === 5 &&
+  A.befindenAusCheck({ kater:A.checkRegionen() }) === 5);
 pruefe("das Ergebnis ist eine ganze Zahl",
   Number.isInteger(A.befindenAusCheck({ stress:1, kopfschmerz:1 })));
 
@@ -163,26 +162,19 @@ pruefe("gar nichts beantwortet ergibt nur die Zusammenfassungen",
   A.checkZeilen({}, HEUTE, MANN).map(z => z.art).join(",") === "kater,befinden");
 
 /* ---------- 6) Muskelkater trifft SEINE Muskeln ---------- */
-const katerListe = [
-  { datum:HEUTE, art:"kater:Brust", wert:1 },
-  { datum:"2026-07-01", art:"kater:Beine", wert:1 }   // laengst vorbei
-];
-const heiss = A.katerRegionen(katerListe, HEUTE);
-pruefe("frischer Muskelkater zaehlt", heiss.has("Brust"));
-pruefe("alter nicht mehr", !heiss.has("Beine"));
-pruefe("ohne Daten ist die Menge leer",
-  A.katerRegionen([], HEUTE).size === 0 && A.katerRegionen(null, HEUTE).size === 0);
-pruefe("andere Tageswerte werden nicht als Kater gelesen",
-  A.katerRegionen([{ datum:HEUTE, art:"kater", wert:3 }], HEUTE).size === 0);
-pruefe("eine 0 ist kein Muskelkater",
-  A.katerRegionen([{ datum:HEUTE, art:"kater:Brust", wert:0 }], HEUTE).size === 0);
-const muskeln = A.katerMuskeln(heiss);
+const muskeln = A.katerMuskeln(new Set(["Brust"]));
 pruefe("Brust-Kater trifft den Brustmuskel", muskeln.has("pectoral"));
 pruefe("aber nicht die Beine", !muskeln.has("quadriceps"));
 pruefe("ohne Regionen keine Muskeln", A.katerMuskeln(new Set()).size === 0);
 pruefe("und robust gegen fehlende Eingabe", A.katerMuskeln(null).size === 0);
-pruefe("das Fenster ist kurz — Muskelkater haelt keine Woche",
-  A.CHECK_KATER_TAGE <= 3);
+/* 0.241: Der Check schreibt den Kater je Muskel in die Beschwerden — als
+   „leicht", ohne einen staerkeren Karten-Wert desselben Tags zu ueberschreiben. */
+pruefe("der Check schreibt in die Beschwerden-Liste",
+  grabFn("tagesCheckSpeichern").includes("katerMuskeln(new Set(checkAntworten.kater))") &&
+  grabFn("tagesCheckSpeichern").includes('beschwerdeSetzen(sitzung.daten.beschwerden, heute, m, "kater", 1)'));
+pruefe("ein staerkerer Karten-Wert bleibt stehen",
+  grabFn("tagesCheckSpeichern").includes('beschwerdeStand(sitzung.daten.beschwerden, m, "kater", heute, 0) < 1'));
+pruefe("katerRegionen ist restlos abgebaut", !src.includes("function katerRegionen("));
 
 /* ---------- 7) Befinden im Kapazitaetsfaktor: kein Wert, kein Effekt ---------- */
 function befindenTage(tage, wert){
@@ -213,9 +205,11 @@ pruefe("der Kapazitaetsfaktor rechnet das Befinden mit",
   grabFn("kapazitaetsFaktor").includes("befindenFaktor(befindenSchnitt(tageswerte, heute))"));
 pruefe("die Grundlagen-Zeile nennt es",
   grabFn("rechnungsGrundlage").includes('.push("Befinden")'));
-pruefe("Muskelkater steht als EIGENER Satz, nicht in der Quote",
-  grabFn("muskelAuswahlZeichnen").includes("katerMuskeln(katerRegionen(") &&
-  !grabFn("muskelAuslastung").includes("kater"));
+/* 0.241: Der Kater-Satz der Detail-Karte kommt aus den Beschwerden
+   (beschwerdeText) — die alte Doppel-Zeile aus dem Tages-Check ist weg. */
+pruefe("der Kater-Satz kommt aus den Beschwerden (ein Datenweg)",
+  grabFn("muskelAuswahlZeichnen").includes("beschwerdeText(") &&
+  !grabFn("muskelAuswahlZeichnen").includes("katerMuskeln("));
 pruefe("das Plus oeffnet bei Check-Werten den Check",
   grabFn("tageswertFormularZeigen").includes("tageswertDef(tageswertArt).check"));
 pruefe("der Check startet immer leer",

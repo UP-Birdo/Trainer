@@ -71,15 +71,15 @@ const HEUTE = "2026-08-09";
   const tage = ["2026-07-01", "2026-07-10", "2026-07-20"];
   const besch = ["2026-07-04", "2026-07-13", "2026-07-23"].map(schmerz);
   pruefe("drei traege Episoden geben einen Tag mehr",
-    T.erholungPersoenlich(tage, besch, "quadriceps", HEUTE, 3) === 4);
+    T.erholungPersoenlich({ tage: tage, note: {} }, besch, "quadriceps", HEUTE, 3) === 4);
   pruefe("unter der Mindestzahl bleibt die Basis",
-    T.erholungPersoenlich(tage.slice(0, 2), besch.slice(0, 2), "quadriceps", HEUTE, 3) === 3);
+    T.erholungPersoenlich({ tage: tage.slice(0, 2), note: {} }, besch.slice(0, 2), "quadriceps", HEUTE, 3) === 3);
   pruefe("fremder Muskel lernt daraus nichts",
-    T.erholungPersoenlich(tage, besch, "pectoral", HEUTE, 3) === 3);
+    T.erholungPersoenlich({ tage: tage, note: {} }, besch, "pectoral", HEUTE, 3) === 3);
 }
 /* Mehrere Meldungen NACH DEMSELBEN Training sind EINE Episode. */
 pruefe("ein Trainings-Anker zaehlt einmal",
-  T.erholungPersoenlich(["2026-07-01"],
+  T.erholungPersoenlich({ tage: ["2026-07-01"], note: {} },
     [schmerz("2026-07-04"), schmerz("2026-07-05"), schmerz("2026-07-06")],
     "quadriceps", HEUTE, 3) === 3);
 /* Sechs Episoden -> +2 (Deckel). */
@@ -91,7 +91,7 @@ pruefe("ein Trainings-Anker zaehlt einmal",
     besch.push(schmerz(t.slice(0, 8) + String(Number(t.slice(8)) + 3).padStart(2, "0")));
   }
   pruefe("sechs traege Episoden geben zwei Tage mehr (Deckel)",
-    T.erholungPersoenlich(tage.sort(), besch, "quadriceps", HEUTE, 3) === 5);
+    T.erholungPersoenlich({ tage: tage.sort(), note: {} }, besch, "quadriceps", HEUTE, 3) === 5);
 }
 /* Fruehe vertragene Wiederholungen -> ein Tag weniger, nie unter 1. */
 {
@@ -99,19 +99,19 @@ pruefe("ein Trainings-Anker zaehlt einmal",
   for(let k = 0; k < 8; k++)
     tage.push("2026-07-" + String(2 + k * 2).padStart(2, "0"));   // alle 2 Tage bei Basis 3
   pruefe("vertragene fruehe Wiederholungen machen schneller",
-    T.erholungPersoenlich(tage, [], "quadriceps", HEUTE, 3) === 2);
+    T.erholungPersoenlich({ tage: tage, note: {} }, [], "quadriceps", HEUTE, 3) === 2);
   pruefe("nie unter einen Tag",
-    T.erholungPersoenlich(tage, [], "quadriceps", HEUTE, 1) === 1);
+    T.erholungPersoenlich({ tage: tage, note: {} }, [], "quadriceps", HEUTE, 1) === 1);
   pruefe("mit Beschwerden danach zaehlt die fruehe Wiederholung nicht",
-    T.erholungPersoenlich(tage, tage.map(t => schmerz(t)), "quadriceps", HEUTE, 3) === 3);
+    T.erholungPersoenlich({ tage: tage, note: {} }, tage.map(t => schmerz(t)), "quadriceps", HEUTE, 3) === 3);
 }
 /* Fenster: uralte Episoden lernen nicht mehr mit. */
 pruefe("Beobachtungen aelter als 180 Tage zaehlen nicht",
-  T.erholungPersoenlich(["2025-06-01", "2025-07-01", "2025-08-01"],
+  T.erholungPersoenlich({ tage: ["2025-06-01", "2025-07-01", "2025-08-01"], note: {} },
     [schmerz("2025-06-04"), schmerz("2025-07-04"), schmerz("2025-08-04")],
     "quadriceps", HEUTE, 3) === 3);
 pruefe("ohne Trainings-Tage bleibt die Basis",
-  T.erholungPersoenlich([], [schmerz("2026-08-01")], "quadriceps", HEUTE, 3) === 3);
+  T.erholungPersoenlich(null, [schmerz("2026-08-01")], "quadriceps", HEUTE, 3) === 3);
 
 /* ---------- 3) erholungText ---------- */
 pruefe("laenger wird gesagt", T.erholungText(4, 3).includes("länger") && T.erholungText(4, 3).includes("4 statt 3"));
@@ -124,7 +124,7 @@ pruefe("ohne Abweichung schweigt der Satz", T.erholungText(3, 3) === "");
   pruefe("die Auslastung rechnet die Last abklingend",
     a.includes("muskelLastAbklingend(protokoll, heute, erholungFuer)"));
   pruefe("die Erholung wird je Muskel persoenlich gerechnet",
-    a.includes("erholungPersoenlich(trainingsTage[m] || [], beschwerden, m, heute"));
+    a.includes("erholungPersoenlich(trainingsTage[m], beschwerden, m, heute"));
   pruefe("erholt nutzt die persoenliche Erholung", a.includes("erholungFuer(m)"));
 }
 pruefe("die Abkling-Kurve haengt an der Erholung des Muskels",

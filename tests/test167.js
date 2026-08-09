@@ -106,6 +106,8 @@ new Function("module", "exports", [
   grabFn("alsEinheitZaehlbar"),
   grabFn("einheitenGezaehlt"),
   grabFn("pausenGemessen"),
+  // 0.241: das Tempo in der Grundlagen-Zeile — hier neutral (test241 prueft es).
+  "function paceSchnittJeSportart(){ return {}; }",
   grabFn("rechnungsGrundlage"),
   grabFn("grundlageText"),
   grabFn("auslastungStufe"),
