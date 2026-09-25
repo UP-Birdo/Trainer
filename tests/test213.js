@@ -133,7 +133,7 @@ pruefe("es ist ein SVG mit Beschriftung fuer Vorleseprogramme",
   svg.startsWith("<svg") && svg.includes('role="img"') && svg.includes("aria-label="));
 pruefe("je Tag ein Balken", (svg.match(/<rect /g) || []).length === 14);
 /* Der heutige Balken ist hervorgehoben — dieselbe Farbrolle wie im Volumen. */
-pruefe("heute ist die Signalfarbe", svg.includes('fill="var(--signal)"'));
+pruefe("heute ist die Akzentfarbe", svg.includes('fill="var(--akzent)"'));
 pruefe("die uebrigen Tage sind ruhig", svg.includes('fill="var(--rest)"'));
 pruefe("ein leerer Tag bekommt keine Zahl ueber den Balken",
   (svg.match(/font-size="10"/g) || []).length === 3);

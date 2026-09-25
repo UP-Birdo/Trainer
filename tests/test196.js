@@ -137,7 +137,7 @@ pruefe("leere Liste faellt nicht um", A.gewichtKurveHtml(null, null).includes("A
 const svg = A.gewichtKurveHtml([e("2026-07-30", 80), e("2026-07-31", 78)], new Set(["2026-07-31"]));
 pruefe("mit zwei Eintraegen kommt ein SVG", svg.indexOf("<svg") === 0);
 pruefe("beide Punkte sind drin", (svg.match(/<circle/g) || []).length === 2);
-pruefe("ein Trainingstag wird hervorgehoben", svg.includes("var(--signal)"));
+pruefe("ein Trainingstag wird hervorgehoben", svg.includes("var(--akzent)"));
 pruefe("ohne Trainingstage faellt sie nicht um",
   A.gewichtKurveHtml([e("2026-07-30", 80), e("2026-07-31", 78)], null).indexOf("<svg") === 0);
 const stat = grabFn("gewichtStatistikZeichnen");

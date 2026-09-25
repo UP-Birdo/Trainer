@@ -83,13 +83,13 @@ pruefe("die Auswahl-Reihenfolge bleibt von viel nach wenig",
   A.simpelheitListe().map(s => s.n).join(",") === "5,3,1");
 /* ---------- 2) Die gewaehlte Karte ist lesbar ---------- */
 pruefe("die Ueberschrift der gewaehlten Karte wird dunkel",
-  /\.stufe-wahl\.gewaehlt strong\{color:#16181C\}/.test(src));
+  /\.stufe-wahl\.gewaehlt strong\{color:var\(--akzent-schrift\)\}/.test(src));
 pruefe("die Beschreibungen darunter auch",
-  /\.stufe-wahl\.gewaehlt \.meta\{color:#16181C/.test(src));
-pruefe("die Haus-Regel AUSGEWAEHLT = GELB bleibt unangetastet",
-  /button\.gewaehlt\{background:var\(--signal\);color:#16181C\}/.test(src));
+  /\.stufe-wahl\.gewaehlt \.meta\{color:var\(--akzent-schrift\)/.test(src));
+pruefe("die Haus-Regel AUSGEWAEHLT = AKZENT bleibt unangetastet",
+  /button\.gewaehlt\{background:var\(--akzent\);color:var\(--akzent-schrift\)\}/.test(src));
 pruefe("und sie steht weiterhin als letzte Regel im Stylesheet",
-  src.indexOf("button.gewaehlt{background:var(--signal)") >
+  src.indexOf("button.gewaehlt{background:var(--akzent)") >
   src.indexOf(".stufe-wahl.gewaehlt strong"));
 
 /* ---------- 3) Werkzeuge auf jeder Stufe ----------

@@ -115,9 +115,9 @@ pruefe("es gibt ein Stylesheet fuer die Bild-Karten", /\.stufe-wahl\.mit-bild\{[
 pruefe("die alte Reihe Karte + i ist weg", !/\.stufe-reihe\{/.test(src));
 /* v173 bleibt gueltig: die gewaehlte Karte ist lesbar — auch ihr Bild. */
 pruefe("die v173-Lesbarkeitsregel steht weiterhin da",
-  /\.stufe-wahl\.gewaehlt strong\{color:#16181C\}/.test(src));
-pruefe("und das Bild wird auf Gelb ebenfalls dunkel",
-  /\.stufe-wahl\.gewaehlt \.stufe-bild\{color:#16181C\}/.test(src));
+  /\.stufe-wahl\.gewaehlt strong\{color:var\(--akzent-schrift\)\}/.test(src));
+pruefe("und das Bild wird auf dem Akzent ebenfalls dunkel",
+  /\.stufe-wahl\.gewaehlt \.stufe-bild\{color:var\(--akzent-schrift\)\}/.test(src));
 /* ---------- 4) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);

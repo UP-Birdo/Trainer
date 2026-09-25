@@ -128,8 +128,8 @@ pruefe("sie steht sichtbar in der Karte", auswahl.includes("<small>' + text(s.ku
 /* 0.251: Das i ist dem Bild gewichen — die volle Fassung ist die Vorlese-Beschriftung. */
 pruefe("die volle Fassung bleibt erreichbar (Vorlese-Beschriftung)",
   auswahl.includes("aria-label") && auswahl.includes("s.fuer") && auswahl.includes("s.text"));
-pruefe("auf der gelben Karte bleibt sie lesbar (v173-Falle)",
-  /\.stufe-wahl\.gewaehlt small\{color:#16181C/.test(src));
+pruefe("auf der Akzent-Karte bleibt sie lesbar (v173-Falle)",
+  /\.stufe-wahl\.gewaehlt small\{color:var\(--akzent-schrift\)/.test(src));
 pruefe("es gibt ein Stylesheet dafuer", /\.stufe-wahl small\{/.test(src));
 
 /* ---------- 4) Schlaf: getrennt, aber erklaert ---------- */

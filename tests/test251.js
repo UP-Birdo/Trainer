@@ -65,8 +65,8 @@ pruefe("kein weicher Schatten (gefunden: " + weiche.join(" | ") + ")", weiche.le
 /* Das Anfass-Gefuehl: gedrueckt sinkt der Knopf auf die Kante. */
 pruefe("gedrueckte Knoepfe sinken auf ihre Kante",
   css.includes("button:active:not(:disabled){transform:translateY(var(--knopf-tiefe));box-shadow:none}"));
-pruefe("die Hauptaktion traegt die gelbe Kante",
-  css.includes("button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--kante-knopf-haupt)}"));
+pruefe("die Hauptaktion traegt die Akzent-Kante",
+  css.includes("button.primaer{background:var(--akzent);color:var(--akzent-schrift);box-shadow:var(--kante-knopf-haupt)}"));
 /* Flache Knoepfe ohne eigene Flaeche bekommen KEINE Kante — eine dunkle Linie
    unter einem durchsichtigen Knopf saehe aus wie ein Darstellungsfehler. */
 [
@@ -223,6 +223,32 @@ pruefe("die kurzen Fassungen laufen ueber den Fehler-Baustein",
 /* ---------- 5b) Keine Vibration im Trainer (Nutzer, 25.09.2026) ----------
    Die Pruefseite pruefen/vibration.html ist wieder entfallen. */
 pruefe("keine Vibrations-Pruefseite mehr", !require("fs").existsSync(require("path").join(require("path").dirname(process.argv[2]), "pruefen")));
+
+/* ---------- 5c) Werkstatt-Farben: Bedienung orange, Ampel gelb (Runde 2, 0.251.3) ----------
+   --akzent traegt die Bedienung, --signal bleibt Gelb und ist nur noch
+   Bedeutung. Orange neben Rot waere als Ampel nicht zu unterscheiden — darum
+   darf die Ampel nie auf --akzent wandern und die Bedienung nie zurueck auf Gelb. */
+pruefe("Werkstatt-Grund dunkel", /--ground:#17181a; --panel:#232427; --panel-2:#3b3c3f;/.test(wurzel) &&
+  /--chalk:#eeebe4; --muted:#8f8c85;/.test(wurzel));
+pruefe("Werkstatt-Grund hell", /--ground:#e6e3dc; --panel:#f5f3ee; --panel-2:#cdcac2;/.test(hell) &&
+  /--chalk:#1d1e20; --muted:#76736c;/.test(hell));
+pruefe("der Akzent ist Werkstatt-Orange, dunkel und hell",
+  /--akzent:#ff6a2b; --akzent-schrift:#0c0d0e;/.test(wurzel) && /--akzent:#ff5b1f; --akzent-schrift:#1a1a1a;/.test(hell));
+pruefe("die Signalfarbe bleibt Gelb", /--signal:#F4C74E;/.test(wurzel) && /--signal:#C89E1C;/.test(hell));
+pruefe("die Muskel-Ampel laeuft gruen -> gelb -> rot",
+  src.includes("linear-gradient(90deg,var(--ok),var(--signal) 77%,var(--warn))") &&
+  src.includes('stufe === "hoch" ? "var(--signal)"'));
+pruefe("das knappe Zeitband bleibt gelb", css.includes(".zeitband.knapp .zeitband-fuellung{background:var(--signal)}"));
+pruefe("Empfehlungen bleiben in der Signalfarbe (v177)",
+  /id="wiedereinstieg-hinweis"[^>]*var\(--signal\)/.test(src) && grabFn("belastungsHinweiseHtml").includes("var(--signal)"));
+pruefe("gewaehlt, Fokus, Leiste und Ring laufen ueber den Akzent",
+  css.includes("button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift)}") &&
+  css.includes("button:focus-visible{outline:2px solid var(--akzent)") &&
+  css.includes("#nav button.aktiv{ color:var(--akzent); }") &&
+  /--ring:0 0 0 3px rgba\(255,106,43,/.test(wurzel));
+pruefe("kein altes Gelb mehr in der Bedienung", !/244,\s*199,\s*78/.test(src) && !/#A8841F/.test(src));
+pruefe("theme-color folgt dem Grund",
+  src.includes('<meta name="theme-color" content="#17181a">') && src.includes('hell ? "#e6e3dc" : "#17181a"'));
 
 /* ---------- 6) Version und Neuigkeit ---------- */
 pruefe("die Neuigkeit ist eingetragen", src.includes('{ stand:"0.251.0", punkte:['));

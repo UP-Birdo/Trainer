@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Trainer">
-<meta name="theme-color" content="#16181C">
+<meta name="theme-color" content="#17181a">
 <link rel="manifest" href="manifest.json?v=5">
 <link rel="apple-touch-icon" href="icon-180.png?v=5">
 <title>Trainer</title>
@@ -19,8 +19,18 @@
    Design-Tokens — Graphit, Kreide, 15-kg-Gelb, 20-kg-Blau
    ============================================================ */
 :root{
-  --ground:#0F1114; --panel:#1A1D23; --panel-2:#252A31;
-  --chalk:#F5F3F0; --muted:#8B909A; --line:#2D3239;
+  /* 0.251.3 (UPCrew Runde 2): Grundflächen der Farbwelt „Werkstatt" (Quelle
+     Design\3D-Schrift\final\upcrew-intro.js WELTEN.werkstatt; Rahmen und Kanten
+     mit den Formeln aus upcrew-farbwelten.js gerechnet). Grund = bg,
+     panel = Fläche, panel-2 = Tasten, chalk = Schrift, muted = leise. */
+  --ground:#17181a; --panel:#232427; --panel-2:#3b3c3f;
+  --chalk:#eeebe4; --muted:#8f8c85; --line:#36373a;
+  /* --akzent ist die Farbe der BEDIENUNG (Hauptknopf, Auswahl, Fokus, Ring,
+     Leiste, Fortschritt) — Werkstatt-Orange. --signal bleibt Gelb und ist nur
+     noch Bedeutung: die Mitte der Muskel-Ampel (grün → gelb → rot), das
+     knappe Zeitband, „gut" bei Zielen und die Belastungs-Hinweise. Nie
+     vertauschen: Orange neben Rot wäre als Ampel nicht zu unterscheiden. */
+  --akzent:#ff6a2b; --akzent-schrift:#0c0d0e;
   --signal:#F4C74E; --rest:#3B92E8; --warn:#D95C47;
   /* v221: die vierte Akzentfarbe — GRÜN. Sie kam mit dem Unendlichkeitsmodus
      dazu und hat genau eine Aufgabe: „du liegst gut in der Zeit". Gelb (signal)
@@ -51,12 +61,12 @@
   --rund-mittel:14px;    /* Knöpfe, Karten, Menü, Dialog, Kurzmeldung */
   --rund-voll:999px;     /* Pillen, Punkte, runde Knöpfe */
   --karte-tiefe:3px; --knopf-tiefe:3px;
-  --kante-still:#07080A; --kante-haupt:#A8841F;
+  --kante-still:#0d0d0e; --kante-haupt:#b84c1f;
   --kante:0 var(--karte-tiefe) 0 var(--kante-still);
   --kante-hervor:0 var(--karte-tiefe) 0 var(--kante-haupt);
   --kante-knopf:0 var(--knopf-tiefe) 0 var(--kante-still);
   --kante-knopf-haupt:0 var(--knopf-tiefe) 0 var(--kante-haupt);
-  --ring:0 0 0 3px rgba(244,199,78,0.12);   /* Auswahl-/Fokus-Ring, ohne Unschärfe */
+  --ring:0 0 0 3px rgba(255,106,43,0.12);   /* Auswahl-/Fokus-Ring, ohne Unschärfe */
   --transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* ============================================================
@@ -67,10 +77,11 @@
    Aktiv über html.hell (siehe darstellungAnwenden()). Dunkel bleibt Standard.
    ============================================================ */
 html.hell{
-  --ground:#FAFAF8; --panel:#FFFFFF; --panel-2:#F3F1ED;
-  --chalk:#0D1117; --muted:#5F6B78; --line:#E8E5DF;
+  --ground:#e6e3dc; --panel:#f5f3ee; --panel-2:#cdcac2;
+  --chalk:#1d1e20; --muted:#76736c; --line:#d7d4cd;
+  --akzent:#ff5b1f; --akzent-schrift:#1a1a1a;
   --signal:#C89E1C; --rest:#1D6DB5; --warn:#C74830; --ok:#3E7A4E;
-  --kante-still:#D6D1C8; --kante-haupt:#8F7012;
+  --kante-still:#bdbab2; --kante-haupt:#b84216;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 /* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
@@ -126,8 +137,8 @@ button.gefahr:active:not(:disabled),#nav button:active:not(:disabled),
 .info-knopf:active:not(:disabled),.schließen-knopf:active:not(:disabled),
 .muskel-tab:active:not(:disabled),.art-schalter button:active:not(:disabled),
 .umschalter button:active:not(:disabled){transform:scale(0.98)}
-button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--kante-knopf-haupt)}
+button:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+button.primaer{background:var(--akzent);color:var(--akzent-schrift);box-shadow:var(--kante-knopf-haupt)}
 button.gefahr{background:transparent;color:var(--warn);border:2px solid var(--warn);transition:var(--transition);box-shadow:none}
 button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
@@ -161,7 +172,7 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
   button:hover:not(:disabled){background:var(--line)}
   button.primaer:hover:not(:disabled){opacity:0.95}
   button.gefahr:hover:not(:disabled){background:rgba(215,92,71,0.08)}
-  button.rund:hover:not(:disabled){border-color:var(--signal);background:rgba(244,199,78,0.08)}
+  button.rund:hover:not(:disabled){border-color:var(--akzent);background:rgba(255,106,43,0.08)}
 }
 button:disabled{opacity:.4}
 .knopfreihe{display:flex;gap:8px;margin-top:12px}
@@ -171,7 +182,7 @@ input,select{font-family:inherit;font-size:16px;background:var(--panel);color:va
   border:2px solid var(--line);border-radius:var(--rund-klein);padding:11px 12px;width:100%;min-height:44px;appearance:none;
   transition:var(--transition)}
 input:hover,select:hover{border-color:var(--muted)}
-input:focus,select:focus{outline:none;border-color:var(--signal);box-shadow:var(--ring)}
+input:focus,select:focus{outline:none;border-color:var(--akzent);box-shadow:var(--ring)}
 input::placeholder{color:var(--muted);opacity:0.7}
 label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px;font-weight:600}
 
@@ -183,14 +194,14 @@ label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
 /* v76: Simpelheit — Stufen-Auswahl (view-simpelheit) & Notizblock (Stufe 1/2) */
 textarea{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
   border:2px solid var(--line);border-radius:var(--rund-klein);padding:11px 12px;width:100%;appearance:none;resize:vertical}
-textarea:focus{outline:none;border-color:var(--signal);box-shadow:var(--ring)}
+textarea:focus{outline:none;border-color:var(--akzent);box-shadow:var(--ring)}
 textarea::placeholder{color:var(--muted);opacity:0.7}
 /* 0.251: Die Reihe „Karte + i" aus v190 ist entfallen — die Stufen-Karten
    tragen seither ein Bild und ein, zwei Wörter (UPCrew-Standard „kaum Text");
    die ausführliche Fassung ist ihre Vorlese-Beschriftung. */
 .stufe-wahl{display:block;width:100%;text-align:left;padding:14px 16px;min-height:0;
   background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-mittel);color:var(--chalk)}
-.stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:var(--ring)}
+.stufe-wahl.gewaehlt{border-color:var(--akzent);box-shadow:var(--ring)}
 .stufe-wahl strong{color:var(--chalk);font-size:15px}
 /* v173: Die gelbe Fläche der gewählten Karte kommt aus der Haus-Regel
    „AUSGEWÄHLT = GELB" (button.gewaehlt) — die setzt eine dunkle Schrift, aber
@@ -198,21 +209,21 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    bzw. Grau gezogen. Auf dem Gelb war das kaum lesbar, und es traf immer die
    AKTUELLE Stufe. Diese beiden Regeln (0,2,1 und 0,3,0) sind spezifischer und
    gewinnen unabhängig von der Reihenfolge im Stylesheet. */
-.stufe-wahl.gewaehlt strong{color:#16181C}
+.stufe-wahl.gewaehlt strong{color:var(--akzent-schrift)}
 /* Seit v190 steht in der Karte kein `.meta` mehr (die Beschreibung liegt hinter
    dem „i"). Die Regel bleibt als Absicherung: Wer dort wieder Text hineinlegt,
    bekommt ihn automatisch lesbar — der v173-Fehler kann so nicht zurückkommen. */
-.stufe-wahl.gewaehlt .meta{color:#16181C;opacity:.85}
+.stufe-wahl.gewaehlt .meta{color:var(--akzent-schrift);opacity:.85}
 /* v202: die eine kurze Zeile unter dem Namen — auf der gelben Karte dunkel,
    damit sie lesbar bleibt (derselbe Grund wie oben bei `strong`). */
 .stufe-wahl small{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.3}
-.stufe-wahl.gewaehlt small{color:#16181C;opacity:.85}
+.stufe-wahl.gewaehlt small{color:var(--akzent-schrift);opacity:.85}
 /* 0.251: Die Stufen-Auswahl als Bild — Mini-Ansicht links, Name rechts. */
 .stufe-bilder{display:flex;flex-direction:column;gap:12px}
 .stufe-wahl.mit-bild{display:flex;align-items:center;gap:16px;padding:12px 16px}
 .stufe-bild{flex:0 0 auto;display:flex;color:var(--muted)}
 .stufe-bild svg{width:52px;height:78px;display:block}
-.stufe-wahl.gewaehlt .stufe-bild{color:#16181C}
+.stufe-wahl.gewaehlt .stufe-bild{color:var(--akzent-schrift)}
 .stufe-name strong{display:block;font-size:18px}
 .stufe-name small{font-size:13px}
 .stufe-symbol{display:inline-flex;vertical-align:-5px;margin-right:8px}
@@ -252,7 +263,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .notiz-haken{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
   background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-klein);
   padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
-.notiz-haken.an{border-color:var(--signal)}
+.notiz-haken.an{border-color:var(--akzent)}
 /* v199: Die breite Fassung mit Name und Zahlen (`.notiz-haken-text`) ist
    entfallen — seit v198 steht der Haken in der Zeile, und dort steht der Name
    schon im Feld daneben. Es gibt nur noch das Kästchen. */
@@ -295,17 +306,17 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .raster input,.raster select{max-width:100%}
 .abstand{margin-top:16px}
 .geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
-  background:var(--panel-2);border:2px dashed var(--signal);border-radius:var(--rund-klein);
+  background:var(--panel-2);border:2px dashed var(--akzent);border-radius:var(--rund-klein);
   padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;transition:var(--transition)}
-.geheim:hover{background:rgba(244,199,78,0.08)}
-.kennzahl{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--signal)}
+.geheim:hover{background:rgba(255,106,43,0.08)}
+.kennzahl{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--akzent)}
 .kennzahl-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
 /* Strichliste der Sätze */
 .strichliste{display:flex;gap:5px;margin:12px 0 14px;flex-wrap:wrap}
 .strich{width:9px;height:32px;border-radius:var(--rund-klein);transform:skewX(-8deg);
   border:2px solid var(--line);background:transparent;transition:var(--transition)}
-.strich.erledigt{background:var(--signal);border-color:var(--signal)}
+.strich.erledigt{background:var(--akzent);border-color:var(--akzent)}
 .strich.jetzt{background:var(--rest);border-color:var(--rest)}
 
 /* Trainingsansicht */
@@ -313,7 +324,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    die Uhr schrumpft bei Platzmangel, die Knöpfe unten sind IMMER voll sichtbar. */
 #view-training.aktiv{display:flex;flex-direction:column;height:100%;min-height:0;
   overflow:hidden;padding:10px 16px 12px;max-width:640px;margin:0 auto}
-.phase{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--signal)}
+.phase{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--akzent)}
 .phase.pause{color:var(--rest)}
 .uebungsname{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 0 0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -321,11 +332,11 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    der Signalfarbe statt eines eigenen Knopfes: Der Name ist ohnehin das Erste,
    was man ansieht, und die eine gelbe Hauptaktion bleibt der Satz-Knopf. */
 .tippbar{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
-  text-decoration-color:var(--signal);text-underline-offset:5px}
+  text-decoration-color:var(--akzent);text-underline-offset:5px}
 .uebungsname.tippbar{text-underline-offset:7px}
 .uhr{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .uhr-zahl{font-family:var(--mono);font-weight:700;letter-spacing:-.05em;line-height:.9;
-  font-variant-numeric:tabular-nums;font-size:clamp(56px,22vw,120px);color:var(--signal)}
+  font-variant-numeric:tabular-nums;font-size:clamp(56px,22vw,120px);color:var(--akzent)}
 .uhr-zahl.pause{color:var(--rest)}
 /* Stoppuhr: eigene Regel, weil .uhr von flex:1 im Trainings-Layout lebt —
    außerhalb dieses Flex-Containers hätte sie keine Höhe. */
@@ -333,7 +344,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .stopp-uhr .uhr-zahl{font-size:clamp(48px,18vw,96px)}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
 .balken{height:4px;background:var(--line);border-radius:var(--rund-voll);overflow:hidden;margin-bottom:6px}
-.balken span{display:block;height:100%;background:var(--signal);width:0%;transition:width 0.3s ease}
+.balken span{display:block;height:100%;background:var(--akzent);width:0%;transition:width 0.3s ease}
 /* v220: Zwei Angaben in EINER Zeile — links der Schritt, rechts die Gesamtzeit
    des Trainings. Eine eigene Zeile hätte den ohnehin knappen Platz über der
    Uhr ein weiteres Mal geteilt. */
@@ -409,18 +420,20 @@ html.hell #intro{background:#e6e3dc}
 @keyframes upi-pad { from { fill: var(--aus); } to { fill: var(--an); } }
 .upi-taste { animation: upi-taste .4s ease-in-out both; animation-delay: var(--t0); transform-box: fill-box; }
 @keyframes upi-taste { 0%, 100% { transform: translateY(0); } 40%, 60% { transform: translateY(4px); } }
-/* B: das Kreuz erscheint sofort, waechst von Tastengroesse (0,44) auf Buchstabengroesse und faerbt sich von innen */
+/* B: das Kreuz erscheint sofort, waechst von Tastengroesse (0,44) auf Buchstabengroesse und faerbt sich von innen:
+   die Arme in Schriftfarbe ziehen sich von der Mitte zur Spitze (upi-arm), dann wechselt es auf das Wirbel-Kreuz */
 .upi-zeigen { animation: upi-zeigen 1ms linear both; animation-delay: var(--t0); }
 @keyframes upi-zeigen { from { opacity: 0; } to { opacity: 1; } }
-.upi-wachsen { animation: upi-wachsen .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--t0); transform-box: view-box; transform-origin: 118px 100px; }
+.upi-verbergen { animation: upi-verbergen 1ms linear both; animation-delay: var(--t0); }
+@keyframes upi-verbergen { from { opacity: 1; } to { opacity: 0; } }
+.upi-wachsen { animation: upi-wachsen .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--t0); transform-box: fill-box; transform-origin: center; }
 @keyframes upi-wachsen { from { transform: scale(.44); } }
-.upi-faerben { animation: upi-faerben .55s cubic-bezier(.45,0,.2,1) both; animation-delay: var(--t0); }
-@keyframes upi-faerben { from { r: 0; } to { r: 54; } }
+.upi-zieh.upi-arm { animation-duration: .5s; animation-timing-function: cubic-bezier(.3,.5,.3,1); }
 .upi-pp-form { transform-box: fill-box; transform-origin: center; }
 
 @media (prefers-reduced-motion: reduce) {
   .upi-bu, .upi-ein, .upi-aus, .upi-zieh, .upi-fall, .upi-seg, .upi-pad, .upi-taste,
-  .upi-zeigen, .upi-wachsen, .upi-faerben { animation-duration: 1ms !important; animation-delay: 0s !important; }
+  .upi-zeigen, .upi-verbergen, .upi-wachsen { animation-duration: 1ms !important; animation-delay: 0s !important; }
 }
 /* ===== UPCREW-INTRO ENDE ===== */
 
@@ -429,13 +442,13 @@ html.hell #intro{background:#e6e3dc}
 #view-willkommen.aktiv{display:flex;flex-direction:column;height:100%;min-height:0;
   padding:28px 20px calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .wk-kopf{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:10px 0 4px}
-.wk-kopf span{color:var(--signal)}
+.wk-kopf span{color:var(--akzent)}
 .wk-satz{font-size:17px;color:var(--muted);line-height:1.55;margin-bottom:20px}
 .wk-satz strong{color:var(--chalk)}
 .wk-liste{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
 .wk-punkt{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);
-  border-left:4px solid var(--signal);border-radius:var(--rund-mittel);padding:14px;box-shadow:var(--kante)}
-.wk-punkt .haken{color:var(--signal);font-weight:800;font-size:18px;flex:0 0 auto;line-height:1.3}
+  border-left:4px solid var(--akzent);border-radius:var(--rund-mittel);padding:14px;box-shadow:var(--kante)}
+.wk-punkt .haken{color:var(--akzent);font-weight:800;font-size:18px;flex:0 0 auto;line-height:1.3}
 .wk-punkt strong{display:block;font-size:16px;margin-bottom:3px}
 .wk-punkt .wk-text{font-size:13px;color:var(--muted);line-height:1.55}
 .wk-fuss{margin-top:16px;flex-shrink:0}
@@ -446,7 +459,7 @@ html.hell #intro{background:#e6e3dc}
   color:var(--muted);white-space:normal;line-height:1.25;font-size:14px;border:2px solid var(--line);
   border-radius:var(--rund-mittel);transition:var(--transition)}
 .note button:hover:not(:disabled){border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.note button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);box-shadow:var(--ring)}
+.note button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift);border-color:var(--akzent);box-shadow:var(--ring)}
 /* 0.242: Muskel-Check-Wizard — die Figur groß und mittig, die Bewegungs-
    Anweisung gut lesbar, die Antworten als volle Reihen untereinander. */
 .mcheck-figur{--fb:150px;display:block;margin:8px auto}
@@ -455,7 +468,7 @@ html.hell #intro{background:#e6e3dc}
    Antwort. Bewusst KEIN gelber Hintergrund — Gelb gehört im Haus der einen
    Hauptaktion je Bildschirm; hier ist es eine Auskunft, keine Aufforderung.
    `inset`-Schatten statt `border`, damit der Knopf seine Größe behält. */
-.mcheck-gewaehlt{box-shadow:inset 0 0 0 2px var(--signal)}
+.mcheck-gewaehlt{box-shadow:inset 0 0 0 2px var(--akzent)}
 
 /* Umschalter Wdh/Zeit */
 .umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--rund-mittel);overflow:hidden}
@@ -473,20 +486,20 @@ html.hell #intro{background:#e6e3dc}
 .tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--rund-klein);
   font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer;
   min-width:0;overflow:hidden;position:relative;transition:var(--transition);border:2px solid transparent}
-.tag:hover:not(.leer2){border-color:var(--signal)}
+.tag:hover:not(.leer2){border-color:var(--akzent)}
 .tag.leer2{background:transparent;cursor:default}
 .tag.trainiert{color:#0F1114;font-weight:700;cursor:default}   /* Farbe kommt je Sportart aus dem JS */
 .tag.geplant{background:transparent;border:2px solid var(--line);font-weight:700}  /* nur umrandet = noch nicht passiert */
 .tag.ruhe{background:var(--rest);color:#FFFFFF;font-weight:700}
 .tag.autoruhe{background:transparent;border:2px dashed var(--line);color:var(--muted)}
-.tag.heute{outline:2px solid var(--signal);outline-offset:1px}
+.tag.heute{outline:2px solid var(--akzent);outline-offset:1px}
 /* Kern für Tage mit drei und mehr Sportarten: Die Zahl braucht einen ruhigen
    Untergrund, sonst verschwindet sie auf einem der Tortenstücke. */
 .tag.mehrfach .kern{position:absolute;inset:5px;border-radius:var(--rund-klein);background:var(--ground);
   color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:700}
 /* Sondertraining = Training aus einem Plan ohne festen Tag */
 .sonderpunkt{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-  width:5px;height:5px;border-radius:var(--rund-voll);background:var(--signal);opacity:.7}
+  width:5px;height:5px;border-radius:var(--rund-voll);background:var(--akzent);opacity:.7}
 
 /* v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten,
    gefärbt nach den zuletzt trainierten Muskeln. Antippen = volle Muskelkarte. */
@@ -545,14 +558,14 @@ html.hell #intro{background:#e6e3dc}
 /* Akzentbalken über dem aktiven Tab: fährt aus der Mitte auf (scaleX 0 -> 1). */
 #nav button::before{
   content:""; position:absolute; top:0; left:50%;
-  width:26px; height:3px; border-radius:0 0 var(--rund-klein) var(--rund-klein); background:var(--signal);
+  width:26px; height:3px; border-radius:0 0 var(--rund-klein) var(--rund-klein); background:var(--akzent);
   transform:translateX(-50%) scaleX(0); transform-origin:center;
   transition:transform .18s ease;
 }
 #nav button.aktiv::before{ transform:translateX(-50%) scaleX(1); }
 #nav button .sym{ display:flex; line-height:1; }
 #nav button .sym svg{ width:23px; height:23px; display:block; transition:transform .18s ease; }
-#nav button.aktiv{ color:var(--signal); }
+#nav button.aktiv{ color:var(--akzent); }
 #nav button.aktiv .sym svg{ transform:translateY(-1px); }   /* aktives Icon minimal angehoben */
 /* ============================================================
    iPhone-Sonderoptik der Bottom-Bar (v65): KEIN Hintergrund, und statt des
@@ -585,9 +598,9 @@ body.sys-ios #nav button.aktiv .sym svg{ transform:none; }   /* im Pill nicht an
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
-.heute{background:var(--panel);border:2px solid var(--signal);border-radius:var(--rund-mittel);padding:16px;margin-bottom:14px;
+.heute{background:var(--panel);border:2px solid var(--akzent);border-radius:var(--rund-mittel);padding:16px;margin-bottom:14px;
   box-shadow:var(--kante-hervor);transition:var(--transition)}
-.heute-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);font-weight:700}
+.heute-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--akzent);font-weight:700}
 .heute h2{font-size:24px;margin:6px 0 4px}
 
 /* Zahlenfeld mit Steppern — im Gym schneller als die Tastatur */
@@ -597,13 +610,13 @@ body:not(.nav-an) #nav{display:none}
   background:var(--panel-2);border:1px solid var(--line)}
 
 /* Rekord-Abzeichen */
-.pr{color:var(--signal);font-weight:800;letter-spacing:.05em}
+.pr{color:var(--akzent);font-weight:800;letter-spacing:.05em}
 
 /* Wizard: eine Frage pro Bildschirm, wischbar */
 #view-wizard.aktiv{display:flex;flex-direction:column;height:100%;padding:16px 16px 20px;max-width:640px;margin:0 auto}
 .wz-fortschritt{display:flex;gap:4px;margin-bottom:20px}
 .wz-punkt{flex:1;height:4px;border-radius:var(--rund-voll);background:var(--line);transition:var(--transition)}
-.wz-punkt.erledigt{background:var(--signal)}
+.wz-punkt.erledigt{background:var(--akzent)}
 .wz-punkt.jetzt{background:var(--chalk)}
 .wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
 .wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
@@ -628,7 +641,7 @@ body:not(.nav-an) #nav{display:none}
   padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35;border-radius:var(--rund-mittel);
   transition:var(--transition);cursor:pointer}
 .wz-opt:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.wz-opt.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal);box-shadow:var(--ring)}
+.wz-opt.gewaehlt{border-color:var(--akzent);background:rgba(255,106,43,0.08);color:var(--akzent);box-shadow:var(--ring)}
 .wz-opt small{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-weight:400}
 .wz-opt.gewaehlt small{color:var(--muted)}
 /* minmax(0,1fr) statt 1fr: lange Optionsnamen dürfen die Spalte nicht sprengen. */
@@ -638,9 +651,9 @@ body:not(.nav-an) #nav{display:none}
 .wz-zeit-custom{margin-top:8px;background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel);padding:12px 14px;
   transition:var(--transition)}
 .wz-zeit-custom:hover{border-color:var(--muted)}
-.wz-zeit-custom.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);box-shadow:var(--ring)}
+.wz-zeit-custom.gewaehlt{border-color:var(--akzent);background:rgba(255,106,43,0.08);box-shadow:var(--ring)}
 .wz-zeit-custom label{display:block;font-size:16px;margin-bottom:8px}
-.wz-zeit-custom.gewaehlt label{color:var(--signal)}
+.wz-zeit-custom.gewaehlt label{color:var(--akzent)}
 .wz-zeit-eingabe{display:flex;align-items:center;gap:10px}
 .wz-zeit-eingabe input{width:120px;text-align:center}
 .wz-zeit-eingabe span{color:var(--muted);font-size:14px}
@@ -654,7 +667,7 @@ body:not(.nav-an) #nav{display:none}
   background:var(--panel-2);color:var(--muted);white-space:normal;line-height:1.25;
   border:2px solid var(--line);border-radius:var(--rund-mittel);transition:var(--transition)}
 .wahl-raster button:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.wahl-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);font-weight:700;
+.wahl-raster button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift);border-color:var(--akzent);font-weight:700;
   box-shadow:var(--ring)}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 /* v148: Filter-Chips der Übungs-Suche — selbst gebaut statt System-Auswahlfeld
@@ -685,7 +698,7 @@ body:not(.nav-an) #nav{display:none}
 .tage-raster button{min-height:44px;padding:8px 2px;font-size:12px;font-family:var(--mono);
   background:var(--panel-2);color:var(--muted);border:2px solid var(--line);border-radius:var(--rund-klein);transition:var(--transition)}
 .tage-raster button:hover{border-color:var(--muted)}
-.tage-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal)}
+.tage-raster button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift);border-color:var(--akzent)}
 /* Sportart-Liste im Profil: eine Zeile pro Sportart, tippen öffnet die Seite */
 .sportzeile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   background:var(--panel-2);border:2px solid var(--line);border-radius:var(--rund-mittel);
@@ -709,10 +722,10 @@ body:not(.nav-an) #nav{display:none}
    damit es nicht wie eine weitere Aktion aussieht. */
 #menue .menue-abbrechen{margin:10px 0 0;text-align:center;font-weight:600;color:var(--muted)}
 #menue button:hover{background:var(--panel-2)}
-.karte.gedrueckt{border-color:var(--signal);box-shadow:var(--ring)}
+.karte.gedrueckt{border-color:var(--akzent);box-shadow:var(--ring)}
 /* v128: Mehrfach-Auswahl — das Kästchen ist die Aussage, der Rahmen bestätigt sie. */
-.karte.plan-gewaehlt{border-color:var(--signal)}
-.plan-haken{color:var(--signal);font-weight:400}
+.karte.plan-gewaehlt{border-color:var(--akzent)}
+.plan-haken{color:var(--akzent);font-weight:400}
 /* v163: Mehrfach-Auswahl in Statistik-Listen. Der Umschlag legt sich NUR im
    Auswahl-Modus um eine Zeile — außerhalb bleibt jede Liste, wie sie war. */
 .listen-leiste{padding:6px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--line);gap:8px}
@@ -737,7 +750,7 @@ body:not(.nav-an) #nav{display:none}
 .wisch.offen .wisch-inhalt{transform:translateX(-88px)}
 .listen-wahl{display:flex;align-items:center;gap:8px;cursor:pointer}
 .listen-wahl-inhalt{flex:1;min-width:0}
-.listen-wahl.gewaehlt .listen-wahl-inhalt{border-left:2px solid var(--signal);padding-left:6px}
+.listen-wahl.gewaehlt .listen-wahl-inhalt{border-left:2px solid var(--akzent);padding-left:6px}
 /* Im Auswahl-Modus sind die Einzel-Knöpfe (× und ✎) stumm: ein Tipp auf die
    Zeile darf nicht gleichzeitig anhaken UND einen Lösch-Dialog öffnen. */
 .listen-wahl button{pointer-events:none;opacity:.35}
@@ -786,7 +799,7 @@ body:not(.nav-an) #nav{display:none}
   border-radius:var(--rund-mittel);overflow:hidden}
 .art-schalter button{flex:1;border:0;border-radius:0;background:transparent;box-shadow:none;
   color:var(--muted);font-size:13px;font-weight:600;padding:9px 0;margin:0}
-.art-schalter button.gewaehlt{background:var(--signal);color:#0D1117}
+.art-schalter button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift)}
 
 /* v192: Marke „Übung"/„Plan" in der Liste — klein und ruhig, sie ordnet ein und
    drängt sich nicht vor den Namen. */
@@ -812,7 +825,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .info-knopf{width:32px;height:32px;min-height:32px;border-radius:var(--rund-voll);padding:0;font-size:14px;box-shadow:none;
   font-family:var(--mono);background:transparent;border:2px solid var(--muted);color:var(--muted);
   flex:0 0 auto;line-height:1;transition:var(--transition);font-weight:700}
-.info-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);transform:scale(1.05)}
+.info-knopf:hover:not(:disabled){border-color:var(--akzent);color:var(--akzent);transform:scale(1.05)}
 .info-text{margin-top:8px;line-height:1.6;animation:slideDown 0.3s ease-out}
 /* 0.248: „Gut zu wissen" als Klapp-Liste — die Überschrift IST der Knopf.
    Volle Breite und links ausgerichtet, damit sie wie eine Zeile wirkt und
@@ -842,7 +855,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 /* v96: farbige Toasts NICHT mehr durchscheinend (vorher rgba .08 — man las den
    Text/Knopf darunter durch). Hintergrund bleibt das deckende Panel der Basis,
    nur Rand + Text tragen die Farbe. */
-.toast.erfolg{border-color:var(--signal);color:var(--signal)}
+.toast.erfolg{border-color:var(--akzent);color:var(--akzent)}
 .toast.fehler{border-color:var(--warn);color:var(--warn)}
 .toast.info{border-color:var(--rest);color:var(--rest)}
 .toast-icon{font-size:18px;flex:0 0 auto}
@@ -856,7 +869,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 
 /* Floating Action Button */
 .fab{position:fixed;bottom:calc(var(--navhoehe) + 20px + env(safe-area-inset-bottom));right:20px;
-  width:56px;height:56px;border-radius:var(--rund-voll);background:var(--signal);color:#16181C;border:none;
+  width:56px;height:56px;border-radius:var(--rund-voll);background:var(--akzent);color:var(--akzent-schrift);border:none;
   font-size:24px;font-weight:700;box-shadow:var(--kante-knopf-haupt);cursor:pointer;z-index:9;
   transition:var(--transition);display:flex;align-items:center;justify-content:center}
 .fab:hover:not(:disabled){transform:scale(1.08)}
@@ -867,7 +880,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .schließen-knopf{position:absolute;top:20px;right:16px;width:36px;height:36px;min-height:36px;
   padding:0;border-radius:var(--rund-voll);background:transparent;border:2px solid var(--line);box-shadow:none;
   color:var(--chalk);font-size:18px;transition:var(--transition);z-index:5}
-.schließen-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);background:rgba(244,199,78,0.08)}
+.schließen-knopf:hover:not(:disabled){border-color:var(--akzent);color:var(--akzent);background:rgba(255,106,43,0.08)}
 
 /* Profil-Menü Sektionen */
 .menu-sektion{margin-bottom:24px}
@@ -887,7 +900,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 /* Muskelkarte (Bonus ab Stufe 4, aus der Statistik) */
 .muskel-tabs{gap:8px;margin-bottom:12px}
 .muskel-tab{flex:1;padding:9px;border-radius:var(--rund-mittel);border:1px solid var(--line);background:transparent;box-shadow:none;color:var(--muted);font:inherit;cursor:pointer}
-.muskel-tab.muskel-an{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:600}
+.muskel-tab.muskel-an{background:var(--akzent);color:var(--akzent-schrift);border-color:var(--akzent);font-weight:600}
 /* v122: Behälter der Figur(en). „Beide" stellt vorne und hinten nebeneinander —
    dann bestimmt die HÖHE die Größe (wie die Statistik-Vorschau seit v94: gleiche
    Breite ließe die zwei verschieden hohen Bilder ungleich wirken). Die Höhe folgt
@@ -930,17 +943,19 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .picker-karte{display:flex;align-items:center;width:100%;text-align:left;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-mittel);color:var(--chalk);font:inherit;cursor:pointer}
 .picker-karte .text{flex:1;min-width:0}
 .picker-karte .text small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
-.picker-karte .pfeil{color:var(--signal);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
+.picker-karte .pfeil{color:var(--akzent);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
 .vs-zeile .mini-figur{--fb:34px;margin-left:auto}
 /* v179: dieselbe Figur auf den Karten des Übungs-Pickers. Etwas schmaler als
    in der Vorschau — die Liste kann über hundert Zeilen lang werden, und die
    Figur ist doppelt so hoch wie breit. */
 .picker-karte .mini-figur{--fb:30px;flex:0 0 auto}
 /* Meilenstein-Abzeichen der Trainings-Serie (v85) */
-.meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:var(--rund-voll)}
+.meilenstein{display:inline-block;background:var(--akzent);color:var(--akzent-schrift);font-weight:700;font-size:13px;padding:2px 9px;border-radius:var(--rund-voll)}
 
 /* ============================================================
-   AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
+   AUSGEWÄHLT = AKZENT — muss die LETZTE Regel im Stylesheet bleiben.
+   (Bis 0.251.2 hieß die Regel „ausgewählt = gelb"; seit 0.251.3 ist die
+   Bedienung Werkstatt-Orange, --akzent. Gelb ist nur noch Ampel.)
 
    Spezifität: button.gewaehlt ist (0,1,1) — genau so viel wie
    .note button oder .umschalter button. Bei Gleichstand gewinnt die
@@ -950,7 +965,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
    .wahl-raster button.gewaehlt = (0,2,1)) sind spezifischer und
    gewinnen weiterhin — unabhängig von der Reihenfolge.
    ============================================================ */
-button.gewaehlt{background:var(--signal);color:#16181C}
+button.gewaehlt{background:var(--akzent);color:var(--akzent-schrift)}
 </style>
 </head>
 <body>
@@ -994,7 +1009,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      ============================================================ -->
 <section id="view-login" class="view aktiv">
   <div class="kopf"><h1>Anmelden</h1><span id="version-anzeige" class="meta"></span></div>
-  <div id="update-banner" class="hinweis" style="border-left-color:var(--signal)" hidden></div>
+  <div id="update-banner" class="hinweis" style="border-left-color:var(--akzent)" hidden></div>
   <div id="login-hinweis" class="hinweis" hidden></div>
 
   <div id="login-konten"></div>
@@ -3124,8 +3139,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.251.2";
-const APP_VERSION = 251002;
+const VERSION = "0.251.3";
+const APP_VERSION = 251003;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -6712,7 +6727,7 @@ function darstellungAnwenden(){
     (modus === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches);
   document.documentElement.classList.toggle("hell", hell);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.setAttribute("content", hell ? "#F4F3EF" : "#16181C");
+  if(meta) meta.setAttribute("content", hell ? "#e6e3dc" : "#17181a");   // = --ground (Werkstatt)
 }
 function darstellungSetzen(modus){
   try {
@@ -7261,6 +7276,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.251.3", punkte:[
+    "<strong>Neue Farben: Werkstatt-Orange.</strong> Knöpfe, Auswahl, Leiste und Fortschritt leuchten jetzt orange statt gelb, der Hintergrund ist ein warmes Graphit — hell ein warmes Grau. So sieht der Trainer aus wie die anderen UPCrew-Apps. Die Muskel-Ampel bleibt grün, gelb, rot: Gelb heißt dort weiter „schon ordentlich belastet“.",
+    "Beim UPCrew-Zeichen färbt sich das Kreuz in einer der sechs Bewegungen jetzt sauber ein — vorher erschien auf dem iPhone dabei manchmal ein runder Fleck."
+  ]},
   { stand:"0.251.2", punkte:[
     "<strong>Neues UPCrew-Zeichen beim Öffnen.</strong> Es kommt jetzt bei jedem Start und zeigt jedes Mal eine andere von sechs kurzen Bewegungen — in Orange, passend hell oder dunkel wie der Trainer selbst. Ein Tipp überspringt es. Es lädt weiterhin nichts und meldet nichts an."
   ]},
@@ -8684,7 +8703,7 @@ function volumenZeichnen(){
     const istAktuell = i === werte.length - 1;
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
-      '" rx="2" fill="' + (istAktuell ? "var(--signal)" : "var(--rest)") + '"/>' +
+      '" rx="2" fill="' + (istAktuell ? "var(--akzent)" : "var(--rest)") + '"/>' +
       (v > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
       '" fill="var(--muted)" font-size="10" text-anchor="middle">' + v + '</text>' : '') +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
@@ -8795,7 +8814,7 @@ function ausdauerZeichnen(){
     const istAktuell = i === werte.length - 1;
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
-      '" rx="2" fill="' + (istAktuell ? "var(--signal)" : "var(--rest)") + '"/>' +
+      '" rx="2" fill="' + (istAktuell ? "var(--akzent)" : "var(--rest)") + '"/>' +
       (v > 0 ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
       '" fill="var(--muted)" font-size="10" text-anchor="middle">' + zahlKurz(v) + '</text>' : '') +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
@@ -8868,7 +8887,7 @@ function messwerteZeichnen(){
     const istLetzter = i === werte.length - 1;
     balken += '<rect x="' + x.toFixed(1) + '" y="' + y(v).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(hoehe, 1).toFixed(1) +
-      '" rx="2" fill="' + (istLetzter ? "var(--signal)" : "var(--rest)") + '"/>' +
+      '" rx="2" fill="' + (istLetzter ? "var(--akzent)" : "var(--rest)") + '"/>' +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (y(v) - 5).toFixed(1) +
       '" fill="var(--muted)" font-size="10" text-anchor="middle">' + text(kurz(gezeigt[i])) + '</text>' +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
@@ -8877,7 +8896,7 @@ function messwerteZeichnen(){
   });
   const zielLinie = ziel === null ? "" :
     '<line x1="' + rand + '" x2="' + (B - rand) + '" y1="' + y(ziel).toFixed(1) + '" y2="' + y(ziel).toFixed(1) +
-    '" stroke="var(--signal)" stroke-width="1.5" stroke-dasharray="6 4"/>';
+    '" stroke="var(--akzent)" stroke-width="1.5" stroke-dasharray="6 4"/>';
 
   // Bestwert über ALLE Einheiten (nicht nur die gezeigten zwölf).
   let best = alle[0];
@@ -9351,7 +9370,7 @@ function tageswertZeichnen(){
     const y = w => H - rand - (w - min) / spanne * (H - 2*rand);
     const linie = reihe.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.wert).toFixed(1)).join(" ");
     const punkte = reihe.map((e,i) =>
-      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--akzent)"/>').join("");
     diagramm.innerHTML =
       '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Verlauf ' + text(def.name) + '">' +
       '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + tageswertText(def, max) + '</text>' +
@@ -9456,7 +9475,7 @@ function koerpermassZeichnen(){
     const y = w => H - rand - (w - min) / spanne * (H - 2*rand);
     const linie = reihe.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.wert).toFixed(1)).join(" ");
     const punkte = reihe.map((e,i) =>
-      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+      '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.wert).toFixed(1) + '" r="4" fill="var(--akzent)"/>').join("");
     diagramm.innerHTML =
       '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Verlauf ' + text(koerpermassName(koerpermassArt)) + '">' +
       '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' cm</text>' +
@@ -9621,7 +9640,7 @@ function gewichtKurveHtml(eintraege, trainingstage){
   const linie = liste.map((e,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(e.kg).toFixed(1)).join(" ");
   const punkte = liste.map((e,i) =>
     '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(e.kg).toFixed(1) + '" r="4" fill="' +
-    (tage.has(e.datum) ? "var(--signal)" : "var(--rest)") + '"/>').join("");
+    (tage.has(e.datum) ? "var(--akzent)" : "var(--rest)") + '"/>').join("");
 
   return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="Gewichtsverlauf">' +
     '<text x="' + rand + '" y="16" fill="var(--muted)" font-size="12" font-family="var(--mono)">' + max.toFixed(1) + ' kg</text>' +
@@ -9700,7 +9719,7 @@ function bmiKurveHtml(reihe){
   const schnitt = liste.reduce((a, p) => a + p.bmi, 0) / liste.length;
   const linie = liste.map((p, i) => (i === 0 ? "M" : "L") + x(i).toFixed(1) + " " + y(p.bmi).toFixed(1)).join(" ");
   const punkte = liste.map((p, i) =>
-    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p.bmi).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p.bmi).toFixed(1) + '" r="4" fill="var(--akzent)"/>').join("");
 
   return '<svg class="diagramm" viewBox="0 0 ' + B + ' ' + H + '" role="img" aria-label="BMI-Verlauf">' +
     baender +
@@ -9708,7 +9727,7 @@ function bmiKurveHtml(reihe){
       '" y2="' + y(schnitt).toFixed(1) + '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>' +
     '<text x="' + rand + '" y="' + (y(schnitt) - 5).toFixed(1) +
       '" fill="var(--muted)" font-size="10">Schnitt ' + schnitt.toFixed(1) + '</text>' +
-    (liste.length > 1 ? '<path d="' + linie + '" fill="none" stroke="var(--signal)" stroke-width="2"/>' : "") +
+    (liste.length > 1 ? '<path d="' + linie + '" fill="none" stroke="var(--akzent)" stroke-width="2"/>' : "") +
     punkte + '</svg>';
 }
 
@@ -9854,12 +9873,12 @@ function fortschrittZeichnen(){
   const y = v => H - rand - (v - min) / spanne * (H - 2*rand);
   const linie = werte.map((v,i) => (i===0?"M":"L") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
   const punkte = werte.map((v,i) =>
-    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="4" fill="var(--signal)"/>').join("");
+    '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="4" fill="var(--akzent)"/>').join("");
   const zielLinie = zielWert != null
     ? '<line x1="' + rand + '" x2="' + (B - rand) + '" y1="' + y(zielWert).toFixed(1) + '" y2="' + y(zielWert).toFixed(1) +
-      '" stroke="var(--signal)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+      '" stroke="var(--akzent)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
       '<text x="' + (B - rand) + '" y="' + (y(zielWert) - 5).toFixed(1) +
-      '" fill="var(--signal)" font-size="11" text-anchor="end">Ziel ' + fmt(zielWert) + '</text>'
+      '" fill="var(--akzent)" font-size="11" text-anchor="end">Ziel ' + fmt(zielWert) + '</text>'
     : "";
   const trend = werte[werte.length-1] - werte[0];
 
@@ -10011,7 +10030,7 @@ function trainingsDiagrammHtml(punkte){
     const zahl = p.minuten > 0 ? String(p.minuten) : (p.anzahl > 0 ? "—" : "");
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (H - rand - h).toFixed(1) +
       '" width="' + (spalte * 0.7).toFixed(1) + '" height="' + Math.max(h, 1).toFixed(1) +
-      '" rx="2" fill="' + (istHeute ? "var(--signal)" : "var(--rest)") + '"/>' +
+      '" rx="2" fill="' + (istHeute ? "var(--akzent)" : "var(--rest)") + '"/>' +
       (zahl ? '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - rand - h - 5).toFixed(1) +
       '" fill="var(--muted)" font-size="10" text-anchor="middle">' + zahl + '</text>' : '') +
       '<text x="' + (x + spalte*0.35).toFixed(1) + '" y="' + (H - 8) +
@@ -13157,7 +13176,7 @@ function muskelTeileHtml(key){
     const keyJs = key.replace(/'/g, "\\'");
     return '<div style="border-top:1px solid var(--line);padding:6px 0">' +
       '<div onclick="muskelTeilTippen(\'' + keyJs + '\',\'' + idJs + '\')" style="cursor:pointer">' +
-        '<strong style="color:' + (an ? "var(--signal)" : "var(--chalk)") + '">' + text(t.name) + '</strong>' +
+        '<strong style="color:' + (an ? "var(--akzent)" : "var(--chalk)") + '">' + text(t.name) + '</strong>' +
         '<div class="meta" style="font-style:italic">' + text(t.latin) + '</div>' +
       '</div>' + uebungen + '</div>';
   }).join("");
@@ -19589,7 +19608,7 @@ function intervallZeichnen(){
   document.getElementById("iv-t-zahl").textContent = uhrText(pos.rest);
   const el = document.getElementById("iv-t-phase");
   el.textContent = pos.phase.art === "belastung" ? "Belastung" : "Pause";
-  el.style.color = pos.phase.art === "belastung" ? "var(--signal)" : "var(--rest)";
+  el.style.color = pos.phase.art === "belastung" ? "var(--akzent)" : "var(--rest)";
   document.getElementById("iv-t-knopf").textContent =
     ivLauf.laeuft ? "Pause" : (ivLauf.gelaufen ? "Weiter" : "Start");
 }
@@ -21614,7 +21633,7 @@ function bewertungAnwenden(antworten){
   const serie = trainingsSerie();
   const meilenstein = SERIEN_MEILENSTEINE.includes(serie);
   const zielKarte = zielBericht.length
-    ? '<div class="karte"><div class="meta" style="border-left:3px solid var(--signal);padding-left:8px;line-height:1.5">' +
+    ? '<div class="karte"><div class="meta" style="border-left:3px solid var(--akzent);padding-left:8px;line-height:1.5">' +
       zielBericht.map(z => text(z)).join("<br>") + '</div></div>'
     : "";
   // v95: kein Füll-Untertitel mehr bei „1 Training in Serie" — „Der Anfang ist
@@ -21626,7 +21645,7 @@ function bewertungAnwenden(antworten){
   // seither als eigener Wizard VOR dieser Seite (view-muskelcheck).
   document.getElementById("ergebnis-liste").innerHTML = kalibrierungsKarteHtml() +
     zielKarte +
-    '<div class="karte' + (serienUntertitel ? " zeile" : "") + '"' + (meilenstein ? ' style="border:1px solid var(--signal)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
+    '<div class="karte' + (serienUntertitel ? " zeile" : "") + '"' + (meilenstein ? ' style="border:1px solid var(--akzent)"' : '') + '><h2>🔥 ' + serie + (serie === 1 ? " Training" : " Trainings") + ' in Serie</h2>' +
     (serienUntertitel ? '<span class="meta">' + serienUntertitel + '</span>' : '') + '</div>' +
     zeilen.map(z => {
     const teile = [];
@@ -21844,7 +21863,7 @@ function updateDeckel(von, zu){
       '<div style="color:var(--chalk);font-weight:700">Update ' + text(von || "") +
         (zu ? " → " + text(zu) : "") + '</div>' +
       '<div style="width:220px;height:10px;border-radius:var(--rund-voll);background:var(--panel-2);border:1px solid var(--line);overflow:hidden">' +
-        '<div id="update-balken" style="height:100%;width:0%;background:var(--signal);transition:width .4s"></div></div>' +
+        '<div id="update-balken" style="height:100%;width:0%;background:var(--akzent);transition:width .4s"></div></div>' +
       '<div id="update-prozent" class="meta">0 %</div>' +
       '<div class="meta">Neue Version wird geladen — deine Daten bleiben unberührt.</div>';
     document.body.appendChild(d);
@@ -22000,11 +22019,11 @@ wischZeileEinrichten();     // v175: Wisch nach links auf einer Listenzeile = l�
       ${mono(108, 78, "lvl", f.ak, 7, "end").replace("<text", '<text opacity=".7"')}</g>`;
 
   // ---------- B: Taste ----------
-  function taste(f, cx, cy, s, t0) {
+  function taste(f, cx, cy, s, t0, kreuz = f.lcd) {
     const a = s * .3;
     return `<g class="upi-taste" style="--t0:${t0}s"><rect x="${cx - s / 2}" y="${cy - s / 2 + 5}" width="${s}" height="${s}" rx="${s * .18}" fill="${f.ta}"/>
       <rect x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" rx="${s * .18}" fill="${f.ak}"/>
-      <path d="M${cx} ${cy - a} V${cy + a} M${cx - a} ${cy} H${cx + a}" stroke="${f.lcd}" stroke-width="${s * .14}" stroke-linecap="round"/></g>`;
+      <path d="M${cx} ${cy - a} V${cy + a} M${cx - a} ${cy} H${cx + a}" stroke="${kreuz}" stroke-width="${s * .14}" stroke-linecap="round"/></g>`;
   }
 
   // ---------- C: Pad-Raster 3 x 4, Pfeil nach oben ----------
@@ -22092,14 +22111,20 @@ wischZeileEinrichten();     // v175: Wisch nach links auf einer Listenzeile = l�
 
     // B: Taste faellt ein, wird gedrueckt; das dunkle Kreuz loest sich, waechst, faerbt sich aus der Mitte ein
     //    und wirbelt zum P; CREW und eine kleine Taste folgen
-    B: f => {
-      const tLos = 1.4, tM = 1.95, tE = tM + WIRBEL.dauer / 1000, id = "upi-m" + (++zaehler);
-      const grosse = `<g class="upi-aus" style="--t0:${tM + .1}s"><g class="upi-fall" style="--t0:.35s">${taste(f, 118, 100, 56, .95)}</g></g>`;
-      const dunkel = `<mask id="${id}" maskUnits="userSpaceOnUse" x="-300" y="-100" width="1200" height="400">
-          <rect x="-300" y="-100" width="1200" height="400" fill="white"/>
-          <circle class="upi-faerben" style="--t0:${tLos}s" cx="118" cy="100" r="0" fill="black"/></mask>
-        <path mask="url(#${id})" d="${PLUS2(PX)}" fill="none" stroke="${f.lcd}" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>`;
-      const loesen = `<g class="upi-zeigen" style="--t0:${tLos}s"><g class="upi-wachsen" style="--t0:${tLos}s">${plusP(f.ink, f.ink, WIRBEL, tM, [], true)}${dunkel}</g></g>`;
+    B: (f, o) => {
+      // Kreuz auf der Taste: dunkel auf dunklem Grund (wird hell), hell auf hellem Grund (wird dunkel) - sichtbarer Wechsel
+      const kreuz = o.modus === "hell" ? f.fl : f.lcd;
+      const tLos = 1.4, tFarbig = tLos + .5, tM = 1.95, tE = tM + WIRBEL.dauer / 1000;
+      const grosse = `<g class="upi-aus" style="--t0:${tM + .1}s"><g class="upi-fall" style="--t0:.35s">${taste(f, 118, 100, 56, .95, kreuz)}</g></g>`;
+      // Einfaerben: vier Arme in Schriftfarbe wachsen von der Mitte zur Spitze ueber das dunkle Kreuz (Strich-Zug,
+      // keine Maske - laeuft auch in Safari). Sobald alles farbig ist, uebernimmt das gleich aussehende Wirbel-Kreuz.
+      const arm = e => `<path class="upi-zieh upi-arm" style="--t0:${tLos}s" pathLength="1" d="M118 100 ${e}" fill="none"
+        stroke="${f.ink}" stroke-width="22" stroke-linecap="round"/>`;
+      const dunkel = `<g class="upi-verbergen" style="--t0:${tFarbig}s">
+        <path d="${PLUS2(PX)}" fill="none" stroke="${kreuz}" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+        ${["V61", "V139", "H79", "H157"].map(arm).join("")}</g>`;
+      const wirbelKreuz = `<g class="upi-zeigen" style="--t0:${tFarbig}s">${plusP(f.ink, f.ink, WIRBEL, tM, [], true)}</g>`;
+      const loesen = `<g class="upi-zeigen" style="--t0:${tLos}s"><g class="upi-wachsen" style="--t0:${tLos}s">${wirbelKreuz}${dunkel}</g></g>`;
       const klein = `<g class="upi-ein" style="--t0:${tE + .5}s">${taste(f, 560, 100, 60, tE + .8)}</g>`;
       return { ende: tE + 1.2, html: marke("-12 30 640 150", buchstaben(f.ink, "U", 0) + grosse + loesen + buchstaben(f.ink, "CREW", tE - .1) + klein) };
     },

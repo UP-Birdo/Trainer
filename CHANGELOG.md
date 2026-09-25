@@ -3,6 +3,16 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.251.3
+
+- <strong>Neue Farben: Werkstatt-Orange.</strong> Knöpfe, Auswahl, Leiste und
+  Fortschritt leuchten jetzt orange statt gelb, der Hintergrund ist ein warmes Graphit —
+  hell ein warmes Grau. So sieht der Trainer aus wie die anderen UPCrew-Apps. Die
+  Muskel-Ampel bleibt grün, gelb, rot: Gelb heißt dort weiter „schon ordentlich
+  belastet“.
+- Beim UPCrew-Zeichen färbt sich das Kreuz in einer der sechs Bewegungen jetzt sauber
+  ein — vorher erschien auf dem iPhone dabei manchmal ein runder Fleck.
+
 ## 0.251.2
 
 - <strong>Neues UPCrew-Zeichen beim Öffnen.</strong> Es kommt jetzt bei jedem Start und

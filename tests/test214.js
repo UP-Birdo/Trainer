@@ -97,8 +97,8 @@ pruefe("der hoechste Balken ist der laengste Tag", (() => {
   const hoehen = [...svg.matchAll(/height="([\d.]+)"/g)].map(m => Number(m[1]));
   return hoehen.indexOf(Math.max(...hoehen)) === punkte.findIndex(p => p.minuten === 90);
 })());
-pruefe("heute ist die Signalfarbe, der Rest ruhig",
-  svg.includes('fill="var(--signal)"') && svg.includes('fill="var(--rest)"'));
+pruefe("heute ist die Akzentfarbe, der Rest ruhig",
+  svg.includes('fill="var(--akzent)"') && svg.includes('fill="var(--rest)"'));
 
 /* ---------- 3) Die Flamme lebt beim Nachtragen wieder auf ---------- */
 pruefe("die Toleranz sind 3 Tage", A.MAX_LUECKE === 3);
