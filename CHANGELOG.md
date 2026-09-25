@@ -3,6 +3,13 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.251.2
+
+- <strong>Neues UPCrew-Zeichen beim Öffnen.</strong> Es kommt jetzt bei jedem Start und
+  zeigt jedes Mal eine andere von sechs kurzen Bewegungen — in Orange, passend hell oder
+  dunkel wie der Trainer selbst. Ein Tipp überspringt es. Es lädt weiterhin nichts und
+  meldet nichts an.
+
 ## 0.251.1
 
 - Unter „Mehr → Werkzeuge“ stehen unter Scheibenrechner, Plan-Assistent und

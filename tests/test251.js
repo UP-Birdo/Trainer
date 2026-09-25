@@ -11,7 +11,8 @@
    3. Text: keine Begruessungen, hoechstens die Stimme darf ein Ausrufezeichen.
 
    4. Leer und Fehler: EIN Baustein (zustandLeerHtml, fehlerZeigen).
-   5. Das UPCrew-Intro — ohne Konto, ohne Netz (der Trainer bleibt lokal).
+   5. Das UPCrew-Intro — der gemeinsame Baustein, ohne Konto, ohne Netz (der
+      Trainer bleibt lokal).
 
    Noch NICHT bewacht (kommt mit dem Bauschritt): die eigene Schrift.
    Vibration gibt es im Trainer nicht (Nutzer, 25.09.2026).
@@ -155,33 +156,56 @@ pruefe("keine technische Meldung mehr hinter Speichern fehlgeschlagen",
   !src.includes('"Speichern fehlgeschlagen: " + e.message'));
 
 /* ---------- 5) Das UPCrew-Intro — ohne Konto, ohne Netz ---------- */
-const introHtml = src.slice(src.indexOf('<div id="intro"'), src.indexOf("</div>", src.indexOf('<p class="intro-zeile"')));
-pruefe("das Intro steht direkt am Anfang des Koerpers",
+/* Seit 0.251.2 steckt das Intro im gemeinsamen Baustein aller UPCrew-Apps
+   (Quelle Design\3D-Schrift\final\upcrew-intro.js/.css), unveraendert
+   eingesetzt zwischen den Markierungen UPCREW-INTRO START/ENDE — je einmal
+   fuer CSS und JS. Im Trainer bleibt davon: der leere Behaelter oben im Koerper
+   und introStarten() als Anpasser. */
+function introBlock(quelle){
+  const kopf = "UPCREW-INTRO START (Quelle Design\\3D-Schrift\\final\\" + quelle + ")";
+  const a = src.indexOf(kopf);
+  if(a < 0) return "";
+  const e = src.indexOf("===== UPCREW-INTRO ENDE =====", a);
+  return e < 0 ? "" : src.slice(a, e);
+}
+const introJs = introBlock("upcrew-intro.js");
+const introCss = introBlock("upcrew-intro.css");
+pruefe("der Baustein steht genau einmal als JS und einmal als CSS",
+  (src.match(/===== UPCREW-INTRO START \(Quelle /g) || []).length === 2 &&
+  (src.match(/===== UPCREW-INTRO ENDE =====/g) || []).length === 2 &&
+  introJs.length > 0 && introCss.length > 0);
+pruefe("der CSS-Block steht im Stylesheet", css.includes(introCss));
+pruefe("der JS-Block bringt UPCREW_INTRO mit",
+  introJs.includes("window.UPCREW_INTRO = {") && introJs.includes("function zeigen(behaelter, optionen)"));
+pruefe("der Behaelter steht direkt am Anfang des Koerpers, vor #inhalt",
+  src.includes('<div id="intro" class="upi" role="img" aria-label="UPCrew"></div>') &&
   src.indexOf('<div id="intro"') > src.indexOf("<body>") &&
   src.indexOf('<div id="intro"') < src.indexOf('<div id="inhalt">'));
-pruefe("es zeigt UP, Crew und praesentiert",
-  introHtml.includes('class="intro-up">UP<') && introHtml.includes('class="intro-crew">Crew<') &&
-  src.includes('<p class="intro-zeile">präsentiert</p>'));
-pruefe("einmal je Besuch (derselbe Schluessel wie in Typoluck)",
-  (src.match(/upcrew\.intro-gesehen/g) || []).length >= 2);
+pruefe("der Behaelter traegt die Grundfarbe, dunkel und hell (kein Aufblitzen)",
+  /#intro\{background:#[0-9a-f]{6}\}/.test(css) && /html\.hell #intro\{background:#[0-9a-f]{6}\}/.test(css));
+pruefe("die Ebene kommt aus --ebene-intro: 50",
+  /--ebene-intro:50;/.test(wurzel) && introCss.includes("z-index: var(--ebene-intro"));
+pruefe("bei jedem Start: keine Sitzungssperre mehr", !/upcrew\.intro-gesehen/.test(src));
+pruefe("die alten Intro-Teile und --upcrew-Farben sind weg",
+  !/--upcrew-/.test(src) && !/class="intro-/.test(src) && !/\.intro-weg|@keyframes intro-/.test(css));
 const intro = grabFn("introStarten");
-pruefe("Zeiten wie in Typoluck: 1,8 s stehen, 0,4 s ausblenden",
-  /const INTRO_STEHT_MS = 1800;/.test(src) && /const INTRO_AUSBLENDEN_MS = 400;/.test(src) &&
-  /\.intro\{[^}]*transition:opacity 400ms/.test(css));
-pruefe("ein Tipp und eine Taste ueberspringen",
-  intro.includes('el.addEventListener("click", beenden') && intro.includes('addEventListener("keydown", beenden)'));
+pruefe("introStarten gibt Nummer 03, Name und Version an den Baustein",
+  intro.includes("UPCREW_INTRO.zeigen(el,") && intro.includes('nr:"03"') &&
+  intro.includes('name:"Trainer"') && intro.includes("version: VERSION"));
+pruefe("hell nur, wenn der Trainer hell ist (Standard dunkel)",
+  intro.includes('classList.contains("hell") ? "hell" : "dunkel"'));
+pruefe("der Baustein laeuft vor dem Aufruf",
+  src.indexOf("window.UPCREW_INTRO = {") < src.indexOf("introStarten();"));
 /* Der Trainer bleibt rein lokal (Nutzer, 25.09.2026): Das Intro laedt nichts,
    meldet nichts an und sendet nichts — und nirgends steht die UPCrew-Datenbank. */
+const netz = /fetch\(|XMLHttpRequest|sendBeacon|WebSocket|https?:\/\/|import\(/;
 pruefe("das Intro fasst kein Netz an",
-  !/fetch\(|XMLHttpRequest|https?:\/\//.test(intro) && !/https?:\/\//.test(introHtml));
+  !netz.test(intro) && !netz.test(introJs) && !netz.test(introCss));
 pruefe("kein UPCrew-Konto, kein Abgleich im Trainer",
   !src.includes("upcrew-7a29d") && !/UPCrew-Konto/.test(src));
 pruefe("das Intro laeuft vor der Willkommens-Seite",
   src.indexOf("introStarten();") > 0 &&
   src.indexOf("introStarten();") < src.indexOf('if(!willkommenGesehen) zeige("view-willkommen");'));
-pruefe("die Studio-Farben stehen fest (keine helle Fassung)",
-  /--upcrew-grund:#120e1c; --upcrew-farbe:#7a5cf0; --upcrew-schrift:#ffffff;/.test(wurzel) &&
-  !/--upcrew-/.test(hell));
 
 /* ---------- 4b) Eingabe-Pruefungen kurz (Text-Inventur 25.09.2026) ----------
    Reine Eingabe-Pruefungen sagen in ein, zwei Woertern, was fehlt — ueber den
