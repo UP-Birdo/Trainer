@@ -3,6 +3,15 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.251.1
+
+- Unter „Mehr → Werkzeuge“ stehen unter Scheibenrechner, Plan-Assistent und
+  Übungs-Bibliothek jetzt ein paar Wörter statt ganzer Sätze. Die Erklärungen, die
+  wirklich etwas erklären (Wiederherstellungscode, Tages-Check, Unendlichkeitsmodus),
+  bleiben, wie sie sind.
+- Unter der Haube ist alles für die gemeinsame UPCrew-Schrift vorbereitet — sie lässt
+  sich später an einer einzigen Stelle eintragen. Sehen kannst du davon noch nichts.
+
 ## 0.251.0
 
 - <strong>Neuer Auftritt: UPCrew.</strong> Der Trainer gehört jetzt zum Studio UPCrew —

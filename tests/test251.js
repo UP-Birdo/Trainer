@@ -91,6 +91,16 @@ pruefe("kein Ausrufezeichen in Bildschirm-Texten (gefunden: " +
   ausrufe.map(m => src.slice(m.index - 30, m.index + 2).replace(/\s+/g, " ")).join(" | ") + ")",
   ausrufe.length === 0);
 
+/* ---------- 3b) Schrift nur ueber die Variable (Standard Abschnitt 1) ----------
+   Kommt die UPCrew-Schrift, wird sie an EINER Stelle eingetragen. Erlaubt sind
+   im Stylesheet deshalb nur die Variable, die Zahlen-Schrift und „erben". */
+const schriften = [...css.matchAll(/font-family\s*:\s*([^;}]+)/g)].map(m => m[1].trim());
+const fremdeSchriften = schriften.filter(w => !["var(--schrift-familie)", "var(--mono)", "inherit"].includes(w));
+pruefe("die Schrift steht als Variable in :root", /--schrift-familie:[^;]*sans-serif;/.test(wurzel));
+pruefe("der Koerper nutzt die Variable", /body\{[^}]*font-family:var\(--schrift-familie\)/.test(css));
+pruefe("keine Schrift ausserhalb der Variablen (gefunden: " + fremdeSchriften.join(" | ") + ")",
+  fremdeSchriften.length === 0);
+
 /* ---------- 4) Leer und Fehler: EIN Baustein ---------- */
 function grabFn(name){
   const i = src.indexOf("function " + name + "(");

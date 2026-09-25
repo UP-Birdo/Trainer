@@ -31,6 +31,11 @@
      das Zeichen sieht in jeder App und jeder Darstellung gleich aus. */
   --upcrew-grund:#120e1c; --upcrew-farbe:#7a5cf0; --upcrew-schrift:#ffffff;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+  /* Nach 0.251.0 (UPCrew-Standard Abschnitt 1): Die Schrift steht NUR hier. Heute die
+     Systemschrift; kommt die gemeinsame UPCrew-Schrift (woff2 im Projekt,
+     @font-face, Service Worker), wird sie hier VORNE eingetragen — die
+     Systemschrift bleibt als Rückfall dahinter. test251 wacht darüber. */
+  --schrift-familie:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   /* Höhe der Bottom-Bar — FEST, nicht aus dem Textfluss gewachsen.
      Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
      verdeckt (siehe body.nav-an .view.aktiv). */
@@ -77,7 +82,7 @@ html,body{margin:0;height:100%;overscroll-behavior:none}
    Schnelles Doppeltippen auf "Satz fertig" darf nichts bewegen. */
 body.training-fest{position:fixed;top:0;left:0;right:0;height:var(--app-h,100%);width:100%;overflow:hidden}
 body{overflow-x:hidden;background:var(--ground);color:var(--chalk);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font-family:var(--schrift-familie);
   font-size:16px;-webkit-text-size-adjust:100%;
   /* Höhe kommt aus --app-h (per JS = echte sichtbare Höhe), Rückfall 100%.
      iOS vermisst position:fixed;inset:0 beim App-Start manchmal zu kurz —
@@ -1480,7 +1485,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <button class="schmal" onclick="einstellungenOeffnen()" data-zurueck>Zurück</button></div>
   <div class="karte" id="mehr-werkzeuge-karte">
     <h2>Scheibenrechner</h2>
-    <div class="meta abstand">Welche Hantelscheiben du je Seite auflegst, um ein Zielgewicht zu erreichen.</div>
+    <div class="meta abstand">Scheiben je Seite fürs Zielgewicht</div>
     <div><label for="scheibe-ziel">Zielgewicht (kg)</label>
       <input id="scheibe-ziel" type="number" inputmode="decimal" step="2.5" placeholder="z. B. 60" oninput="scheibenAnzeigen()"></div>
     <div class="wahl-gruppe abstand"><label>Stange</label></div>
@@ -1494,7 +1499,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        Ersteinrichtung, siehe planNeuWege. -->
   <div class="karte" id="mehr-assistent-karte">
     <h2>Plan mit Assistent</h2>
-    <div class="meta abstand">Ein paar Fragen zu Ziel, Tagen und Ausstattung — daraus baut die App fertige Pläne. Der geführte Weg, wenn du nicht selbst zusammenstellen willst.</div>
+    <div class="meta abstand">Fertige Pläne aus ein paar Fragen</div>
     <div class="knopfreihe">
       <button class="schmal" id="mehr-assistent-knopf" onclick="einrichtungOeffnen()">Assistent starten</button>
       <button class="schmal" id="mehr-beispiel-knopf" onclick="beispielLaden()">Beispielplan laden</button>
@@ -1504,7 +1509,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
     <h2>Übungs-Bibliothek</h2>
     <!-- v183: „Gerät" stimmte nur fürs Krafttraining — seit die Drills der
          eigenen Sportarten mit drinstehen, ist die Beschreibung allgemein. -->
-    <div class="meta abstand">Alle deine Übungen zum Nachschlagen: Muskeln, kurzer Tipp und Beschreibung.</div>
+    <div class="meta abstand">Muskeln, Tipp, Beschreibung</div>
     <div class="knopfreihe"><button class="schmal" onclick="bibliothekOeffnen()">Bibliothek öffnen</button></div>
   </div>
   <div class="karte" id="mehr-papierkorb-karte">
@@ -3077,8 +3082,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.251.0";
-const APP_VERSION = 251000;
+const VERSION = "0.251.1";
+const APP_VERSION = 251001;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -7214,6 +7219,10 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.251.1", punkte:[
+    "Unter „Mehr → Werkzeuge“ stehen unter Scheibenrechner, Plan-Assistent und Übungs-Bibliothek jetzt ein paar Wörter statt ganzer Sätze. Die Erklärungen, die wirklich etwas erklären (Wiederherstellungscode, Tages-Check, Unendlichkeitsmodus), bleiben, wie sie sind.",
+    "Unter der Haube ist alles für die gemeinsame UPCrew-Schrift vorbereitet — sie lässt sich später an einer einzigen Stelle eintragen. Sehen kannst du davon noch nichts."
+  ]},
   { stand:"0.251.0", punkte:[
     "<strong>Neuer Auftritt: UPCrew.</strong> Der Trainer gehört jetzt zum Studio UPCrew — beim Öffnen erscheint kurz das UPCrew-Zeichen, ein Tipp überspringt es. Es lädt nichts und meldet nichts an: Deine Daten bleiben wie bisher nur auf deinem Gerät.",
     "<strong>Drei Ansichten statt fünf Stufen.</strong> Unter „Mehr → Ansicht“ wählst du jetzt zwischen Notizen, Training und Begleiter — als Bild statt als Liste. Wer auf „Notizblock + Zahlen“ stand, landet bei den Notizen (die Zahlen schreibst du einfach mit in die Zeile), wer auf „+ Auswertung“ stand, beim Begleiter und hat damit zusätzlich Ziele, Sportarten und den Plan-Assistenten. Es geht nichts verloren.",
