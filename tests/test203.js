@@ -39,6 +39,8 @@ new Function("module", "exports", [
   "function uebungAlleinAnlegen(){ gerufen.push('uebungsauswahl'); }",
   "function einrichtungOeffnen(){ gerufen.push('assistent'); }",
   "function zeigenToast(t, art){ gerufen.push('toast:' + t); }",
+  // 0.251: erstenWegOeffnen vergleicht mit den benannten Stufen
+  src.slice(src.indexOf("const STUFE = "), src.indexOf("\n", src.indexOf("const STUFE = "))),
   grabFn("erstenWegOeffnen"),
   "module.exports = { erstenWegOeffnen, weg(n){ gerufen = []; erstenWegOeffnen(n); return gerufen; } };"
 ].join("\n"))(modul, modul.exports);
@@ -48,23 +50,22 @@ let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
 /* ---------- 1) Wohin fuehrt der erste Start? ---------- */
-pruefe("Stufe 1 bleibt beim Notizblock", A.weg(1).join(",") === "start");
-pruefe("Stufe 2 auch", A.weg(2).join(",") === "start");
-pruefe("Stufe 3 fuehrt in die Uebungs-Auswahl", A.weg(3)[0] === "uebungsauswahl");
-pruefe("Stufe 4 ebenfalls", A.weg(4)[0] === "uebungsauswahl");
-pruefe("Stufe 5 ebenfalls", A.weg(5)[0] === "uebungsauswahl");
+/* 0.251: drei Stufen — Notizen (1), Training (3), Begleiter (5). */
+pruefe("die Notizen bleiben beim Notizblock", A.weg(1).join(",") === "start");
+pruefe("Training fuehrt in die Uebungs-Auswahl", A.weg(3)[0] === "uebungsauswahl");
+pruefe("Begleiter ebenfalls", A.weg(5)[0] === "uebungsauswahl");
 pruefe("KEINE Stufe startet den Assistenten",
-  [1,2,3,4,5].every(n => !A.weg(n).includes("assistent")));
+  [1,3,5].every(n => !A.weg(n).includes("assistent")));
 
 /* ---------- 2) Der Hinweis auf den Assistenten ---------- */
 const fuenf = A.weg(5);
-pruefe("Stufe 5 erfaehrt, wo der Assistent steht",
+pruefe("der Begleiter erfaehrt, wo der Assistent steht",
   fuenf.some(g => /^toast:/.test(g) && /Assistent/.test(g)));
 pruefe("und der Hinweis nennt den Ort", fuenf.some(g => /Werkzeuge/.test(g)));
 pruefe("er kommt NACH der Auswahl (sonst redet er ins Leere)",
   fuenf.indexOf("uebungsauswahl") < fuenf.findIndex(g => /^toast:/.test(g)));
 pruefe("die anderen Stufen bekommen ihn nicht (dort gibt es ihn nicht)",
-  [1,2,3,4].every(n => !A.weg(n).some(g => /^toast:/.test(g))));
+  [1,3].every(n => !A.weg(n).some(g => /^toast:/.test(g))));
 
 /* ---------- 3) Entfernt ist nicht geloescht ---------- */
 pruefe("die Wizard-Ansicht steht unveraendert da",
@@ -73,8 +74,8 @@ pruefe("seine Bau-Funktionen auch",
   src.includes("function plaeneErstellen(") && src.includes("function aktivitaetsPlaeneBauen("));
 pruefe("und er ist weiter aufrufbar",
   src.includes('onclick="einrichtungOeffnen()">Assistent starten'));
-pruefe("gebunden an Stufe 5, wie seit v193",
-  grabFn("einstWerkzeugeOeffnen").includes("stufe() >= 5"));
+pruefe("gebunden an die Planung (Begleiter), wie seit v193",
+  grabFn("einstWerkzeugeOeffnen").includes('darf("planung")'));
 /* Die Ersteinrichtung selbst ruft ihn nicht mehr. */
 pruefe("der alte Erst-Aufruf ist weg", !src.includes("if(n >= 5) einrichtungOeffnen();"));
 pruefe("die Stufen-Wahl delegiert an den einen Weg",
@@ -85,8 +86,8 @@ pruefe("und der Erst-Flow laeuft nur EINMAL (die Merker-Fahne faellt)",
 /* ---------- 4) Was der Weg voraussetzt ---------- */
 /* Die Uebungs-Auswahl ist ab Stufe 3 erlaubt — sonst liefe der erste Start in
    den Sicht-Filter und landete wieder auf Start. */
-pruefe("die Uebungs-Auswahl ist ab Stufe 3 erreichbar",
-  /"view-uebung-picker": 3/.test(src));
+pruefe("die Uebungs-Auswahl ist ab dem Training erreichbar",
+  /"view-uebung-picker": "training"/.test(src));
 pruefe("der Einzel-Modus legt keinen Plan an, sondern eine Uebung",
   grabFn("uebungAlleinAnlegen").includes("uebungEinzelModus = true"));
 pruefe("er kommt ohne vorhandenes Profil aus (eine Sportart wird nur dann gesetzt)",

@@ -170,8 +170,8 @@ pruefe("sie stehen MIT gewaehltem Muskel da und ohne",
    Zeile steht mit UND ohne gewaehlten Muskel, verschwindet also nie. */
 pruefe("die Grundlagen-Zeile aus v167 bleibt daneben stehen",
   (status.match(/grundlagenZeileHtml\(\)/g) || []).length >= 2);
-pruefe("die Muskelkarte bleibt ab Stufe 4 (Leitplanke 8)",
-  /"view-muskeln": 4/.test(src));
+pruefe("die Muskelkarte bleibt bei der Auswertung (Leitplanke 8)",
+  /"view-muskeln": "auswertung"/.test(src));
 
 /* ---------- 8) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

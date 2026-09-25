@@ -225,7 +225,7 @@ pruefe("die Auswahl im Tageswerte-Feld richtet sich nach dem Profil",
   grabFn("tageswertZeichnen").includes("tageswerteFuer(sitzung.daten.profil)"));
 
 /* ---------- 9) Leitplanke 8: nichts fragen auf Stufe 1/2 ---------- */
-pruefe("der Tages-Check ist erst ab Stufe 4 erlaubt", src.includes('"view-tagescheck": 4'));
+pruefe("der Tages-Check ist erst mit den Fragen erlaubt (Begleiter)", src.includes('"view-tagescheck": "fragen"'));
 pruefe("die Ansicht existiert", src.includes('<section id="view-tagescheck"'));
 pruefe("und laesst sich wegwischen (v164)",
   src.slice(src.indexOf('<section id="view-tagescheck"'),

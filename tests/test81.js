@@ -20,8 +20,11 @@ function bauen(hostname, pathname, repoOverride){
     "const ANZEIGE_VERSION = '0.081';",
     "const location = { hostname:" + JSON.stringify(hostname) + ", pathname:" + JSON.stringify(pathname) + ", href:'' };",
     "let meldungen = []; function meldung(t){ meldungen.push(t); }",
+    // 0.251: Eingabe-Pruefungen laufen ueber den Fehler-Baustein (UPCrew) — zaehlt als Meldung
+    "function fehlerZeigen(t){ meldungen.push(t); }",
     "let toasts = []; function zeigenToast(t){ toasts.push(t); }",
     "function stufe(){ return 5; }",
+    "let letzterFehler = '';",   // 0.251: die technische Meldung haengt am Feedback
     "function systemName(){ return 'iPhone'; }",
     "let geoeffnet = null;",
     "const window = { open: (u) => { geoeffnet = u; return {}; } };",

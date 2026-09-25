@@ -80,7 +80,10 @@ const code = [
   grabFn("notizZeilenModell"),   // v198: die Text-Sicht baut auf dem Zeilen-Modell auf
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),
-  grabFn("abschnittNameSetzen"),
+  // 0.251: planSchieben fragt darf("training") — die echte Faehigkeiten-Tabelle
+  grabLine("const STUFE = "),
+  src.slice(src.indexOf("const FAEHIGKEIT_AB = {"), src.indexOf("\n};", src.indexOf("const FAEHIGKEIT_AB = {")) + 3),
+  grabFn("darf"),
   grabFn("planSchieben"),
   grabFn("beispielplan"),
   grabFn("echteSaetze"),      // v158: „letztes Mal" überspringt Soll-Sätze
@@ -92,7 +95,7 @@ const code = [
   grabFn("protokollEintragHtml"),
   "module.exports = { get sitzung(){ return sitzung; }, get toasts(){ return toasts; }," +
   " leereToasts(){ toasts = []; }, setStufe(n){ stufeWert = n; }," +
-  " neueUebung, abschnittTextErzeugen, abschnittTextSetzen, abschnittNameSetzen, planSchieben," +
+  " neueUebung, abschnittTextErzeugen, abschnittTextSetzen, planSchieben," +
   " beispielplan, letztesMalText, kraftErledigt, protokollEintragHtml, heuteAlsText };"
 ].join("\n");
 
@@ -124,8 +127,8 @@ pruefe("v79 Rundlauf unveraendert", p.uebungen.length === 3 &&
   p.uebungen.map(u => u.id).join(",") === idsVorher && p.uebungen[2].gewicht === 12.5);
 T.abschnittTextSetzen("p1", gerendert + "\nKniebeugen");
 pruefe("v79 nackte Zeile wird Uebung", p.uebungen.some(u => u.name === "Kniebeugen"));
-T.abschnittNameSetzen("p1", "Laufen");
-pruefe("v79 Sportart aus Ueberschrift", p.sportart === "laufen" && p.typ === "aktivitaet");
+// 0.251: „Sportart aus Ueberschrift" gehoerte zur frueheren Stufe 2 und ist mit ihr entfallen.
+pruefe("v79 Ueberschrift der Stufe 2 ist entfallen (0.251)", !src.includes("function abschnittNameSetzen("));
 const pa = { id:"a", name:"A", sportart:"kraft", uebungen:[] };
 const pb = { id:"b", name:"B", sportart:"laufen", uebungen:[] };
 const pc = { id:"c", name:"C", sportart:"kraft", uebungen:[] };

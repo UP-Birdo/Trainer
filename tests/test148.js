@@ -148,7 +148,7 @@ setFilter({ sport:"alle", kat:"alle", geraet:"alle", art:"alle" });
 /* ---------- 8) Aufbau der Ansicht ---------- */
 const ansicht = src.split('<section id="view-uebung-picker"')[1].split("</section>")[0];
 pruefe("die Ansicht gibt es", src.includes('<section id="view-uebung-picker" class="view">'));
-pruefe("sie ist ab Stufe 3 erlaubt", src.includes('"view-uebung-picker": 3'));
+pruefe("sie ist ab dem Training erlaubt", src.includes('"view-uebung-picker": "training"'));
 pruefe("Suchfeld vorhanden", ansicht.includes('id="picker-suche"'));
 pruefe("Filter-Bereich vorhanden", ansicht.includes('id="picker-filter"'));
 pruefe("Eigene Uebung steht GANZ UNTEN",

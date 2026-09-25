@@ -130,7 +130,7 @@ pruefe("alles Abgeleitete zieht mit", abschluss.includes("fortschrittNeuZeichnen
 pruefe("es fuehrt auf die Abschluss-Seite, nicht in die Bewertung",
   abschluss.includes("abschlussZeigen(") && !abschluss.includes("bewertungOeffnen("));
 pruefe("die Ansicht gibt es", src.includes('id="view-abschluss"'));
-pruefe("sie ist ab Stufe 3 erlaubt (wie das Training selbst)", /"view-abschluss": 3/.test(src));
+pruefe("sie ist ab dem Training erlaubt (wie das Training selbst)", /"view-abschluss": "training"/.test(src));
 pruefe("die Abschluss-Seite zaehlt nur ECHTE Saetze",
   grabFn("abschlussZeigen").includes("echteSaetze(eintrag)"));
 /* Der Balken misst im Modus die Zeit, nicht die Schritte. */

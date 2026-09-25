@@ -146,8 +146,8 @@ pruefe("und wird nicht durch eine Datenpruefung versteckt",
   grabFn("statistikSichtbarkeit").includes("stat-tageswert"));
 pruefe("die Statistik zeichnet sie mit",
   grabFn("statistikOeffnen").includes("tageswertZeichnen()"));
-pruefe("die Detail-Ansicht ist ab Stufe 4 erlaubt (wie die Koerpermasse)",
-  src.includes('"view-tageswert": 4'));
+pruefe("die Detail-Ansicht verlangt eine Eingabe: erst mit den Fragen (Begleiter)",
+  src.includes('"view-tageswert": "fragen"'));
 pruefe("die Detail-Ansicht existiert im HTML", src.includes('<section id="view-tageswert"'));
 pruefe("und laesst sich wegwischen (v164)",
   src.slice(src.indexOf('<section id="view-tageswert"'),

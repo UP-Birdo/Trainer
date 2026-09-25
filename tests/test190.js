@@ -56,10 +56,10 @@ pruefe("ohne Ziel UND ohne Plan-Uebung bleibt es leer (v111)",
   /ziele\.length === 0 && uebungen\.length === 0.*\{ ziel\.innerHTML = ""; return; \}/.test(zieleFn));
 pruefe("und auch sonst nirgends mehr in der App",
   !/>Noch kein Ziel gesetzt/.test(src));
-/* Die Ziele-ANSICHT (view-ziele) hat einen eigenen, anderen Leer-Text mit
-   Beispiel — der war nicht gemeint und bleibt. */
-pruefe("der Leer-Text der Ziele-Ansicht bleibt unberuehrt",
-  src.includes("Noch kein Ziel — mit + eines anlegen"));
+/* Die Ziele-ANSICHT (view-ziele) hat einen eigenen Leer-Zustand — seit 0.251
+   aus dem UPCrew-Baustein, mit Knopf statt Satz. */
+pruefe("die Ziele-Ansicht hat ihren eigenen Leer-Zustand",
+  src.includes('zustandLeerHtml({ symbol:"ziel", text:"Kein Ziel",'));
 
 /* ---------- 2) Meilenstein-Text ---------- */
 pruefe("ohne Serie kein Text", A.meilensteinText(0) === "");
@@ -93,36 +93,31 @@ pruefe("das i der Karte oeffnet weiterhin genau diese Zeile",
   src.includes("infoUmschalten('statistik-klein')"));
 
 /* ---------- 3) Stufen-Auswahl ---------- */
+/* 0.251 (Nutzer-Entscheidung): Die Karte zeigt ein BILD statt Text, dazu Name
+   und ein, zwei Woerter (UPCrew-Standard). Das „i" daneben ist damit entfallen;
+   die v190-Zusage „kein Satz unter der Ueberschrift" gilt weiter — sichtbar ist
+   kein Satz, die ausfuehrliche Fassung ist die Vorlese-Beschriftung. */
 const stufen = grabFn("simpelheitFrageZeichnen");
-pruefe("die Karte traegt nur noch den Titel",
+pruefe("die Karte traegt Titel und Kurzform",
   stufen.includes("<strong>' + text(s.titel) + '</strong>") &&
-  !/stufe-wahl[\s\S]*?text\(s\.fuer\)[\s\S]*?<\/button>/.test(stufen));
-pruefe("fuer wen und was liegen hinter dem i",
-  stufen.includes("text(s.fuer)") && stufen.includes("text(s.text)") &&
-  stufen.includes('id="stufe-info-'));
-pruefe("das i steht NEBEN der Karte, nicht darin (kein Knopf im Knopf)",
-  stufen.indexOf("</button>") < stufen.indexOf("info-knopf"));
-pruefe("jede Stufe bekommt ihre eigene Info-Kennung",
-  /id="stufe-info-' \+ s\.n \+ '"/.test(stufen));
-pruefe("und ihr i zeigt genau darauf",
-  /infoUmschalten\(\\'stufe-info-' \+ s\.n \+ '\\'\)/.test(stufen));
-pruefe("die Info startet zugeklappt", /class="meta info-text stufe-info" hidden/.test(stufen));
-pruefe("das i hat eine Beschriftung fuer Vorleseprogramme",
-  /aria-label="Was zeigt diese Stufe\?"/.test(stufen));
+  stufen.includes("<small>' + text(s.kurz) + '</small>"));
+pruefe("die Karte traegt das Bild der Stufe", stufen.includes("s.bild"));
+pruefe("kein Satz sichtbar: fuer und text nur in der Vorlese-Beschriftung",
+  /aria-label="' \+ text\(s\.titel \+ ": " \+ s\.fuer \+ " " \+ s\.text\)/.test(stufen) &&
+  !/<small>' \+ text\(s\.(fuer|text)\)/.test(stufen));
+pruefe("das Bild ist fuer Vorleseprogramme stumm", stufen.includes('class="stufe-bild" aria-hidden="true"'));
+pruefe("kein Knopf im Knopf (kein i mehr in der Karte)", !stufen.includes("info-knopf"));
 pruefe("die Auswahl selbst funktioniert unveraendert",
   stufen.includes("simpelheitWaehlen(' + s.n + ')"));
 pruefe("die aktuelle Stufe bleibt markiert",
   stufen.includes('(s.n === jetzt ? " gewaehlt" : "")'));
-/* Layout: Karte und „i" nebeneinander, der Abstand sitzt an der Reihe. */
-pruefe("es gibt ein Stylesheet fuer die Reihe", /\.stufe-reihe\{[^}]*display:flex/.test(src));
-pruefe("die Karte nimmt den Platz", /\.stufe-reihe \.stufe-wahl\{flex:1/.test(src));
-pruefe("der Abstand ist von der Karte an die Reihe gewandert",
-  /\.stufe-reihe\{[^}]*margin-bottom:10px/.test(src) &&
-  !/\.stufe-wahl\{[^}]*margin-bottom:10px/.test(src));
-/* v173 bleibt gueltig: die gewaehlte Karte ist lesbar. */
+pruefe("es gibt ein Stylesheet fuer die Bild-Karten", /\.stufe-wahl\.mit-bild\{[^}]*display:flex/.test(src));
+pruefe("die alte Reihe Karte + i ist weg", !/\.stufe-reihe\{/.test(src));
+/* v173 bleibt gueltig: die gewaehlte Karte ist lesbar — auch ihr Bild. */
 pruefe("die v173-Lesbarkeitsregel steht weiterhin da",
   /\.stufe-wahl\.gewaehlt strong\{color:#16181C\}/.test(src));
-
+pruefe("und das Bild wird auf Gelb ebenfalls dunkel",
+  /\.stufe-wahl\.gewaehlt \.stufe-bild\{color:#16181C\}/.test(src));
 /* ---------- 4) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);

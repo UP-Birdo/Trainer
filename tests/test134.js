@@ -91,7 +91,7 @@ pruefe("eigene Statistik-Kachel", src.includes('id="stat-koerpermasse"') && src.
 pruefe("immer waehlbar (manuell befuellt)", src.includes('if(id === "koerpermasse")   return true'));
 pruefe("Kachel wird beim Oeffnen gezeichnet",
   grabFn("statistikOeffnen").includes("koerpermassZeichnen()"));
-pruefe("Detail-Ansicht ab Stufe 4", src.includes('"view-koerpermasse": 4'));
+pruefe("Detail-Ansicht erst mit der Auswertung (Begleiter)", src.includes('"view-koerpermasse": "auswertung"'));
 pruefe("Tipp auf die Kurve oeffnet die Eintraege",
   src.includes('onclick="koerpermassDetailsOeffnen()"'));
 pruefe("Namen kollidieren nicht mit der Messgroesse (mass...)",

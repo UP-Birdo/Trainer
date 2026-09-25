@@ -71,12 +71,14 @@ pruefe("Leer-Zustand ohne Intervall-Knopf", !liste.includes("intervallPlanNeu()"
    Vorher stand hier ab Stufe 5 der Assistent; der ist aus den Anlege-Wegen
    ausgezogen, also darf ihn auch der Leer-Zustand nicht mehr bewerben. */
 pruefe("Leer-Zustand ohne Assistent", !liste.includes("einrichtungOeffnen()"));
-pruefe("Leer-Zustand fuehrt zur einzelnen Uebung", liste.includes('uebungAlleinAnlegen()">Übung eintragen'));
+/* 0.251: Der Leer-Zustand kommt aus dem Baustein zustandLeerHtml (UPCrew). */
+pruefe("Leer-Zustand fuehrt zur einzelnen Uebung",
+  liste.includes('knopf:"Übung eintragen", tun:"uebungAlleinAnlegen()", haupt:true'));
 // Nur den Leer-Zustands-Block ansehen (er endet mit dem return), nicht den Rest
 // der Funktion — dort stehen die Knoepfe der Karten/Zeilen.
-const leerBlock = (liste.split("Noch nichts angelegt")[1] || "").split("return;")[0];
-pruefe("Leer-Zustand rendert genau einen Knopf",
-  leerBlock.split("<button").length - 1 === 1);
+const leerBlock = (liste.split("zustandLeerHtml(")[1] || "").split("return;")[0];
+pruefe("Leer-Zustand traegt genau einen Knopf",
+  (leerBlock.match(/knopf:/g) || []).length === 1);
 pruefe("und keine Stufen-Verzweigung mehr", !leerBlock.includes("stufe()"));
 
 /* 3) Das Menue haengt an der reinen Auswahl. */
@@ -87,7 +89,11 @@ pruefe("alle Wege sind verdrahtet",   // v211: nur noch Uebung und eigener Plan
 pruefe("und kein toter Eintrag bleibt zurueck (v180/v193/v211)",
   !menue.includes("nachtragen") && !menue.includes("assistent:") &&
   !menue.includes("beispiel:") && !menue.includes("intervall:"));
-pruefe("Stufe 1/2 legt weiter direkt einen Abschnitt an", menue.includes("abschnittAnlegen()"));
+/* 0.251: Abschnitte gibt es in den Notizen nicht mehr — das Plus springt in
+   die freie Zeile am Ende der Liste (wie schon auf Stufe 1 seit v212). */
+pruefe("in den Notizen springt das Plus in die freie Zeile",
+  menue.includes('if(!darf("training")){ notizFreieZeileFokus(); return; }') &&
+  !menue.includes("abschnittAnlegen()"));
 
 console.log(ok + " ok, " + fehler + " Fehler");
 process.exit(fehler ? 1 : 0);

@@ -57,8 +57,9 @@ const leerZweig = zeichnen.slice(zeichnen.indexOf("konten.length === 0"),
                                  zeichnen.indexOf("} else {"));
 pruefe("der Leer-Zustand traegt keinen eigenen Knopf mehr",
   leerZweig.indexOf("<button") < 0);
+/* 0.251: kurz, mit Symbol (UPCrew-Baustein) — die Aussage bleibt. */
 pruefe("der Leer-Zustand sagt trotzdem, woran man ist",
-  zeichnen.indexOf("Noch kein Konto auf diesem Ger") >= 0);
+  zeichnen.includes('zustandLeerHtml({ symbol:"konto", text:"Kein Konto" })'));
 
 /* ---------- 2) Die gelbe Hauptaktion folgt der Kontenlage ---------- */
 pruefe("der Neu-Knopf wird beim Zeichnen eingefaerbt",

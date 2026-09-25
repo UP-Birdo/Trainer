@@ -136,10 +136,11 @@ pruefe("und die Vorgabe erfindet nichts",
   pruefe("am Ende steht die eine freie Zeile (ohne Plan)",
     flach.includes('notizZeileHtml(null, { text:"", uebung:null })'));
   const zeichnen = grabFn("notizblockZeichnen");
-  pruefe("Stufe 1 nutzt sie", /s <= 1\s*\?\s*notizFlachHtml\(\)/.test(zeichnen));
-  pruefe("Stufe 2 behaelt ihre Abschnitts-Karten", zeichnen.includes("notizAbschnittHtml(p, s)"));
-  pruefe("und die tragen weiter eine Ueberschrift",
-    grabFn("notizAbschnittHtml").includes("abschnittNameSetzen"));
+  /* 0.251: Die Stufe 2 mit ihren Abschnitts-Karten ist entfallen — die
+     Notizen zeichnen IMMER flach. */
+  pruefe("die Notizen nutzen sie", zeichnen.includes("ziel.innerHTML = notizFlachHtml();"));
+  pruefe("die Abschnitts-Karten der Stufe 2 sind weg",
+    !src.includes("function notizAbschnittHtml(") && !src.includes("function abschnittNameSetzen("));
 }
 /* Jede Reihe weiss, wohin sie gehoert — daran haengt das Speichern. */
 {
@@ -179,10 +180,10 @@ pruefe("das Umstellen der Stufe konvertiert nichts",
 pruefe("die Abschnitte bleiben Plaene (kein eigenes Feld dazugekommen)",
   !/notizFlach\s*:/.test(src));
 /* Das „+" legt auf Stufe 1 keinen unsichtbaren Abschnitt mehr an. */
-pruefe("das Plus springt auf Stufe 1 in die freie Zeile",
+pruefe("das Plus springt in den Notizen in die freie Zeile",
   grabFn("planNeuMenue").includes("notizFreieZeileFokus()"));
-pruefe("auf Stufe 2 legt es weiter einen Abschnitt an",
-  grabFn("planNeuMenue").includes("abschnittAnlegen()"));
+pruefe("einen Abschnitt legt es nirgends mehr an (0.251)",
+  !grabFn("planNeuMenue").includes("abschnittAnlegen()"));
 
 /* ---------- 5) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

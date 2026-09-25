@@ -63,7 +63,7 @@ pruefe("eine davon ist der Hintergrund (Tipp daneben schliesst weiter)",
    erfuellt; die Leiste ist entfallen. Was hier stand (Reihenfolge Leiste/Text),
    ist damit gegenstandslos — geprueft wird jetzt, dass der Umweg nicht
    zurueckkommt. */
-const abschnitt = grabFn("notizAbschnittHtml");
+/* 0.251: Die Abschnitts-Karten der frueheren Stufe 2 sind entfallen. */
 pruefe("die eigene Haken-Leiste ist weg", !src.includes("function notizHakenLeisteHtml("));
 pruefe("und ihr Stylesheet auch", !/\.notiz-erledigt\{/.test(src));
 /* v212: Stufe 1 zeigt die Zeilen flach, ohne Abschnitts-Karte. */
@@ -77,9 +77,9 @@ pruefe("beide Teile sind in der Zeile", iHaken > 0 && iFeld > 0);
 pruefe("der Haken steht VOR dem Feld", iHaken < iFeld);
 pruefe("die Vorschlags-Reihe steht darunter",
   zeile.indexOf("notiz-vorschlaege") > iFeld);
-/* Stufe 2 ist davon unberuehrt — dort sass der Haken schon seit v174 richtig. */
-pruefe("Stufe 2 behaelt den Haken in der Zeile",
-  abschnitt.includes("notizHakenHtml(p, u)"));
+/* 0.251: Die Stufe 2 gibt es nicht mehr — ihre Karten sind mit ihr gegangen. */
+pruefe("die Abschnitts-Karten der Stufe 2 sind weg",
+  !src.includes("function notizAbschnittHtml("));
 
 /* ---------- 3) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

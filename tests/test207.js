@@ -252,7 +252,7 @@ pruefe("er ist eine Empfehlung, kein Alarm",
   !/id="wiedereinstieg-hinweis" class="hinweis"/.test(src));
 pruefe("startOeffnen zeichnet ihn", grabFn("startOeffnen").includes("wiedereinstiegZeichnen()"));
 /* Leitplanke 8: was deutet und raet, gehoert ab Stufe 4. */
-pruefe("er erscheint erst ab Stufe 4", grabFn("wiedereinstiegZeichnen").includes("stufe() >= 4"));
+pruefe("er erscheint erst mit den Fragen (Begleiter)", grabFn("wiedereinstiegZeichnen").includes('darf("fragen")'));
 pruefe("er aendert von sich aus nichts (nur die Knoepfe tun das)",
   !/planSenken|stufeSenken/.test(grabFn("wiedereinstiegZeichnen")));
 pruefe("es gibt beide Wege: senken und ausblenden",

@@ -28,8 +28,12 @@ pruefe("Info-Knopf im Pläne-Kopf", src.includes('id="plaene-info-knopf"'));
 pruefe("Info-Text als eigener, versteckter Block", /id="info-notizblock" class="meta info-text" hidden/.test(src));
 pruefe("Hinweis-Wand über der Liste weg", !/const hinweis = s <= 1/.test(src));
 pruefe("kurzer Platzhalter in der Textarea", src.includes('placeholder="Eine Übung je Zeile"'));
+/* 0.251: Den leeren Notizblock gibt es nicht mehr — die Notizen zeigen immer
+   die flache Liste, und die endet immer mit einer freien Zeile. Der Kern der
+   v123-Zusage (kein erklärender Satz zum Plus) gilt damit erst recht. */
 pruefe("Leer-Zustand ohne Plus-Erklärung",
-  src.includes('<div class="leer">Noch nichts notiert.</div>'));
+  !src.includes("Noch nichts notiert") &&
+  /function notizFlachHtml\(\)[\s\S]*?notizZeileHtml\(null, \{ text:"", uebung:null \}\)/.test(src));
 pruefe("Getan-Untertitel entfernt", !src.includes("Kurz festhalten, was du gemacht hast."));
 
 /* 2) Das „i" im Notizblock-Kopf.

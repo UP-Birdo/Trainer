@@ -27,14 +27,30 @@
      und Rot (warn) tragen dort die beiden anderen Stufen; ohne Grün wäre die
      Ampel eine Zweifarben-Ampel und die ruhige Stufe die auffälligste. */
   --ok:#5AA469;
+  /* 0.251: Die Studio-Farben des UPCrew-Intros — bewusst OHNE helle Fassung,
+     das Zeichen sieht in jeder App und jeder Darstellung gleich aus. */
+  --upcrew-grund:#120e1c; --upcrew-farbe:#7a5cf0; --upcrew-schrift:#ffffff;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
   /* Höhe der Bottom-Bar — FEST, nicht aus dem Textfluss gewachsen.
      Nur so lässt sich unten exakt so viel Platz freihalten, wie die Bar
      verdeckt (siehe body.nav-an .view.aktiv). */
   --navhoehe:52px;   /* v54: reine Tipp-Zeilenhöhe; Safe-Area kommt separat dazu */
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md:0 4px 6px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
-  --shadow-lg:0 10px 20px rgba(0,0,0,0.16);
+  /* UPCrew-Standard (09/2026, Apps\UPCrew-STANDARD.md Abschnitt 4): drei
+     Rundungen, sonst keine — Werte aus Typoluck 0.4.0. Statt weicher Schatten
+     (verschwommene Wolke) eine HARTE Kante: ohne Unschärfe, wenige Pixel nach
+     unten, in einem dunkleren Ton. Beim Drücken sinkt der Knopf auf sie.
+     Jede Rundung und jeder Schatten im Stylesheet verweist auf diese
+     Variablen; test251 meldet fest eingetragene Werte. */
+  --rund-klein:8px;      /* Felder, Kästchen, Kalendertage, kleine Marken */
+  --rund-mittel:14px;    /* Knöpfe, Karten, Menü, Dialog, Kurzmeldung */
+  --rund-voll:999px;     /* Pillen, Punkte, runde Knöpfe */
+  --karte-tiefe:3px; --knopf-tiefe:3px;
+  --kante-still:#07080A; --kante-haupt:#A8841F;
+  --kante:0 var(--karte-tiefe) 0 var(--kante-still);
+  --kante-hervor:0 var(--karte-tiefe) 0 var(--kante-haupt);
+  --kante-knopf:0 var(--knopf-tiefe) 0 var(--kante-still);
+  --kante-knopf-haupt:0 var(--knopf-tiefe) 0 var(--kante-haupt);
+  --ring:0 0 0 3px rgba(244,199,78,0.12);   /* Auswahl-/Fokus-Ring, ohne Unschärfe */
   --transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* ============================================================
@@ -48,9 +64,7 @@ html.hell{
   --ground:#FAFAF8; --panel:#FFFFFF; --panel-2:#F3F1ED;
   --chalk:#0D1117; --muted:#5F6B78; --line:#E8E5DF;
   --signal:#C89E1C; --rest:#1D6DB5; --warn:#C74830; --ok:#3E7A4E;
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md:0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg:0 10px 20px rgba(0,0,0,0.10);
+  --kante-still:#D6D1C8; --kante-haupt:#8F7012;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-touch-callout:none}
 /* v46: Text app-weit nicht markierbar (fühlt sich nach App an, nicht nach
@@ -95,16 +109,23 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
 .kopf [data-zurueck]{order:-1}
 .kopf:has([data-zurueck]){justify-content:flex-start;gap:12px}
 
-button{font-family:inherit;font-size:16px;border:0;border-radius:6px;padding:14px 16px;
+button{font-family:inherit;font-size:16px;border:0;border-radius:var(--rund-mittel);padding:14px 16px;
   min-height:48px;background:var(--panel-2);color:var(--chalk);font-weight:600;cursor:pointer;
-  transition:var(--transition);box-shadow:var(--shadow-sm)}
-button:active:not(:disabled){transform:scale(0.98)}
+  transition:var(--transition);box-shadow:var(--kante-knopf)}
+/* UPCrew (09/2026): Gedrückt sinkt der Knopf auf seine Kante, statt zu schrumpfen. */
+button:active:not(:disabled){transform:translateY(var(--knopf-tiefe));box-shadow:none}
+/* Flache Knöpfe (ohne eigene Fläche) haben keine Kante, auf die sie sinken
+   könnten — sie behalten das leichte Schrumpfen. */
+button.gefahr:active:not(:disabled),#nav button:active:not(:disabled),
+.info-knopf:active:not(:disabled),.schließen-knopf:active:not(:disabled),
+.muskel-tab:active:not(:disabled),.art-schalter button:active:not(:disabled),
+.umschalter button:active:not(:disabled){transform:scale(0.98)}
 button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--shadow-md)}
-button.gefahr{background:transparent;color:var(--warn);border:2px solid var(--warn);transition:var(--transition)}
+button.primaer{background:var(--signal);color:#0F1114;box-shadow:var(--kante-knopf-haupt)}
+button.gefahr{background:transparent;color:var(--warn);border:2px solid var(--warn);transition:var(--transition);box-shadow:none}
 button.schmal{padding:10px 12px;min-height:40px;font-size:14px}
 button.breit{width:100%}
-button.rund{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;
+button.rund{width:44px;height:44px;min-height:44px;border-radius:var(--rund-voll);padding:0;font-size:18px;
   background:var(--panel-2);border:2px solid var(--line);transition:var(--transition)}
 button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /* 44px = Mindestgröße für Tippziele */
 /* v102: Menü-Zeile in „Mehr" — Beschriftung links, Chevron rechts (Untermenü). */
@@ -131,8 +152,8 @@ button.mini{min-height:44px;min-width:44px;padding:4px 10px;font-size:15px}   /*
    weil button:hover (0,2,1) die gelbe Auswahl button.gewaehlt (0,1,1) überdeckte.
    Auf Touch ist Hover ohnehin sinnlos. :active (Tastendruck) bleibt für alle. */
 @media (hover: hover){
-  button:hover:not(:disabled){background:var(--line);box-shadow:var(--shadow-md)}
-  button.primaer:hover:not(:disabled){box-shadow:var(--shadow-lg);opacity:0.95}
+  button:hover:not(:disabled){background:var(--line)}
+  button.primaer:hover:not(:disabled){opacity:0.95}
   button.gefahr:hover:not(:disabled){background:rgba(215,92,71,0.08)}
   button.rund:hover:not(:disabled){border-color:var(--signal);background:rgba(244,199,78,0.08)}
 }
@@ -141,33 +162,29 @@ button:disabled{opacity:.4}
 .knopfreihe>*{flex:1}
 
 input,select{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
-  border:2px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;min-height:44px;appearance:none;
+  border:2px solid var(--line);border-radius:var(--rund-klein);padding:11px 12px;width:100%;min-height:44px;appearance:none;
   transition:var(--transition)}
 input:hover,select:hover{border-color:var(--muted)}
-input:focus,select:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+input:focus,select:focus{outline:none;border-color:var(--signal);box-shadow:var(--ring)}
 input::placeholder{color:var(--muted);opacity:0.7}
 label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px;font-weight:600}
 
-.karte{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;max-width:100%;overflow:hidden;
-  transition:var(--transition);box-shadow:var(--shadow-sm)}
-.karte:hover{border-color:var(--muted);box-shadow:var(--shadow-md)}
+.karte{background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-mittel);padding:14px;margin-bottom:10px;max-width:100%;overflow:hidden;
+  transition:var(--transition);box-shadow:var(--kante)}
+.karte:hover{border-color:var(--muted)}
 .zeile{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .meta{font-family:var(--mono);font-size:13px;color:var(--muted)}
 /* v76: Simpelheit — Stufen-Auswahl (view-simpelheit) & Notizblock (Stufe 1/2) */
 textarea{font-family:inherit;font-size:16px;background:var(--panel);color:var(--chalk);
-  border:2px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;appearance:none;resize:vertical}
-textarea:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+  border:2px solid var(--line);border-radius:var(--rund-klein);padding:11px 12px;width:100%;appearance:none;resize:vertical}
+textarea:focus{outline:none;border-color:var(--signal);box-shadow:var(--ring)}
 textarea::placeholder{color:var(--muted);opacity:0.7}
-/* v190: Die Karte und ihr „i" stehen nebeneinander in einer Reihe (ein Knopf im
-   Knopf wäre ungültiges HTML). Die Karte nimmt den Platz, das „i" bleibt schmal
-   und behält seine Tippfläche. Der Abstand sitzt jetzt an der Reihe, nicht mehr
-   an der Karte — sonst stünde das „i" nicht mehr auf ihrer Höhe. */
-.stufe-reihe{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
-.stufe-reihe .stufe-wahl{flex:1;margin-bottom:0}
-.stufe-info{margin:-4px 0 10px;white-space:normal}
+/* 0.251: Die Reihe „Karte + i" aus v190 ist entfallen — die Stufen-Karten
+   tragen seither ein Bild und ein, zwei Wörter (UPCrew-Standard „kaum Text");
+   die ausführliche Fassung ist ihre Vorlese-Beschriftung. */
 .stufe-wahl{display:block;width:100%;text-align:left;padding:14px 16px;min-height:0;
-  background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chalk)}
-.stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:0 0 0 2px rgba(244,199,78,0.15)}
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-mittel);color:var(--chalk)}
+.stufe-wahl.gewaehlt{border-color:var(--signal);box-shadow:var(--ring)}
 .stufe-wahl strong{color:var(--chalk);font-size:15px}
 /* v173: Die gelbe Fläche der gewählten Karte kommt aus der Haus-Regel
    „AUSGEWÄHLT = GELB" (button.gewaehlt) — die setzt eine dunkle Schrift, aber
@@ -184,6 +201,16 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    damit sie lesbar bleibt (derselbe Grund wie oben bei `strong`). */
 .stufe-wahl small{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.3}
 .stufe-wahl.gewaehlt small{color:#16181C;opacity:.85}
+/* 0.251: Die Stufen-Auswahl als Bild — Mini-Ansicht links, Name rechts. */
+.stufe-bilder{display:flex;flex-direction:column;gap:12px}
+.stufe-wahl.mit-bild{display:flex;align-items:center;gap:16px;padding:12px 16px}
+.stufe-bild{flex:0 0 auto;display:flex;color:var(--muted)}
+.stufe-bild svg{width:52px;height:78px;display:block}
+.stufe-wahl.gewaehlt .stufe-bild{color:#16181C}
+.stufe-name strong{display:block;font-size:18px}
+.stufe-name small{font-size:13px}
+.stufe-symbol{display:inline-flex;vertical-align:-5px;margin-right:8px}
+.stufe-symbol svg{width:20px;height:20px}
 /* v204: Zahlen, die erst im Blickfeld erscheinen (siehe fokusAufklappen).
    `grid-template-rows` statt `max-height`: Damit klappt die Zeile genau auf ihre
    eigene Höhe auf — eine geratene Maximalhöhe wäre entweder zu klein (Text
@@ -197,7 +224,6 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 @media (prefers-reduced-motion: reduce){
   .fokus-info{grid-template-rows:1fr;opacity:1;transition:none}
 }
-.notiz-name{font-weight:700;font-size:16px}
 /* v198: Der Block der Stufe 1 besteht aus ECHTEN Zeilen — je Zeile ein Feld mit
    dem Haken davor. Die frühere `<textarea>` (.notiz-text) ist damit entfallen;
    sie konnte keine Knöpfe zwischen ihren Zeilen tragen, und genau das war der
@@ -207,19 +233,8 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .notiz-reihe-feld{display:flex;gap:8px;align-items:center}
 .notiz-reihe-feld .notiz-feld{flex:1;min-width:0}
 .notiz-haken-slot{flex:0 0 auto;display:flex}
-.notiz-zeile{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.notiz-zeile input:first-child{flex:1}
-.notiz-zahl{width:64px;flex:0 0 auto;text-align:center}
-/* v201: Der Name der Einheit auf Stufe 2 ist Text, kein Feld — die Sportart
-   wechselt man nicht in einer Zahlen-Zeile (dafür ist der Abschnittsname da). */
-.notiz-einheit-name{flex:1;min-width:0;font-size:15px;color:var(--chalk);
-  display:flex;align-items:center;min-height:44px}
-/* v79: Spaltenköpfe der Stufe-2-Zeilen — gleiche Breiten wie die Felder darunter */
-.notiz-kopf{display:flex;gap:8px;margin-bottom:4px}
-.notiz-kopf label{margin:0}
-.notiz-kopf label:first-child{flex:1}
-.notiz-kopf .notiz-zahl{width:64px}
-.notiz-kopf-frei{width:44px;flex:0 0 auto}   /* Spalte des ×-Knopfs */
+/* 0.251: Die Spalten-Regeln der früheren Stufe 2 (.notiz-zeile, .notiz-zahl,
+   .notiz-kopf …) sind mit ihrer Ansicht entfallen. */
 /* v174: Der Haken je Zeile (Notizblock-Verlauf, Stufe 1/2).
    Bewusst KEIN gelber Vollton wie bei `button.gewaehlt`: Eine Liste erledigter
    Zeilen wäre eine Wand aus Gelb. Stattdessen dasselbe Bild wie die
@@ -229,7 +244,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    die Leiste abgelöst (der Haken sitzt jetzt in der Zeile selbst), darum ist
    `.notiz-erledigt` entfallen. */
 .notiz-haken{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
-  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-klein);
   padding:8px 10px;margin-bottom:6px;color:var(--chalk);min-height:44px}
 .notiz-haken.an{border-color:var(--signal)}
 /* v199: Die breite Fassung mit Name und Zahlen (`.notiz-haken-text`) ist
@@ -239,7 +254,22 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    der ×-Knopf am anderen Ende, damit die Felder dazwischen bündig stehen. */
 .notiz-haken.klein{width:44px;flex:0 0 auto;justify-content:center;padding:0;margin:0}
 .notiz-kopf-haken{width:44px;flex:0 0 auto}   /* Spalte des Hakens */
-.leer{border:2px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;color:var(--muted);
+/* 0.251 (UPCrew): der Leer-Zustand aus zustandLeerHtml — Symbol, Kurzwort,
+   höchstens ein Satz, ein Knopf. */
+.zustand-leer{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+  padding:24px 16px;border:2px dashed var(--line);border-radius:var(--rund-mittel);color:var(--muted)}
+.zustand-symbol{display:flex}
+.zustand-symbol svg{width:40px;height:40px}
+.zustand-leer strong{color:var(--chalk);font-size:16px}
+.zustand-erklaerung{font-size:13px;line-height:1.45;max-width:280px}
+.zustand-leer button{margin-top:6px}
+/* Fehler im Dialog: Symbol in der Warnfarbe über ein, zwei Wörtern. */
+#dialog.ist-fehler::before{content:"";display:block;width:40px;height:40px;margin:0 auto 12px;
+  background:var(--warn);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E") center/contain no-repeat}
+#dialog.ist-fehler #dialog-text{text-align:center;font-weight:700;font-size:17px}
+.leer{border:2px dashed var(--line);border-radius:var(--rund-mittel);padding:28px 16px;text-align:center;color:var(--muted);
   background:rgba(139,144,154,0.03);transition:var(--transition)}
 /* v217: Der Leerzustand einer Statistik-Kachel ist so hoch wie ein Diagramm an
    dieser Stelle — damit sind volle und leere Kacheln gleich groß. */
@@ -248,8 +278,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .satz-zeile{padding:10px 0;border-bottom:1px solid var(--line)}
 .satz-zeile:last-child{border-bottom:none}
 .hinweis{background:var(--panel);border-left:4px solid var(--warn);padding:12px 14px;
-  font-size:13px;color:var(--muted);border-radius:4px;margin-bottom:16px;line-height:1.6;box-shadow:var(--shadow-sm);transition:var(--transition)}
-.hinweis:hover{box-shadow:var(--shadow-md)}
+  font-size:13px;color:var(--muted);border-radius:var(--rund-klein);margin-bottom:16px;line-height:1.6;transition:var(--transition)}
 .raster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 /* v200 (Fehler aus dem Persona-Durchgang): In einer halbbreiten Statistik-Kachel
    ragte das Tageswerte-Formular über den Rand — das Datumsfeld hat eine eigene
@@ -260,7 +289,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .raster input,.raster select{max-width:100%}
 .abstand{margin-top:16px}
 .geheim{font-family:var(--mono);font-size:20px;letter-spacing:.06em;text-align:center;
-  background:var(--panel-2);border:2px dashed var(--signal);border-radius:6px;
+  background:var(--panel-2);border:2px dashed var(--signal);border-radius:var(--rund-klein);
   padding:18px 10px;user-select:all;-webkit-user-select:all;word-break:break-all;transition:var(--transition)}
 .geheim:hover{background:rgba(244,199,78,0.08)}
 .kennzahl{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--signal)}
@@ -268,10 +297,10 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 
 /* Strichliste der Sätze */
 .strichliste{display:flex;gap:5px;margin:12px 0 14px;flex-wrap:wrap}
-.strich{width:9px;height:32px;border-radius:2px;transform:skewX(-8deg);
+.strich{width:9px;height:32px;border-radius:var(--rund-klein);transform:skewX(-8deg);
   border:2px solid var(--line);background:transparent;transition:var(--transition)}
-.strich.erledigt{background:var(--signal);border-color:var(--signal);box-shadow:var(--shadow-sm)}
-.strich.jetzt{background:var(--rest);border-color:var(--rest);box-shadow:0 0 8px rgba(59,146,232,0.3)}
+.strich.erledigt{background:var(--signal);border-color:var(--signal)}
+.strich.jetzt{background:var(--rest);border-color:var(--rest)}
 
 /* Trainingsansicht */
 /* Trainingsansicht: exakt Bildschirmhöhe (Body ist währenddessen fixiert) —
@@ -297,8 +326,8 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .stopp-uhr{display:flex;align-items:center;justify-content:center;padding:24px 0}
 .stopp-uhr .uhr-zahl{font-size:clamp(48px,18vw,96px)}
 .uhr-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
-.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:6px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.1)}
-.balken span{display:block;height:100%;background:var(--signal);width:0%;transition:width 0.3s ease;box-shadow:0 0 8px rgba(244,199,78,0.4)}
+.balken{height:4px;background:var(--line);border-radius:var(--rund-voll);overflow:hidden;margin-bottom:6px}
+.balken span{display:block;height:100%;background:var(--signal);width:0%;transition:width 0.3s ease}
 /* v220: Zwei Angaben in EINER Zeile — links der Schritt, rechts die Gesamtzeit
    des Trainings. Eine eigene Zeile hätte den ohnehin knappen Platz über der
    Uhr ein weiteres Mal geteilt. */
@@ -309,7 +338,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
    Bildschirm, der mit der Restzeit schrumpft und seine Farbe wechselt.
    Die Farbe liegt auf einer eigenen Füllung mit Deckkraft, damit der Text in
    allen drei Stufen lesbar bleibt (Gelb unter weißer Schrift wäre es nicht). */
-.zeitband{position:relative;overflow:hidden;border-radius:8px;margin-bottom:8px;
+.zeitband{position:relative;overflow:hidden;border-radius:var(--rund-klein);margin-bottom:8px;
   height:28px;display:flex;align-items:center;justify-content:center;
   background:var(--panel-2);border:1px solid var(--line)}
 .zeitband-fuellung{position:absolute;left:0;top:0;bottom:0;width:100%;opacity:.30;
@@ -329,6 +358,20 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   @keyframes puls{50%{opacity:.45}}
 }
 
+/* 0.251: Das UPCrew-Intro — über allem, bildschirmfüllend. */
+.intro{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:18px;background:var(--upcrew-grund);color:var(--upcrew-schrift);
+  cursor:pointer;transition:opacity 400ms ease}
+.intro-weg{opacity:0}
+.intro-logo{display:flex;align-items:center;gap:10px;font-size:2.6rem;font-weight:800;
+  letter-spacing:-0.01em;animation:intro-auftritt 700ms cubic-bezier(0.2,0.9,0.3,1.2) both}
+.intro-up{padding:4px 14px;border-radius:var(--rund-mittel);background:var(--upcrew-farbe);color:var(--upcrew-schrift)}
+.intro-zeile{margin:0;color:rgba(255,255,255,0.6);font-size:0.95rem;letter-spacing:0.2em;
+  text-transform:uppercase;animation:intro-zeile 600ms ease 150ms both}
+@keyframes intro-auftritt{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+@keyframes intro-zeile{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){ .intro-logo,.intro-zeile{animation:none} }
+
 /* v82: Willkommens-Seite (nur beim allerersten Start) — groß und ruhig:
    was diese App von den üblichen unterscheidet. */
 #view-willkommen.aktiv{display:flex;flex-direction:column;height:100%;min-height:0;
@@ -339,7 +382,7 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .wk-satz strong{color:var(--chalk)}
 .wk-liste{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
 .wk-punkt{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);
-  border-left:4px solid var(--signal);border-radius:8px;padding:14px;box-shadow:var(--shadow-sm)}
+  border-left:4px solid var(--signal);border-radius:var(--rund-mittel);padding:14px;box-shadow:var(--kante)}
 .wk-punkt .haken{color:var(--signal);font-weight:800;font-size:18px;flex:0 0 auto;line-height:1.3}
 .wk-punkt strong{display:block;font-size:16px;margin-bottom:3px}
 .wk-punkt .wk-text{font-size:13px;color:var(--muted);line-height:1.55}
@@ -349,9 +392,9 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .note{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .note button{flex:1 1 auto;min-width:60px;padding:12px 8px;font-family:var(--mono);background:var(--panel-2);
   color:var(--muted);white-space:normal;line-height:1.25;font-size:14px;border:2px solid var(--line);
-  border-radius:6px;transition:var(--transition)}
+  border-radius:var(--rund-mittel);transition:var(--transition)}
 .note button:hover:not(:disabled){border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.note button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+.note button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);box-shadow:var(--ring)}
 /* 0.242: Muskel-Check-Wizard — die Figur groß und mittig, die Bewegungs-
    Anweisung gut lesbar, die Antworten als volle Reihen untereinander. */
 .mcheck-figur{--fb:150px;display:block;margin:8px auto}
@@ -363,11 +406,11 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
 .mcheck-gewaehlt{box-shadow:inset 0 0 0 2px var(--signal)}
 
 /* Umschalter Wdh/Zeit */
-.umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel)}
+.umschalter{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--rund-mittel);overflow:hidden}
+.umschalter button{flex:1;border-radius:0;min-height:40px;padding:8px;font-size:14px;background:var(--panel);box-shadow:none}
 
 /* Statistik */
-.diagramm{width:100%;height:auto;display:block;background:var(--panel);border:2px solid var(--line);border-radius:8px;box-shadow:var(--shadow-sm)}
+.diagramm{width:100%;height:auto;display:block;background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel)}
 .diagramm text{font-family:var(--mono)}   /* var() in SVG-Attributen ist ungültig — CSS greift stattdessen */
 /* minmax(0,1fr) statt 1fr: verhindert, dass Zellinhalte die Spalten
    breiter machen als den Bildschirm (klassische Grid-Falle). */
@@ -375,23 +418,23 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   width:100%;max-width:100%}
 .kalender .kopfzelle{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:2px 0;
   min-width:0;overflow:hidden;font-weight:600}
-.tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:6px;
+.tag{height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--rund-klein);
   font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);cursor:pointer;
   min-width:0;overflow:hidden;position:relative;transition:var(--transition);border:2px solid transparent}
 .tag:hover:not(.leer2){border-color:var(--signal)}
 .tag.leer2{background:transparent;cursor:default}
-.tag.trainiert{color:#0F1114;font-weight:700;cursor:default;box-shadow:var(--shadow-sm)}   /* Farbe kommt je Sportart aus dem JS */
+.tag.trainiert{color:#0F1114;font-weight:700;cursor:default}   /* Farbe kommt je Sportart aus dem JS */
 .tag.geplant{background:transparent;border:2px solid var(--line);font-weight:700}  /* nur umrandet = noch nicht passiert */
 .tag.ruhe{background:var(--rest);color:#FFFFFF;font-weight:700}
 .tag.autoruhe{background:transparent;border:2px dashed var(--line);color:var(--muted)}
 .tag.heute{outline:2px solid var(--signal);outline-offset:1px}
 /* Kern für Tage mit drei und mehr Sportarten: Die Zahl braucht einen ruhigen
    Untergrund, sonst verschwindet sie auf einem der Tortenstücke. */
-.tag.mehrfach .kern{position:absolute;inset:5px;border-radius:3px;background:var(--ground);
+.tag.mehrfach .kern{position:absolute;inset:5px;border-radius:var(--rund-klein);background:var(--ground);
   color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:700}
 /* Sondertraining = Training aus einem Plan ohne festen Tag */
 .sonderpunkt{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-  width:5px;height:5px;border-radius:50%;background:var(--signal);opacity:.7}
+  width:5px;height:5px;border-radius:var(--rund-voll);background:var(--signal);opacity:.7}
 
 /* v93: „Der Mensch" ganz oben in der Statistik — Figur vorne + hinten,
    gefärbt nach den zuletzt trainierten Muskeln. Antippen = volle Muskelkarte. */
@@ -438,20 +481,19 @@ textarea::placeholder{color:var(--muted);opacity:0.7}
   flex-shrink:0; z-index:6; display:flex;
   background:var(--panel); border-top:2px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);
-  box-shadow:0 -2px 8px rgba(0,0,0,0.1);
 }
 #nav button{
   position:relative;                 /* Anker für den Akzentbalken (::before) */
   flex:1; height:var(--navhoehe); min-height:0; min-width:0; padding:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  background:transparent; border:0; border-radius:0; color:var(--muted);
+  background:transparent; border:0; border-radius:0; box-shadow:none; color:var(--muted);
   font-size:10px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;
   white-space:nowrap; overflow:hidden; transition:var(--transition);
 }
 /* Akzentbalken über dem aktiven Tab: fährt aus der Mitte auf (scaleX 0 -> 1). */
 #nav button::before{
   content:""; position:absolute; top:0; left:50%;
-  width:26px; height:3px; border-radius:0 0 3px 3px; background:var(--signal);
+  width:26px; height:3px; border-radius:0 0 var(--rund-klein) var(--rund-klein); background:var(--signal);
   transform:translateX(-50%) scaleX(0); transform-origin:center;
   transition:transform .18s ease;
 }
@@ -472,13 +514,12 @@ body.sys-ios #nav{ background:transparent; border-top:0; box-shadow:none; }
    „man sieht die Tabellen vor der Tab-Leiste"). Der iOS-Pill-Look bleibt. */
 html.hell body.sys-ios #nav{
   background:var(--panel); border-top:2px solid var(--line);
-  box-shadow:0 -2px 8px rgba(0,0,0,0.06);
 }
 body.sys-ios #nav button{ z-index:0; }                 /* Stapelkontext, damit das Pill DAHINTER liegt */
 body.sys-ios #nav button::before{
   /* aus dem 26x3-Balken oben wird ein Pill hinter Icon + Text */
   top:5px; right:8px; bottom:5px; left:8px;
-  width:auto; height:auto; border-radius:16px;
+  width:auto; height:auto; border-radius:var(--rund-voll);
   background:var(--panel-2);
   transform:none;                                       /* scaleX-Animation des Balkens aus */
   z-index:-1;                                            /* hinter Icon + Text */
@@ -492,9 +533,8 @@ body.sys-ios #nav button.aktiv .sym svg{ transform:none; }   /* im Pill nicht an
 body:not(.nav-an) #nav{display:none}
 
 /* Heute-Karte: die Kernschleife "App auf -> Start" ohne Suchen */
-.heute{background:var(--panel);border:2px solid var(--signal);border-radius:8px;padding:16px;margin-bottom:14px;
-  box-shadow:0 4px 12px rgba(244,199,78,0.15);transition:var(--transition)}
-.heute:hover{box-shadow:0 8px 16px rgba(244,199,78,0.2)}
+.heute{background:var(--panel);border:2px solid var(--signal);border-radius:var(--rund-mittel);padding:16px;margin-bottom:14px;
+  box-shadow:var(--kante-hervor);transition:var(--transition)}
 .heute-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);font-weight:700}
 .heute h2{font-size:24px;margin:6px 0 4px}
 
@@ -510,8 +550,8 @@ body:not(.nav-an) #nav{display:none}
 /* Wizard: eine Frage pro Bildschirm, wischbar */
 #view-wizard.aktiv{display:flex;flex-direction:column;height:100%;padding:16px 16px 20px;max-width:640px;margin:0 auto}
 .wz-fortschritt{display:flex;gap:4px;margin-bottom:20px}
-.wz-punkt{flex:1;height:4px;border-radius:2px;background:var(--line);transition:var(--transition)}
-.wz-punkt.erledigt{background:var(--signal);box-shadow:0 0 6px rgba(244,199,78,0.3)}
+.wz-punkt{flex:1;height:4px;border-radius:var(--rund-voll);background:var(--line);transition:var(--transition)}
+.wz-punkt.erledigt{background:var(--signal)}
 .wz-punkt.jetzt{background:var(--chalk)}
 .wz-buehne{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center}
 .wz-frage{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
@@ -526,27 +566,27 @@ body:not(.nav-an) #nav{display:none}
 .wz-sport{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
   color:var(--chalk);margin-bottom:10px}
 .wz-sport .meta{margin-left:auto;font-weight:400;font-size:12px}
-.wz-sport-punkt{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.wz-sport-punkt{width:10px;height:10px;border-radius:var(--rund-voll);flex:0 0 auto}
 /* Die Frage trägt ihr „i" rechts daneben — der Hilfetext startet zugeklappt. */
 .wz-kopf{display:flex;align-items:flex-start;gap:10px}
 .wz-kopf .wz-frage{flex:1;min-width:0}
 .wz-kopf .info-knopf{flex:0 0 auto;margin-top:4px}
 .wz-optionen{display:flex;flex-direction:column;gap:8px}
 .wz-opt{width:100%;text-align:left;background:var(--panel);border:2px solid var(--line);
-  padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35;border-radius:6px;
+  padding:16px;min-height:56px;font-size:16px;white-space:normal;line-height:1.35;border-radius:var(--rund-mittel);
   transition:var(--transition);cursor:pointer}
 .wz-opt:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.wz-opt.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+.wz-opt.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);color:var(--signal);box-shadow:var(--ring)}
 .wz-opt small{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-weight:400}
 .wz-opt.gewaehlt small{color:var(--muted)}
 /* minmax(0,1fr) statt 1fr: lange Optionsnamen dürfen die Spalte nicht sprengen. */
 .wz-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .wz-raster .wz-opt{text-align:center;min-height:52px;padding:12px 8px}
 /* Eigenes Zeit-Feld unter den Dauer-Presets (v67) — Optik wie eine wz-opt-Zeile. */
-.wz-zeit-custom{margin-top:8px;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:12px 14px;
+.wz-zeit-custom{margin-top:8px;background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel);padding:12px 14px;
   transition:var(--transition)}
 .wz-zeit-custom:hover{border-color:var(--muted)}
-.wz-zeit-custom.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+.wz-zeit-custom.gewaehlt{border-color:var(--signal);background:rgba(244,199,78,0.08);box-shadow:var(--ring)}
 .wz-zeit-custom label{display:block;font-size:16px;margin-bottom:8px}
 .wz-zeit-custom.gewaehlt label{color:var(--signal)}
 .wz-zeit-eingabe{display:flex;align-items:center;gap:10px}
@@ -560,10 +600,10 @@ body:not(.nav-an) #nav{display:none}
 .wahl-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .wahl-raster button{width:100%;min-height:44px;padding:10px 8px;font-size:14px;
   background:var(--panel-2);color:var(--muted);white-space:normal;line-height:1.25;
-  border:2px solid var(--line);border-radius:6px;transition:var(--transition)}
+  border:2px solid var(--line);border-radius:var(--rund-mittel);transition:var(--transition)}
 .wahl-raster button:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
 .wahl-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal);font-weight:700;
-  box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+  box-shadow:var(--ring)}
 .wahl-raster button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 /* v148: Filter-Chips der Übungs-Suche — selbst gebaut statt System-Auswahlfeld
    (Nutzer-Wunsch: das <select> sah nach fremdem Betriebssystem aus). Eine Reihe
@@ -574,7 +614,7 @@ body:not(.nav-an) #nav{display:none}
   scrollbar-width:none}
 .filter-reihe::-webkit-scrollbar{display:none}
 .filter-reihe button{flex:0 0 auto;min-height:38px;padding:8px 14px;font-size:14px;
-  background:var(--panel-2);border:2px solid var(--line);border-radius:19px;
+  background:var(--panel-2);border:2px solid var(--line);border-radius:var(--rund-voll);
   color:var(--muted);white-space:nowrap;transition:var(--transition)}
 .filter-reihe button.gewaehlt{border-color:var(--chalk);color:var(--chalk);font-weight:600}
 .filter-titel{font-size:12px;color:var(--muted);margin-top:10px}
@@ -591,15 +631,15 @@ body:not(.nav-an) #nav{display:none}
    minmax(0,1fr): sonst sprengen die Beschriftungen die Spalten. */
 .tage-raster{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .tage-raster button{min-height:44px;padding:8px 2px;font-size:12px;font-family:var(--mono);
-  background:var(--panel-2);color:var(--muted);border:2px solid var(--line);border-radius:6px;transition:var(--transition)}
+  background:var(--panel-2);color:var(--muted);border:2px solid var(--line);border-radius:var(--rund-klein);transition:var(--transition)}
 .tage-raster button:hover{border-color:var(--muted)}
 .tage-raster button.gewaehlt{background:var(--signal);color:#0F1114;border-color:var(--signal)}
 /* Sportart-Liste im Profil: eine Zeile pro Sportart, tippen öffnet die Seite */
 .sportzeile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  background:var(--panel-2);border:2px solid var(--line);border-radius:6px;
+  background:var(--panel-2);border:2px solid var(--line);border-radius:var(--rund-mittel);
   padding:11px 12px;margin-bottom:6px;min-height:52px;transition:var(--transition);cursor:pointer}
 .sportzeile:hover{border-color:var(--muted);background:rgba(139,144,154,0.03)}
-.sportzeile .punkt{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.sportzeile .punkt{width:9px;height:9px;border-radius:var(--rund-voll);flex:0 0 auto}
 .sportzeile .text{flex:1;min-width:0;color:var(--chalk);font-size:14px;line-height:1.25}
 .sportzeile .text small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
 .sportzeile.aus .text{color:var(--muted)}
@@ -609,15 +649,15 @@ body:not(.nav-an) #nav{display:none}
 #menue-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;
   align-items:flex-end;justify-content:center;padding:16px;z-index:11;backdrop-filter:blur(2px)}
 #menue-hintergrund.offen{display:flex}
-#menue{background:var(--panel);border:2px solid var(--line);border-radius:12px;
-  padding:14px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
+#menue{background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel);
+  padding:14px;max-width:420px;width:100%;box-shadow:var(--kante)}
 #menue h2{margin-bottom:12px}
 #menue button{width:100%;margin-bottom:8px;text-align:left;transition:var(--transition)}
 /* v164: „Abbrechen" steht als Ausweg unter den Aktionen, abgesetzt und mittig —
    damit es nicht wie eine weitere Aktion aussieht. */
 #menue .menue-abbrechen{margin:10px 0 0;text-align:center;font-weight:600;color:var(--muted)}
 #menue button:hover{background:var(--panel-2)}
-.karte.gedrueckt{border-color:var(--signal);box-shadow:0 0 0 3px rgba(244,199,78,0.1)}
+.karte.gedrueckt{border-color:var(--signal);box-shadow:var(--ring)}
 /* v128: Mehrfach-Auswahl — das Kästchen ist die Aussage, der Rahmen bestätigt sie. */
 .karte.plan-gewaehlt{border-color:var(--signal)}
 .plan-haken{color:var(--signal);font-weight:400}
@@ -635,7 +675,7 @@ body:not(.nav-an) #nav{display:none}
 .karte .wisch-inhalt{background:var(--panel)}
 .wisch-loeschen{position:absolute;top:0;right:0;bottom:0;z-index:0;width:88px;
   background:var(--warn);color:#16181C;font-weight:700;border:none;border-radius:0;
-  min-height:0;padding:0;
+  min-height:0;padding:0;box-shadow:none;
   /* Geschlossen ist der Knopf unsichtbar — damit ist er zugleich aus der
      Tab-Reihenfolge und für Vorlese-Programme raus, ohne eigenes aria-hidden.
      Das Verschwinden wartet, bis die Zeile zurückgeglitten ist; sonst klaffte
@@ -667,7 +707,7 @@ body:not(.nav-an) #nav{display:none}
    dem Text her statt am rechten Rand zu stehen. Jetzt richtet sich alles an der
    ERSTEN Zeile aus, der Titel nimmt den freien Platz, die Figur bleibt rechts. */
 .vs-zeile{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--panel);
-  border:2px solid var(--line);border-radius:6px;margin-bottom:5px;transition:var(--transition)}
+  border:2px solid var(--line);border-radius:var(--rund-mittel);margin-bottom:5px;transition:var(--transition)}
 .vs-zeile:hover{border-color:var(--muted)}
 .vs-nr{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px;text-align:right;font-weight:600;
   line-height:1.5;flex:0 0 auto}
@@ -691,8 +731,8 @@ body:not(.nav-an) #nav{display:none}
    gefüllt. Er sitzt zwischen Kopfzeile und erster Karte, wo man den Zustand
    sucht, und ist so breit wie der Inhalt darunter. */
 .art-schalter{display:flex;gap:0;margin:0 0 10px;border:1px solid var(--line);
-  border-radius:10px;overflow:hidden}
-.art-schalter button{flex:1;border:0;border-radius:0;background:transparent;
+  border-radius:var(--rund-mittel);overflow:hidden}
+.art-schalter button{flex:1;border:0;border-radius:0;background:transparent;box-shadow:none;
   color:var(--muted);font-size:13px;font-weight:600;padding:9px 0;margin:0}
 .art-schalter button.gewaehlt{background:var(--signal);color:#0D1117}
 
@@ -700,7 +740,7 @@ body:not(.nav-an) #nav{display:none}
    drängt sich nicht vor den Namen. */
 .art-marke{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;color:var(--muted);border:1px solid var(--line);
-  border-radius:5px;padding:1px 5px;margin-right:6px;vertical-align:middle}
+  border-radius:var(--rund-klein);padding:1px 5px;margin-right:6px;vertical-align:middle}
 
 /* v112: ganze Statistik-Karte antippbar (Muskelkarte / Kalender) statt eigener Knöpfe. */
 .stat-tap{cursor:pointer}
@@ -717,10 +757,10 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 #stat-koerpergewicht{grid-column:1 / -1}
 
 /* Info-Knopf: Kleingedrucktes erst auf Wunsch — spart Platz, bleibt auffindbar */
-.info-knopf{width:32px;height:32px;min-height:32px;border-radius:50%;padding:0;font-size:14px;
+.info-knopf{width:32px;height:32px;min-height:32px;border-radius:var(--rund-voll);padding:0;font-size:14px;box-shadow:none;
   font-family:var(--mono);background:transparent;border:2px solid var(--muted);color:var(--muted);
   flex:0 0 auto;line-height:1;transition:var(--transition);font-weight:700}
-.info-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);box-shadow:0 0 0 6px rgba(244,199,78,0.15);transform:scale(1.05)}
+.info-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);transform:scale(1.05)}
 .info-text{margin-top:8px;line-height:1.6;animation:slideDown 0.3s ease-out}
 /* 0.248: „Gut zu wissen" als Klapp-Liste — die Überschrift IST der Knopf.
    Volle Breite und links ausgerichtet, damit sie wie eine Zeile wirkt und
@@ -742,8 +782,8 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
    den Umbruch, und `text-overflow:ellipsis` griff nicht, weil der Text kein
    eigenes Block-Kind war. Jetzt: Breite hart auf den Container begrenzt und
    umbrechen statt abschneiden — lieber zwei Zeilen als ein halber Satz. */
-.toast{background:var(--panel);border:2px solid var(--line);border-radius:8px;padding:12px 16px;
-  color:var(--chalk);font-weight:600;box-shadow:var(--shadow-md);animation:toastIn 0.3s ease-out;
+.toast{background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel);padding:12px 16px;
+  color:var(--chalk);font-weight:600;box-shadow:var(--kante);animation:toastIn 0.3s ease-out;
   display:flex;align-items:center;gap:12px;font-size:14px;pointer-events:auto;
   max-width:100%;box-sizing:border-box;overflow:hidden}
 .toast > span{min-width:0;overflow-wrap:anywhere;line-height:1.35}
@@ -756,7 +796,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .toast-icon{font-size:18px;flex:0 0 auto}
 /* v96: „Rückgängig" als klar tippbarer Knopf (vorher nur unterstrichener Text). */
 .toast-undo{margin-left:auto;padding:7px 12px;font-size:13px;cursor:pointer;background:var(--panel-2);
-  border:1px solid currentColor;border-radius:6px;color:inherit;font-weight:700;
+  border:1px solid currentColor;border-radius:var(--rund-klein);box-shadow:none;color:inherit;font-weight:700;
   transition:var(--transition);flex:0 0 auto;white-space:nowrap}
 .toast-undo:active{opacity:0.7}
 @keyframes toastIn{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
@@ -764,16 +804,16 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 
 /* Floating Action Button */
 .fab{position:fixed;bottom:calc(var(--navhoehe) + 20px + env(safe-area-inset-bottom));right:20px;
-  width:56px;height:56px;border-radius:50%;background:var(--signal);color:#16181C;border:none;
-  font-size:24px;font-weight:700;box-shadow:var(--shadow-lg);cursor:pointer;z-index:9;
+  width:56px;height:56px;border-radius:var(--rund-voll);background:var(--signal);color:#16181C;border:none;
+  font-size:24px;font-weight:700;box-shadow:var(--kante-knopf-haupt);cursor:pointer;z-index:9;
   transition:var(--transition);display:flex;align-items:center;justify-content:center}
-.fab:hover:not(:disabled){box-shadow:0 12px 24px rgba(244,199,78,0.4);transform:scale(1.08)}
-.fab:active:not(:disabled){transform:scale(0.95)}
+.fab:hover:not(:disabled){transform:scale(1.08)}
+.fab:active:not(:disabled){transform:translateY(var(--knopf-tiefe));box-shadow:none}
 .fab.fab-klein{width:48px;height:48px;font-size:20px}
 
 /* Close-Button (X oben rechts) */
 .schließen-knopf{position:absolute;top:20px;right:16px;width:36px;height:36px;min-height:36px;
-  padding:0;border-radius:50%;background:transparent;border:2px solid var(--line);
+  padding:0;border-radius:var(--rund-voll);background:transparent;border:2px solid var(--line);box-shadow:none;
   color:var(--chalk);font-size:18px;transition:var(--transition);z-index:5}
 .schließen-knopf:hover:not(:disabled){border-color:var(--signal);color:var(--signal);background:rgba(244,199,78,0.08)}
 
@@ -788,13 +828,13 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 #dialog-hintergrund{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;
   align-items:center;justify-content:center;padding:24px;z-index:10;backdrop-filter:blur(2px)}
 #dialog-hintergrund.offen{display:flex}
-#dialog{background:var(--panel);border:2px solid var(--line);border-radius:12px;
-  padding:20px;max-width:420px;width:100%;box-shadow:var(--shadow-lg)}
+#dialog{background:var(--panel);border:2px solid var(--line);border-radius:var(--rund-mittel);
+  padding:20px;max-width:420px;width:100%;box-shadow:var(--kante)}
 #dialog p{margin:0 0 16px;line-height:1.6;white-space:pre-line}
 
 /* Muskelkarte (Bonus ab Stufe 4, aus der Statistik) */
 .muskel-tabs{gap:8px;margin-bottom:12px}
-.muskel-tab{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.muskel-tab{flex:1;padding:9px;border-radius:var(--rund-mittel);border:1px solid var(--line);background:transparent;box-shadow:none;color:var(--muted);font:inherit;cursor:pointer}
 .muskel-tab.muskel-an{background:var(--signal);color:#16181C;border-color:var(--signal);font-weight:600}
 /* v122: Behälter der Figur(en). „Beide" stellt vorne und hinten nebeneinander —
    dann bestimmt die HÖHE die Größe (wie die Statistik-Vorschau seit v94: gleiche
@@ -835,7 +875,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
 .picker-muskel{display:flex;align-items:center;gap:10px;margin-top:10px}
 .picker-muskel:empty{display:none}
 /* Karteikarten-Picker im Editor (v91): antippbare Übungs-Karten statt Dropdown */
-.picker-karte{display:flex;align-items:center;width:100%;text-align:left;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--chalk);font:inherit;cursor:pointer}
+.picker-karte{display:flex;align-items:center;width:100%;text-align:left;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--rund-mittel);color:var(--chalk);font:inherit;cursor:pointer}
 .picker-karte .text{flex:1;min-width:0}
 .picker-karte .text small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
 .picker-karte .pfeil{color:var(--signal);font-size:20px;font-weight:700;flex:0 0 auto;line-height:1}
@@ -845,7 +885,7 @@ button.rund.klein{width:30px;height:30px;min-height:30px;font-size:15px}
    Figur ist doppelt so hoch wie breit. */
 .picker-karte .mini-figur{--fb:30px;flex:0 0 auto}
 /* Meilenstein-Abzeichen der Trainings-Serie (v85) */
-.meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px}
+.meilenstein{display:inline-block;background:var(--signal);color:#16181C;font-weight:700;font-size:13px;padding:2px 9px;border-radius:var(--rund-voll)}
 
 /* ============================================================
    AUSGEWÄHLT = GELB — muss die LETZTE Regel im Stylesheet bleiben.
@@ -862,6 +902,17 @@ button.gewaehlt{background:var(--signal);color:#16181C}
 </style>
 </head>
 <body>
+<!-- 0.251: Das UPCrew-Intro (UPCrew-Standard; Aufbau und Werte wie in Typoluck,
+     docs\GESTALTUNG.md „Das UPCrew-Intro"). Es steht von Anfang an im Bild,
+     damit die App nicht kurz davor aufblitzt; das kleine Skript darunter blendet
+     es sofort aus, wenn es in diesem Besuch schon kam. Den Ablauf macht
+     introStarten() (#region Start). Es lädt nichts, meldet nichts an und sendet
+     nichts — der Trainer bleibt rein lokal (Nutzer, 25.09.2026). -->
+<div id="intro" class="intro" role="img" aria-label="UPCrew">
+  <div class="intro-logo"><span class="intro-up">UP</span><span class="intro-crew">Crew</span></div>
+  <p class="intro-zeile">präsentiert</p>
+</div>
+<script>try{if(sessionStorage.getItem("upcrew.intro-gesehen")==="ja")document.getElementById("intro").hidden=true;}catch(e){}</script>
 <div id="inhalt"><!-- v48: scrollender Inhaltsbereich; die Nav-Leiste liegt als
      Flex-Geschwister DARUNTER (nicht mehr position:fixed) — behebt, dass die
      Leiste auf nicht-scrollenden Seiten (Heute/Pläne/Profil) hochkroch. -->
@@ -872,7 +923,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
      irgendein Formular kommt. Danach nie wieder (Geräte-Merker).
      ============================================================ -->
 <section id="view-willkommen" class="view">
-  <h1>Willkommen</h1>
+  <h1>Erster Start</h1>
   <div class="wk-kopf">Trai<span>ner</span></div>
   <div class="wk-satz"><strong>Dein Training. Deine Daten. Sonst niemand.</strong><br>
     Diese App macht vieles anders als die aus dem App Store:</div>
@@ -1386,7 +1437,7 @@ button.gewaehlt{background:var(--signal);color:#16181C}
        feste Anker auf JEDER Stufe (v76) — nur unaufdringlicher. Ihre Beschriftung
        trägt die aktuelle Stufe; der Erklärtext steht jetzt in der Stufen-Auswahl. -->
   <div class="karte">
-    <button class="breit einst-zeile" onclick="simpelheitFrageOeffnen(false)"><span id="mehr-einfachheit-label">Einfachheit</span><span class="meta">›</span></button>
+    <button class="breit einst-zeile" onclick="simpelheitFrageOeffnen(false)"><span id="mehr-einfachheit-label">Ansicht</span><span class="meta">›</span></button>
     <button class="breit einst-zeile" id="mehr-profil-zeile" onclick="profilOeffnen()"><span>Profil</span><span class="meta">›</span></button>
     <button class="breit einst-zeile" onclick="einstDarstellungOeffnen()"><span>Darstellung &amp; Bedienung</span><span class="meta">›</span></button>
     <button class="breit einst-zeile" id="mehr-werkzeuge-zeile" onclick="einstWerkzeugeOeffnen()"><span>Werkzeuge</span><span class="meta">›</span></button>
@@ -2393,8 +2444,8 @@ function papierkorbZeichnen(){
   const ziel = document.getElementById("papierkorb-liste"); if(!ziel) return;
   const korb = (sitzung.daten.papierkorb || []).slice().reverse();   // neueste zuerst
   if(korb.length === 0){
-    ziel.innerHTML = '<div class="leer">Der Papierkorb ist leer.<br><br>' +
-      'Gelöschte Pläne und Verlaufs-Einträge landen hier und lassen sich wiederherstellen.</div>';
+    ziel.innerHTML = zustandLeerHtml({ symbol:"papierkorb", text:"Nichts gelöscht",
+      erklaerung:"Gelöschte Pläne und Einträge lassen sich hier zurückholen." });
     return;
   }
   const typName = t => t === "plan" ? "Plan" : t === "eintrag" ? "Verlaufs-Eintrag" : "Element";
@@ -2532,6 +2583,65 @@ function frage(textInhalt, mitAbbrechen, dann){
 }
 function meldung(t){ frage(t, false, null); }
 
+/* ============================================================
+   #region Zustände — Leer und Fehler (UPCrew-Standard Abschnitt 3, 0.251)
+   EIN Baustein, damit keine Stelle ihren eigenen Text erfindet:
+   * Leer:   Symbol, höchstens drei Wörter, EIN Knopf, der weiterhilft (wo es
+             einen gibt), dazu höchstens EIN erklärender Satz (der Trainer
+             darf Sätze in Erklärungen, der Standard sagt es so).
+   * Fehler: Symbol, ein, zwei Wörter, „Nochmal", der GENAU den
+             fehlgeschlagenen Schritt wiederholt. Die technische Meldung steht
+             nicht auf dem Bildschirm — sie wird gemerkt und hängt an der
+             nächsten Feedback-Meldung (feedbackSenden), damit sie beim
+             Nachsehen nicht fehlt.
+   Laden braucht der Trainer nicht: Er liest alles vom Gerät, und das Update
+   hat seinen eigenen Balken (0.233).
+   Der Fehlerfänger (unerwartete Fehler, #region oben) bleibt bewusst
+   ausführlich: Er bittet darum, den Fehler zu melden, und zeigt deshalb, WAS
+   schiefging.
+   ============================================================ */
+const ZUSTAND_SYMBOLE = {
+  papierkorb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>',
+  konto:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.5-4 4.3-6 7.5-6s6 2 7.5 6"/></svg>',
+  plan:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>',
+  verlauf:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  ziel:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></svg>'
+};
+
+/** Leer-Zustand als HTML. z = { symbol, text, erklaerung?, knopf?, tun?, haupt? }
+    `tun` ist der onclick-Aufruf als Text (so bauen alle Listen des Trainers
+    ihre Knöpfe); `haupt` macht den Knopf gelb — nur, wenn er auf diesem
+    Bildschirm die EINE Hauptaktion ist. */
+function zustandLeerHtml(z){
+  return '<div class="zustand-leer">' +
+    '<span class="zustand-symbol" aria-hidden="true">' + (ZUSTAND_SYMBOLE[z.symbol] || "") + '</span>' +
+    '<strong>' + text(z.text) + '</strong>' +
+    (z.erklaerung ? '<div class="zustand-erklaerung">' + text(z.erklaerung) + '</div>' : "") +
+    (z.knopf ? '<button class="schmal' + (z.haupt ? " primaer" : "") + '" onclick="' + z.tun + '">' +
+      text(z.knopf) + '</button>' : "") +
+  '</div>';
+}
+
+let letzterFehler = "";   // die technische Meldung — geht mit dem nächsten Feedback mit
+
+/** Fehler-Zustand als Dialog: Symbol, `kurz` (ein, zwei Wörter) und — wenn es
+    einen gibt — „Nochmal", der `nochmal()` genau einmal erneut ausführt. */
+function fehlerZeigen(kurz, nochmal, technik){
+  if(technik) letzterFehler = kurz + ": " + String(technik).slice(0, 300);
+  const dialog = document.getElementById("dialog");
+  const ja = document.getElementById("dialog-ja");
+  const nein = document.getElementById("dialog-nein");
+  const vorher = [ja.textContent, nein.textContent];
+  dialog.classList.add("ist-fehler");
+  if(nochmal){ ja.textContent = "Nochmal"; nein.textContent = "Schließen"; }
+  frage(kurz, !!nochmal, antwort => {
+    dialog.classList.remove("ist-fehler");
+    ja.textContent = vorher[0]; nein.textContent = vorher[1];
+    if(antwort && nochmal) nochmal();
+  });
+}
+
+
 /** Dialog mit Passwortfeld. dann(passwort) nur bei OK, bei Abbrechen passiert nichts. */
 function passwortFrage(textInhalt, dann){
   const hintergrund = document.getElementById("dialog-hintergrund");
@@ -2571,7 +2681,7 @@ const Speicher = (function(){
     schreiben(objekt){
       if(!persistent){ imSpeicher = objekt; return; }
       try { localStorage.setItem(SCHLUESSEL, JSON.stringify(objekt)); }
-      catch(e){ meldung("Speichern fehlgeschlagen: " + e.message); }
+      catch(e){ fehlerZeigen("Nicht gespeichert", () => this.schreiben(objekt), e.message); }
     }
   };
 })();
@@ -2814,7 +2924,7 @@ function speichern(){
     const sauberAus = ruhetageOhneTrainingstage(sitzung.daten.ruheAus, sitzung.daten.protokoll);
     if(sauberAus.length !== (sitzung.daten.ruheAus || []).length) sitzung.daten.ruheAus = sauberAus;
   }
-  sitzungSpeichern().catch(e => meldung("Speichern fehlgeschlagen: " + e.message));
+  sitzungSpeichern().catch(e => fehlerZeigen("Nicht gespeichert", speichern, e.message));
 }
 
 /** v153: Alles neu zeichnen, was aus dem Protokoll abgeleitet ist — Flamme,
@@ -2865,7 +2975,8 @@ function loginZeichnen(){
        Willkommens-Seite gerade zum ersten Mal gesehen hat, hat kein Backup.
        Jetzt: ein Weg zum Wiederherstellen (der Knopf unten), und die gelbe
        Hauptaktion ist „Neues Konto anlegen" (siehe unten). */
-    ziel.innerHTML = '<div class="leer">Noch kein Konto auf diesem Gerät.</div>';
+    // Kein Knopf hier: „Neues Konto anlegen" steht als Hauptaktion darunter.
+    ziel.innerHTML = zustandLeerHtml({ symbol:"konto", text:"Kein Konto" });
   } else {
     ziel.innerHTML = tresor.konten.map(k =>
       '<div class="karte zeile"><h2>' + text(k.benutzer) + '</h2>' +
@@ -2923,7 +3034,9 @@ async function anmelden(){
       sitzung = { kontoId: gewaehltesKonto.id, datenSchluessel, dkBytes, daten };
       if(anmeldeMerken && window.indexedDB){
         await merkerSchreiben(gewaehltesKonto.id, dkBytes)
-          .catch(e => meldung("„Angemeldet bleiben“ konnte nicht gespeichert werden (" + e + "). Die Anmeldung selbst hat geklappt."));
+          .catch(e => fehlerZeigen("Nicht gemerkt",
+            () => merkerSchreiben(gewaehltesKonto.id, dkBytes).catch(e2 => fehlerZeigen("Nicht gemerkt", null, e2)),
+            e));
       } else {
         await merkerLoeschen().catch(() => {});   // Häkchen weg = alter Merker weg
       }
@@ -2964,8 +3077,8 @@ async function anmelden(){
    kleiner, bemerkt ein Gerät nie wieder ein Update; reparieren ließe sich das
    nur am Gerät selbst. Also: nie umbenennen, nie rechnen lassen, nie
    verkleinern. `tests\test224.js` rechnet nach, dass sie zu VERSION passt. */
-const VERSION = "0.250.0";
-const APP_VERSION = 250000;
+const VERSION = "0.251.0";
+const APP_VERSION = 251000;
 const ANZEIGE_VERSION = VERSION;
 
 /** Ergänzt Felder, die in älteren Datenständen fehlen (statt Migrationschaos). */
@@ -3174,13 +3287,13 @@ async function kontoAnlegen(){
   const passwort = document.getElementById("neu-passwort").value;
   const geschlecht = document.getElementById("neu-geschlecht").value;
   if(benutzer === ""){ meldung("Bitte einen Benutzernamen eingeben."); return; }
-  if(passwort.length < 8){ meldung("Das Passwort braucht mindestens 8 Zeichen."); return; }
+  if(passwort.length < 8){ fehlerZeigen("Mindestens 8 Zeichen"); return; }
   /* v170: Pflichtfeld statt stiller Vorauswahl. Es geht in die Startgewichte
      ein — geraten wird hier nichts. Gespeichert wird weiterhin nur „m"/„w"/„d",
      der leere Wert kommt nie in die Daten (additiver Datenvertrag unberührt). */
   if(geschlecht === ""){ meldung("Bitte wähle noch dein Geschlecht — die App leitet daraus deine Startgewichte ab."); return; }
   if(tresor.konten.some(k => k.benutzer.toLowerCase() === benutzer.toLowerCase())){
-    meldung("Diesen Benutzernamen gibt es auf diesem Gerät schon."); return;
+    fehlerZeigen("Name schon vergeben"); return;
   }
   const profil = {
     groesse: parseFloat(document.getElementById("neu-groesse").value) || 0,
@@ -3277,7 +3390,7 @@ async function passwortZuruecksetzen(){
   const code = codeNormalisieren(document.getElementById("wh-code").value);
   const pw1 = document.getElementById("wh-passwort").value;
   const pw2 = document.getElementById("wh-passwort2").value;
-  if(pw1.length < 8){ meldung("Das neue Passwort braucht mindestens 8 Zeichen."); return; }
+  if(pw1.length < 8){ fehlerZeigen("Mindestens 8 Zeichen"); return; }
   if(pw1 !== pw2){ meldung("Die Passwörter stimmen nicht überein."); return; }
   try {
     const dkBytes = await huelleOeffnen(code, konto.huelleCode);
@@ -3287,7 +3400,7 @@ async function passwortZuruecksetzen(){
     const klartext = await gcmEntschluesseln(datenSchluessel, konto.paket);
     sitzung = { kontoId: konto.id, datenSchluessel, dkBytes,
                 daten: datenNachruesten(JSON.parse(new TextDecoder().decode(klartext))) };
-    meldung("Passwort neu gesetzt. Du bist angemeldet.");
+    zeigenToast("Passwort neu gesetzt", "erfolg");
     startOeffnen();
   } catch(e){
     meldung("Der Wiederherstellungscode ist nicht korrekt.");
@@ -3328,7 +3441,7 @@ async function passwortAendern(){
   }
   const pw1 = document.getElementById("pw-neu").value;
   const pw2 = document.getElementById("pw-neu2").value;
-  if(pw1.length < 8){ meldung("Das neue Passwort braucht mindestens 8 Zeichen."); return; }
+  if(pw1.length < 8){ fehlerZeigen("Mindestens 8 Zeichen"); return; }
   if(pw1 !== pw2){ meldung("Die Passwörter stimmen nicht überein."); return; }
   const konto = tresor.konten.find(k => k.id === sitzung.kontoId);
   konto.huellePasswort = await huelleErzeugen(pw1, sitzung.dkBytes);
@@ -3355,7 +3468,7 @@ function codeErneuern(){
       konto.huelleCode = await huelleErzeugen(frischerCode, sitzung.dkBytes);
       Speicher.schreiben(tresor);
       codeAnzeigen(() => einstellungenOeffnen());
-    })().catch(e => meldung("Fehlgeschlagen: " + e.message));
+    })().catch(e => fehlerZeigen("Code nicht erneuert", codeErneuern, e.message));
   });
 }
 
@@ -3849,115 +3962,126 @@ function effektiveNote(u, manuelleNote, saetze){
    welche Ansicht eine Stufe sehen darf — beides fragen Navigation und
    View-Aufbau ab, statt die Bedingung überall einzeln zu wiederholen.
    ============================================================ */
-/** Die aktuelle Simpelheits-Stufe (1–5). Vor der Anmeldung / bei kaputtem
-    Wert defensiv 5 (voller Stand) — nie weniger zeigen, als das Konto hat. */
+/* ------------------------------------------------------------
+   0.251 (Nutzer-Entscheidung 25.09.2026): DREI Stufen statt fünf.
+   Die fünf Stufen beantworteten auf einer Linie drei verschiedene Fragen
+   (wie trage ich ein · wie viel spricht die App mit mir · welche Werkzeuge),
+   und die Sprünge 1→2 und 4→5 waren kaum zu spüren. Jetzt:
+     Notizen   (1) — mitschreiben, nichts wird gefragt oder bewertet
+     Training  (3) — Pläne, geführtes Training, Protokoll
+     Begleiter (5) — dazu Auswertung, Fragen, Planung
+   Die gespeicherte Zahl `einrichtung.simpelheit` bleibt (additiver Vertrag);
+   geschrieben werden nur noch 1, 3 und 5, alte Werte ordnet stufe() beim
+   LESEN zu (2 → Notizen, 4 → Begleiter). Senken löscht nichts, Heben
+   erfindet nichts — es wird nichts umgeschrieben.
+   ------------------------------------------------------------ */
+const STUFE = { NOTIZEN:1, TRAINING:3, BEGLEITER:5 };
+
+/** Die aktuelle Stufe — immer 1, 3 oder 5. Vor der Anmeldung / bei kaputtem
+    Wert defensiv Begleiter (voller Stand) — nie weniger zeigen, als das Konto hat. */
 function stufe(){
   const s = sitzung && sitzung.daten && sitzung.daten.einrichtung
-    ? sitzung.daten.einrichtung.simpelheit : 5;
-  return (typeof s === "number" && s >= 1 && s <= 5) ? s : 5;
+    ? sitzung.daten.einrichtung.simpelheit : STUFE.BEGLEITER;
+  if(typeof s !== "number" || s < 1 || s > 5) return STUFE.BEGLEITER;
+  if(s <= 2) return STUFE.NOTIZEN;
+  if(s === 3) return STUFE.TRAINING;
+  return STUFE.BEGLEITER;
 }
 
-/* Ab welcher Stufe ist eine Ansicht überhaupt erreichbar? Nicht gelistete
-   Ansichten (Login, Code, Notizblock=view-plaene, Mehr, Hilfe …) gelten ab 1.
-   Stufe 5 = heutiger Vollausbau, deshalb steht nichts auf 6. */
-const VIEW_MIN_STUFE = {
-  "view-start": 3,                                   // "Heute" gibt es erst mit echtem Training
-  "view-training": 3, "view-vorschau": 3, "view-stoppuhr": 3,
-  "view-intervall": 3,                                 // v118: Intervall-Timer (die eigene Anlage entfiel mit v211)
-  "view-eintragen": 3, "view-muskelcheck": 3, "view-ergebnis": 3,   // 0.242: Muskel-Fragen selbst erst ab 4 (muskelCheckMuskeln), die Notiz ab 3
-  "view-abschluss": 3,                                 // v221: Ende eines Trainings auf Zeit
-  "view-editor": 3,                                  // Stufe 1/2 bearbeiten im Notizblock
-  "view-uebung-picker": 3,                           // v148: Übungs-Suche als eigene Ansicht
-  /* v173: `view-einst-werkzeuge`, `view-bibliothek` und `view-papierkorb`
-     standen hier auf 3 und sind ERSATZLOS gestrichen — sie gelten damit ab
-     Stufe 1 (nicht gelistet = ab 1, siehe oben). Nutzer-Einwand aus dem
-     Persona-Durchgang: „Der Scheibenrechner fehlt genau seiner Zielgruppe" —
-     ausgerechnet der Langhantel-Erfahrene, für den der Notizblock gedacht ist,
-     hatte das Profi-Werkzeug nicht.
-     Das ist mit Leitplanke 8 vereinbar, und zwar für alle drei: Sie VERLANGEN
-     nichts und BEWERTEN nichts. Scheibenrechner = Taschenrechner, Bibliothek =
-     Nachschlagewerk (rein lesend, wie die Erklärung aus v169), Papierkorb =
-     Sicherheitsnetz gegen Datenverlust. Was Leitplanke 8 fernhält, sind Analyse
-     und Rückfragen — nicht Werkzeug und Nachschlagen.
-     Eine „1" gehört NICHT in diese Tabelle: Der Register-Vertrag (test154)
-     verlangt, dass hier nur echte Sperren stehen und alles ab Stufe 1
-     ausdrücklich in der Ab-Stufe-1-Liste des Tests geführt wird. */
-  /* 0.248: „Wie die App von dir lernt" ist reine Auskunft — sie verlangt
-     nichts und bewertet nichts (Leitplanke 8: „was nichts verlangt, darf ab
-     Stufe 3"). Die 3 ist zugleich die niedrigste Stufe, von der aus sie
-     erreichbar ist: die Ergebnis-Seite nach dem Training. */
-  "view-lernen": 3,
-  "view-statistik": 4, "view-verlauf": 4, "view-muskeln": 4, "view-kalender": 4, "view-gewicht": 4,
-  "view-statdetail": 4,     // v205: die Einträge hinter einer abgeleiteten Statistik
-  "view-eintrag": 4,        // v218: Training bearbeiten — erreichbar über den Verlauf
-  "view-koerpermasse": 4,   // v134
-  "view-tageswert": 4,      // v166: Schlaf, Befinden — wie die Körpermaße
-  "view-tagescheck": 4,     // v168: Fragenkatalog — Leitplanke 8: nichts fragen auf Stufe 1/2
-  "view-profil": 5, "view-sportarten": 5, "view-sportart": 5, "view-ziele": 5,
-  "view-sport-ort": 5, "view-sport-geraete": 5, "view-sportsetup": 5,
-  "view-wizard": 5
+/* Was ab welcher Stufe gilt — die EINE Tabelle. Code vergleicht nie mehr
+   stufe() mit einer Zahl, sondern fragt darf("fragen"): Wer das Stufen-Modell ändert,
+   ändert es hier und nirgends sonst. Leitplanke 8 steht in dieser Tabelle:
+   was fragt oder bewertet, liegt über den Notizen. */
+const FAEHIGKEIT_AB = {
+  training:   STUFE.TRAINING,    // Pläne mit Sätzen, geführtes Training, Protokoll, Heute, Ansagen
+  auswertung: STUFE.BEGLEITER,   // Statistik, Verlauf, Kalender, Muskelkarte, Körperwerte
+  fragen:     STUFE.BEGLEITER,   // Tages-Check, Muskel-Fragen, Wiedereinstieg (Leitplanke 8)
+  planung:    STUFE.BEGLEITER    // Profil, Sportarten, Ziele, Plan-Assistent
+};
+
+/** Darf die aktuelle Stufe diese Fähigkeit? Unbekannte Namen sind ein
+    Programmierfehler — lieber sichtbar scheitern als still „ja" sagen. */
+function darf(faehigkeit){
+  if(!(faehigkeit in FAEHIGKEIT_AB)) throw new Error("Unbekannte Fähigkeit: " + faehigkeit);
+  return stufe() >= FAEHIGKEIT_AB[faehigkeit];
+}
+
+/* Welche Fähigkeit braucht eine Ansicht? Nicht gelistete Ansichten (Login,
+   Code, Notizblock=view-plaene, Mehr, Hilfe …) gelten auf jeder Stufe.
+   v173: `view-einst-werkzeuge`, `view-bibliothek` und `view-papierkorb` stehen
+   bewusst NICHT hier — Scheibenrechner, Nachschlagewerk und Papierkorb
+   verlangen nichts und bewerten nichts; der Scheibenrechner fehlte sonst genau
+   seiner Zielgruppe, dem Langhantel-Erfahrenen auf dem Notizblock. Der
+   Register-Vertrag (test154) verlangt, dass jede Ansicht entweder hier steht
+   oder im Test ausdrücklich als „jede Stufe" geführt ist. */
+const VIEW_FAEHIGKEIT = {
+  "view-start": "training",                          // "Heute" gibt es erst mit echtem Training
+  "view-training": "training", "view-vorschau": "training", "view-stoppuhr": "training",
+  "view-intervall": "training",                      // v118: Intervall-Timer
+  "view-eintragen": "training", "view-muskelcheck": "training", "view-ergebnis": "training",   // 0.242: die Muskel-Fragen selbst erst mit "fragen" (muskelCheckMuskeln)
+  "view-abschluss": "training",                      // v221: Ende eines Trainings auf Zeit
+  "view-editor": "training",                         // Notizen bearbeiten im Notizblock
+  "view-uebung-picker": "training",                  // v148: Übungs-Suche als eigene Ansicht
+  "view-lernen": "training",                         // 0.248: reine Auskunft, erreichbar ab der Ergebnis-Seite
+  "view-statistik": "auswertung", "view-verlauf": "auswertung", "view-muskeln": "auswertung",
+  "view-kalender": "auswertung", "view-gewicht": "auswertung",
+  "view-statdetail": "auswertung",                   // v205: die Einträge hinter einer abgeleiteten Statistik
+  "view-eintrag": "auswertung",                      // v218: Training bearbeiten — erreichbar über den Verlauf
+  "view-koerpermasse": "auswertung",                 // v134
+  "view-tageswert": "fragen",                        // v166: Schlaf, Befinden — verlangt eine Eingabe
+  "view-tagescheck": "fragen",                       // v168: Fragenkatalog — Leitplanke 8
+  "view-profil": "planung", "view-sportarten": "planung", "view-sportart": "planung", "view-ziele": "planung",
+  "view-sport-ort": "planung", "view-sport-geraete": "planung", "view-sportsetup": "planung",
+  "view-wizard": "planung"
 };
 /** Darf die aktuelle Stufe diese Ansicht sehen? */
-function viewErlaubt(id){ return stufe() >= (VIEW_MIN_STUFE[id] || 1); }
+function viewErlaubt(id){ const f = VIEW_FAEHIGKEIT[id]; return !f || darf(f); }
 
-/** Welche Nav-Tabs zeigt eine Stufe? Stufe 1/2 haben GAR KEINE Leiste
-    (Zugang zu „Mehr" über das ⋯ im Notizblock). Stufe 5 = heutiger Stand. */
+/** Welche Nav-Tabs zeigt eine Stufe? Die Notizen haben GAR KEINE Leiste
+    (Zugang zu „Mehr" über das ⋯ im Notizblock). */
 function navTabsFuerStufe(s){
-  if(s <= 2) return [];
-  if(s === 3) return ["nav-start","nav-plaene","nav-einst"];              // ohne Statistik
-  if(s === 4) return ["nav-start","nav-plaene","nav-statistik","nav-einst"];
-  return ["nav-start","nav-plaene","nav-statistik","nav-einst"];          // 5 = alles
+  if(s < STUFE.TRAINING) return [];
+  if(s < STUFE.BEGLEITER) return ["nav-start","nav-plaene","nav-einst"];   // ohne Statistik
+  return ["nav-start","nav-plaene","nav-statistik","nav-einst"];
 }
 
-/* --- Die fünf Stufen: Titel, FÜR WEN und was sie zeigt (Abschnitt 3).
-   v156 (Nutzer-Gedanke): Die Stufen sind andersherum gedacht, als die Nummer
-   vermuten lässt. Wer NEU ist, will den vollen Umfang sehen und kennenlernen,
-   was es gibt; wer fortgeschritten ist, braucht am Ende nur noch einen Block,
-   in den er seine Zahlen schreibt. Die Auswahl sagt das jetzt ausdrücklich
-   (`fuer`) und ist in dieser Richtung sortiert (SIMPELHEIT_REIHENFOLGE).
-   Die gespeicherte Zahl 1..5 bleibt, wie sie ist — sie steht in jedem Konto
-   (`einrichtung.simpelheit`) und in der ganzen Doku; sie umzudrehen hieße,
-   bestehende Daten umzuschreiben (additiver Datenvertrag). Die Nummer ist
-   damit eine interne Kennung und steht nicht mehr in der Auswahl. --- */
+/* --- Die drei Stufen. `titel` und `kurz` stehen sichtbar auf der Karte (ein
+   bis zwei Wörter, UPCrew-Standard „kaum Text"), `bild` ist eine Mini-Ansicht
+   des Startbildschirms dieser Stufe, `symbol` das kleine Zeichen in „Mehr".
+   `fuer` und `text` sind die ausführliche Fassung — sie tragen die
+   Vorlese-Beschriftung der Karte (aria-label). --- */
 const SIMPELHEIT_STUFEN = [
-  /* v173: „festhalten, was war" war ein Versprechen, das die Stufe nicht halten
-     kann. Der Notizblock speichert den AKTUELLEN Stand jedes Abschnitts — kein
-     Datum, kein Verlauf, kein Protokoll (Leitplanke 8, bewusst). Wer nächste
-     Woche 82,5 kg einträgt, überschreibt die 80 von heute. Genau die
-     Zielgruppe, die hier landen soll, wählte die Stufe also mit einer falschen
-     Erwartung. Jetzt steht da, was sie WIRKLICH kann. */
-  /* v202: `kurz` ist der eine Halbsatz, der SICHTBAR unter dem Namen steht —
-     gerade so viel, dass man die fünf Stufen vergleichen kann, ohne fünf „i"
-     anzutippen. `fuer` und `text` bleiben die ausführliche Fassung dahinter.
-     Regel für diese Zeile: Sie nennt, was die Stufe ZEIGT, in höchstens einer
-     Zeile Bildschirmbreite — keine zweite Erklärung. */
-  { n:1, titel:"Notizblock", kurz:"Nur ein Block zum Reinschreiben.",
+  { n:1, titel:"Notizen", kurz:"Nur mitschreiben",
     fuer:"Für Erfahrene, die sich nur notieren wollen, was sie machen.",
-    text:"Eine Seite, eine Übung je Zeile — dein Plan zum Nachschlagen, ohne Verlauf." },
-  { n:2, titel:"Notizblock + Zahlen", kurz:"Dazu Sätze und Wiederholungen.",
-    fuer:"Für Erfahrene, die ihre Sätze und Wiederholungen dabeihaben wollen.",
-    text:"Wie Notizblock, plus Sätze und Wiederholungen je Zeile — ebenfalls ohne Verlauf." },
-  { n:3, titel:"Plan + Training", kurz:"Geführtes Training mit Pause-Timer.",
+    text:"Eine Seite, eine Übung je Zeile, Zahlen gleich dahinter — ohne Verlauf, ohne Fragen.",
+    bild:'<svg viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="54" height="84" rx="9"/><rect x="11" y="17" width="7" height="7" rx="2"/><path d="M23 20.5h25"/><rect x="11" y="33" width="7" height="7" rx="2"/><path d="M23 36.5h21"/><rect x="11" y="49" width="7" height="7" rx="2"/><path d="M23 52.5h24"/><rect x="11" y="65" width="7" height="7" rx="2"/><path d="M23 68.5h14"/></svg>',
+    symbol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="4" height="4" rx="1"/><path d="M11 7h9"/><rect x="4" y="15" width="4" height="4" rx="1"/><path d="M11 17h6"/></svg>' },
+  { n:3, titel:"Training", kurz:"Geführt trainieren",
     fuer:"Wenn du weißt, was du tust, und nur die Führung willst.",
-    text:"Echte Pläne, geführtes Training mit Pause-Timer, Protokoll." },
-  { n:4, titel:"+ Auswertung", kurz:"Dazu Kalender, Kurven und Fortschritt.",
-    fuer:"Wenn du sehen willst, wie es über die Wochen läuft.",
-    text:"Zusätzlich Kalender, Volumen, Gewichtskurve, Fortschritt." },
-  { n:5, titel:"Vollausbau", kurz:"Alles, was die App kann.",
+    text:"Echte Pläne, geführtes Training mit Pause-Timer und Ansagen, Protokoll.",
+    bild:'<svg viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="54" height="84" rx="9"/><path d="M26 15h8"/><path d="M30 15v4"/><circle cx="30" cy="36" r="14"/><path d="M30 36v-8"/><path d="M30 36l5 4"/><rect x="11" y="64" width="38" height="12" rx="6" fill="currentColor" fill-opacity=".35"/></svg>',
+    symbol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4"/><circle cx="12" cy="14" r="7"/><path d="M12 14v-4"/></svg>' },
+  { n:5, titel:"Begleiter", kurz:"Mit Auswertung",
     fuer:"Für den Anfang — hier siehst du alles, was die App kann.",
-    text:"Zusätzlich Trainingsplanung, Sportarten, Ziele, Ansagen." }
+    text:"Zusätzlich Kalender, Kurven, Muskelkarte, Ziele, Sportarten und der Plan-Assistent.",
+    bild:'<svg viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="54" height="84" rx="9"/><path d="M12 17h22"/><path d="M12 72h36"/><path d="M16 72V58"/><path d="M25 72V46"/><path d="M34 72V52"/><path d="M43 72V36"/><path d="M14 40l10-8 9 5 12-10"/></svg>',
+    symbol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-5"/><path d="M12 20V9"/><path d="M17 20v-8"/></svg>' }
 ];
 
-/** Reihenfolge in der AUSWAHL: von „viel Anleitung" nach „wenig". Wer neu ist,
-    findet oben, was er sucht; wer nur noch mitschreibt, unten. Bewusst die
-    umgekehrte Richtung der internen Nummer — die Liste folgt dem Gedanken,
-    nicht der Zählweise. */
-const SIMPELHEIT_REIHENFOLGE = [5, 4, 3, 2, 1];
+/** Reihenfolge in der AUSWAHL (v156, Nutzer-Gedanke): von „viel" nach „wenig".
+    Wer neu ist, will sehen, was es gibt; wer nur noch mitschreibt, findet
+    seine Stufe unten. */
+const SIMPELHEIT_REIHENFOLGE = [5, 3, 1];
 
 /** Die Stufen in Anzeige-Reihenfolge. Rein/testbar; einzige Quelle für die
     Auswahl, damit Reihenfolge und Inhalt nie auseinanderlaufen. */
 function simpelheitListe(){
   return SIMPELHEIT_REIHENFOLGE.map(n => SIMPELHEIT_STUFEN.find(s => s.n === n)).filter(Boolean);
+}
+
+/** Der Eintrag zur aktuellen Stufe (für „Mehr"). */
+function simpelheitAktuell(){
+  return SIMPELHEIT_STUFEN.find(x => x.n === stufe()) || SIMPELHEIT_STUFEN[SIMPELHEIT_STUFEN.length - 1];
 }
 
 let simpelheitErstmalig = false;   // Ersteinrichtung (true) vs. Umschalten im Betrieb (false)
@@ -3966,82 +4090,50 @@ let simpelheitErstmalig = false;   // Ersteinrichtung (true) vs. Umschalten im B
     andere Überschrift, danach in die passende Startansicht). */
 function simpelheitFrageOeffnen(erstmalig){
   simpelheitErstmalig = !!erstmalig;
-  /* v156: „Wie einfach soll die App sein?" legte nahe, dass wenig = für Neue
-     ist. Gefragt ist aber, wie viel man sehen WILL — und wer neu ist, will
-     meist viel. */
   document.getElementById("simpelheit-titel").textContent =
-    erstmalig ? "Wie viel soll die App dir zeigen?" : "Einfachheit ändern";
+    erstmalig ? "Wie viel soll die App dir zeigen?" : "Ansicht";
   document.getElementById("simpelheit-zurueck").hidden = erstmalig;   // im Erst-Flow kein Rückweg
-  // v122: der eine Erklärsatz — beim ersten Mal mit dem Hinweis, wo man ihn
-  // später wiederfindet; danach nur noch die Beruhigung „nichts geht verloren".
+  // Der eine Erklärsatz: Umstellen ist jederzeit möglich und kostet nichts.
   document.getElementById("simpelheit-hinweis").textContent = erstmalig
-    ? "Die Stufe steuert nur, wie viel die App zeigt. Du kannst sie jederzeit unter „Mehr“ ändern — deine Daten bleiben."
-    : "Die Stufe steuert nur, wie viel die App zeigt — Umstellen ändert nie deine Daten.";
+    ? "Jederzeit unter „Mehr“ änderbar — deine Daten bleiben."
+    : "Umstellen ändert nie deine Daten.";
   simpelheitFrageZeichnen();
   zeige("view-simpelheit");
 }
 
+/** 0.251: Die Wahl als BILD — je Stufe eine Karte mit Mini-Ansicht, Name und
+    ein, zwei Wörtern. Die Sätze (`fuer` + `text`) sind die Vorlese-Fassung.
+    Beim ersten Start ist „Training" hervorgehoben: der Kern der App, von dem
+    aus man in beide Richtungen wechseln kann. Getippt wird trotzdem — ein
+    Tipp wählt, wie bisher. */
 function simpelheitFrageZeichnen(){
-  const jetzt = simpelheitErstmalig ? 0 : stufe();   // im Erst-Flow nichts vorwählen
-  /* v156: Ohne die Nummer — sie ist eine interne Kennung und stünde hier
-     rückwärts (5,4,3,2,1), was mehr verwirrt als hilft. Zuerst „für wen",
-     dann was die Stufe zeigt: Man wählt nach der eigenen Lage, nicht nach
-     einer Funktionsliste. */
-  /* v190 (Nutzer-Ansage „unter der Überschrift kein Text, der soll unter ein i
-     daneben"): Die Karte trägt nur noch den Titel; „für wen" und die
-     Kurzbeschreibung liegen hinter dem „i" rechts daneben.
-
-     WARUM das „i" NEBEN dem Knopf steht und nicht darin: Ein Knopf in einem
-     Knopf ist ungültiges HTML — der Tipp träfe je nach Gerät den falschen, und
-     Vorleseprogramme kommen damit nicht klar. Deshalb eine Zeile mit zwei
-     Geschwistern; die Erklärung klappt darunter auf (`infoUmschalten`, dasselbe
-     Muster wie Kalender-Legende und Statistik-Kennzahlen). */
+  const jetzt = simpelheitErstmalig ? STUFE.TRAINING : stufe();
   document.getElementById("simpelheit-inhalt").innerHTML =
+    '<div class="stufe-bilder">' +
     simpelheitListe().map(s =>
-      '<div class="stufe-reihe">' +
-        '<button class="stufe-wahl' + (s.n === jetzt ? " gewaehlt" : "") + '" onclick="simpelheitWaehlen(' + s.n + ')">' +
-          '<strong>' + text(s.titel) + '</strong>' +
-          /* v202 (Nutzer-Entscheidung): EINE kurze Zeile je Stufe steht wieder
-             sichtbar da. v190 hatte alles hinter das „i" geräumt — das ist
-             überall richtig, nur nicht hier: Dies ist der eine Bildschirm, auf
-             dem ein neuer Nutzer OHNE VORWISSEN entscheiden muss, und fünf Namen
-             ohne Text kann man nicht vergleichen, ohne fünf „i" einzeln
-             anzutippen. Die ausführliche Fassung (`fuer` + `text`) bleibt im
-             „i" — sichtbar ist nur der Halbsatz, der die Stufen unterscheidet. */
-          '<small>' + text(s.kurz) + '</small>' +
-        '</button>' +
-        '<button class="info-knopf" onclick="infoUmschalten(\'stufe-info-' + s.n + '\')" ' +
-          'aria-label="Was zeigt diese Stufe?">i</button>' +
-      '</div>' +
-      '<div id="stufe-info-' + s.n + '" class="meta info-text stufe-info" hidden>' +
-        text(s.fuer) + " — " + text(s.text) +
-      '</div>').join("");
+      '<button class="stufe-wahl mit-bild' + (s.n === jetzt ? " gewaehlt" : "") + '" ' +
+        'onclick="simpelheitWaehlen(' + s.n + ')" ' +
+        'aria-label="' + text(s.titel + ": " + s.fuer + " " + s.text) + '">' +
+        '<span class="stufe-bild" aria-hidden="true">' + s.bild + '</span>' +
+        '<span class="stufe-name"><strong>' + text(s.titel) + '</strong>' +
+          '<small>' + text(s.kurz) + '</small></span>' +
+      '</button>').join("") +
+    '</div>';
 }
 
 /** v203 (Nutzer-Entscheidung, Etappe 3 der Übungs-Entscheidung): Wohin führt
     der ERSTE Start, nachdem die Stufe gewählt ist?
-
-    Bis v202 startete Stufe 5 den Plan-Assistenten — er war damit der einzige
-    Weg, den ein neuer Nutzer überhaupt zu sehen bekam. Genau das sollte die
-    Richtungs-Entscheidung umkehren: Nicht „erst einen Plan bauen, dann
-    trainieren", sondern **eine Übung eintragen und loslegen**. Deshalb führt der
-    erste Start jetzt direkt in die Übungs-Auswahl.
-
-    Zwei Dinge bleiben bewusst:
-    * **Stufe 1 und 2 gehen weiter auf ihr Zuhause** — dort IST der Notizblock
-      die Eingabe. Ein Picker davor wäre ein Umweg zu einer leeren Zeile.
-    * **Der Assistent ist nicht weg**, nur nicht mehr der Zwangsweg: Er steht
-      unter „Mehr → Werkzeuge" (seit v193). Damit ein neuer Nutzer davon
-      erfährt, sagt es der Toast — einmalig, im Moment des Übergangs, statt als
-      dauerhafter Satz im Leer-Zustand (dort soll EINE Aktion stehen, v129).
-
-    Was WIRD dabei nicht gelöscht: `WIZARD_FRAGEN`, `view-wizard`,
-    `plaeneErstellen` und `aktivitaetsPlaeneBauen` bleiben unangetastet — der
-    Assistent funktioniert unverändert, er ist nur nicht mehr die Startseite. */
+    * **Notizen gehen auf ihr Zuhause** — dort IST der Notizblock die Eingabe.
+    * **Training und Begleiter** gehen direkt in die Übungs-Auswahl: eine Übung
+      eintragen und loslegen, statt erst einen Plan zu bauen.
+    * **Der Assistent ist nicht weg**, er steht unter „Mehr → Werkzeuge"
+      (v193); der Begleiter erfährt es einmalig per Toast.
+    `WIZARD_FRAGEN`, `view-wizard`, `plaeneErstellen` und
+    `aktivitaetsPlaeneBauen` bleiben unangetastet. */
 function erstenWegOeffnen(n){
-  if(n <= 2){ startOeffnen(); return; }
+  if(n < STUFE.TRAINING){ startOeffnen(); return; }
   uebungAlleinAnlegen();
-  if(n >= 5) zeigenToast("Lieber geführt? Der Plan-Assistent steht unter Mehr → Werkzeuge.", "info");
+  if(n >= STUFE.BEGLEITER) zeigenToast("Plan-Assistent: Mehr → Werkzeuge", "info");
 }
 
 function simpelheitWaehlen(n){
@@ -4054,20 +4146,20 @@ function simpelheitWaehlen(n){
     return;
   }
   // Umschalten im Betrieb: nichts konvertieren, nur neu zeichnen. Beim Hochstufen
-  // aus 1/2 bietet die App an, erkannte Freitext-Übungen zu verknüpfen (Angebot, nie Zwang).
-  if(n > vorher && vorher <= 2 && n >= 3){ hochstufenAngebot(); return; }
+  // aus den Notizen bietet die App an, erkannte Freitext-Übungen zu verknüpfen
+  // (Angebot, nie Zwang).
+  if(n > vorher && vorher < STUFE.TRAINING && n >= STUFE.TRAINING){ hochstufenAngebot(); return; }
   startOeffnen();
 }
 
-/** v122: Beschriftung der Einfachheits-Zeile unter „Mehr" — die aktuelle Stufe
-    steht IM Namen („Einfachheit: Stufe 3 · Plan + Training"), statt in einer
-    zusätzlichen Zeile darunter (Nutzer-Wunsch, weniger Text). */
+/** Die erste Zeile in „Mehr": Symbol und Name der aktuellen Stufe — „Ansicht"
+    statt der früheren „Einfachheit" (0.251). */
 function simpelheitZeileZeichnen(){
   const el = document.getElementById("mehr-einfachheit-label");
   if(!el) return;
-  // v156: ohne die Nummer — in der Auswahl steht sie auch nicht mehr.
-  const s = SIMPELHEIT_STUFEN.find(x => x.n === stufe()) || SIMPELHEIT_STUFEN[4];
-  el.textContent = "Einfachheit: " + s.titel;
+  const s = simpelheitAktuell();
+  el.innerHTML = '<span class="stufe-symbol" aria-hidden="true">' + s.symbol + '</span>' +
+    "Ansicht · " + text(s.titel);
 }
 
 /* Übungs-Erkennung beim Hochstufen (Abschnitt 5): Angebot, nie automatisch.
@@ -4132,7 +4224,7 @@ function hochstufenAngebot(){
     Verlassen der Stufe wird der aufgeklappte Text wieder eingeklappt, sonst
     stünde er auf einer Stufe, die ihn gar nicht anbietet. */
 function notizblockKopfSetzen(){
-  const einfach = stufe() <= 2;
+  const einfach = !darf("training");
   const titel = document.getElementById("plaene-titel");
   const mehr  = document.getElementById("plaene-mehr");
   const info  = document.getElementById("plaene-info-knopf");
@@ -4159,8 +4251,6 @@ function neuerAbschnitt(name){
 
 function notizblockZeichnen(){
   const ziel = document.getElementById("plan-liste");
-  const s = stufe();
-  const plaene = sitzung.daten.plaene;
   // v79: Jede Zeile IST eine Übung (Nutzer-Ansage). v123: Der Muster-Hinweis
   // steht nicht mehr über der Liste, sondern hinter dem „i" im Kopf — auf der
   // einfachsten Stufe soll am wenigsten Text dauerhaft sichtbar sein.
@@ -4169,14 +4259,9 @@ function notizblockZeichnen(){
      ist der Block, nicht Block plus Tagebuch. Schon eingetragene Notizen bleiben
      im Protokoll (additiver Datenvertrag) und stehen ab Stufe 4 im Verlauf. */
   /* v212 (Nutzer-Ansage): „Bei Stufe 1 sollen die Blöcke mit der Überschrift
-     wieder weg, aber die Checkbox pro Zeile soll bleiben." Stufe 1 ist damit
-     EINE flache Liste — Stufe 2 behält ihre Abschnitte (dort tragen die Zeilen
-     Spalten, die ohne Überschrift nicht lesbar wären). */
-  ziel.innerHTML = s <= 1
-    ? notizFlachHtml()
-    : (plaene.length === 0
-        ? '<div class="leer">Noch nichts notiert.</div>'
-        : plaene.map(p => notizAbschnittHtml(p, s)).join(""));
+     wieder weg, aber die Checkbox pro Zeile soll bleiben." Die Notizen sind
+     damit EINE flache Liste; seit 0.251 gibt es keine zweite Notiz-Ansicht mehr. */
+  ziel.innerHTML = notizFlachHtml();
   // Langdruck-Menü auf den Abschnitts-Karten (Duplizieren/Verschieben/Löschen
   // — der große Löschen-Knopf ist weg).
   // v198: Das Anpassen der Textfeld-Höhe ist entfallen; die Stufe-1-Ansicht
@@ -4771,133 +4856,12 @@ function notizZeileTaste(ev, feld, planId){
   }
 }
 
-/* ------------------------------------------------------------
-   v201: Stufe 2 zeigt ALLE Sportarten (47. Runde B, letzter Punkt).
-
-   Stufe 2 ist die Zeilen-Ansicht mit Zahlen — und sie kannte bis v200 nur die
-   Kraft-Spalten (Sätze, Wdh). Ein Laufabschnitt zeigte dort seine Drills, aber
-   nicht die Einheit selbst; wer auf Stufe 2 lief, hatte dieselbe Leerstelle wie
-   Stufe 1 vor v199. Die Einheit bekommt deshalb eine eigene Zeile ÜBER den
-   Spaltenköpfen: Haken, Name der Sportart, Strecke, Zeit.
-
-   Warum eine eigene Zeile und keine zusätzlichen Spalten: Eine Einheit hat keine
-   Sätze und ein Drill keine Kilometer — eine gemeinsame Tabelle hätte in jeder
-   Zeile zwei leere Spalten. Getrennt sagt jede Zeile genau das, was sie hat.
-   ------------------------------------------------------------ */
-function notizEinheitZeileHtml(p){
-  if(!p || p.typ !== "aktivitaet" || !p.sportart) return "";
-  const sp = sportart(p.sportart);
-  const zahl = (wert, platz, einheit, handler) =>
-    '<input class="notiz-zahl" type="number" inputmode="decimal" step="any" ' +
-      'placeholder="' + platz + '" aria-label="' + text(einheit) + '" value="' + (wert > 0 ? zahlKurz(wert) : "") + '" ' +
-      'onchange="' + handler + '(\'' + p.id + '\', this.value)">';
-  return '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
-      '<label>Einheit</label>' +
-      (sp.strecke ? '<label class="notiz-zahl">' + text(sp.strecke.einheit) + '</label>' : "") +
-      '<label class="notiz-zahl">' + text(zeitEinheit(p.zeitEinheit).kurz) + '</label>' +
-      '<span class="notiz-kopf-frei"></span></div>' +
-    '<div class="notiz-zeile">' + notizEinheitHakenHtml(p) +
-      '<span class="notiz-einheit-name">' + text(sp.name) + '</span>' +
-      (sp.strecke ? zahl(p.strecke, "5", sp.strecke.einheit, "notizEinheitStreckeSetzen") : "") +
-      zahl(inEinheit(p.dauer || 0, p.zeitEinheit), "30", "Dauer", "notizEinheitDauerSetzen") +
-      '<span class="notiz-kopf-frei"></span>' +
-    '</div>';
-}
-
-/** Strecke der Einheit setzen — in der Einheit der Sportart, wie sie danebensteht.
-    Leer oder 0 lässt den bisherigen Wert stehen (dieselbe Regel wie bei den
-    Sätzen: kein Wert, kein Effekt). */
-function notizEinheitStreckeSetzen(planId, wert){
-  const p = findePlan(planId); if(!p) return;
-  const n = kommaZahl(wert);
-  if(n > 0) p.strecke = Math.round(n * 100) / 100;
-  speichern();
-}
-
-/** Dauer der Einheit setzen — die Zahl steht in `p.zeitEinheit`, gespeichert
-    wird wie überall in Sekunden. */
-function notizEinheitDauerSetzen(planId, wert){
-  const p = findePlan(planId); if(!p) return;
-  const n = kommaZahl(wert);
-  if(n > 0) p.dauer = Math.min(MAX_DAUER_S, inSekunden(n, p.zeitEinheit || "min"));
-  speichern();
-}
-
-function notizAbschnittHtml(p, s){
-  const kopf = '<input class="notiz-name" value="' + text(p.name) + '" placeholder="Abschnitt" ' +
-    'onchange="abschnittNameSetzen(\'' + p.id + '\', this.value)">';
-  let koerper;
-  {
-    /* v212: Der Stufe-1-Zweig ist hier entfallen — Stufe 1 zeichnet seit v212
-       eine flache Liste ohne Abschnitts-Karten (`notizFlachHtml`). Diese
-       Funktion baut nur noch die Karten der STUFE 2. Der Block bleibt als
-       Block stehen, damit `s` weiterhin klar hierher gehört und ein späterer
-       dritter Fall wieder eine Bedingung bekommt. */
-    void s;
-    // v79: Sätze UND Wiederholungen, mit Spaltenköpfen — vorher fehlten die
-    // Sätze, und ohne Überschrift wusste niemand, welche Zahl was ist.
-    /* v174: Der Haken sitzt hier IN der Zeile, ganz links — die Zeile ist auf
-       Stufe 2 ohnehin eine Reihe aus Feldern, da braucht es keine zweite Liste
-       darunter. Eine Zeile ohne Namen bekommt statt des Knopfes einen
-       Platzhalter: Es gibt nichts abzuhaken, und die Spalten sollen trotzdem
-       untereinander stehen. */
-    const zeilen = (p.uebungen || []).map(u =>
-      '<div class="notiz-zeile">' +
-        (u.name && u.name.trim()
-          ? notizHakenHtml(p, u)
-          : '<span class="notiz-kopf-haken"></span>') +
-        '<input placeholder="Übung" value="' + text(u.name) + '" ' +
-          'onchange="notizZeileNameSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
-        '<input class="notiz-zahl" type="number" inputmode="numeric" placeholder="3" value="' +
-          (typeof u.saetze === "number" && u.saetze > 0 ? u.saetze : "") + '" ' +
-          'onchange="notizZeileSaetzeSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
-        '<input class="notiz-zahl" type="number" inputmode="numeric" placeholder="10" value="' +
-          (typeof u.wdh === "number" && u.wdh > 0 ? u.wdh : "") + '" ' +
-          'onchange="notizZeileWdhSetzen(\'' + p.id + '\', \'' + u.id + '\', this.value)">' +
-        '<button class="rund" aria-label="Zeile löschen" onclick="notizZeileLoeschen(\'' + p.id + '\', \'' + u.id + '\')">×</button>' +
-      '</div>').join("");
-    koerper = notizEinheitZeileHtml(p) +
-      '<div class="notiz-kopf"><span class="notiz-kopf-haken"></span>' +
-      '<label>Übung</label><label class="notiz-zahl">Sätze</label>' +
-      '<label class="notiz-zahl">Wdh</label><span class="notiz-kopf-frei"></span></div>' +
-      zeilen +
-      '<div class="knopfreihe abstand"><button class="schmal" onclick="notizZeileHinzu(\'' + p.id + '\')">+ Zeile</button></div>';
-  }
-  // v79: kein „Abschnitt löschen"-Knopf mehr (zu groß, zu präsent) — Löschen,
-  // Duplizieren und Verschieben liegen im Langdruck-Menü der Karte.
-  return '<div class="karte" data-plan="' + p.id + '">' + kopf + '<div class="abstand">' + koerper + '</div></div>';
-}
-
-function abschnittAnlegen(){
-  const p = neuerAbschnitt("");
-  sitzung.daten.plaene.push(p);
-  speichern();
-  notizblockZeichnen();
-  const feld = document.querySelector('.karte[data-plan="' + p.id + '"] .notiz-name');
-  if(feld){ feld.focus(); feld.select(); }
-}
-
-function abschnittNameSetzen(id, wert){
-  const p = findePlan(id); if(!p) return;
-  p.name = wert.trim() || "Abschnitt";
-  // v79: Heißt der Abschnitt wie eine Sportart („Laufen", „Tischtennis"),
-  // übernimmt der Plan sie samt Typ — ab Stufe 3 steht er damit gleich richtig
-  // einsortiert. Umbenennen WEG vom Sportart-Namen lässt die Zuordnung stehen
-  // (sonst würde jede Titel-Korrektur den Plan zurück auf Kraft werfen).
-  const sp = SPORTARTEN.find(x => normName(x.name) === normName(p.name));
-  if(sp && p.sportart !== sp.id){
-    p.sportart = sp.id;
-    p.typ = planTypFuer(sp.id);
-    if(p.typ === "aktivitaet"){   // Felder, die der Typ braucht (wie planSportartSetzen)
-      if(typeof p.dauer !== "number") p.dauer = 1800;
-      if(!p.zeitEinheit) p.zeitEinheit = "min";
-      if(typeof p.strecke !== "number") p.strecke = hatStrecke(sp.id) ? sportart(sp.id).strecke.start : 0;
-      if(!p.steigerung) p.steigerung = { woche:null, stufen:0, vorEntlastung:0, verfehlt:0 };
-    }
-    zeigenToast("Als " + sp.name + " erkannt", "info");
-  }
-  speichern();   // kein Neuzeichnen: das Feld zeigt den Wert schon, der Fokus bleibt
-}
+/* 0.251: Die Abschnitts-Karten der früheren Stufe 2 (Spalten Übung · Sätze ·
+   Wdh, dazu die Einheit-Zeile aus v201) sind mit den drei Stufen entfallen —
+   samt `notizAbschnittHtml`, `abschnittAnlegen`, `abschnittNameSetzen` und den
+   `notizEinheit…`-Setzern. Die Notizen zeigen seither IMMER die flache Liste
+   (`notizFlachHtml`); Sätze, Wdh, Strecke und Dauer stehen dort in der Zeile
+   und bleiben gespeichert, wie sie waren (additiver Vertrag). */
 /* ------------------------------------------------------------
    v77: Stufe 1 ↔ Stufe 5 — EIN Datenbestand, zwei Darstellungen.
    Die Stufe-1-Textarea ist ein vollwertiger Text-Editor derselben Daten:
@@ -5096,7 +5060,7 @@ function notizEinheitUebernehmen(p, akt){
     if((p.uebungen || []).length) return false;
     p.sportart = akt.sportart;
     p.typ = planTypFuer(akt.sportart);
-    // Felder, die der Typ braucht — wie in abschnittNameSetzen und planSportartSetzen
+    // Felder, die der Typ braucht — wie in planSportartSetzen
     if(typeof p.dauer !== "number") p.dauer = 1800;
     if(!p.zeitEinheit) p.zeitEinheit = "min";
     if(typeof p.strecke !== "number") p.strecke = hatStrecke(akt.sportart) ? sportart(akt.sportart).strecke.start : 0;
@@ -5239,45 +5203,9 @@ function toastListe(namen, max){
 }
 /* abschnittLoeschen (der große Knopf) ist in v79 entfallen — Löschen läuft
    übers Langdruck-Menü der Karte (planMenue -> planLoeschenById). */
-function notizZeileHinzu(planId){
-  const p = findePlan(planId); if(!p) return;
-  const u = neueUebung(); u.name = ""; u.geraet = "keine"; u.wdh = 0;   // leeres Wdh-Feld im Notizblock
-  p.uebungen.push(u);
-  speichern();
-  notizblockZeichnen();
-  // Namensfeld der neuen (= letzten) Zeile fokussieren. Über die Zeile suchen,
-  // nicht über einen Feld-Index — die Zeile hat seit v79 drei Eingabefelder.
-  const reihen = document.querySelectorAll('.karte[data-plan="' + planId + '"] .notiz-zeile');
-  const letzte = reihen[reihen.length - 1];
-  if(letzte) letzte.querySelector("input").focus();
-}
-function notizZeileNameSetzen(planId, uId, wert){
-  const p = findePlan(planId); if(!p) return;
-  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
-  u.name = wert.trim();
-  speichern();
-}
-function notizZeileWdhSetzen(planId, uId, wert){
-  const p = findePlan(planId); if(!p) return;
-  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
-  const n = parseInt(wert, 10);
-  if(n > 0) u.wdh = n;   // leer/0 lässt den bisherigen Wert stehen
-  speichern();
-}
-/** v79: Sätze-Spalte der Stufe-2-Zeilen (vorher gab es nur Wiederholungen). */
-function notizZeileSaetzeSetzen(planId, uId, wert){
-  const p = findePlan(planId); if(!p) return;
-  const u = p.uebungen.find(x => x.id === uId); if(!u) return;
-  const n = parseInt(wert, 10);
-  if(n > 0) u.saetze = begrenzen(n, 1, 20);   // leer/0 lässt den bisherigen Wert stehen
-  speichern();
-}
-function notizZeileLoeschen(planId, uId){
-  const p = findePlan(planId); if(!p) return;
-  p.uebungen = p.uebungen.filter(x => x.id !== uId);
-  speichern();
-  notizblockZeichnen();
-}
+/* 0.251: `notizZeileHinzu` und die Spalten-Setzer der Stufe 2
+   (`notizZeileName-/Wdh-/SaetzeSetzen`, `notizZeileLoeschen`) sind entfallen —
+   in der flachen Liste ist jede Zeile ein Textfeld (`notizZeilenSpeichern`). */
 
 /* v155: Die Schnellnotiz „Getan" (Entscheidung 9.2, Stufe 1/2) ist auf
    Nutzer-Wunsch ersatzlos entfallen — samt ihren Handlern. Der Notizblock ist
@@ -5466,13 +5394,13 @@ function wiedereinstiegZeichnen(){
   const kasten = document.getElementById("wiedereinstieg-hinweis");
   if(!kasten) return;
   const heute = heuteAlsText();
-  const faellig = stufe() >= 4 &&
+  const faellig = darf("fragen") &&
     wiedereinstiegFaellig(sitzung.daten.protokoll, heute, sitzung.daten.einrichtung.wiedereinstiegStand);
   kasten.hidden = !faellig;
   if(!faellig){ kasten.innerHTML = ""; return; }
   const tage = pauseTage(sitzung.daten.protokoll, heute);
   kasten.innerHTML =
-    '<strong>Willkommen zurück</strong>' +
+    '<strong>Lange Pause</strong>' +
     '<div class="meta" style="margin-top:6px;line-height:1.5">' +
       'Dein letztes Training ist ' + text(pauseText(tage)) + ' her. Deine Pläne stehen noch ' +
       'auf dem Stand von damals — nach so einer Pause ist das meist zu viel. Auf Wunsch senke ' +
@@ -5492,7 +5420,7 @@ function startOeffnen(){
   // Zuhause ist der Notizblock. startOeffnen ist DIE zentrale „geh nach Hause"-
   // Funktion (Login, nach Training, nach Code …), deshalb wird hier geleitet.
   autoRuhetageEintragen();   // v103: Auto-Ruhetage + Meldung (einmal pro Sitzung)
-  if(stufe() <= 2){ planListeZeichnen(); zeige("view-plaene"); return; }
+  if(!darf("training")){ planListeZeichnen(); zeige("view-plaene"); return; }
   sicherungBannerZeichnen();
   wiedereinstiegZeichnen();   // v207: lange Pause? Dann steht der Hinweis über allem anderen
   flammeZeichnen();
@@ -5508,8 +5436,8 @@ function startOeffnen(){
 function zieleStartZeichnen(){
   const ziel = document.getElementById("ziele-start");
   if(!ziel) return;
-  // v76: Ziele sind ein Stufe-5-Feature. Darunter bleibt der Start ruhig.
-  if(stufe() < 5){ ziel.innerHTML = ""; return; }
+  // v76: Ziele gehören zur Planung (Begleiter). Darunter bleibt der Start ruhig.
+  if(!darf("planung")){ ziel.innerHTML = ""; return; }
   const ziele = sitzung.daten.ziele || [];
   const uebungen = planUebungen();
   // Ohne Plan-Übung UND ohne Ziel bleibt der Start ruhig.
@@ -5744,7 +5672,7 @@ function planListeZeichnen(){
   // dieser Tab der Notizblock (eine Seite, Abschnitte mit Freitext bzw.
   // Name+Wdh-Zeilen) statt der Karten-Liste.
   notizblockKopfSetzen();
-  if(stufe() <= 2){ notizblockZeichnen(); return; }
+  if(!darf("training")){ notizblockZeichnen(); return; }
   // Heute-Karte, Sicherungs-Banner und Flamme liegen jetzt auf dem Start-
   // Bildschirm. Hier steht nur noch die Liste aller Pläne.
   const ziel = document.getElementById("plan-liste");
@@ -5761,10 +5689,8 @@ function planListeZeichnen(){
        Anlege-Wegen ausgezogen (Nutzer-Ansage, siehe planNeuWege), und die
        einzelne Übung ist der kürzeste Weg zum ersten Training. Der Rest liegt
        weiter im gelben „+" darunter (v129: nur EINE Aktion im Leer-Zustand). */
-    ziel.innerHTML = '<div class="leer">Noch nichts angelegt.<br><br>' +
-      '<div class="knopfreihe">' +
-      '<button class="primaer schmal" onclick="uebungAlleinAnlegen()">Übung eintragen</button>' +
-      '</div></div>';
+    ziel.innerHTML = zustandLeerHtml({ symbol:"plan", text:"Noch leer",
+      knopf:"Übung eintragen", tun:"uebungAlleinAnlegen()", haupt:true });
     return;
   }
 
@@ -5962,10 +5888,7 @@ function planNeuMenue(){
      flach und hat immer eine freie Zeile am Ende. Das „+" springt deshalb
      dorthin; einen leeren Abschnitt anzulegen, den niemand sieht, wäre eine
      Aktion ohne sichtbare Wirkung. */
-  if(stufe() <= 1){ notizFreieZeileFokus(); return; }
-  // v76: Auf Stufe 2 ist „+“ die eine gelbe Hauptaktion des Notizblocks —
-  // ein Abschnitt, kein Menü mit Trainings-Wegen (die gibt es erst ab Stufe 3).
-  if(stufe() <= 2){ abschnittAnlegen(); return; }
+  if(!darf("training")){ notizFreieZeileFokus(); return; }
   /* v193/v194: Die Einträge für Assistent und Beispielplan sind hier entfallen,
      nicht nur ausgeblendet — ein Eintrag, den keine Auswahl mehr nennt, wäre
      toter Code. Ihre Funktionen leben weiter („Mehr → Werkzeuge", beim
@@ -6018,14 +5941,14 @@ function planMenue(planId){
   // Pfeile beziehen sich auf die Position, WIE DIE LISTE SIE ZEIGT: ab Stufe 3
   // innerhalb der Sportart-Gruppe, im Notizblock (Stufe 1/2) auf die flache
   // Array-Reihenfolge — sonst passen die Pfeile nicht zur sichtbaren Position.
-  const einfach = stufe() <= 2;
+  const einfach = !darf("training");
   const gruppe = einfach ? plaene
     : plaene.filter(p => (p.sportart || "kraft") === (plan.sportart || "kraft"));
   const pos = gruppe.findIndex(p => p.id === planId);
   // Symbole nur bei den Pfeilen: dort IST der Pfeil die Aussage.
   // Bei Bearbeiten/Duplizieren/Löschen sagt das Wort schon alles.
   // v79: „Bearbeiten" erst ab Stufe 3 — der Editor ist darunter gesperrt
-  // (VIEW_MIN_STUFE), und im Notizblock bearbeitet man direkt in der Karte.
+  // (VIEW_FAEHIGKEIT), und im Notizblock bearbeitet man direkt in der Karte.
   const aktionen = [];
   // v109: In der schlanken/Akkordeon-Liste fehlt der Erledigt-Knopf an der Zeile
   // (nur Name + Start). Dann hier anbieten; bei vollen Karten steht er schon dort.
@@ -6059,7 +5982,7 @@ function planMenue(planId){
     v128: Im Auswahl-Modus hakt derselbe Tipp stattdessen an/ab. */
 function planTippen(planId){
   if(planAuswahlModus){ planAuswahlUmschalten(planId); return; }
-  if(stufe() <= 2) return;
+  if(!darf("training")) return;
   editorOeffnen(planId);
 }
 
@@ -6144,7 +6067,7 @@ function planSchieben(planId, richtung){
   // Sportarten dazwischen überspringen) — die Liste ist nach Sportart gruppiert,
   // ein Tausch über Gruppengrenzen hinweg wäre unsichtbar. Der Notizblock
   // (Stufe 1/2) zeigt die flache Reihenfolge -> direkte Nachbarn tauschen.
-  if(stufe() > 2){
+  if(darf("training")){
     const sport = liste[i].sportart || "kraft";
     while(j >= 0 && j < liste.length && (liste[j].sportart || "kraft") !== sport) j += richtung;
   }
@@ -6816,11 +6739,11 @@ function scheibenAnzeigen(){
    Renderer der Karten laufen beim Öffnen des jeweiligen Untermenüs. */
 function einstellungenOeffnen(){
   simpelheitZeileZeichnen();
-  document.getElementById("mehr-profil-zeile").hidden = stufe() < 5;
-  // v173: Werkzeuge ab Stufe 1 — siehe VIEW_MIN_STUFE. Die Zeile bleibt hier
+  document.getElementById("mehr-profil-zeile").hidden = !darf("planung");
+  // v173: Werkzeuge auf jeder Stufe — siehe VIEW_FAEHIGKEIT. Die Zeile bleibt hier
   // stehen, damit sichtbar ist, dass sie eine bewusste Entscheidung ist.
   document.getElementById("mehr-werkzeuge-zeile").hidden = !viewErlaubt("view-einst-werkzeuge");
-  document.getElementById("mehr-zurueck").hidden = stufe() > 2;
+  document.getElementById("mehr-zurueck").hidden = darf("training");
   zeige("view-einstellungen");
 }
 
@@ -6838,8 +6761,8 @@ function einstDarstellungOeffnen(fokus){
      Statistik-Tab erst ab Stufe 4 — wer dort Statistiken anwählte, bekam sie
      nirgends zu sehen. Die Werte bleiben gespeichert; beim Hochstufen greifen
      sie sofort (Stufe = Ansicht, nicht Format). */
-  document.getElementById("darst-audio-karte").hidden = stufe() < 3;
-  document.getElementById("darst-statistik-karte").hidden = stufe() < 4;
+  document.getElementById("darst-audio-karte").hidden = !darf("training");
+  document.getElementById("darst-statistik-karte").hidden = !darf("auswertung");
   zeige("view-einst-darstellung");
   /* Nach `zeige` — das setzt den Inhalt bewusst wieder nach oben (v80). Der
      Sprung muss also danach kommen, sonst scrollt die Ansicht ihn gleich weg. */
@@ -6856,7 +6779,7 @@ function einstWerkzeugeOeffnen(){
      Menü: die Trainingsplanung gibt es ab Stufe 5, und der Beispielplan IST ein
      Kraft-Ganzkörper (v95) — ohne Krafttraining im Profil hilft er nicht. */
   const meineSport = sitzung.daten.einrichtung.sportarten || ["kraft"];
-  const mitAssistent = stufe() >= 5;
+  const mitAssistent = darf("planung");
   const mitBeispiel  = meineSport.includes("kraft");
   const setzen = (id, an) => { const e = document.getElementById(id); if(e) e.hidden = !an; };
   setzen("mehr-assistent-knopf", mitAssistent);
@@ -7242,7 +7165,8 @@ function wissenZeichnen(){
    ist. Pflege: Bei einer Version mit sichtbarer Neuerung den obersten Abschnitt
    erweitern (oder einen neuen aufmachen) — die Spanne im `stand` mitziehen. */
 const HOEHEPUNKTE = [
-  { stand:"0.220 – 0.250 · Das Training in deiner Hand", punkte:[
+  { stand:"0.220 – 0.251 · Das Training in deiner Hand", punkte:[
+    "Neuer Auftritt als Teil von UPCrew: das Studio-Zeichen beim Öffnen, drei Ansichten (Notizen, Training, Begleiter) statt fünf Stufen, Formen mit fester Kante und leere Seiten, die mit einem Knopf weiterhelfen.",
     "Neu: „Wie die App von dir lernt“ — hinter dem „i“ auf der Muskelkarte und in „Gut zu wissen“ steht in Klartext, zu welchem Zeitpunkt sich was ändert: sofort, nach jedem Training, in den ersten zehn, Woche für Woche, über Monate — und was bewusst fest bleibt.",
     "Nach dem Training fragt der Kurz-Check je Muskel mit seiner Figur, wie er sich anfühlt — und die Kalibrierung stellt dein Profil selbst um, wenn deine Trainings nicht dazu passen. Hinter den groben Stufen rechnet eine Fitness-Zahl von 0 bis 100.",
     "Die App kalibriert sich an dir: Kennenlern-Phase in den ersten Trainings, Scan nach langer Pause, Korrektur-Vorschläge fürs Profil — und jeder Muskel zeigt seinen Korridor vom Mindestmaß bis zum Verletzungsrisiko.",
@@ -7290,6 +7214,12 @@ const HOEHEPUNKTE = [
 ];
 
 const NEUIGKEITEN = [
+  { stand:"0.251.0", punkte:[
+    "<strong>Neuer Auftritt: UPCrew.</strong> Der Trainer gehört jetzt zum Studio UPCrew — beim Öffnen erscheint kurz das UPCrew-Zeichen, ein Tipp überspringt es. Es lädt nichts und meldet nichts an: Deine Daten bleiben wie bisher nur auf deinem Gerät.",
+    "<strong>Drei Ansichten statt fünf Stufen.</strong> Unter „Mehr → Ansicht“ wählst du jetzt zwischen Notizen, Training und Begleiter — als Bild statt als Liste. Wer auf „Notizblock + Zahlen“ stand, landet bei den Notizen (die Zahlen schreibst du einfach mit in die Zeile), wer auf „+ Auswertung“ stand, beim Begleiter und hat damit zusätzlich Ziele, Sportarten und den Plan-Assistenten. Es geht nichts verloren.",
+    "<strong>Formen mit Kante.</strong> Knöpfe, Karten und Dialoge sind runder und stehen auf einer festen Kante statt auf einem verschwommenen Schatten; beim Antippen sinkt ein Knopf auf seine Kante.",
+    "<strong>Leere Seiten helfen weiter.</strong> Wo noch nichts ist, stehen ein Zeichen, ein, zwei Wörter und ein Knopf zum Weitermachen. Geht etwas schief, etwa beim Speichern, gibt es „Nochmal“ statt einer technischen Meldung — die Einzelheiten hängen am nächsten Feedback. Fehlt bei einer Eingabe etwas, sagt es die App in zwei Wörtern („Gewicht fehlt“) statt in einem Satz."
+  ]},
   { stand:"0.250.0", punkte:[
     "<strong>„Erledigt“ zählt jetzt voll in die Belastung.</strong> Wenn du sagst, du hast diesen Plan gemacht, hast du trainiert — die Muskelkarte färbt jetzt alles Enthaltene mit, samt Wiederholungen, Gewichten und Haltezeiten. Die Trainingsdauer schätzt die App aus deinen aktuellen Übungs-Werten. Bestwerte und Rekorde stiften abgehakte Sätze weiterhin nicht: Geplant ist nicht gemessen — aber es ist Arbeit.",
     "<strong>Die Schwierigkeit wiegt mit.</strong> Beim Klettern zählt jetzt dein Grad: Eine Einheit über deinem üblichen Schwierigkeitsgrad belastet die Muskeln mehr, eine darunter weniger — gemessen an deinem eigenen Schnitt, nicht an einer Tabelle. Damit rechnet jede Sportart-Klasse mit ihrer eigenen Härte: Kraft über Gewicht und Wiederholungen, Ausdauer über Dauer und Tempo, Skalen-Sportarten über den Grad.",
@@ -8065,12 +7995,13 @@ function githubIssueUrl(label, titel, body){
 function feedbackSenden(){
   const art = document.getElementById("feedback-art").value;
   const txt = (document.getElementById("feedback-text").value || "").trim();
-  if(!txt){ meldung("Bitte kurz beschreiben, worum es geht."); return; }
+  if(!txt){ fehlerZeigen("Text fehlt"); return; }
   const artName = { bug:"Bug", enhancement:"Wunsch", question:"Andere" }[art] || "Feedback";
   const titel = "[" + artName + "] " + txt.split("\n")[0].slice(0, 60);
   // Kontext automatisch anhängen — beim Abarbeiten weiß man sonst nie,
   // auf welchem Stand die Meldung entstand.
-  const body = txt + "\n\n---\nTrainer " + ANZEIGE_VERSION + " · Stufe " + stufe() + " · " + systemName();
+  const body = txt + "\n\n---\nTrainer " + ANZEIGE_VERSION + " · Stufe " + stufe() + " · " + systemName() +
+    (letzterFehler ? "\nLetzter Fehler: " + letzterFehler : "");   // 0.251: statt auf dem Bildschirm
   const url = githubIssueUrl(art, titel, body);
   if(!url){
     meldung("Das Repository ließ sich nicht aus der Adresse ableiten. Entweder die App über ihre GitHub-Pages-Adresse öffnen — oder im Code GITHUB_REPO auf „benutzer/repo“ setzen.");
@@ -8557,7 +8488,7 @@ function autoRuhetageEintragen(){
   const vorher = d.letzterBesuch;
   d.letzterBesuch = heute;
   // Stufe 1/2 (kein Kalender/Training) oder kein/heutiger Vorbesuch: nur merken.
-  if(stufe() < 3 || !vorher || vorher >= heute){ speichern(); return; }
+  if(!darf("training") || !vorher || vorher >= heute){ speichern(); return; }
   const neu = autoRuhetage(vorher, heute, d.protokoll, d.ruhetage, d.ruheAus);
   neu.forEach(c => d.ruhetage.push(c));
   speichern();
@@ -9275,7 +9206,7 @@ function tagesCheckSpeichern(){
   const profil = sitzung.daten.profil;
   const beantwortet = checkFragen(profil).some(f => checkAntworten[f.id] !== undefined) ||
                       checkAntworten.kater.length > 0;
-  if(!beantwortet){ meldung("Beantworte mindestens eine Frage — sonst gibt es nichts zu speichern."); return; }
+  if(!beantwortet){ fehlerZeigen("Keine Antwort"); return; }
   const heute = heuteAlsText();
   checkZeilen(checkAntworten, heute, profil).forEach(z =>
     werteSetzen(sitzung.daten.tageswerte, z.datum, z.art, z.wert));
@@ -9412,7 +9343,7 @@ function koerpermassFormularZeigen(){
 function koerpermassEintragen(){
   const wert = parseFloat(String(document.getElementById("koerpermass-wert").value).replace(",", "."));
   const datum = document.getElementById("koerpermass-datum").value || heuteAlsText();
-  if(!wert || wert <= 0){ meldung("Bitte einen Umfang in Zentimetern eingeben."); return; }
+  if(!wert || wert <= 0){ fehlerZeigen("Umfang fehlt"); return; }
   koerpermassSetzen(sitzung.daten.koerpermasse, datum, koerpermassArt, Math.round(wert * 10) / 10);
   speichern();
   document.getElementById("koerpermass-formular").hidden = true;
@@ -9500,7 +9431,7 @@ function koerpermassDetailsOeffnen(){
 function gewichtEintragen(){
   const kg = parseFloat(document.getElementById("gewicht-wert").value);
   const datum = document.getElementById("gewicht-datum").value || heuteAlsText();
-  if(!kg || kg <= 0){ meldung("Bitte ein Gewicht in Kilogramm eingeben."); return; }
+  if(!kg || kg <= 0){ fehlerZeigen("Gewicht fehlt"); return; }
   const liste = sitzung.daten.gewichte;
   const vorhanden = liste.find(e => e.datum === datum);
   if(vorhanden) vorhanden.kg = kg;
@@ -10076,7 +10007,7 @@ function verlaufListeZeichnen(){
   ziel.innerHTML = p.length
     ? listenKopfHtml("verlauf") +
       p.map(e => listenZeileHtml("verlauf", e.id, protokollEintragHtml(e, true))).join("")
-    : '<div class="meta">Noch kein Training.</div>';
+    : zustandLeerHtml({ symbol:"verlauf", text:"Kein Training", knopf:"Nachtragen", tun:"eintragenOeffnen()" });
 }
 
 /** Voller Trainings-Verlauf (alle Einträge, neueste zuerst) auf eigener Seite. */
@@ -10177,7 +10108,7 @@ function statDetailZeichnen(){
   ziel.innerHTML = liste.length
     ? listenKopfHtml("statdetail") +
       liste.map(e => listenZeileHtml("statdetail", e.id, protokollEintragHtml(e, true))).join("")
-    : '<div class="meta">Noch keine Einträge.</div>';
+    : zustandLeerHtml({ symbol:"verlauf", text:"Keine Einträge" });
 }
 
 /** Eine Statistik öffnen. Unbekannte Art tut nichts — so kann eine Kachel
@@ -12964,7 +12895,7 @@ function lastLegendeHtml(){
      auf der Skala bis 1,3 und damit derselbe Punkt, an dem die Figur von Gelb
      nach Rot kippt. Die Legende zeigt jetzt dieselbe Rechnung wie das Bild. */
   return '<div class="meta" style="margin-top:8px">' +
-    '<div style="height:10px;border-radius:5px;' +
+    '<div style="height:10px;border-radius:var(--rund-voll);' +
       'background:linear-gradient(90deg,var(--ok),var(--signal) 77%,var(--warn))"></div>' +
     '<div style="display:flex;justify-content:space-between;margin-top:4px">' +
       '<span>bereit</span><span>benutzt</span><span>zu viel</span></div></div>';
@@ -16705,9 +16636,9 @@ function zielEintragen(){
   const art = document.getElementById("ziel-art").value;
   const wert = parseFloat(document.getElementById("ziel-wert").value);
   const datum = document.getElementById("ziel-datum").value;
-  if(!u){ meldung("Bitte eine Übung aus deinen Plänen wählen."); return; }
-  if(!(wert > 0) || !datum){ meldung("Bitte einen Zielwert und ein Datum angeben."); return; }
-  if(datum <= heuteAlsText()){ meldung("Das Datum muss in der Zukunft liegen."); return; }
+  if(!u){ fehlerZeigen("Übung fehlt"); return; }
+  if(!(wert > 0) || !datum){ fehlerZeigen("Wert oder Datum fehlt"); return; }
+  if(datum <= heuteAlsText()){ fehlerZeigen("Datum liegt zurück"); return; }
   const a = zielArten(u).find(x => x.art === art);
   sitzung.daten.ziele.push({ id:neueId(), uebung:u.name, art, wert, einheit:a.einheit, datum,
                              wdh: art === "wdh" ? wert : undefined });   // wdh: Altfeld, für ältere Versionen lesbar
@@ -16752,7 +16683,7 @@ function zielEinschaetzen(ziel){
   const ist = zielWertZahl(u, art);
   const fehlt = ziel.wert - ist;
   const einheit = ziel.einheit || "Wdh";
-  if(fehlt <= 0) return { text:"Geschafft — Stand " + zielWertText(u, art) + ". Zeit für ein neues Ziel!", stufe:"gut" };
+  if(fehlt <= 0) return { text:"Geschafft — Stand " + zielWertText(u, art), stufe:"gut" };
 
   /* Zuwachs je Trainingseinheit, hergeleitet aus der Progressionstabelle:
      Wdh   bei Note 1–2 rund +1 Wdh je Einheit.
@@ -16952,9 +16883,12 @@ function zieleZeichnen(){
   plus.disabled = auswahl.length === 0;
   plus.title = auswahl.length === 0 ? "Erst eine Übung in einen Plan aufnehmen" : "";
   document.getElementById("ziel-liste").innerHTML = ziele.length === 0
-    ? '<div class="meta">' + (auswahl.length === 0
-        ? "Noch keine Übung in einem Plan — lege erst einen Plan an, dann kannst du ein Ziel darauf setzen."
-        : "Noch kein Ziel — mit + eines anlegen, z. B. „20 Liegestütze bis 01.09.“") + '</div>'
+    ? (auswahl.length === 0
+        ? zustandLeerHtml({ symbol:"ziel", text:"Erst eine Übung",
+            erklaerung:"Ein Ziel sitzt auf einer Übung aus deinen Plänen.",
+            knopf:"Übung eintragen", tun:"uebungAlleinAnlegen()" })
+        : zustandLeerHtml({ symbol:"ziel", text:"Kein Ziel",
+            knopf:"Ziel anlegen", tun:"zielFormularZeigen()" }))
     : ziele.map(z => {
         const e = zielEinschaetzen(z);
         const farbe = e.stufe === "gut" ? "var(--signal)" : e.stufe === "mittel" ? "var(--rest)" : "var(--warn)";
@@ -17085,7 +17019,7 @@ function eigeneErstellen(){
   const modus = document.getElementById("eigen-modus").value;
   const saetze = parseInt(document.getElementById("eigen-saetze").value, 10);
   const wert  = parseFloat(document.getElementById("eigen-wert").value);
-  if(!name){ meldung("Bitte einen Namen für die Übung angeben."); return; }
+  if(!name){ fehlerZeigen("Name fehlt"); return; }
   // v56: kein Mischen — eine neue Übung muss zur (evtl. schon festen) Plan-Sportart passen.
   if(editorPlan.uebungen.length > 0 && editorPlan.sportart && editorPlan.sportart !== sport){
     meldung("Dieser Plan gehört zu " + sportart(editorPlan.sportart).name +
@@ -18955,7 +18889,7 @@ function editorSpeichern(){
     if(!Array.isArray(u.notenHistorie)) u.notenHistorie = [];
   });
   // Eine Aktivität DARF ohne Übungen auskommen — die Dauer ist der Inhalt.
-  if(!istAktivitaet && editorPlan.uebungen.length === 0){ meldung("Der Plan braucht mindestens eine Übung mit Namen."); return; }
+  if(!istAktivitaet && editorPlan.uebungen.length === 0){ fehlerZeigen("Keine Übung"); return; }
   eigeneUebungenAblegen(editorPlan);
   planSichern();
 }
@@ -19047,7 +18981,7 @@ function trainingMerkerLoeschen(){ try { localStorage.removeItem(TRAINING_MERKER
 let trainingAngeboten = false;   // pro Sitzung nur EINMAL fragen — startOeffnen läuft oft
 
 async function trainingFortsetzenAnbieten(){
-  if(trainingAngeboten || !sitzung || lauf || stufe() < 3) return;
+  if(trainingAngeboten || !sitzung || lauf || !darf("training")) return;
   trainingAngeboten = true;
   let roh = null;
   try { roh = JSON.parse(localStorage.getItem(TRAINING_MERKER)); } catch(e){}
@@ -19731,7 +19665,7 @@ function kraftNachtragen(){
   const uebung = document.getElementById("ein-uebung").value;
   const datum = document.getElementById("ein-datum").value;
   if(!datum){ meldung("Bitte ein Datum angeben."); return; }
-  if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen."); return; }
+  if(datum > heuteAlsText()){ fehlerZeigen("Datum in der Zukunft"); return; }
   if(!uebung){ meldung("Bitte eine Übung wählen."); return; }
   const s = parseInt(document.getElementById("ein-saetze").value) || 0;
   const w = parseInt(document.getElementById("ein-wdh").value) || 0;
@@ -19900,7 +19834,7 @@ function aktivitaetSpeichern(){
 
   if(!datum){ meldung("Bitte ein Datum angeben."); return; }
   if(datum > heuteAlsText()){ meldung("Ein Training in der Zukunft kann man nicht eintragen — geplant wird über den Plan und seine Wochentage."); return; }
-  if(dauerS < 60){ meldung("Bitte eine Dauer von mindestens einer Minute angeben."); return; }
+  if(dauerS < 60){ fehlerZeigen("Mindestens 1 Minute"); return; }
   if(sp.strecke && strecke <= 0){
     frage("Ohne Strecke kann die App keine Pace rechnen und ein Streckenziel nicht verfolgen. Trotzdem nur die Zeit eintragen?", true, ja => {
       if(ja) aktivitaetAblegen(sport, datum, dauerS, 0, einheit, messwert);
@@ -20889,7 +20823,7 @@ function wdhAnhebenFragen(plan){
   if(!echt) return;
   const kandidaten = (echt.uebungen || []).filter(u => u.modus === "wdh" && u.wdh < (u.wdhMax || u.wdh));
   if(!kandidaten.length) return;
-  frage("Neuer Bestwert — das saß offenbar gut.\n\nSoll ich die Wiederholungen um eine anheben?", true, ja => {
+  frage("Neuer Bestwert.\n\nWiederholungen um eine anheben?", true, ja => {
     if(!ja) return;
     kandidaten.forEach(u => { u.wdh = begrenzen(u.wdh + 1, u.wdhMin || 1, u.wdhMax || u.wdh + 1); });
     speichern();
@@ -21632,7 +21566,7 @@ function bewertungAnwenden(antworten){
   // v95: kein Füll-Untertitel mehr bei „1 Training in Serie" — „Der Anfang ist
   // gemacht" ist weg, die Serie-Zeile füllt dann die ganze Karte. Informative
   // Untertitel (Meilenstein / Ruhetags-Toleranz) bleiben.
-  const serienUntertitel = meilenstein ? "Meilenstein erreicht!"
+  const serienUntertitel = meilenstein ? "Meilenstein erreicht"
     : (serie >= 2 ? "Bis zu 2 Ruhetage sind ok — die Flamme hält." : "");
   // 0.242: Der Kurz-Check-Block ist entfallen — die Muskel-Fragen laufen
   // seither als eigener Wizard VOR dieser Seite (view-muskelcheck).
@@ -21855,7 +21789,7 @@ function updateDeckel(von, zu){
     d.innerHTML = '<div style="font-size:34px">🔥</div>' +
       '<div style="color:var(--chalk);font-weight:700">Update ' + text(von || "") +
         (zu ? " → " + text(zu) : "") + '</div>' +
-      '<div style="width:220px;height:10px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden">' +
+      '<div style="width:220px;height:10px;border-radius:var(--rund-voll);background:var(--panel-2);border:1px solid var(--line);overflow:hidden">' +
         '<div id="update-balken" style="height:100%;width:0%;background:var(--signal);transition:width .4s"></div></div>' +
       '<div id="update-prozent" class="meta">0 %</div>' +
       '<div class="meta">Neue Version wird geladen — deine Daten bleiben unberührt.</div>';
@@ -21908,6 +21842,34 @@ wasserzeichenZeichnen();
 systemTexteAnwenden();   // Texte auf iPhone/Android einstellen, bevor irgendetwas sichtbar wird
 wischZurueckEinrichten();   // v164: Wisch von der linken Kante = zurück (iPhone-Geste)
 wischZeileEinrichten();     // v175: Wisch nach links auf einer Listenzeile = löschen
+
+/* 0.251: Das UPCrew-Intro — höchstens einmal je Besuch (sessionStorage, auch
+   das Neuladen beim Auto-Update zeigt es nicht erneut), ein Tipp oder eine
+   Taste überspringt es, und die App lädt darunter weiter: Sie wartet nicht
+   darauf. Zeiten wie in Typoluck (js\intro.js): steht 1,8 s, blendet in 0,4 s
+   aus. Die Willkommens-Seite des ersten Starts liegt darunter und kommt danach
+   zum Vorschein (Nutzer-Entscheidung 25.09.2026: „Intro davor"). */
+const INTRO_STEHT_MS = 1800;
+const INTRO_AUSBLENDEN_MS = 400;   // muss zu .intro{transition} passen
+function introStarten(){
+  const el = document.getElementById("intro");
+  if(!el || el.hidden) return;
+  try { sessionStorage.setItem("upcrew.intro-gesehen", "ja"); } catch(e){ /* dann eben jedes Mal */ }
+  let vorbei = false;
+  let uhr = null;
+  const beenden = () => {
+    if(vorbei) return;
+    vorbei = true;
+    clearTimeout(uhr);
+    document.removeEventListener("keydown", beenden);
+    el.classList.add("intro-weg");
+    setTimeout(() => { el.hidden = true; el.classList.remove("intro-weg"); }, INTRO_AUSBLENDEN_MS);
+  };
+  uhr = setTimeout(beenden, INTRO_STEHT_MS);
+  el.addEventListener("click", beenden, { once:true });
+  document.addEventListener("keydown", beenden);
+}
+introStarten();
 
 /* v82: Beim ALLERERSTEN Start zeigt die App, was sie anders macht — danach nie
    wieder. Geräte-Merker (localStorage), kein Konto-Bezug: die Seite kommt VOR

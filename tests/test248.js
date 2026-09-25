@@ -157,8 +157,8 @@ pruefe("die Ueberschrift hat ihr CSS als volle Zeile", src.includes(".wissen-kop
 pruefe("es gibt die Ansicht mit Zurueck-Knopf",
   src.includes('<section id="view-lernen"') &&
   /id="view-lernen"[\s\S]{0,400}onclick="lernenSchliessen\(\)"[^>]*data-zurueck/.test(src));
-pruefe("sie ist ab Stufe 3 erlaubt (reine Auskunft, Leitplanke 8)",
-  /"view-lernen": 3/.test(src));
+pruefe("sie ist ab dem Training erlaubt (reine Auskunft, Leitplanke 8)",
+  /"view-lernen": "training"/.test(src));
 pruefe("die Navigation kennt sie", src.includes('"view-lernen":"nav-statistik"'));
 {
   const auf = grabFn("lernenOeffnen");

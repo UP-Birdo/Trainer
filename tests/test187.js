@@ -118,7 +118,7 @@ pruefe("und die reine Melde-Entscheidung", ein.includes("autoRuheMelden(neu, erl
 pruefe("die alte Schleife ist weg (kein tageVerschieben(vorher, 1) mehr)",
   !ein.includes("tageVerschieben(vorher, 1)"));
 pruefe("es laeuft weiter nur einmal je Sitzung", ein.includes("autoRuheGeprueft"));
-pruefe("Stufe 1/2 bleibt aussen vor (Leitplanke 8)", ein.includes("stufe() < 3"));
+pruefe("die Notizen bleiben aussen vor (Leitplanke 8)", ein.includes('!darf("training")'));
 pruefe("der Besuch wird auch ohne Eintrag gemerkt",
   ein.indexOf("d.letzterBesuch = heute;") < ein.indexOf("autoRuhetage(vorher"));
 pruefe("gespeichert wird in jedem Fall",

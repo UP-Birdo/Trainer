@@ -91,10 +91,7 @@ new Function("module", "exports", [
   "let sitzung = { daten: { plaene: [] } };",
   "function speichern(){}",
   grabFn("findePlan"),
-  grabFn("notizEinheitStreckeSetzen"),
-  grabFn("notizEinheitDauerSetzen"),
-  "module.exports = { get sitzung(){ return sitzung; }, planMuskeln, uebungMuskeln," +
-  " notizEinheitStreckeSetzen, notizEinheitDauerSetzen, inSekunden };"
+  "module.exports = { get sitzung(){ return sitzung; }, planMuskeln, uebungMuskeln, inSekunden };"
 ].join("\n"))(modul, modul.exports);
 const A = modul.exports;
 
@@ -149,54 +146,20 @@ pruefe("gelesen wird das v197-Register",
 pruefe("und durch die Alias-Schicht der Karte (v139)",
   grabFn("planMuskeln").includes("muskelnAufKarte(satz.p)"));
 
-/* ---------- 2) Stufe 2 zeigt die Einheit ---------- */
-const einheitHtml = grabFn("notizEinheitZeileHtml");
-pruefe("nur Aktivitaets-Abschnitte bekommen die Zeile",
-  einheitHtml.includes('p.typ !== "aktivitaet"') && einheitHtml.includes('return ""'));
-pruefe("sie traegt den Haken der Einheit (v199)",
-  einheitHtml.includes("notizEinheitHakenHtml(p)"));
-pruefe("der Name der Sportart steht als Text da, nicht als Feld",
-  einheitHtml.includes('class="notiz-einheit-name"'));
-pruefe("es gibt ein Stylesheet dafuer", /\.notiz-einheit-name\{/.test(src));
-pruefe("die Strecke erscheint nur, wo die Sportart eine hat",
-  (einheitHtml.match(/sp\.strecke \?/g) || []).length >= 2);
-pruefe("die Spaltenkoepfe nennen die Einheiten",
-  einheitHtml.includes("sp.strecke.einheit") &&
-  einheitHtml.includes("zeitEinheit(p.zeitEinheit).kurz"));
-pruefe("die Dauer steht in der Einheit des Plans, nicht in Sekunden",
-  einheitHtml.includes("inEinheit(p.dauer || 0, p.zeitEinheit)"));
-pruefe("Stufe 2 baut sie ein — VOR den Uebungs-Spalten",
-  (() => { const a = grabFn("notizAbschnittHtml");
-           return a.indexOf("notizEinheitZeileHtml(p)") > 0 &&
-                  a.indexOf("notizEinheitZeileHtml(p)") < a.indexOf('<label>Übung</label>'); })());
-/* v212: Stufe 1 zeichnet flach — die Einheit-Zeile kommt dort aus
-   `notizZeilenModell` (sie steht als erste Zeile des Abschnitts drin). */
-pruefe("Stufe 1 bekommt die Einheit ueber das Zeilen-Modell",
+/* ---------- 2) Die Einheit in den Notizen ---------- */
+/* 0.251: Die Einheit-Zeile der frueheren Stufe 2 (eigene Spalten fuer Strecke
+   und Zeit) ist mit den Abschnitts-Karten entfallen. Die Notizen zeigen die
+   Einheit als erste Zeile des Abschnitts („Laufen 5 km 30 min", v199) — das
+   Zeilen-Modell traegt sie, und wer tippt, aendert sie dort. */
+pruefe("die Spalten-Zeile der Stufe 2 ist weg",
+  !src.includes("function notizEinheitZeileHtml(") &&
+  !src.includes("function notizEinheitStreckeSetzen(") &&
+  !src.includes("function notizEinheitDauerSetzen("));
+pruefe("die Notizen bekommen die Einheit ueber das Zeilen-Modell",
   grabFn("notizZeilenModell").includes("einheit: true") &&
   grabFn("notizFlachHtml").includes("notizZeilenModell(p)"));
-
-/* ---------- 3) Die Felder speichern richtig ---------- */
-A.sitzung.daten.plaene = [{ id:"p9", sportart:"laufen", typ:"aktivitaet",
-                            strecke:5, dauer:1800, zeitEinheit:"min", uebungen:[] }];
-const p9 = A.sitzung.daten.plaene[0];
-A.notizEinheitStreckeSetzen("p9", "7,5");
-pruefe("die Strecke wird deutsch getippt gelesen", p9.strecke === 7.5);
-A.notizEinheitDauerSetzen("p9", "45");
-pruefe("die Dauer wird in Sekunden gespeichert", p9.dauer === 2700);
-A.notizEinheitStreckeSetzen("p9", "");
-A.notizEinheitDauerSetzen("p9", "");
-pruefe("ein geleertes Feld aendert nichts (kein Wert, kein Effekt)",
-  p9.strecke === 7.5 && p9.dauer === 2700);
-A.notizEinheitStreckeSetzen("p9", "0");
-pruefe("eine Null auch nicht", p9.strecke === 7.5);
-p9.zeitEinheit = "h";
-A.notizEinheitDauerSetzen("p9", "1,5");
-pruefe("die Zahl gilt in der Einheit des Plans", p9.dauer === 5400);
-A.notizEinheitDauerSetzen("p9", "99");
-pruefe("eine unsinnige Dauer wird gedeckelt", p9.dauer === 24 * 3600);
-A.notizEinheitStreckeSetzen("unbekannt", "5");
-pruefe("ein unbekannter Abschnitt wirft nicht", true);
-
+pruefe("die Einheit traegt weiter ihren Haken (v199)",
+  src.includes("function notizEinheitHakenHtml("));
 /* ---------- 4) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",
   (src.match(/const APP_VERSION = (\d+);/g) || []).length === 1);

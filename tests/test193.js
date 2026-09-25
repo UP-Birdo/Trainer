@@ -101,7 +101,7 @@ pruefe("der Assistent steht unter Mehr -> Werkzeuge",
 pruefe("der Beispielplan steht dort ebenfalls",
   src.includes('id="mehr-beispiel-knopf"') && src.includes('onclick="beispielLaden()"'));
 const werkzeuge = grabFn("einstWerkzeugeOeffnen");
-pruefe("der Assistent bleibt an Stufe 5 gebunden", werkzeuge.includes("stufe() >= 5"));
+pruefe("der Assistent bleibt an der Planung (Begleiter)", werkzeuge.includes('darf("planung")'));
 pruefe("der Beispielplan bleibt an Krafttraining gebunden", werkzeuge.includes('includes("kraft")'));
 pruefe("und eine leere Karte zeigt niemand",
   werkzeuge.includes('setzen("mehr-assistent-karte", mitAssistent || mitBeispiel)'));

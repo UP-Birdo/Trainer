@@ -3,6 +3,25 @@
 Diese Liste entspricht „Was ist neu" in der App (Quelle: `NEUIGKEITEN` in
 `index.html`). Neueste Version oben.
 
+## 0.251.0
+
+- <strong>Neuer Auftritt: UPCrew.</strong> Der Trainer gehört jetzt zum Studio UPCrew —
+  beim Öffnen erscheint kurz das UPCrew-Zeichen, ein Tipp überspringt es. Es lädt nichts
+  und meldet nichts an: Deine Daten bleiben wie bisher nur auf deinem Gerät.
+- <strong>Drei Ansichten statt fünf Stufen.</strong> Unter „Mehr → Ansicht“ wählst du
+  jetzt zwischen Notizen, Training und Begleiter — als Bild statt als Liste. Wer auf
+  „Notizblock + Zahlen“ stand, landet bei den Notizen (die Zahlen schreibst du einfach
+  mit in die Zeile), wer auf „+ Auswertung“ stand, beim Begleiter und hat damit
+  zusätzlich Ziele, Sportarten und den Plan-Assistenten. Es geht nichts verloren.
+- <strong>Formen mit Kante.</strong> Knöpfe, Karten und Dialoge sind runder und stehen
+  auf einer festen Kante statt auf einem verschwommenen Schatten; beim Antippen sinkt
+  ein Knopf auf seine Kante.
+- <strong>Leere Seiten helfen weiter.</strong> Wo noch nichts ist, stehen ein Zeichen,
+  ein, zwei Wörter und ein Knopf zum Weitermachen. Geht etwas schief, etwa beim
+  Speichern, gibt es „Nochmal“ statt einer technischen Meldung — die Einzelheiten hängen
+  am nächsten Feedback. Fehlt bei einer Eingabe etwas, sagt es die App in zwei Wörtern
+  („Gewicht fehlt“) statt in einem Satz.
+
 ## 0.250.0
 
 - <strong>„Erledigt“ zählt jetzt voll in die Belastung.</strong> Wenn du sagst, du hast

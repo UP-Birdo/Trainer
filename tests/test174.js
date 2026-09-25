@@ -175,7 +175,8 @@ pruefe("der Block wird neu gezeichnet", /notizblockZeichnen\(\);/.test(umschalte
 pruefe("der Zeitpunkt steht in der Rueckmeldung", /Gemacht um " \+ zeit/.test(umschalten));
 
 /* ---------- 9) Verdrahtung in beiden Stufen ---------- */
-const abschnitt = grabFn("notizAbschnittHtml");
+/* 0.251: Die Abschnitts-Karten der frueheren Stufe 2 sind entfallen —
+   es gibt nur noch die flache Liste der Notizen. */
 /* Die Leiste hing bis v184 unter dem Textfeld, v185 stellte sie davor — beides
    waren Notbehelfe, weil eine Textarea keine Knoepfe zwischen ihren Zeilen
    tragen kann. Seit v198 gibt es echte Zeilen, der Haken sitzt in der Zeile,
@@ -185,18 +186,13 @@ const abschnitt = grabFn("notizAbschnittHtml");
    `notizFlachHtml`. Der Haken pro Zeile bleibt (genau das war die Ansage). */
 pruefe("Stufe 1 bekommt ihre Zeilen aus der flachen Liste",
   grabFn("notizFlachHtml").includes("notizZeileHtml(p, z)"));
-pruefe("und notizAbschnittHtml baut nur noch Stufe 2",
-  !abschnitt.includes("notizZeilenHtml(p)"));
+pruefe("die Abschnitts-Karten der Stufe 2 sind weg (0.251)",
+  !src.includes("function notizAbschnittHtml("));
 pruefe("die Haken-Leiste ist abgeloest", !src.includes("function notizHakenLeisteHtml("));
 pruefe("Stufe 1 traegt den Haken IN der Zeile",
   grabFn("notizZeileHtml").includes("notizHakenHtml(p, z.uebung)"));
-pruefe("Stufe 2 bekommt den Haken IN der Zeile",
-  abschnitt.includes("notizHakenHtml(p, u)"));
 pruefe("eine namenlose Zeile bekommt stattdessen einen Platzhalter",
-  abschnitt.includes('<span class="notiz-kopf-haken"></span>') &&
   grabFn("notizZeileHtml").includes('<span class="notiz-kopf-haken"></span>'));
-pruefe("die Spaltenkoepfe haben die Haken-Spalte mitbekommen",
-  /notiz-kopf"><span class="notiz-kopf-haken">/.test(abschnitt));
 pruefe("nur Zeilen MIT Uebung bekommen einen Haken",
   /filter\(u => u\.name && u\.name\.trim\(\)\)/.test(grabFn("notizZeilenModell")));
 /* v199: Das Kaestchen selbst baut `notizHakenKnopfHtml` — Uebungs- und
@@ -218,7 +214,7 @@ pruefe("die kompakte Spalte ist so breit wie die des x-Knopfs",
 pruefe("der Haken stellt keine Frage", !/frage\(/.test(umschalten));
 pruefe("und faellt kein Urteil", !/note:/.test(umschalten) && !/bewert/i.test(umschalten));
 pruefe("die Analyse-Ansichten bleiben oben (Regression)",
-  /"view-statistik": 4/.test(src) && /"view-tagescheck": 4/.test(src));
+  /"view-statistik": "auswertung"/.test(src) && /"view-tagescheck": "fragen"/.test(src));
 
 /* ---------- 11) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

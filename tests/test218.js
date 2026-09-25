@@ -108,7 +108,7 @@ pruefe("Kraft bleibt ohne Strecke und Messwert",
 
 /* ---------- 4) Verdrahtung ---------- */
 pruefe("die Ansicht gibt es", src.includes('id="view-eintrag"'));
-pruefe("sie ist ab Stufe 4 erlaubt (wie der Verlauf)", /"view-eintrag": 4/.test(src));
+pruefe("sie gehoert zur Auswertung (wie der Verlauf)", /"view-eintrag": "auswertung"/.test(src));
 const oeffnen = grabFn("eintragBearbeiten");
 pruefe("der Stift oeffnet das Formular", oeffnen.includes('zeige("view-eintrag")'));
 pruefe("gearbeitet wird auf einer KOPIE", oeffnen.includes("JSON.parse(JSON.stringify(e))"));

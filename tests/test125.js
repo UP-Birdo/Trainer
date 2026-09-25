@@ -25,6 +25,10 @@ const code = [
   // v128: planTippen kennt jetzt den Mehrfach-Auswahlmodus — hier gestubbt.
   "let planAuswahlModus = false;",
   "function planAuswahlUmschalten(id){ gehakt.push(id); }",
+  // 0.251: planTippen fragt darf("training") — die echte Faehigkeiten-Tabelle
+  src.slice(src.indexOf("const STUFE = "), src.indexOf("\n", src.indexOf("const STUFE = "))),
+  src.slice(src.indexOf("const FAEHIGKEIT_AB = {"), src.indexOf("\n};", src.indexOf("const FAEHIGKEIT_AB = {")) + 3),
+  grabFn("darf"),
   grabFn("planTippen"),
   "module.exports = { planTippen, setStufe(n){ stufeWert = n; }, offen(){ return geoeffnet; }," +
   " setAuswahl(b){ planAuswahlModus = b; }, gehakt(){ return gehakt; } };"

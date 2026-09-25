@@ -113,21 +113,21 @@ pruefe("der Plan wird VOR dem Aufraeumen gemerkt",
 
 /* ---------- 3) Die Stufen-Auswahl vergleicht wieder ---------- */
 const stufen = A.simpelheitListe();
-pruefe("es sind weiterhin fuenf Stufen", stufen.length === 5);
+/* 0.251: drei Stufen; die kurze Zeile ist seither ein, zwei Woerter (UPCrew). */
+pruefe("es sind drei Stufen", stufen.length === 3);
 pruefe("jede hat eine kurze Zeile", stufen.every(s => typeof s.kurz === "string" && s.kurz.length > 0));
 pruefe("und die bleibt kurz (eine Zeile)", stufen.every(s => s.kurz.length <= 45));
 pruefe("sie unterscheiden sich alle",
-  new Set(stufen.map(s => s.kurz)).size === 5);
+  new Set(stufen.map(s => s.kurz)).size === stufen.length);
 pruefe("die ausfuehrliche Fassung bleibt erhalten",
   stufen.every(s => s.fuer && s.text));
 pruefe("die kurze Zeile ist nicht die lange",
   stufen.every(s => s.kurz !== s.text && s.kurz !== s.fuer));
 const auswahl = grabFn("simpelheitFrageZeichnen");
 pruefe("sie steht sichtbar in der Karte", auswahl.includes("<small>' + text(s.kurz)"));
-pruefe("das i bleibt daneben",
-  auswahl.includes("infoUmschalten") && auswahl.includes("stufe-info-"));
-pruefe("und dahinter die volle Fassung",
-  auswahl.includes("text(s.fuer)") && auswahl.includes("text(s.text)"));
+/* 0.251: Das i ist dem Bild gewichen — die volle Fassung ist die Vorlese-Beschriftung. */
+pruefe("die volle Fassung bleibt erreichbar (Vorlese-Beschriftung)",
+  auswahl.includes("aria-label") && auswahl.includes("s.fuer") && auswahl.includes("s.text"));
 pruefe("auf der gelben Karte bleibt sie lesbar (v173-Falle)",
   /\.stufe-wahl\.gewaehlt small\{color:#16181C/.test(src));
 pruefe("es gibt ein Stylesheet dafuer", /\.stufe-wahl small\{/.test(src));

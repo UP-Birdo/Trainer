@@ -76,13 +76,14 @@ const code = [
   grabFn("notizZeilenModell"),   // v198: die Text-Sicht baut auf dem Zeilen-Modell auf
   grabFn("abschnittTextErzeugen"),
   grabFn("abschnittTextSetzen"),
-  grabFn("abschnittNameSetzen"),
-  grabFn("notizZeileSaetzeSetzen"),
+  // 0.251: planSchieben fragt darf("training") — die echte Faehigkeiten-Tabelle
+  grabLine("const STUFE = "),
+  src.slice(src.indexOf("const FAEHIGKEIT_AB = {"), src.indexOf("\n};", src.indexOf("const FAEHIGKEIT_AB = {")) + 3),
+  grabFn("darf"),
   grabFn("planSchieben"),
   "module.exports = { get sitzung(){ return sitzung; }, get toasts(){ return toasts; }," +
   " leereToasts(){ toasts = []; }, setStufe(n){ stufeWert = n; }," +
-  " neueUebung, abschnittTextErzeugen, abschnittTextSetzen, abschnittNameSetzen," +
-  " notizZeileSaetzeSetzen, planSchieben };"
+  " neueUebung, abschnittTextErzeugen, abschnittTextSetzen, planSchieben };"
 ].join("\n");
 
 const modul = { exports: {} };
@@ -149,28 +150,14 @@ T.abschnittTextSetzen("p2", "Sätze 4 Wdh 12 Liegestütze");
 pruefe("Fehlende Zeilen entfernen Uebungen", p.uebungen.length === 1);
 pruefe("Toast fuer entfernte Uebungen", T.toasts.some(t => t.includes("entfernt")));
 
-/* 7) Sportart aus der Ueberschrift */
-p = testplan(); p.id = "p3"; p.sportart = "kraft"; p.typ = "kraft";
-T.sitzung.daten.plaene = [p];
-T.leereToasts();
-T.abschnittNameSetzen("p3", "Laufen");
-pruefe("Ueberschrift Laufen -> sportart laufen", p.sportart === "laufen" && p.typ === "aktivitaet");
-pruefe("Aktivitaets-Felder angelegt", typeof p.dauer === "number" && p.zeitEinheit === "min" && p.strecke === 3 && !!p.steigerung);
-pruefe("Toast zur Erkennung", T.toasts.some(t => t.includes("Laufen")));
-T.abschnittNameSetzen("p3", "Morgenrunde");
-pruefe("Umbenennen laesst Sportart stehen", p.sportart === "laufen" && p.name === "Morgenrunde");
-T.abschnittNameSetzen("p3", "tischtennis");
-pruefe("Klein geschriebene Sportart erkannt", p.sportart === "tischtennis");
+/* 7+8) 0.251: Die Abschnitts-Ueberschrift (Sportart aus dem Namen) und die
+   Saetze-Spalte gehoerten zur frueheren Stufe 2 und sind mit ihr entfallen.
+   In den Notizen findet jede Zeile ihre Sportart selbst (notizZielPlan). */
+pruefe("die Ueberschrift der Stufe 2 ist weg", !src.includes("function abschnittNameSetzen("));
+pruefe("die Saetze-Spalte der Stufe 2 ist weg", !src.includes("function notizZeileSaetzeSetzen("));
+pruefe("die Notizen finden die Sportart je Zeile", src.includes("function notizZielPlan("));
 
-/* 8) Saetze-Setter Stufe 2 */
-p = testplan(); p.id = "p4";
-T.sitzung.daten.plaene = [p];
-T.notizZeileSaetzeSetzen("p4", p.uebungen[0].id, "5");
-pruefe("Saetze-Feld setzt Saetze", p.uebungen[0].saetze === 5);
-T.notizZeileSaetzeSetzen("p4", p.uebungen[0].id, "");
-pruefe("Leeres Saetze-Feld laesst Wert stehen", p.uebungen[0].saetze === 5);
-
-/* 9) planSchieben: flach auf Stufe 1/2, gruppiert ab Stufe 3 */
+/* 9) planSchieben: flach in den Notizen, gruppiert ab dem Training */
 const pa = { id:"a", name:"A", sportart:"kraft", uebungen:[] };
 const pb = { id:"b", name:"B", sportart:"laufen", uebungen:[] };
 const pc = { id:"c", name:"C", sportart:"kraft", uebungen:[] };

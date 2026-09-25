@@ -144,8 +144,8 @@ pruefe("eine unbekannte Art liefert nichts",
 const oeffnen = grabFn("statDetailOeffnen");
 pruefe("eine unbekannte Art oeffnet nichts", oeffnen.includes("if(!STAT_DETAILS[art]) return;"));
 pruefe("die Ansicht wird gezeigt", oeffnen.includes('zeige("view-statdetail")'));
-pruefe("sie ist ab Stufe 4 erreichbar (wie die Statistik selbst)",
-  /"view-statdetail": 4/.test(src));
+pruefe("sie gehoert zur Auswertung (wie die Statistik selbst)",
+  /"view-statdetail": "auswertung"/.test(src));
 ["volumen","ausdauer","messwerte","fortschritt","bestwerte"].forEach(a =>
   pruefe("die Kachel " + a + " ist tippbar",
     src.includes('stat-tap" onclick="statDetailOeffnen(\'' + a + '\')')));
@@ -164,8 +164,8 @@ pruefe("die Liste nutzt dieselbe Zeile wie der Verlauf",
   zeichnen.includes("protokollEintragHtml(e, true)"));
 pruefe("und denselben Kopf mit Mehrfach-Loeschen",
   zeichnen.includes('listenKopfHtml("statdetail")'));
-pruefe("ohne Eintraege steht ein Satz statt einer leeren Seite",
-  zeichnen.includes("Noch keine Einträge."));
+pruefe("ohne Eintraege steht ein Leer-Zustand statt einer leeren Seite",
+  zeichnen.includes('zustandLeerHtml({ symbol:"verlauf", text:"Keine Einträge" })'));
 
 /* ---------- 9) Version und Neuigkeit ---------- */
 pruefe("die Auto-Update-Erkennung findet die Version genau einmal",

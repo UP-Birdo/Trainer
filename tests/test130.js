@@ -22,21 +22,21 @@ function grabFn(name){
 
 const modul = { exports: {} };
 new Function("module", "exports",
-  [grabFn("navTabsFuerStufe"), "module.exports = { navTabsFuerStufe };"].join("\n")
+  [src.slice(src.indexOf("const STUFE = "), src.indexOf("\n", src.indexOf("const STUFE = "))),
+   grabFn("navTabsFuerStufe"), "module.exports = { navTabsFuerStufe };"].join("\n")
 )(modul, modul.exports);
 const navTabsFuerStufe = modul.exports.navTabsFuerStufe;
 
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
-/* 1) Die Stufen-Logik (war schon richtig — Regression sichern). */
-pruefe("Stufe 1 ohne Leiste", navTabsFuerStufe(1).length === 0);
-pruefe("Stufe 2 ohne Leiste", navTabsFuerStufe(2).length === 0);
-pruefe("Stufe 3 OHNE Statistik", !navTabsFuerStufe(3).includes("nav-statistik"));
-pruefe("Stufe 3 hat Heute, Plaene, Mehr",
+/* 1) Die Stufen-Logik — seit 0.251 drei Stufen: Notizen (1), Training (3),
+      Begleiter (5). stufe() liefert nie mehr 2 oder 4. */
+pruefe("Notizen ohne Leiste", navTabsFuerStufe(1).length === 0);
+pruefe("Training OHNE Statistik", !navTabsFuerStufe(3).includes("nav-statistik"));
+pruefe("Training hat Heute, Plaene, Mehr",
   navTabsFuerStufe(3).join() === "nav-start,nav-plaene,nav-einst");
-pruefe("Stufe 4 MIT Statistik", navTabsFuerStufe(4).includes("nav-statistik"));
-pruefe("Stufe 5 MIT Statistik", navTabsFuerStufe(5).includes("nav-statistik"));
+pruefe("Begleiter MIT Statistik", navTabsFuerStufe(5).includes("nav-statistik"));
 
 /* 2) Der eigentliche Fix: hidden schlaegt jede display-Regel. */
 pruefe("globale hidden-Regel vorhanden", /\[hidden\]\{display:none !important\}/.test(src));
@@ -48,7 +48,7 @@ pruefe("Nav-Buttons werden weiterhin per hidden gesteuert",
 /* 3) Diese Stellen litten am selben Fehler — sie muessen weiter hidden nutzen
       (die Regel repariert sie, der Code darf nicht auf Klassen umgebaut werden). */
 pruefe("Profil-Zeile unter Mehr nutzt hidden",
-  src.includes('document.getElementById("mehr-profil-zeile").hidden = stufe() < 5'));
+  src.includes('document.getElementById("mehr-profil-zeile").hidden = !darf("planung")'));
 pruefe("Mass-Stepper nutzt hidden",
   src.includes('document.getElementById("akt-mass-stepper").hidden = istSkala'));
 

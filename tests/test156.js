@@ -1,8 +1,10 @@
 /* v156-Test: Die Stufen-Auswahl folgt dem Gedanken, nicht der Zaehlweise.
    Wer NEU ist, will viel sehen; wer erfahren ist, nur noch mitschreiben. Die
-   Auswahl ist deshalb von „viel Anleitung" nach „wenig" sortiert, nennt je
-   Stufe FUER WEN sie ist — und zeigt die interne Nummer nicht mehr.
-   Wichtig: die gespeicherte Zahl 1..5 bleibt unveraendert (Datenvertrag).
+   Auswahl ist deshalb von „viel" nach „wenig" sortiert, nennt je Stufe FUER WEN
+   sie ist — und zeigt die interne Nummer nicht.
+   0.251: drei Stufen statt fuenf (Notizen 1, Training 3, Begleiter 5). Die
+   gespeicherte Zahl bleibt eine Zahl aus 1..5 (Datenvertrag) — es werden nur
+   noch drei davon geschrieben.
    Hinweis: in Test-LABELS keine typografischen Anfuehrungszeichen (Haus-Falle). */
 "use strict";
 const fs = require("fs");
@@ -45,13 +47,14 @@ const { SIMPELHEIT_STUFEN, SIMPELHEIT_REIHENFOLGE, simpelheitListe } = modul.exp
 let ok = 0, fehler = 0;
 function pruefe(name, bed){ if(bed){ ok++; } else { fehler++; console.error("FEHLT: " + name); } }
 
-/* ---------- 1) Die Daten bleiben, wie sie waren ---------- */
-pruefe("es gibt weiter genau fuenf Stufen", SIMPELHEIT_STUFEN.length === 5);
-pruefe("die Nummern stehen unveraendert aufsteigend 1..5",
-  SIMPELHEIT_STUFEN.every((s, i) => s.n === i + 1));
-pruefe("keine Nummer wurde vertauscht (Datenvertrag)",
-  SIMPELHEIT_STUFEN.find(s => s.n === 1).titel === "Notizblock" &&
-  SIMPELHEIT_STUFEN.find(s => s.n === 5).titel === "Vollausbau");
+/* ---------- 1) Die Daten: drei Stufen, Kennungen aus dem alten Bereich ---------- */
+pruefe("es gibt genau drei Stufen", SIMPELHEIT_STUFEN.length === 3);
+pruefe("die Kennungen sind 1, 3, 5 (aufsteigend)",
+  SIMPELHEIT_STUFEN.map(s => s.n).join(",") === "1,3,5");
+pruefe("die Namen passen zu den Kennungen",
+  SIMPELHEIT_STUFEN.find(s => s.n === 1).titel === "Notizen" &&
+  SIMPELHEIT_STUFEN.find(s => s.n === 3).titel === "Training" &&
+  SIMPELHEIT_STUFEN.find(s => s.n === 5).titel === "Begleiter");
 
 /* ---------- 2) Jede Stufe sagt, fuer wen sie ist ---------- */
 const ohneFuer = SIMPELHEIT_STUFEN.filter(s => !s.fuer).map(s => s.n);
@@ -61,19 +64,22 @@ pruefe("jede Stufe sagt auch, was sie zeigt", SIMPELHEIT_STUFEN.every(s => s.tex
 const zuKurz = SIMPELHEIT_STUFEN.filter(s => s.fuer.length < 25).map(s => s.n);
 pruefe("kein Platzhalter-Text" + (zuKurz.length ? " (" + zuKurz.join(", ") + ")" : ""), zuKurz.length === 0);
 pruefe("die Zielgruppen sind verschieden",
-  new Set(SIMPELHEIT_STUFEN.map(s => s.fuer)).size === 5);
-pruefe("der Vollausbau ist ausdruecklich fuer den Anfang",
+  new Set(SIMPELHEIT_STUFEN.map(s => s.fuer)).size === 3);
+pruefe("der Begleiter ist ausdruecklich fuer den Anfang",
   /Anfang/i.test(SIMPELHEIT_STUFEN.find(s => s.n === 5).fuer));
-pruefe("der Notizblock ist ausdruecklich fuer Erfahrene",
+pruefe("die Notizen sind ausdruecklich fuer Erfahrene",
   /Erfahren/i.test(SIMPELHEIT_STUFEN.find(s => s.n === 1).fuer));
+/* UPCrew-Standard: sichtbar sind nur Name und ein, zwei Woerter. */
+pruefe("die sichtbare Kurzform hat hoechstens drei Woerter",
+  SIMPELHEIT_STUFEN.every(s => s.kurz.trim().split(/\s+/).length <= 3));
 
 /* ---------- 3) Die Anzeige-Reihenfolge dreht die Zaehlweise um ---------- */
-pruefe("Reihenfolge ist 5,4,3,2,1", JSON.stringify(SIMPELHEIT_REIHENFOLGE) === JSON.stringify([5,4,3,2,1]));
+pruefe("Reihenfolge ist 5,3,1", JSON.stringify(SIMPELHEIT_REIHENFOLGE) === JSON.stringify([5,3,1]));
 const liste = simpelheitListe();
-pruefe("die Liste hat alle fuenf, jede genau einmal",
-  liste.length === 5 && new Set(liste.map(s => s.n)).size === 5);
-pruefe("oben steht der Vollausbau", liste[0].n === 5);
-pruefe("unten steht der Notizblock", liste[4].n === 1);
+pruefe("die Liste hat alle drei, jede genau einmal",
+  liste.length === 3 && new Set(liste.map(s => s.n)).size === 3);
+pruefe("oben steht der Begleiter", liste[0].n === 5);
+pruefe("unten stehen die Notizen", liste[2].n === 1);
 pruefe("die Liste ist absteigend", liste.every((s, i) => i === 0 || liste[i-1].n > s.n));
 pruefe("sie liefert dieselben Objekte wie die Tabelle",
   liste.every(s => SIMPELHEIT_STUFEN.includes(s)));
@@ -82,13 +88,13 @@ pruefe("sie liefert dieselben Objekte wie die Tabelle",
 const zeichnen = grabFn("simpelheitFrageZeichnen");
 pruefe("die Auswahl nutzt die sortierte Liste", zeichnen.includes("simpelheitListe()"));
 pruefe("und nicht mehr die rohe Tabelle", !zeichnen.includes("SIMPELHEIT_STUFEN.map("));
-pruefe("die Nummer steht nicht mehr im Knopf", !zeichnen.includes("s.n + ' · '"));
-pruefe("die Zielgruppe steht ueber der Funktionsliste",
-  zeichnen.indexOf("text(s.fuer)") < zeichnen.indexOf("text(s.text)"));
-pruefe("die Auswahl merkt sich weiter die aktuelle Stufe", zeichnen.includes("s.n === jetzt"));
+pruefe("die Nummer steht nicht im Knopf", !zeichnen.includes("s.n + ' · '"));
+pruefe("die Auswahl merkt sich die aktuelle Stufe", zeichnen.includes("s.n === jetzt"));
+pruefe("beim ersten Start ist Training hervorgehoben",
+  zeichnen.includes("const jetzt = simpelheitErstmalig ? STUFE.TRAINING : stufe();"));
 pruefe("gewaehlt wird weiter ueber die Nummer", zeichnen.includes("simpelheitWaehlen(' + s.n + ')"));
-pruefe("die Mehr-Zeile nennt keine Nummer mehr",
-  !grabFn("simpelheitZeileZeichnen").includes('"Einfachheit: Stufe "'));
+pruefe("die Mehr-Zeile nennt keine Nummer",
+  !grabFn("simpelheitZeileZeichnen").includes("Stufe "));
 pruefe("die Erst-Frage fragt nach dem Umfang, nicht nach Einfachheit",
   grabFn("simpelheitFrageOeffnen").includes("Wie viel soll die App dir zeigen?"));
 

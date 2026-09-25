@@ -202,7 +202,8 @@ pruefe("der Titel der Ansicht ebenso", src.includes('<h1 id="plaene-titel">Übun
 pruefe("auf Stufe 1/2 bleibt es der Notizblock",
   grabFn("notizblockKopfSetzen").includes('einfach ? "Notizblock" : "Übungen"'));
 pruefe("der Verweis von Heute traegt dasselbe Wort", src.includes(">Zu den Übungen</button>"));
-pruefe("der Leer-Zustand nennt keine Plan-Art mehr", liste.includes("Noch nichts angelegt."));
+pruefe("der Leer-Zustand nennt keine Plan-Art mehr",
+  liste.includes('zustandLeerHtml({ symbol:"plan", text:"Noch leer",') && !/text:"[^"]*Plan/.test(liste));
 
 /* ---------- 7) Der Ersatz zuerst, das Entfernen zuletzt ---------- */
 /* v193 (Nutzer-Ansage): Der Assistent ist aus dem „+"-Menue ausgezogen. Die
